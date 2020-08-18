@@ -26,10 +26,6 @@
 })()({
     1: [function (require, module, exports) {
 
-        const firebase = require("firebase");
-        // Required for side-effects
-        require("firebase/firestore");
-
         console.log("bundle.js Loaded!");
 
     }, {}]
