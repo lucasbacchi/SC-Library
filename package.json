@@ -1,0 +1,23 @@
+{
+  "name": "sc-library",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "firebase": "^7.18.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FunMan22/SC-Library.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FunMan22/SC-Library/issues"
+  },
+  "homepage": "https://github.com/FunMan22/SC-Library#readme"
+}
