@@ -6,4 +6,4 @@ requirejs(["helper/util"], function(util) {
     console.log("A message triggered by the loading of util.js.");
 });
 
-console.log("main.js Loaded!")
+console.log("main.js Loaded!");
