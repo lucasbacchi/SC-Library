@@ -1,3 +1,8 @@
+:root {
+    --mint: #C5D86D;
+    --teal: #3D7A8B;
+}
+
 * {
     box-sizing: border-box;
 }
@@ -49,4 +54,26 @@ html {
 
 }
 
+#books {
+    width: 70%;
+    margin: 0 auto;
+}
 
+.row {
+    height: 150px;
+    padding: 1% 0;
+}
+
+.book {
+    display: inline-block;
+    width: 30%;
+    height: 98%;
+    margin: 1%;
+    border: 1px solid var(--mint);
+    color: var(--teal);
+}
+
+.bookimage {
+    height: 90%;
+    margin: 5%;
+}
