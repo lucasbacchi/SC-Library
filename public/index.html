@@ -20,23 +20,96 @@
     </header>
 
     <input type=search placeholder="Search by title, author, subject, keyword..." style="min-width:275px;"></input>
-    <p>Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can check them out and take them home for a while.</p>
+    <p>Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can
+        check them out and take them home for a while.</p>
     <p>Here are some books our algorithm has picked out especially for you:</p>
     <div id=books>
         <div class=row>
-            <div class=book><img src="img/favicon.ico" class=bookimage></div>
-            <div class=book>book</div>
-            <div class=book>book</div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>The Martian</p>
+                    </b>
+                    <p class=author>Andy Weir</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>A Tale of Two Cities</p>
+                    </b>
+                    <p class=author>Charles Dickens</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>Aurora</p>
+                    </b>
+                    <p class=author>Kim Stanley Robinson</p>
+                </div>
+            </div>
         </div>
         <div class=row>
-            <div class=book>book</div>
-            <div class=book>book</div>
-            <div class=book>book</div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>The Martian</p>
+                    </b>
+                    <p class=author>Andy Weir</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>A Tale of Two Cities</p>
+                    </b>
+                    <p class=author>Charles Dickens</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>Aurora</p>
+                    </b>
+                    <p class=author>Kim Stanley Robinson</p>
+                </div>
+            </div>
         </div>
         <div class=row>
-            <div class=book>book</div>
-            <div class=book>book</div>
-            <div class=book>book</div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>The Martian</p>
+                    </b>
+                    <p class=author>Andy Weir</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>A Tale of Two Cities</p>
+                    </b>
+                    <p class=author>Charles Dickens</p>
+                </div>
+            </div>
+            <div class=book>
+                <img src="img/favicon.ico" class=bookimage>
+                <div>
+                    <b>
+                        <p class=title>Aurora</p>
+                    </b>
+                    <p class=author>Kim Stanley Robinson</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -52,7 +125,7 @@
 
     <!-- Initialize Firebase -->
     <script src="/__/firebase/init.js"></script>
-    
+
     <!-- Initilize Firebase on Web App -->
     <script>
         const firebase = require("firebase");
@@ -81,38 +154,36 @@
         var db = firebase.firestore();
 
         db.collection("users").add({
-            first: "Ada",
-            last: "Lovelace",
-            born: 1815
-        })
-        .then(function(docRef) {
-            console.log("Document written with ID: ", docRef.id);
-        })
-        .catch(function(error) {
-            console.error("Error adding document: ", error);
-        });
+                first: "Ada",
+                last: "Lovelace",
+                born: 1815
+            })
+            .then(function (docRef) {
+                console.log("Document written with ID: ", docRef.id);
+            })
+            .catch(function (error) {
+                console.error("Error adding document: ", error);
+            });
 
         // Add a second document with a generated ID.
         db.collection("users").add({
-            first: "Alan",
-            middle: "Mathison",
-            last: "Turing",
-            born: 1912
-        })
-        .then(function(docRef) {
-            console.log("Document written with ID: ", docRef.id);
-        })
-        .catch(function(error) {
-            console.error("Error adding document: ", error);
-        });
+                first: "Alan",
+                middle: "Mathison",
+                last: "Turing",
+                born: 1912
+            })
+            .then(function (docRef) {
+                console.log("Document written with ID: ", docRef.id);
+            })
+            .catch(function (error) {
+                console.error("Error adding document: ", error);
+            });
 
         db.collection("users").get().then((querySnapshot) => {
             querySnapshot.forEach((doc) => {
                 console.log(`${doc.id} => ${doc.data()}`);
             });
         });
-
-        
     </script>
 
     <script type="text/javascript" src="js/main.js"></script>
