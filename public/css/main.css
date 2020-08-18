@@ -65,15 +65,22 @@ html {
 }
 
 .book {
-    display: inline-block;
     width: 30%;
     height: 98%;
     margin: 1%;
+    padding: 10px;
     border: 1px solid var(--mint);
     color: var(--teal);
+    overflow: visible;
+    float: left;
 }
 
 .bookimage {
-    height: 90%;
-    margin: 5%;
+    height: 100%;
+    float: left;
+}
+
+p.title, p.author {
+    text-align: right;
+    margin: .25em;
 }
