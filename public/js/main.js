@@ -16,8 +16,8 @@ $(document).ready(function(){
     }
 
 
-    $(docuemnt).resize(function() {
-        if ($(docuemnt).width() > 500) {
+    $(document).resize(function() {
+        if ($(document).width() > 500) {
             $('nav').width('60%');
         }
     });
