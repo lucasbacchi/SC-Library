@@ -71,6 +71,7 @@ header {
     width: 100%;
     background: var(--teal);
     padding: 20px;
+    margin-bottom: 20px;
     font-family: Poppins, sans-serif;
     display: block;
 }
@@ -120,7 +121,6 @@ div.search {
     width: fit-content;
     display: block;
     margin: 0 auto;
-    margin-top: 15px;
 }
 
 form {
