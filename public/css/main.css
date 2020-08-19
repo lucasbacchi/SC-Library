@@ -61,26 +61,64 @@ html, body {
     font-family: Oswald, sans-serif;
 }
 
+a, a:visited {
+    text-decoration: none;
+    color: var(--teal);
+}
+
 header {
     height: 80px;
     width: 100%;
     background: var(--teal);
-    color: var(--mint);
     padding: 20px;
     font-family: Poppins, sans-serif;
+    display: block;
 }
 
-header > h1 {
+h1 {
+    margin: 0;
+}
+
+header > h1 > a, header > h1 > a:visited {
     float: left;
-    margin: -5px 0;
+    margin: 0;
+    color: var(--mint);
 }
 
 header > a, header > a:visited {
     float: right;
-    margin: 5px;
+    margin: 0;
     color: var(--mint);
-    text-decoration: none;
     font-size: 20px;
+    padding-top: 5px;
+}
+
+a, a:visited {
+    text-decoration: none;
+    color: var(--teal);
+}
+
+nav {
+    float: left;
+    display: block;
+    padding-left: 25px;
+    font-size: 20px;
+}
+
+.navlink {
+    display: block;
+    float: left;
+    padding: 10px;
+}
+
+.navlink > a, .navlink > a:visited {
+    color: var(--mint);
+}
+
+input {
+    display: block;
+    margin: 0 auto;
+    margin-top: 15px;
 }
 
 p {
