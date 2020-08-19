@@ -77,6 +77,7 @@ header {
 
 h1 {
     margin: 0;
+    margin-top: -5px;
 }
 
 header > h1 > a, header > h1 > a:visited {
@@ -90,7 +91,7 @@ header > a, header > a:visited {
     margin: 0;
     color: var(--mint);
     font-size: 20px;
-    padding-top: 5px;
+    margin-top: 10px;
 }
 
 a, a:visited {
@@ -103,7 +104,6 @@ nav {
     display: block;
     padding-left: 25px;
     font-size: 20px;
-    margin-top: -5px;
 }
 
 .navlink {
@@ -123,8 +123,14 @@ div.search {
     margin-top: 15px;
 }
 
-input, button {
+form {
+    display: block;
+    float: left;
+}
+
+input {
     font-family: Oswald, sans-serif;
+    float: left;
 }
 
 p {
