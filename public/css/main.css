@@ -46,16 +46,6 @@ html {
     background: #0060ff50;
 }
 
-/* Content if screen is large */
-@media screen and (min-width: 1440px) {
-
-}
-
-/* Content if screen is small */
-@media screen and (max-width:786px) {
-
-}
-
 html, body {
     margin: 0px;
     font-family: Oswald, sans-serif;
@@ -167,4 +157,118 @@ p {
 p.title, p.author {
     text-align: right;
     margin: .25em;
+}
+
+#hamburger-button {
+    display: none;
+    font-size: 30px;
+    color: var(--mint);
+}
+
+#close-button {
+    padding: 20px;
+    display: none;
+    font-size: 30px;
+    color: var(--mint);
+}
+
+
+
+
+
+
+/* Content if screen is large */
+@media screen and (min-width: 1440px) {
+
+}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {
+    header > h1 {
+        display: none;
+    }
+
+    nav {
+        padding: 0;
+    }
+
+    #books {
+        width: 98%;
+    }
+
+    .book {
+        width: 31%;
+    }
+
+
+}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    
+    .book {
+        width: 48%;
+    }
+
+    nav > li {
+        font-size: 14px;
+    }
+
+    header > a {
+        font-size: 14px;
+    }
+    
+
+}
+
+/* Content if screen is extremely small */
+@media screen and (max-width:500px) {
+    .book {
+        width: 98%;
+    }
+
+    #books {
+        width: 100%;
+    }
+
+    nav {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 100;
+        height: 100%;
+        width: 0%;
+        background-color: var(--teal);
+        transition: 0.5s;
+    }
+
+    nav > li > a {
+        width: 0;
+        padding-left: 20px;
+        font-size: 20px;
+        display: none;
+        transition: 0.5s;
+    }
+
+    .navlink {
+        float: none;
+    }
+
+    #hamburger-button {
+        display: block;
+        font-size: 30px;
+        color: var(--mint);
+        float: left;
+    }
+
+    #close-button {
+        padding: 20px;
+        display: none;
+        font-size: 30px;
+        color: var(--mint);
+        transition: 0.5s;
+    }
+
+
+
 }
