@@ -4,43 +4,41 @@
 <head>
     <!-- Link to Hosted jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <link rel="stylesheet" type="text/css" href="../css/main.css">
     <title>Login | South Church Library Catalog</title>
     <meta charset="utf-8">
     <meta name="description" content="South Church Library Catalog Login.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="img/favicon.ico" type="image/png">
+    <link rel="icon" href="../img/favicon.ico" type="image/png">
 </head>
 
 <body>
     <header>
-        <h1><a href="index.html">South Church Library</a></h1>
+        <h1><a href="../index.html">South Church Library</a></h1>
         <span id="hamburger-button">&#9776;</span>
         <nav>
             <span id="close-button">&#10006;</span>
-            <li class=navlink><a href="index.html">Home</a></li>
-            <li class=navlink><a href="about.html">About</a></li>
-            <li class=navlink><a href="search.html">Browse</a></li>
-            <li class=navlink><a href="login.html">Sign In</a></li>
-            <li class=navlink><a href="help.html">Help</a></li>
+            <li class=navlink><a href="../index.html">Home</a></li>
+            <li class=navlink><a href="../about.html">About</a></li>
+            <li class=navlink><a href="../search.html">Browse</a></li>
+            <li class=navlink><a href="../login.html">Sign In</a></li>
+            <li class=navlink><a href="../help.html">Help</a></li>
         </nav>
         <a href="https://www.southchurch.com" target="_blank">South Church Home</a>
     </header>
 
     <div id=form>
         <form action="login.html" method="GET">
+            <label for=name>Name:</label>
+            <input type=text id=name name=name>
+            <br />
+            <br />
             <label for=email>Email:</label>
             <input type=email id=email name=email>
             <br />
             <br />
-            <label for=password>Password:</label>
-            <input type=password id=password name=password>
-            <br />
-            <br />
             <input type="submit" value="Submit">
         </form>
-
-        <a class=admin href=admin/signIn.html>Admin entrance</a>
     </div>
 
     <!-- The core Firebase JS SDK is always required and must be listed first -->
@@ -57,7 +55,7 @@
     <script src="/__/firebase/init.js"></script>
 
 
-    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript" src="../js/main.js"></script>
 </body>
 
 </html>
