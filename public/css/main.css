@@ -126,6 +126,9 @@ div.search {
 form {
     display: block;
     float: left;
+}
+
+form.login {
     width: 100%;
 }
 
