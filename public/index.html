@@ -116,8 +116,7 @@
     <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script src="/__/firebase/7.18.0/firebase-app.js"></script>
 
-    <!-- TODO: Add SDKs for Firebase products that you want to use
-     https://firebase.google.com/docs/web/setup#available-libraries -->
+    <!-- Specific Firebase JS SDK links -->
     <script src="/__/firebase/7.18.0/firebase-analytics.js"></script>
     <script src="/__/firebase/7.18.0/firebase-auth.js"></script>
     <script src="/__/firebase/7.18.0/firebase-firestore.js"></script>
@@ -130,10 +129,12 @@
     
     <script src="/js/bundle.js"></script>
 
-    <!-- Initilize Firebase on Web App -->
-    <script>
+    <script type="text/javascript" src="js/main.js"></script>
 
-        var firebaseConfig = {
+    <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
+    <!--<script>
+
+        /*var firebaseConfig = {
             apiKey: "AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU",
             authDomain: "south-church-library.firebaseapp.com",
             databaseURL: "https://south-church-library.firebaseio.com",
@@ -142,7 +143,7 @@
             messagingSenderId: "695036619849",
             appId: "1:695036619849:web:5e99fa7a4f64cec2daa398",
             measurementId: "G-MRXNED32DZ"
-        };
+        };*/
 
 
         // Initialize Cloud Firestore through Firebase
@@ -185,9 +186,7 @@
                 console.log(`${doc.id} => ${doc.data()}`);
             });
         });
-    </script>
-
-    <script type="text/javascript" src="js/main.js"></script>
+    </script>-->
 </body>
 
 </html>
