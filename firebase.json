@@ -9,7 +9,11 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ]
+    ],
+    "rewrites": [ {
+      "source": "/advancedsearch.html",
+      "destination": "/advancedSearch.html"
+    } ]
   },
   "storage": {
     "rules": "storage.rules"

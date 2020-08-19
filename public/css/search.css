@@ -1,0 +1,28 @@
+#sort-sidebar {
+    width: 200px;
+    float: left;
+    height: 100%;
+    position: sticky;
+}
+
+h6 {
+    margin: 0;
+    font-size: 12px;
+}
+
+h4 {
+    margin: 0;
+}
+
+.result-image {
+    max-width: 60px;
+}
+
+#results-container {
+    width: calc(100% - 200px);
+    float: left;
+}
+
+.result-text {
+    text-align: left;
+}
