@@ -126,6 +126,7 @@ div.search {
 form {
     display: block;
     float: left;
+    width: 100%;
 }
 
 input {
@@ -136,6 +137,14 @@ input {
 label {
     float: left;
     margin-right: 10px;
+}
+
+a.admin,
+a.admin:visited {
+    display: block;
+    float: left;
+    margin: 20px auto;
+    font-size: .75em;
 }
 
 p {
