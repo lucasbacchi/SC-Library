@@ -27,11 +27,13 @@
     </header>
 
     <div class=search>
-        <input type=search placeholder="Search by title, author, subject, keyword..." style="min-width:275px;"></input>
-        <button type=submit formaction="search.html">Search</button>
-        <button type=submit formactoin="advancedsearch.html">Advanced Search</button>
+        <form action=search.html method=get><input type=search name=q
+                placeholder="Search by title, author, subject, keyword..." style="min-width:275px;"></input><input
+                type=submit value="Search"></input></form>
+        <form action=advancedsearch.html><input type=submit value="Advanced Search"></input></form>
     </div>
 
+    <br />
     <br />
     <p>Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can
         check them out and take them home for a while.</p>
