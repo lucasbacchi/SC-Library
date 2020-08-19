@@ -285,12 +285,20 @@ p.author {
         float: left;
     }
 
+    #hamburger-button:hover {
+        cursor: pointer;
+    }
+
     #close-button {
         padding: 20px;
         display: none;
         font-size: 30px;
         color: var(--mint);
         transition: 0.5s;
+    }
+
+    #close-button:hover {
+        cursor: pointer;
     }
 
     .welcome-text {
