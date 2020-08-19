@@ -172,6 +172,12 @@ p.title, p.author {
     color: var(--mint);
 }
 
+.welcome-text {
+    margin-top: 12px;
+    width: 100%;
+    float: left;
+}
+
 
 
 
@@ -246,8 +252,10 @@ p.title, p.author {
         width: 0;
         padding-left: 20px;
         font-size: 20px;
+        opacity: 0;
         display: none;
         transition: 0.5s;
+        white-space: nowrap;
     }
 
     .navlink {
@@ -267,6 +275,22 @@ p.title, p.author {
         font-size: 30px;
         color: var(--mint);
         transition: 0.5s;
+    }
+
+    .welcome-text {
+        margin-top: 24px;
+        float: left;
+        width: 100%;
+    }
+
+    .search {
+        margin-bottom: 10px;
+        width: 100%;
+        text-align: center;
+    }
+
+    #search-input {
+        min-width: 150px !important;
     }
 
 
