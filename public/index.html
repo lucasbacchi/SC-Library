@@ -30,7 +30,7 @@
 
     <div class=search>
         <form action=search.html method=get>
-            <input type=search name=q placeholder="Search by title, author, subject, keyword..."
+            <input id="search-input" type=search name=q placeholder="Search by title, author, subject, keyword..."
                 style="min-width:275px;"></input>
             <input type=submit value="Search"></input>
         </form>
@@ -39,12 +39,8 @@
         </form>
     </div>
 
-    <br />
-    <br />
-    <p>Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can
-        check them out and take them home for a while.</p>
-    <br />
-    <p>Here are some books our algorithm has picked out especially for you:</p>
+    <p class="welcome-text">Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can check them out and take them home for a while.</p>
+    <p class="welcome-text">Here are some books our algorithm has picked out especially for you:</p>
     <div id=books>
         <div class=row>
             <div class=book>
