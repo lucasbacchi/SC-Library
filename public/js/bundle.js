@@ -27,6 +27,7 @@
     1: [function (require, module, exports) {
 
         console.log("bundle.js Loaded!");
+        console.log("Browserify is working properly!");
 
     }, {}]
 }, {}, [1]);
