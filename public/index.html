@@ -26,7 +26,11 @@
         <a href="https://www.southchurch.com" target="_blank">South Church Home</a>
     </header>
 
-    <input type=search placeholder="Search by title, author, subject, keyword..." style="min-width:275px;"></input>
+    <div class=search>
+        <input type=search placeholder="Search by title, author, subject, keyword..." style="min-width:275px;"></input>
+        <button type=submit formaction="search.html">Search</button>
+        <button type=submit formactoin="advancedsearch.html">Advanced Search</button>
+    </div>
 
     <br />
     <p>Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can
@@ -136,7 +140,7 @@
     <!-- Initialize Firebase -->
     <script src="/__/firebase/init.js"></script>
 
-    
+
     <script src="/js/bundle.js"></script>
 
     <script type="text/javascript" src="js/main.js"></script>

@@ -103,6 +103,7 @@ nav {
     display: block;
     padding-left: 25px;
     font-size: 20px;
+    margin-top: -5px;
 }
 
 .navlink {
@@ -115,10 +116,15 @@ nav {
     color: var(--mint);
 }
 
-input {
+div.search {
+    width: fit-content;
     display: block;
     margin: 0 auto;
     margin-top: 15px;
+}
+
+input, button {
+    font-family: Oswald, sans-serif;
 }
 
 p {
