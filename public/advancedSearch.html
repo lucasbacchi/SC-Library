@@ -23,10 +23,27 @@
             <a href="https://www.southchurch.com" target="_blank">South Church Home</a>
         </header>
 
-        <h1>The Advanced Search Page! One day, this will lead you to the search page lol...</h1>
-
-        
-
+        <div id=form>
+            <form action="search.html" method="GET">
+                <label for=title>Title:</label>
+                <input type=text id=title name=title>
+                <br />
+                <br />
+                <label for=author>Author:</label>
+                <input type=text id=author name=author>
+                <br />
+                <br />
+                <label for=subject>Subject:</label>
+                <input type=text id=subject name=subject>
+                <br />
+                <br />
+                <label for=keyword>Keyword:</label>
+                <input type=text id=keyword name=keyword>
+                <br />
+                <br />
+                <input type="submit" value="Submit">
+            </form>
+        </div>
 
         <!-- The core Firebase JS SDK is always required and must be listed first -->
         <script src="/__/firebase/7.18.0/firebase-app.js"></script>
