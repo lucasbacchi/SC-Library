@@ -72,6 +72,11 @@ h1 {
     margin-top: -5px;
 }
 
+h2 {
+    width: fit-content;
+    margin: 20px auto 10px;
+}
+
 header>h1>a,
 header>h1>a:visited {
     float: left;
@@ -128,6 +133,10 @@ form {
     float: left;
 }
 
+form.login {
+    width: 100%;
+}
+
 input {
     font-family: Oswald, sans-serif;
     float: left;
@@ -144,6 +153,15 @@ a.admin:visited {
     float: left;
     margin: 20px auto;
     font-size: .75em;
+}
+
+div.mgmt {
+    width: fit-content;
+    margin: 0 auto;
+}
+
+div.mgmt > p {
+    margin: 5px;
 }
 
 p {
