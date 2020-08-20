@@ -1,240 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <!-- Link to Hosted jQuery -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/main.css">
-    <title>South Church Library Catalog</title>
-    <meta charset="utf-8">
-    <meta name="description" content="Official Library Catalog of South Church in Andover!">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="img/favicon.ico" type="image/png">
+    <head>
+        <!-- Link to Hosted jQuery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+        <title>South Church Library Catalog</title>
+        <meta charset="utf-8">
+        <meta name="description" content="Official Library Catalog of South Church in Andover!">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="img/favicon.ico" type="image/png">
 
-</head>
+    </head>
 
-<body>
-    <header>
-        <h1><a href="index.html">South Church Library</a></h1>
-        <span id="hamburger-button">&#9776;</span>
-        <nav>
-            <span id="close-button">&#10006;</span>
-            <li class=navlink><a href="index.html">Home</a></li>
-            <li class=navlink><a href="about.html">About</a></li>
-            <li class=navlink><a href="search.html">Browse</a></li>
-            <li class=navlink><a href="login.html">Sign In</a></li>
-            <li class=navlink><a href="help.html">Help</a></li>
-        </nav>
-        <a href="https://www.southchurch.com" target="_blank">South Church Home</a>
-    </header>
+    <body>
+        <header>
+            <h1><a href="index.html">South Church Library</a></h1>
+            <span id="hamburger-button">&#9776;</span>
+            <nav>
+                <span id="close-button">&#10006;</span>
+                <li class=navlink><a href="index.html">Home</a></li>
+                <li class=navlink><a href="about.html">About</a></li>
+                <li class=navlink><a href="search.html">Browse</a></li>
+                <li class=navlink><a href="login.html">Sign In</a></li>
+                <li class=navlink><a href="help.html">Help</a></li>
+            </nav>
+            <a href="https://www.southchurch.com" target="_blank">South Church Home</a>
+        </header>
 
-    <div class=search>
-        <form action=search.html method=get>
-            <input id="search-input" type=search name=q placeholder="Search by title, author, subject, keyword..."
-                style="min-width:275px;"></input>
-            <input type=submit value="Search"></input>
-        </form>
-        <form action=advancedsearch.html method=get>
-            <input type=submit value="Advanced Search"></input>
-        </form>
-    </div>
+        <div class=search>
+            <form action=search.html method=get>
+                <input id="search-input" type=search name=q placeholder="Search by title, author, subject, keyword..."
+                    style="min-width:275px;"></input>
+                <input type=submit value="Search"></input>
+            </form>
+            <form action=advancedsearch.html method=get>
+                <input type=submit value="Advanced Search"></input>
+            </form>
+        </div>
 
-    <p class="welcome-text">Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can check them out and take them home for a while.</p>
-    <p class="welcome-text">Here are some books our algorithm has picked out especially for you:</p>
-    <div style="width: 100%; float: left; margin-bottom: 10px;">
-        <div id=books>
-            <div class=row>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>The Martian</p>
-                        </b>
-                        <p class=author>Andy Weir</p>
+        <p class="welcome-text">Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can check them out and take them home for a while.</p>
+        <p class="welcome-text">Here are some books our algorithm has picked out especially for you:</p>
+        <div style="width: 100%; float: left; margin-bottom: 10px;">
+            <div id=books>
+                <div class=row>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>The Martian</p>
+                            </b>
+                            <p class=author>Andy Weir</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>A Tale of Two Cities</p>
+                            </b>
+                            <p class=author>Charles Dickens</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>Aurora</p>
+                            </b>
+                            <p class=author>Kim Stanley Robinson</p>
+                        </div>
                     </div>
                 </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>A Tale of Two Cities</p>
-                        </b>
-                        <p class=author>Charles Dickens</p>
+                <div class=row>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>The Martian</p>
+                            </b>
+                            <p class=author>Andy Weir</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>A Tale of Two Cities</p>
+                            </b>
+                            <p class=author>Charles Dickens</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>Aurora</p>
+                            </b>
+                            <p class=author>Kim Stanley Robinson</p>
+                        </div>
                     </div>
                 </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>Aurora</p>
-                        </b>
-                        <p class=author>Kim Stanley Robinson</p>
+                <div class=row>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>The Martian</p>
+                            </b>
+                            <p class=author>Andy Weir</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>A Tale of Two Cities</p>
+                            </b>
+                            <p class=author>Charles Dickens</p>
+                        </div>
+                    </div>
+                    <div class=book>
+                        <img src="img/favicon.ico" class=bookimage>
+                        <div>
+                            <b>
+                                <p class=title>Aurora</p>
+                            </b>
+                            <p class=author>Kim Stanley Robinson</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class=row>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>The Martian</p>
-                        </b>
-                        <p class=author>Andy Weir</p>
-                    </div>
-                </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>A Tale of Two Cities</p>
-                        </b>
-                        <p class=author>Charles Dickens</p>
-                    </div>
-                </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>Aurora</p>
-                        </b>
-                        <p class=author>Kim Stanley Robinson</p>
-                    </div>
-                </div>
+        </div>
+
+        <!-- Required to make sure footer doesn't overlay on other content. -->
+        <div id="footer-spacer" style="clear: both; height: 200px;"></div>
+        <footer>
+            <div class="footer-div">
+                <h2 class="footer-title">Contact Us</h2>
+                <ul class="footer-list">
+                    <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a></li>
+                    <li><a href="mailto:scand@southchurch.com">scand@southchurch.com</a></li>
+                    <li><a href="tel:978-475-0321">978-475-0321</a></li>
+                </ul>
             </div>
-            <div class=row>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>The Martian</p>
-                        </b>
-                        <p class=author>Andy Weir</p>
-                    </div>
-                </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>A Tale of Two Cities</p>
-                        </b>
-                        <p class=author>Charles Dickens</p>
-                    </div>
-                </div>
-                <div class=book>
-                    <img src="img/favicon.ico" class=bookimage>
-                    <div>
-                        <b>
-                            <p class=title>Aurora</p>
-                        </b>
-                        <p class=author>Kim Stanley Robinson</p>
-                    </div>
-                </div>
+            <div class="footer-div">
+                <h2 class="footer-title">South Chruch</h2>
+                <ul class="footer-list">
+                    <li><a href="https://www.southchurch.com" target="_blank">Website</a></li>
+                    <li><a href="https://southchurch.com/worship" target="_blank">Worship</a></li>
+                    <li><a href="https://www.southchurch.com/welcome" target="_blank">Welcome</a></li>
+                </ul>
             </div>
-        </div>
-    </div>
+            <div class="footer-div">
+                <h2 class="footer-title">Help</h2>
+                <ul class="footer-list">
+                    <li><a href="help.html">Help Page</a></li>
+                    <li><a href="help.html#FAQ">FAQs</a></li>
+                    <li><a href="sitemap.html">Sitemap</a></li>
+                </ul>
+            </div>
+            <div class="footer-bottom">&#169;2020 South Church in Andover</div>
+        </footer>
+
+        <!-- The core Firebase JS SDK is always required and must be listed first -->
+        <script src="/__/firebase/7.18.0/firebase-app.js"></script>
+
+        <!-- Specific Firebase JS SDK links -->
+        <script src="/__/firebase/7.18.0/firebase-analytics.js"></script>
+        <script src="/__/firebase/7.18.0/firebase-auth.js"></script>
+        <script src="/__/firebase/7.18.0/firebase-firestore.js"></script>
+        <script src="/__/firebase/7.18.0/firebase-storage.js"></script>
 
 
-
-    <footer>
-        <div class="footer-div">
-            <h2 class="footer-title">Contact Us</h2>
-            <ul class="footer-list">
-                <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a></li>
-                <li><a href="mailto:scand@southchurch.com">scand@southchurch.com</a></li>
-                <li><a href="tel:978-475-0321">978-475-0321</a></li>
-            </ul>
-        </div>
-        <div class="footer-div">
-            <h2 class="footer-title">South Chruch</h2>
-            <ul class="footer-list">
-                <li><a href="https://www.southchurch.com" target="_blank">Website</a></li>
-                <li><a href="https://southchurch.com/worship" target="_blank">Worship</a></li>
-                <li><a href="https://www.southchurch.com/welcome" target="_blank">Welcome</a></li>
-            </ul>
-        </div>
-        <div class="footer-div">
-            <h2 class="footer-title">Help</h2>
-            <ul class="footer-list">
-                <li><a href="help.html">Help Page</a></li>
-                <li><a href="help.html#FAQ">FAQs</a></li>
-                <li><a href="sitemap.html">Sitemap</a></li>
-            </ul>
-        </div>
-        <div class="footer-bottom">&#169;2020 South Church in Andover</div>
-    </footer>
-
-    <!-- The core Firebase JS SDK is always required and must be listed first -->
-    <script src="/__/firebase/7.18.0/firebase-app.js"></script>
-
-    <!-- Specific Firebase JS SDK links -->
-    <script src="/__/firebase/7.18.0/firebase-analytics.js"></script>
-    <script src="/__/firebase/7.18.0/firebase-auth.js"></script>
-    <script src="/__/firebase/7.18.0/firebase-firestore.js"></script>
-    <script src="/__/firebase/7.18.0/firebase-storage.js"></script>
+        <!-- Initialize Firebase -->
+        <script src="/__/firebase/init.js"></script>
 
 
-    <!-- Initialize Firebase -->
-    <script src="/__/firebase/init.js"></script>
+        <script type="text/javascript" src="js/main.js"></script>
+
+        <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
+        <!--<script>
+
+            /*var firebaseConfig = {
+                apiKey: "AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU",
+                authDomain: "south-church-library.firebaseapp.com",
+                databaseURL: "https://south-church-library.firebaseio.com",
+                projectId: "south-church-library",
+                storageBucket: "south-church-library.appspot.com",
+                messagingSenderId: "695036619849",
+                appId: "1:695036619849:web:5e99fa7a4f64cec2daa398",
+                measurementId: "G-MRXNED32DZ"
+            };*/
 
 
-    <script type="text/javascript" src="js/main.js"></script>
+            // Initialize Cloud Firestore through Firebase
+            /*firebase.initializeApp({
+                apiKey: 'AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU',
+                authDomain: 'south-church-library.firebaseapp.com',
+                projectId: 'south-church-library'
+            });*/
 
-    <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
-    <!--<script>
+            var db = firebase.firestore();
 
-        /*var firebaseConfig = {
-            apiKey: "AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU",
-            authDomain: "south-church-library.firebaseapp.com",
-            databaseURL: "https://south-church-library.firebaseio.com",
-            projectId: "south-church-library",
-            storageBucket: "south-church-library.appspot.com",
-            messagingSenderId: "695036619849",
-            appId: "1:695036619849:web:5e99fa7a4f64cec2daa398",
-            measurementId: "G-MRXNED32DZ"
-        };*/
+            db.collection("users").add({
+                    first: "Ada",
+                    last: "Lovelace",
+                    born: 1815
+                })
+                .then(function (docRef) {
+                    console.log("Document written with ID: ", docRef.id);
+                })
+                .catch(function (error) {
+                    console.error("Error adding document: ", error);
+                });
 
+            // Add a second document with a generated ID.
+            db.collection("users").add({
+                    first: "Alan",
+                    middle: "Mathison",
+                    last: "Turing",
+                    born: 1912
+                })
+                .then(function (docRef) {
+                    console.log("Document written with ID: ", docRef.id);
+                })
+                .catch(function (error) {
+                    console.error("Error adding document: ", error);
+                });
 
-        // Initialize Cloud Firestore through Firebase
-        /*firebase.initializeApp({
-            apiKey: 'AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU',
-            authDomain: 'south-church-library.firebaseapp.com',
-            projectId: 'south-church-library'
-        });*/
-
-        var db = firebase.firestore();
-
-        db.collection("users").add({
-                first: "Ada",
-                last: "Lovelace",
-                born: 1815
-            })
-            .then(function (docRef) {
-                console.log("Document written with ID: ", docRef.id);
-            })
-            .catch(function (error) {
-                console.error("Error adding document: ", error);
+            db.collection("users").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    console.log(`${doc.id} => ${doc.data()}`);
+                });
             });
-
-        // Add a second document with a generated ID.
-        db.collection("users").add({
-                first: "Alan",
-                middle: "Mathison",
-                last: "Turing",
-                born: 1912
-            })
-            .then(function (docRef) {
-                console.log("Document written with ID: ", docRef.id);
-            })
-            .catch(function (error) {
-                console.error("Error adding document: ", error);
-            });
-
-        db.collection("users").get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                console.log(`${doc.id} => ${doc.data()}`);
-            });
-        });
-    </script>-->
-</body>
+        </script>-->
+    </body>
 
 </html>
