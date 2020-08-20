@@ -28,18 +28,19 @@
     </header>
 
     <div id=form>
-        <form action="signIn.html" method="POST">
+        <form action="javascript:toggleSignIn();">
             <label for=email>Email:</label>
-            <input type=email id=email name=email>
+            <input type="text" id="email" name="email" placeholder="Email">
             <br />
             <br />
             <label for=password>Password:</label>
-            <input type=password id=password name=password>
+            <input type="password" id="password" name="password" placeholder="Password">
             <br />
             <br />
-            <input type="submit" value="Submit">
+            <input type="submit" value="Sign In">
         </form>
     </div>
+
 
     <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script src="/__/firebase/7.18.0/firebase-app.js"></script>
@@ -55,6 +56,7 @@
     <script src="/__/firebase/init.js"></script>
 
 
+    <script type="text/javascript" src="../js/signIn.js"></script>
     <script type="text/javascript" src="../js/main.js"></script>
 </body>
 
