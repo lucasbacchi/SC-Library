@@ -126,7 +126,6 @@ div.search {
 form {
     display: block;
     float: left;
-    width: 100%;
 }
 
 input {
@@ -203,6 +202,49 @@ p.author {
     float: left;
 }
 
+footer {
+    background-color: var(--teal);
+    display: block;
+    width: 100%;
+    float: left;
+    text-align: center;
+}
+
+.footer-div {
+    width: 25%;
+    padding: 20px 60px;
+    margin: 0 auto;
+    display: inline-block;
+    text-align: left;
+}
+
+.footer-title {
+    margin: 0;
+    padding-bottom: 6px;
+}
+
+.footer-list {
+    padding: 0;
+    margin: 0;
+}
+
+.footer-list > li {
+    list-style-type: none;
+}
+
+.footer-list > li > a { 
+    color: var(--mint);
+    padding-left: 1px;
+}
+
+.footer-bottom {
+    background-color: rgb(1, 60, 75);
+    color: #cccccc;
+    float: left;
+    width: 100%;
+    margin-top: 20px;
+    text-align: center;
+}
 
 
 
