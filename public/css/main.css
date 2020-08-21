@@ -274,6 +274,32 @@ footer {
     font-size: 14px;
 }
 
+#account-container {
+    float: right;
+    position: relative;
+    top: -8px;
+}
+
+#large-account-container {
+    display: none;
+}
+
+#small-account-container {
+    padding: 8px;
+}
+
+#small-account-image {
+    max-height: 50px;
+    border-radius: 50px;
+    border: 2.5px solid white;
+}
+
+#account-arrow {
+    color: white;
+    position: relative;
+    bottom: 18px;
+    margin-left: 6px;
+}
 
 
 
