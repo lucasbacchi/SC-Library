@@ -1,10 +1,25 @@
 #sort-sidebar {
     padding: 10px;
-    width: 200px;
+    /*padding-left: 20px;*/
+    width: 15%;
     float: left;
     height: 100%;
     top: 0;
-    position: sticky;
+    position: relative;
+    background-color: #f2f2f2;
+    /*transform: translate(0px, -20px);
+    padding-top: 40px;*/
+    margin-left: 20px;
+    border-radius: 6px;
+    box-shadow: 0px 0px 8px 0px #cccccc;
+}
+
+#sort-main-title {
+    margin: 0;
+    margin-bottom: 12px;
+    padding: 6px;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .sort-item {
@@ -22,9 +37,14 @@ ul {
     margin-top: 6px;
 }
 
-h6 {
+h6.sort-title {
     margin: 0;
     font-size: 16px;
+    font-weight: 600;
+    background-color: #51abc464;
+    padding: 4px 20px;
+    padding-left: 10px;
+    border-radius: 2px;
 }
 
 h4 {
@@ -32,19 +52,124 @@ h4 {
 }
 
 .result-image {
-    max-width: 60px;
+    max-width: 120px;
+    border: 1px solid var(--mint);
+    padding: 4px;
+    float: left;
+    margin-right: 16px;
+    border-radius: 4px;
 }
 
 #results-container {
     padding: 10px;
-    width: calc(100% - 200px);
+    border-radius: 6px;
+    z-index: 3;
+    margin-left: 15px;
+    margin-bottom: 20px;
+    width: 81%;
     float: left;
+    overflow: hidden;
+    /*margin-right: 20px;*/
+    box-shadow: 0px 0px 8px 2px #cccccc;
 }
 
 .result-listing {
     padding: 10px;
+    padding-bottom: 20px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    border-bottom: 1px solid black;
+}
+
+.result-number {
+    float: left;
+    margin-right: 8px;
 }
 
 .result-text {
     text-align: left;
+    position: absolute;
+    margin-right: 20px;
+}
+
+.result-info {
+    float: left;
+}
+
+
+
+
+
+
+
+
+
+/* Content if screen is large */
+@media screen and (min-width: 1440px) {
+
+    #results-container {
+        width: 81.5%;
+    }
+
+}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {
+    #results-container {
+        width: 82%;
+        margin-right: 0;
+        margin-left: 12px;
+    }
+
+    #sort-sidebar {
+        margin-left: 8px;
+    }
+
+
+}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    #results-container {
+        width: 70%;
+    }
+
+    #sort-sidebar {
+        width: 25%;
+    }
+    
+    
+
+}
+
+/* Content if screen is extremely small */
+@media screen and (max-width:500px) {
+    
+    .sort-section {
+        display: none;
+        opacity: 0;
+        transition: 1s;
+    }
+
+    #sort-sidebar {
+        width: calc(100% - 20px);
+        margin: 0px 10px;
+        transition: 1s;
+        max-height: 58px;
+    }
+
+    h3#sort-main-title {
+        vertical-align: middle;
+        text-align: center;
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    #results-container {
+        margin-top: 20px;
+        clear: both;
+        width: calc(100% - 30px);
+    }
+
+
 }
