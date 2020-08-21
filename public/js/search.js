@@ -34,13 +34,13 @@ setResize2();
 
 $('#sort-main-title').click(function() {
     if ($('.sort-section').css('display') == 'none') {
-        $('.sort-section').show();
+        $('.sort-section').show(0).delay(10);
         $('#sort-sidebar').css('max-height', '500px');
         $('#sort-sidebar').css('overflow-y', 'scroll');
         $('.sort-section').css('opacity', '1');
     } else {
         $('.sort-section').delay(1000).hide(0);
-        $('#sort-sidebar').css('overflow-y', 'visible');
+        $('#sort-sidebar').css('overflow-y', 'hidden');
         $('#sort-sidebar').css('max-height', '58px');
         $('.sort-section').css('opacity', '0');
     }
