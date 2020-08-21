@@ -292,6 +292,7 @@ footer {
     box-shadow: 2px 2px 12px 2px #888888;
     text-align: center;
     padding: 20px;
+    min-width: 125px;
 }
 
 #large-account-image {
