@@ -55,6 +55,15 @@ function setResize() {
     }
 }
 
+$('#small-account-container').click(function() {
+    if($('#large-account-container').css('display') == 'none') {
+        $('#large-account-container').show();
+    } else {
+        $('#large-account-container').hide();
+    }
+
+});
+
 setResize();
 
 
