@@ -71,11 +71,11 @@ header {
     margin-bottom: 20px;
     font-family: Poppins, sans-serif;
     display: block;
+    margin-top: -5px;
 }
 
 h1 {
     margin: 0;
-    margin-top: -5px;
 }
 
 h2 {
@@ -277,11 +277,28 @@ footer {
 #account-container {
     float: right;
     position: relative;
-    top: -8px;
+    top: -5px;
 }
 
 #large-account-container {
     display: none;
+    z-index: 20;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 300px;
+    background-color: #f9f9f9;
+    border-radius: 20px;
+    box-shadow: 2px 2px 12px 2px #888888;
+    text-align: center;
+    padding: 20px;
+}
+
+#large-account-image {
+    margin: 10px auto;
+    border-radius: 120px;
+    box-shadow: 0px 0px 8px -2px #333333;
+    max-height: 120px;
 }
 
 #small-account-container {
@@ -300,6 +317,38 @@ footer {
     bottom: 18px;
     margin-left: 6px;
 }
+
+#log-out {
+    float: left;
+}
+
+#account-settings {
+    float: right;
+}
+
+.account-bottom {
+    margin-top: 40px;
+    border-top: 1px solid black;
+    width: 50%;
+    padding: 8px;
+    font-size: 14px;
+    padding-top: 20px;
+    padding-bottom: 0px;
+    vertical-align: bottom;
+}
+
+.account-bottom > a {
+    color: black;
+}
+
+.account-bottom:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+
+
+
 
 
 
@@ -327,6 +376,10 @@ footer {
         width: 31%;
     }
 
+    #small-account-container {
+        margin-top: -5px;
+    }
+
 
 }
 
@@ -338,11 +391,11 @@ footer {
     }
 
     nav > li {
-        font-size: 14px;
+        font-size: 17px;
     }
 
     header > a {
-        font-size: 14px;
+        font-size: 17px;
     }
 
     .footer-div {
@@ -450,6 +503,10 @@ footer {
 
     div#footer-spacer {
         height: 500px !important;
+    }
+
+    #large-account-container {
+        max-width: 200px;
     }
 
 
