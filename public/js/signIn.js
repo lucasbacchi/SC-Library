@@ -28,16 +28,11 @@ function signIn() {
         }
         console.log(error);
         });
+        $('#email').val('');
+        $('#password').val('');
     }
 }
 
-function signOut() {
-    if (firebase.auth().currentUser) {
-        firebase.auth().signOut();
-    } else {
-        alert("No user is currently signed in.");
-    }
-}
 
 /**
  * Handles the sign up button press.
@@ -93,32 +88,3 @@ function sendPasswordReset() {
     });
 }
 
-/**
- * initApp handles setting up UI event listeners and registering Firebase auth listeners:
- *  - firebase.auth().onAuthStateChanged: This listener is called when the user is signed in or
- *    out, and that is where we update the UI.
- */
-function initApp() {
-    // Listening for auth state changes.]
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-            // User is signed in.
-            var displayName = user.displayName;
-            var email = user.email;
-            var emailVerified = user.emailVerified;
-            var photoURL = user.photoURL;
-            var isAnonymous = user.isAnonymous;
-            var uid = user.uid;
-            var providerData = user.providerData;
-            if (!emailVerified) {
-                // User's email is not verified
-            }
-        } else {
-        // User is signed out.
-        }
-    });
-}
-
-window.onload = function() {
-    initApp();
-};

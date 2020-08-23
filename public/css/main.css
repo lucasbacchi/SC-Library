@@ -11,6 +11,7 @@
 
 html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 @media screen and (prefers-reduced-motion: reduce) {
@@ -68,10 +69,10 @@ header {
     width: 100%;
     background: var(--teal);
     padding: 20px;
+    padding-top: 15px;
     margin-bottom: 20px;
     font-family: Poppins, sans-serif;
     display: block;
-    margin-top: -5px;
 }
 
 h1 {
@@ -134,16 +135,18 @@ div.search {
     margin: 0 auto;
 }
 
-form {
+div.login {
     display: block;
     float: left;
-}
-
-form.login {
     width: 100%;
 }
 
 input {
+    font-family: Oswald, sans-serif;
+    float: left;
+}
+
+div.login > button {
     font-family: Oswald, sans-serif;
     float: left;
 }
@@ -284,15 +287,16 @@ footer {
     display: none;
     z-index: 20;
     position: absolute;
-    right: 0;
+    right: -500%;
     top: calc(100% + 6px);
     width: 300px;
     background-color: #f9f9f9;
     border-radius: 20px;
-    box-shadow: 2px 2px 12px 2px #888888;
+    box-shadow: 0px 0px 12px 0px #d9d9d9;
     text-align: center;
     padding: 20px;
     min-width: 125px;
+    transition: 1s ease;
 }
 
 #large-account-image {
@@ -300,17 +304,24 @@ footer {
     border-radius: 120px;
     box-shadow: 0px 0px 8px -2px #333333;
     max-height: 120px;
+    border: 2px solid white;
 }
 
 #small-account-container {
     padding: 8px;
     margin-top: -5px;
+    cursor: pointer;
 }
 
 #small-account-image {
     max-height: 50px;
     border-radius: 50px;
     border: 2.5px solid white;
+    transition: box-shadow 0.25s;
+}
+
+#small-account-image:hover {
+    box-shadow: 0px 0px 12px 0px #00000070;
 }
 
 #account-arrow {
@@ -318,6 +329,11 @@ footer {
     position: relative;
     bottom: 18px;
     margin-left: 6px;
+    transition: text-shadow 0.25s;
+}
+
+#account-arrow:hover {
+    text-shadow: -1px -1px 4px #00000050, -1px 1px 4px #00000050, 1px -1px 4px #00000050, 1px 1px 4px #00000050;
 }
 
 #log-out {
