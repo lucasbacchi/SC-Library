@@ -38,6 +38,7 @@ function signIn() {
  * Handles the sign up button press.
  */
 function handleSignUp() {
+    var name = document.getElementById('name').value;
     var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
     if (email.length < 4) {
@@ -46,6 +47,10 @@ function handleSignUp() {
     }
     if (password.length < 4) {
         alert('Please enter a longer password.');
+        return;
+    }
+    if (name.length < 1) {
+        alert('Please enter a name.');
         return;
     }
     // Create user with email and pass.
@@ -59,6 +64,8 @@ function handleSignUp() {
         alert(errorMessage);
         }
         console.log(error);
+    }).then(function() {
+        
     });
 }
 

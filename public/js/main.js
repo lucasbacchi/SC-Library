@@ -91,6 +91,8 @@ $(window).click(function(event) {
 function signOut() {
     if (firebase.auth().currentUser) {
         firebase.auth().signOut();
+        /* could change 'replace' to 'href' if we wanted to keep the page in the history */
+        window.location.replace('index.html')
     } else {
         alert("No user is currently signed in.");
     }
@@ -110,6 +112,7 @@ function initApp() {
                 console.log("User Authentication state has changed.")
                 if (user) {
                     // User is signed in.
+                    console.log('User is now Signed In.');
                     var displayName = user.displayName;
                     $('#account-name').text(displayName);
                     var email = user.email;
@@ -125,17 +128,23 @@ function initApp() {
                     if (!emailVerified) {
                         // User's email is not verified
                     }
+                    $('#nav-login-signup').hide();
+                    $('#small-account-container').show();
+                    $('#large-account-image').show();
                     $('#large-account-image').show();
                     $('#account-email').show();
                     $('#account-settings').show();
                     $('#log-out').html('<a>Log Out</a>').css('width', '50%').attr('onclick', 'javascript:signOut();');
                 } else {
                     // User is signed out.
+                    console.log('User is now Signed Out.');
+                    $('#nav-login-signup').show();
+                    $('#small-account-container').hide();
                     $('#large-account-image').hide();
                     $('#account-email').hide();
                     $('#account-name').html('No user signed in');
                     $('#account-settings').hide();
-                    $('#log-out').html('<a href="../../../login.html">Log In</a>').css('width', '100%').attr('onclick', '');
+                    $('#log-out').html('<a href="login.html">Log In</a>').css('width', '100%').attr('onclick', '');
                 }
                 resolve();
             })

@@ -139,6 +139,12 @@ div.login {
     display: block;
     float: left;
     width: 100%;
+    margin: 4px;
+    margin-bottom: 25px;
+}
+
+div.login > input {
+    float: right;
 }
 
 input {
@@ -156,12 +162,39 @@ label {
     margin-right: 10px;
 }
 
-a.admin,
-a.admin:visited {
+.sign-in-switch,
+a.sign-in-switch:visited {
     display: block;
     float: left;
-    margin: 20px auto;
-    font-size: .75em;
+    margin: auto;
+    margin-bottom: 5px;
+    font-size: 1.25em;
+    clear: both;
+}
+
+#nav-login {
+    float: left;
+    padding: 5px 15px;
+    margin: 10px 0px;
+    border-right: 1px solid var(--mint);
+}
+
+#nav-signup {
+    float: right;
+    padding: 5px 15px;
+    margin: 10px 0px;
+    border-left: 1px solid var(--mint);
+}
+
+div#nav-login > a, div#nav-signup > a {
+    color: var(--mint);
+}
+
+.sign-in-title {
+    margin: 0 auto;
+    width: fit-content;
+    padding-left: 20px;
+    margin-bottom: 12px;
 }
 
 div.mgmt {
@@ -308,6 +341,7 @@ footer {
 }
 
 #small-account-container {
+    display: none;
     padding: 8px;
     margin-top: -5px;
     cursor: pointer;

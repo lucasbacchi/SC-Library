@@ -4,9 +4,9 @@
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <link rel="stylesheet" type="text/css" href="css/main.css">
-        <title>Login | South Church Library Catalog</title>
+        <title>Sign Up | South Church Library Catalog</title>
         <meta charset="utf-8">
-        <meta name="description" content="South Church Library Catalog Login.">
+        <meta name="description" content="South Church Library Catalog Sign Up.">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="icon" href="img/favicon.ico" type="image/png">
     </head>
@@ -25,8 +25,8 @@
             </nav>
             <div id="account-container">
                 <div id="nav-login-signup">
-                    <div id="nav-login"><a href="#">Log In</a></div>
-                    <div id="nav-signup"><a href="signup.html">Sign Up</a></div>
+                    <div id="nav-login"><a href="login.html">Log In</a></div>
+                    <div id="nav-signup"><a href="#">Sign Up</a></div>
                 </div>
                 <div id="small-account-container">
                     <img id="small-account-image" src="img/default-user.jpg">
@@ -44,10 +44,14 @@
             </div>
         </header>
 
-        <h1 class="sign-in-title">Log In</h1>
+        <h1 class="sign-in-title">Sign up for an Account</h1>
         
         <div id=form>
             <div class=login>
+                <label for=name>Name:</label>
+                <input type=name id=name name=name>
+                <br />
+                <br />
                 <label for=email>Email:</label>
                 <input type=email id=email name=email>
                 <br />
@@ -56,11 +60,11 @@
                 <input type=password id=password name=password>
                 <br />
                 <br />
-                <button onclick="javascript:signIn()">Log In</button>
+                <button onclick="javascript:handleSignUn()">Sign Up</button>
             </div>
 
-            <p class="sign-in-switch">Don't have an account?</p>
-            <a class="sign-in-switch" href=signup.html style="margin-bottom: 30px;">Click here to sign up!</a>
+            <p class="sign-in-switch">Already have an Account?</p>
+            <a class="sign-in-switch" href=login.html style="margin-bottom: 20px;">Click here to Log In!</a>
         </div>
 
         

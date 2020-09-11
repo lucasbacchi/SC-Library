@@ -3,31 +3,26 @@
     <head>
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-        <link rel="stylesheet" type="text/css" href="css/main.css">
-        <title>Login | South Church Library Catalog</title>
+        <link rel="stylesheet" type="text/css" href="../css/main.css">
+        <title>Edit an Entry | South Church Library Catalog</title>
         <meta charset="utf-8">
-        <meta name="description" content="South Church Library Catalog Login.">
+        <meta name="description" content="South Church Library Catalog Entry Editing.">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" href="img/favicon.ico" type="image/png">
+        <link rel="icon" href="../img/favicon.ico" type="image/png">
     </head>
-
     <body>
         <header>
             <h1><a href="index.html">South Church Library</a></h1>
             <span id="hamburger-button">&#9776;</span>
             <nav>
                 <span id="close-button">&#10006;</span>
-                <li class=navlink><a href="index.html">Home</a></li>
-                <li class=navlink><a href="about.html">About</a></li>
-                <li class=navlink><a href="search.html">Browse</a></li>
-                <li class=navlink><a href="login.html">Sign In</a></li>
-                <li class=navlink><a href="help.html">Help</a></li>
+                <li class=navlink><a href="../index.html">Home</a></li>
+                <li class=navlink><a href="../about.html">About</a></li>
+                <li class=navlink><a href="../search.html">Browse</a></li>
+                <li class=navlink><a href="../login.html">Sign In</a></li>
+                <li class=navlink><a href="../help.html">Help</a></li>
             </nav>
             <div id="account-container">
-                <div id="nav-login-signup">
-                    <div id="nav-login"><a href="#">Log In</a></div>
-                    <div id="nav-signup"><a href="signup.html">Sign Up</a></div>
-                </div>
                 <div id="small-account-container">
                     <img id="small-account-image" src="img/default-user.jpg">
                     <span id="account-arrow">&#9660;</span>
@@ -35,37 +30,17 @@
                 <div id="large-account-container">
                     <img id="large-account-image" src="img/default-user.jpg">
                     <div>
-                        <p id="account-name"><b>John Doe</b></p>
-                        <p id="account-email">JohnDoe<wbr>@Something.com</p>
+                        <p><b>John Doe</b></p>
+                        <p>JohnDoe<wbr>@Something.com</p>
                     </div>
-                    <div id="log-out" class="account-bottom" onclick="javascript:signOut();"><a>Log Out</a></div>
+                    <div id="log-out" class="account-bottom"><a>Log Out</a></div>
                     <div id="account-settings" class="account-bottom"><a>View Account</a></div>
                 </div>
             </div>
         </header>
 
-        <h1 class="sign-in-title">Log In</h1>
-        
-        <div id=form>
-            <div class=login>
-                <label for=email>Email:</label>
-                <input type=email id=email name=email>
-                <br />
-                <br />
-                <label for=password>Password:</label>
-                <input type=password id=password name=password>
-                <br />
-                <br />
-                <button onclick="javascript:signIn()">Log In</button>
-            </div>
+        <h1>The Entry Editing Page! Some conent will appear below at some point lol...</h1>
 
-            <p class="sign-in-switch">Don't have an account?</p>
-            <a class="sign-in-switch" href=signup.html style="margin-bottom: 30px;">Click here to sign up!</a>
-        </div>
-
-        
-        
-        
         
         <!-- Required to make sure footer doesn't overlay on other content. -->
         <div id="footer-spacer" style="clear: both; height: 200px;"></div>
@@ -96,7 +71,7 @@
             </div>
             <div class="footer-bottom">&#169;2020 South Church in Andover</div>
         </footer>
-        
+
         <!-- The core Firebase JS SDK is always required and must be listed first -->
         <script src="/__/firebase/7.18.0/firebase-app.js"></script>
 
@@ -110,8 +85,7 @@
         <!-- Initialize Firebase -->
         <script src="/__/firebase/init.js"></script>
 
-        <script type="text/javascript" src="js/signIn.js"></script>
-        <script type="text/javascript" src="js/main.js"></script>
-    </body>
 
+        <script type="text/javascript" src="../js/main.js"></script>
+    </body>
 </html>
