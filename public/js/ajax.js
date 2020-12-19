@@ -30,7 +30,7 @@ var directory = [
 // Get the content of the page
 if (directory.includes(path)){
     xhttp.open("GET", "/content" + path + query + hash, true);
-} else if (path.equals("/")) {
+} else if (path == "/") {
     xhttp.open("GET", "/content/main.html" + query + hash, true);
 } else {
     xhttp.open("GET", "/content/404.html", true);
