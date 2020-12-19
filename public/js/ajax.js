@@ -8,8 +8,31 @@ var hash = window.location.hash;
 console.log(path);
 console.log(hash);
 
+// Search Content folder
+var directory = [
+    "/admin/addEntry.html",
+    "/admin/editEntry.html",
+    "/admin/main.html",
+    "/admin/report.html",
+    "/404.html",
+    "/about.html",
+    "/account.html",
+    "/advancedSearch.html",
+    "/autogenindex.html",
+    "/help.html",
+    "/login.html",
+    "/main.html",
+    "/search.html",
+    "/signup.html",
+    "/sitemap.html"
+];
+
 // Get the content of the page
-xhttp.open("GET", "/content" + path + query + hash, true);
+if (directory.includes(path)){
+    xhttp.open("GET", "/content" + path + query + hash, true);
+} else {
+    xhttp.open("GET", "/content/404.html", true);
+}
 xhttp.send();
 
 $(document).ready(function() {
