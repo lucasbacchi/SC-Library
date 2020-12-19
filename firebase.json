@@ -10,10 +10,10 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [ {
-      "source": "/advancedsearch.html",
-      "destination": "/advancedSearch.html"
-    } ]
+      "rewrites": [{
+        "source": "**",
+        "destination": "/index.html"
+      }]
   },
   "storage": {
     "rules": "storage.rules"
