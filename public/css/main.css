@@ -3,6 +3,7 @@
 :root {
     --mint: #C5D86D;
     --teal: #3D7A8B;
+    --dark-teal: #013c4b;
 }
 
 * {
@@ -283,7 +284,7 @@ footer {
     margin: 0;
     padding-bottom: 6px;
     width: unset;
-    color: rgb(1, 60, 75);
+    color: var(--dark-teal);
 }
 
 .footer-list {
@@ -301,8 +302,8 @@ footer {
 }
 
 .footer-bottom {
-    background-color: rgb(1, 60, 75);
-    color: #cccccc;
+    background-color: var(--dark-teal);
+    color: #ffffff;
     float: left;
     width: 100%;
     margin-top: 20px;
