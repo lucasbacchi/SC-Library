@@ -283,6 +283,7 @@ footer {
     margin: 0;
     padding-bottom: 6px;
     width: unset;
+    color: rgb(1, 60, 75);
 }
 
 .footer-list {
