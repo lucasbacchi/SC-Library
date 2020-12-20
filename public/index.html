@@ -12,10 +12,19 @@
             gtag('js', new Date());
             gtag('config', 'G-MRXNED32DZ');
         </script>
+
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <!-- Load Ajax Script -->
+        <script src="js/ajax.js"></script>
+
+        <!--Load Additional CSS and JS -->
         <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/search.css">
+        
+        <!-- Default Title -->
         <title>South Church Library Catalog</title>
+
         <meta charset="utf-8">
         <meta name="description" content="Official Library Catalog of South Church in Andover!">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,20 +34,20 @@
 
     <body>
         <header>
-            <h1><a href="index.html">South Church Library</a></h1>
+            <h1><a onclick="javascript:goToPage('main');">South Church Library</a></h1>
             <span id="hamburger-button">&#9776;</span>
             <nav>
                 <span id="close-button">&#10006;</span>
-                <li class=navlink><a href="index.html">Home</a></li>
-                <li class=navlink><a href="about.html">About</a></li>
-                <li class=navlink><a href="search.html">Browse</a></li>
-                <li class=navlink><a href="login.html">Sign In</a></li>
-                <li class=navlink><a href="help.html">Help</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('main');">Home</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('about');">About</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('search');">Browse</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('advancedSearch');">Search</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('help');">Help</a></li>
             </nav>
             <div id="account-container">
                 <div id="nav-login-signup">
-                    <div id="nav-login"><a href="login.html">Log In</a></div>
-                    <div id="nav-signup"><a href="signup.html">Sign Up</a></div>
+                    <div id="nav-login"><a onclick="javascript:goToPage('login');">Log In</a></div>
+                    <div id="nav-signup"><a onclick="javascript:goToPage('signup');">Sign Up</a></div>
                 </div>
                 <div id="small-account-container">
                     <img id="small-account-image" src="img/default-user.jpg">
@@ -56,110 +65,8 @@
             </div>
         </header>
 
-        <div class=search>
-            <form action=search.html method=get>
-                <input id="search-input" type=search name=q placeholder="Search by title, author, subject, keyword..."
-                    style="min-width:275px;"></input>
-                <input type=submit value="Search"></input>
-            </form>
-            <form action=advancedsearch.html method=get>
-                <input type=submit value="Advanced Search"></input>
-            </form>
-        </div>
-
-        <p class="welcome-text">Welcome to the South Church library! Feel free to stop by and take a look at our selection of books, or you can check them out and take them home for a while.</p>
-        <p class="welcome-text">Here are some books our algorithm has picked out especially for you:</p>
-        <div style="width: 100%; float: left; margin-bottom: 10px;">
-            <div id=books>
-                <div class=row>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>The Martian</p>
-                            </b>
-                            <p class=author>Andy Weir</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>A Tale of Two Cities</p>
-                            </b>
-                            <p class=author>Charles Dickens</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>Aurora</p>
-                            </b>
-                            <p class=author>Kim Stanley Robinson</p>
-                        </div>
-                    </div>
-                </div>
-                <div class=row>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>The Martian</p>
-                            </b>
-                            <p class=author>Andy Weir</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>A Tale of Two Cities</p>
-                            </b>
-                            <p class=author>Charles Dickens</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>Aurora</p>
-                            </b>
-                            <p class=author>Kim Stanley Robinson</p>
-                        </div>
-                    </div>
-                </div>
-                <div class=row>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>The Martian</p>
-                            </b>
-                            <p class=author>Andy Weir</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>A Tale of Two Cities</p>
-                            </b>
-                            <p class=author>Charles Dickens</p>
-                        </div>
-                    </div>
-                    <div class=book>
-                        <img src="img/favicon.ico" class=bookimage>
-                        <div>
-                            <b>
-                                <p class=title>Aurora</p>
-                            </b>
-                            <p class=author>Kim Stanley Robinson</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="content" style="height: 900px;"></div>
+        
 
         <!-- Required to make sure footer doesn't overlay on other content. -->
         <div id="footer-spacer" style="clear: both; height: 200px;"></div>
@@ -183,9 +90,9 @@
             <div class="footer-div">
                 <h2 class="footer-title">Help</h2>
                 <ul class="footer-list">
-                    <li><a href="help.html">Help Page</a></li>
-                    <li><a href="help.html#FAQ">FAQs</a></li>
-                    <li><a href="sitemap.html">Sitemap</a></li>
+                    <li><a onclick="javascript:goToPage('help');">Help Page</a></li>
+                    <li><a onclick="javascript:goToPage('help#FAQ');">FAQs</a></li>
+                    <li><a onclick="javascript:goToPage('sitemap');">Sitemap</a></li>
                 </ul>
             </div>
             <div class="footer-bottom">&#169;2020 South Church in Andover</div>
@@ -206,7 +113,7 @@
 
 
         <!-- Initialize Firebase -->
-        <script src="/__/firebase/init.js"></script>
+        <script src="/__/firebase/init.js?useEmulator=true"></script>
 
         <!-- Tell Google Analytics about first input delay -->
         <script>
@@ -228,7 +135,10 @@
         </script>
 
 
+        
         <script type="text/javascript" src="js/main.js"></script>
+        <script type="text/javascript" src="js/search.js"></script>
+        <script type="text/javascript" src="js/signIn.js"></script>
 
         <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
         <!--<script>
