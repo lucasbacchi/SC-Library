@@ -27,32 +27,82 @@ var directory = [
 
 var xhttp = new XMLHttpRequest();
 
-// Get the content of the page
-if (directory.includes(path)){
-    xhttp.open("GET", "/content" + path + ".html" + query + hash, true);
-} else if (path == "/" || path == "/index.html" || path == "/index") {
-    xhttp.open("GET", "/content/main.html" + query + hash, true);
-} else {
-    xhttp.open("GET", "/content/404.html", true);
-}
-xhttp.send();
+goToPage(path.substr(1, path.length), true);
 
-$(document).ready(function() {
-    // Set the content of the page
-    document.getElementById("content").innerHTML = xhttp.responseText;
-    // Remove Placeholder Height
-    document.getElementById("content").style.height = "";
+var currentPage;
+function goToPage(pageName, goingBack = false) {
+    $("#content").removeClass("fade");
 
-    // Set Title Correctly
-    // Load Additional Resources
-    if (path.includes("search")) {
-        $('head').append('<link rel="stylesheet" href="/css/search.css" type="text/css">');
-        $('head').append('<script src="/js/search.js">');
-        $('head').append('<title>Search Results | South Church Library Catalog</title>');
+    pageName = "/" + pageName;
+    if (directory.includes(pageName)){
+        xhttp.open("GET", "/content" + pageName + ".html" + query + hash, true);
+    } else if (directory.includes(pageName.substr(0, pageName.indexOf(".")))) {
+        xhttp.open("GET", "/content" + pageName + query + hash, true);
+    } else if (pageName == "/" || pageName == "/index.html" || pageName == "/index") {
+        xhttp.open("GET", "/content/main.html" + query + hash, true);
+    } else {
+        xhttp.open("GET", "/content/404.html", true);
     }
+    xhttp.send();
 
-});
+    // Set the content of the page
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            if (currentPage != pageName) {
+                $('#content').addClass("fade");
+            }
 
+            var pageUrl = pageName;
+            if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
+                pageUrl = "./";
+            }
+            if (!goingBack) {
+                window.history.pushState({}, "", pageUrl);
+            } else {
+                
+            }
+
+            document.getElementById("content").innerHTML = xhttp.responseText;
+            // Remove Placeholder Height
+            document.getElementById("content").style.height = "";
+
+            // Set Title Correctly
+            // Load Additional Resources??
+            var titleList = {
+                "/admin/addEntry": "Add an Entry",
+                "/admin/editEntry": "Edit an Entry",
+                "/admin/main": "Admin Console",
+                "/admin/report": "Run a Report",
+                "/404": "404 | File Not Found",
+                "/about": "About Us",
+                "/account": "Your Account",
+                "/advancedSearch": "Advanced Search",
+                "/autogenindex": "LEAVE",
+                "/help": "Help",
+                "/login": "Login",
+                "/main": "Home",
+                "/search": "Search Results",
+                "/signup": "Signup",
+                "/sitemap": "Sitemap"
+            }
+
+            if (titleList[pageName] != undefined) {
+                document.title = titleList[pageName] + " | South Church Library Catalog";
+            } else if (pageUrl == "./") {
+                document.title = "Home | South Church Library Catalog";
+            } else {
+                document.title = "South Church Library Catalog";
+            }
+                        
+            currentPage = pageName;
+        }
+    }
+}
+
+window.onpopstate = function (event) {
+    goToPage(document.location.pathname.substr(1, document.location.pathname.length), true);
+    console.log(event);
+};
 
 
 console.log("ajax.js has Loaded!");
