@@ -53,10 +53,6 @@ $(document).ready(function() {
 
 });
 
-window.onbeforeunload = function() {
-    history.replaceState(stateObject, '', path + query + hash);
-    console.log("The path on unload is " + path);
-};
 
 
 console.log("ajax.js has Loaded!");
