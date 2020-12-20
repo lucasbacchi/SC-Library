@@ -3,11 +3,6 @@ var path = window.location.pathname;
 var query = window.location.search;
 var hash = window.location.hash;
 
-console.log(window.history.state);
-var stateObject = {};
-history.replaceState(stateObject, '', path.substr(0, path.indexOf(".")) + query + hash);
-console.log(window.history.state);
-
 console.log(path);
 console.log(hash);
 
@@ -35,7 +30,7 @@ var xhttp = new XMLHttpRequest();
 // Get the content of the page
 if (directory.includes(path)){
     xhttp.open("GET", "/content" + path + ".html" + query + hash, true);
-} else if (path == "/" || path == "/index.html") {
+} else if (path == "/" || path == "/index.html" || path == "/index") {
     xhttp.open("GET", "/content/main.html" + query + hash, true);
 } else {
     xhttp.open("GET", "/content/404.html", true);
