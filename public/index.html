@@ -12,11 +12,19 @@
             gtag('js', new Date());
             gtag('config', 'G-MRXNED32DZ');
         </script>
+
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <!-- Load Ajax Script -->
         <script src="js/ajax.js"></script>
+
+        <!--Load Additional CSS and JS -->
         <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/search.css">
+        
+        <!-- Default Title -->
         <title>South Church Library Catalog</title>
+
         <meta charset="utf-8">
         <meta name="description" content="Official Library Catalog of South Church in Andover!">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,20 +34,20 @@
 
     <body>
         <header>
-            <h1><a href="main">South Church Library</a></h1>
+            <h1><a onclick="javascript:goToPage('main');">South Church Library</a></h1>
             <span id="hamburger-button">&#9776;</span>
             <nav>
                 <span id="close-button">&#10006;</span>
-                <li class=navlink><a href="main">Home</a></li>
-                <li class=navlink><a href="about">About</a></li>
-                <li class=navlink><a href="search">Browse</a></li>
-                <li class=navlink><a href="login">Sign In</a></li>
-                <li class=navlink><a href="help">Help</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('main');">Home</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('about');">About</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('search');">Browse</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('advancedSearch');">Search</a></li>
+                <li class=navlink><a onclick="javascript:goToPage('help');">Help</a></li>
             </nav>
             <div id="account-container">
                 <div id="nav-login-signup">
-                    <div id="nav-login"><a href="login">Log In</a></div>
-                    <div id="nav-signup"><a href="signup">Sign Up</a></div>
+                    <div id="nav-login"><a onclick="javascript:goToPage('login');">Log In</a></div>
+                    <div id="nav-signup"><a onclick="javascript:goToPage('signup');">Sign Up</a></div>
                 </div>
                 <div id="small-account-container">
                     <img id="small-account-image" src="img/default-user.jpg">
@@ -82,9 +90,9 @@
             <div class="footer-div">
                 <h2 class="footer-title">Help</h2>
                 <ul class="footer-list">
-                    <li><a href="help">Help Page</a></li>
-                    <li><a href="help#FAQ">FAQs</a></li>
-                    <li><a href="sitemap">Sitemap</a></li>
+                    <li><a onclick="javascript:goToPage('help');">Help Page</a></li>
+                    <li><a onclick="javascript:goToPage('help#FAQ');">FAQs</a></li>
+                    <li><a onclick="javascript:goToPage('sitemap');">Sitemap</a></li>
                 </ul>
             </div>
             <div class="footer-bottom">&#169;2020 South Church in Andover</div>
@@ -129,6 +137,8 @@
 
         
         <script type="text/javascript" src="js/main.js"></script>
+        <script type="text/javascript" src="js/search.js"></script>
+        <script type="text/javascript" src="js/signIn.js"></script>
 
         <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
         <!--<script>
