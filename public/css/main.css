@@ -59,13 +59,6 @@ body {
     position: relative;
 }
 
-a,
-a:visited {
-    text-decoration: none;
-    color: var(--teal);
-    cursor: pointer;
-}
-
 header {
     height: 80px;
     width: 100%;
@@ -106,6 +99,7 @@ a,
 a:visited {
     text-decoration: none;
     color: var(--teal);
+    cursor: pointer;
 }
 
 nav {
