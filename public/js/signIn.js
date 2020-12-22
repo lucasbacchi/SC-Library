@@ -1,6 +1,14 @@
-$(document).ready(function() {
-    
-});
+function setupSignIn() {
+    $("#submit, .login > input").keydown(function(event) {
+        if (event.keyCode === 13) {
+            if (currentPage == '/login'){
+                signIn();
+            } else if (currentPage == '/signup') {
+                handleSignUp();
+            }
+        }
+    });
+}
 
 function signIn() {
     if (firebase.auth().currentUser) {
@@ -18,18 +26,24 @@ function signIn() {
         }
         // Sign in with email and pass.
         firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-        if (errorCode === 'auth/wrong-password') {
-            alert('Wrong password.');
-        } else {
-            alert(errorMessage);
-        }
-        console.log(error);
-        });
-        $('#email').val('');
-        $('#password').val('');
+            // Handle Errors here.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            if (errorCode === 'auth/wrong-password') {
+                alert('Wrong password.');
+            } else {
+                alert(errorMessage);
+            }
+            console.log(error);
+            $('#email').val('');
+            $('#password').val('');
+            return;
+        }).then(function() {
+            // TO DO: Track user's last page and send them back to that page
+            // Check to ensure that this supports password saving;
+            goToPage("");
+            // window.location.href = "./";
+        });        
     }
 }
 
@@ -38,7 +52,7 @@ function signIn() {
  * Handles the sign up button press.
  */
 function handleSignUp() {
-    var name = document.getElementById('name').value;
+    // var name = document.getElementById('name').value;
     var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
     if (email.length < 4) {
@@ -49,23 +63,26 @@ function handleSignUp() {
         alert('Please enter a longer password.');
         return;
     }
-    if (name.length < 1) {
+    /*if (name.length < 1) {
         alert('Please enter a name.');
         return;
-    }
-    // Create user with email and pass.
+    }*/
+    // Create user with email and pass, then logs them in.
     firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
         // Handle Errors here.
         var errorCode = error.code;
         var errorMessage = error.message;
         if (errorCode == 'auth/weak-password') {
-        alert('The password is too weak.');
+            alert('The password is too weak.');
         } else {
-        alert(errorMessage);
+            alert(errorMessage);
         }
         console.log(error);
     }).then(function() {
-        
+        // TO DO: set it up so that the user is redirected to their page
+        // Check to ensure this supports password saving
+        goToPage("");
+        // window.location.href = "./";
     });
 }
 
@@ -95,3 +112,4 @@ function sendPasswordReset() {
     });
 }
 
+console.log("signIn.js has loaded!");
