@@ -1,23 +1,18 @@
+$('#hamburger-button').click(function() {
+    $('nav').width('60%');
+    $('nav > li > a').show();
+    $('nav > li > a').css('opacity', '1');
+    $('#close-button').css('display', 'block');
+    $('#close-button').css('opacity', '1');
 
-$(document).ready(function(){
-    if ($(document).width() <= 500) {
-        $('#hamburger-button').click(function() {
-            $('nav').width('60%');
-            $('nav > li > a').show();
-            $('nav > li > a').css('opacity', '1');
-            $('#close-button').css('display', 'block');
-            $('#close-button').css('opacity', '1');
+});
 
-        });
-
-        $('#close-button').click(function() {
-            $('nav').width('0');
-            $('#close-button').delay(400).hide(0);
-            $('nav > li > a').css('opacity', '0');
-            $('#close-button').css('opacity', '0');
-            $('nav > li > a').delay(400).hide(0);
-        })
-    }
+$('#close-button').click(function() {
+    $('nav').width('0');
+    $('#close-button').delay(400).hide(0);
+    $('nav > li > a').css('opacity', '0');
+    $('#close-button').css('opacity', '0');
+    $('nav > li > a').delay(400).hide(0);
 });
 
 
@@ -92,7 +87,7 @@ function signOut() {
     if (firebase.auth().currentUser) {
         firebase.auth().signOut();
         /* could change 'replace' to 'href' if we wanted to keep the page in the history */
-        window.location.replace('index.html')
+        window.location.replace('./')
     } else {
         alert("No user is currently signed in.");
     }
@@ -154,25 +149,22 @@ function initApp() {
     });
 }
 
-window.onload = function() {
-    initApp()
-    .then(function() {
-        var currentUser = firebase.auth().currentUser;
-        if (currentUser != null) {
-            // User is signed in.
-            console.log("Page Loaded with a User Signed In.");
-            if (!currentUser.emailVerified) {
-                // User's email is not verified
-            }
-        } else {
-            // User is signed out.
-            console.log("Page Loaded without a user signed in.")
+initApp()
+.then(function() {
+    var currentUser = firebase.auth().currentUser;
+    if (currentUser != null) {
+        // User is signed in.
+        console.log("Page Loaded with a User Signed In.");
+        if (!currentUser.emailVerified) {
+            // User's email is not verified
         }
-    }, function(error) {
-        console.log(error);
-    })
-    
-};
+    } else {
+        // User is signed out.
+        console.log("Page Loaded without a user signed in.")
+    }
+}, function(error) {
+    console.log(error);
+});
 
 
 

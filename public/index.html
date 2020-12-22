@@ -16,23 +16,15 @@
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <!-- Load Ajax Script -->
-        <script src="js/ajax.js"></script>
-
-        <!--Load Additional CSS and JS -->
-        <link rel="stylesheet" type="text/css" href="css/main.css">
-        <link rel="stylesheet" type="text/css" href="css/search.css">
-        
-        <!-- Default Title -->
-        <title>South Church Library Catalog</title>
-
+        <script src="../js/ajax.js"></script>
         <meta charset="utf-8">
         <meta name="description" content="Official Library Catalog of South Church in Andover!">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" href="img/favicon.ico" type="image/png">
+        <link rel="icon" href="../../img/favicon.ico" type="image/png">
 
     </head>
 
-    <body>
+    <body style="overflow: hidden;">
         <header>
             <h1><a onclick="javascript:goToPage('main');">South Church Library</a></h1>
             <span id="hamburger-button">&#9776;</span>
@@ -50,11 +42,11 @@
                     <div id="nav-signup"><a onclick="javascript:goToPage('signup');">Sign Up</a></div>
                 </div>
                 <div id="small-account-container">
-                    <img id="small-account-image" src="img/default-user.jpg">
+                    <img id="small-account-image" src="../img/default-user.jpg">
                     <span id="account-arrow">&#9660;</span>
                 </div>
                 <div id="large-account-container">
-                    <img id="large-account-image" src="img/default-user.jpg">
+                    <img id="large-account-image" src="../img/default-user.jpg">
                     <div>
                         <p id="account-name"><b>John Doe</b></p>
                         <p id="account-email">JohnDoe<wbr>@Something.com</p>
@@ -68,6 +60,7 @@
         <div id="content" style="height: 900px; margin-bottom: 20px;"></div>
         
 
+        <div id="cover" style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;"></div>
         <!-- Required to make sure footer doesn't overlay on other content. -->
         <div id="footer-spacer" style="clear: both; height: 200px;"></div>
         <footer>
@@ -135,10 +128,11 @@
         </script>
 
 
-        
+        <!--
         <script type="text/javascript" src="js/main.js"></script>
         <script type="text/javascript" src="js/search.js"></script>
         <script type="text/javascript" src="js/signIn.js"></script>
+        -->
 
         <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
         <!--<script>
