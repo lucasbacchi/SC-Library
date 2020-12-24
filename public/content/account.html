@@ -7,30 +7,21 @@
         </div>
         <div class="menu-list">
             <li><a>Overview</a></li>
+            <li><a>Checkouts & Holds</a></li>
             <li><a>Notifications</a></li>
-            <li><a>Security</a></li>
             <li><a>Delete Your Account</a></li>
         </div>
     </div>
     <div class="settings-column">
         <div class="setting-section">
-            <h6 class="setting-title">Your First Name</h6>
-            <p class="setting-description"></p>
-            <input id="setting-first-name" placeholder="John">    
-        </div>
-        <div class="setting-section">
-            <h6 class="setting-title">Your Last Name</h6>
-            <p class="setting-description"></p>
-            <input id="setting-last-name" placeholder="Doe">
-        </div>
-        <div class="setting-section">
-            <h6 class="setting-title">Your Email Address</h6>
-            <p class="setting-description">This is your primary Email Address.</p>
-            <input id="setting-email" placeholder="you@yourdomain.com">
-            <p id="email-verified">Your email address has NOT been verified! Click <a onclick="javascript:sendEmailVerification();">here</a> to verify it!</p>
-        </div>
-        <div class="setting-section">
-            <button onclick="javascript:updateAccount();">Save Changes</button>
+            <h6 class="setting-title">Checkouts</h6>
+            <p class="setting-description">These are books you have checked out.</p>
+            <div class="book book-layout">
+                <img class="bookimage" src="img/favicon.ico">
+                <b><p class=title>The Bible</p></b>
+                <p class=author>Jesus, I guess</p>
+                <p class=due-date>Due in <b>4</b> days</p>
+            </div>
         </div>
     </div>
 </div>

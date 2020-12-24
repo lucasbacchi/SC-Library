@@ -143,7 +143,7 @@ div.login > input {
     float: right;
 }
 
-input {
+input, button {
     font-family: Oswald, sans-serif;
 }
 
@@ -233,7 +233,8 @@ p {
 }
 
 p.title,
-p.author {
+p.author,
+p.due-date {
     text-align: right;
     margin: .25em;
 }
@@ -422,51 +423,7 @@ footer {
     to {opacity: 1}
 }
 
-.main-column {
-    width: 786px;
-    position: relative;
-    margin: 0 auto;
-    border-radius: 10px;
-    box-shadow: 0px 0px 12px 0px #cacaca;
-}
 
-.menu-column {
-    width: 30%;
-    height: 100%;
-    padding: 16px;
-    position: relative;
-    background-color: #f0f0f0;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    display: inline-block;
-}
-
-.account-info {
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.settings-column {
-    width: calc(70% - 8px);
-    padding: 16px;
-    display: inline-block;
-    vertical-align: top;
-}
-
-.account-image {
-    width: 80%;
-    background-color: white;
-    margin: 8px;
-    margin: 0 auto;
-    border-radius: 600px;
-    border: 3px solid #ffffff;
-}
-
-.menu-list > li {
-    list-style-type: none;
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
 
 
 

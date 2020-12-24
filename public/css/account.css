@@ -1,0 +1,70 @@
+.main-column {
+    width: 786px;
+    position: relative;
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 0px 0px 12px 0px #cacaca;
+}
+
+.menu-column {
+    width: 30%;
+    height: 100%;
+    padding: 16px;
+    position: relative;
+    background-color: #f0f0f0;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: inline-block;
+}
+
+.account-info {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.setting-section {
+    margin-bottom: 20px;
+}
+
+.settings-column {
+    width: calc(70% - 8px);
+    padding: 16px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.account-image {
+    width: 80%;
+    background-color: white;
+    margin: 8px;
+    margin: 0 auto;
+    border-radius: 600px;
+    border: 3px solid #ffffff;
+}
+
+.menu-list > li {
+    list-style-type: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+h6 {
+    font-size: 1em;
+    margin: 10px 0 0 0;
+}
+
+p.setting-description {
+    text-align: left;
+    margin: 10px 0;
+    font-size: .9em;
+}
+
+button.save-button {
+    position: absolute;
+    bottom: 16px;
+}
+
+div.book-layout {
+    height: 110px;
+    width: 100%
+}
