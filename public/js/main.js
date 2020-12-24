@@ -91,7 +91,7 @@ if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
 
 initApp()
 .then(function() {
-    console.log("Autentication has started succesfully.")
+
 }, function(error) {
     console.log(error);
 });
@@ -113,11 +113,9 @@ function signOut() {
  */
 function initApp() {
     // Listening for auth state changes.
-    console.log("Firebase Authentication is Initalizing.");
     return new Promise(function(resolve, reject) {
         try {
             firebase.auth().onAuthStateChanged(function(user) {
-                console.log("User Authentication state has changed.")
                 if (user) {
                     // User is signed in.
                     console.log('User is now Signed In.');
