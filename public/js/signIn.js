@@ -24,9 +24,11 @@ function signIn() {
             alert('Please enter a password.');
             return;
         }
+        var signInError = false;
         // Sign in with email and pass.
         firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
             // Handle Errors here.
+            signInError = true;
             var errorCode = error.code;
             var errorMessage = error.message;
             if (errorCode === 'auth/wrong-password') {
@@ -37,12 +39,11 @@ function signIn() {
             console.log(error);
             $('#email').val('');
             $('#password').val('');
-            return;
         }).then(function() {
             // TO DO: Track user's last page and send them back to that page
-            // Check to ensure that this supports password saving;
-            goToPage("");
-            // window.location.href = "./";
+            if (!signInError) {
+                goToPage("");
+            }
         });        
     }
 }
@@ -67,9 +68,11 @@ function handleSignUp() {
         alert('Please enter a name.');
         return;
     }*/
+    var signUpError = false;
     // Create user with email and pass, then logs them in.
     firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
         // Handle Errors here.
+        signUpError = true;
         var errorCode = error.code;
         var errorMessage = error.message;
         if (errorCode == 'auth/weak-password') {
@@ -80,9 +83,10 @@ function handleSignUp() {
         console.log(error);
     }).then(function() {
         // TO DO: set it up so that the user is redirected to their page
-        // Check to ensure this supports password saving
-        goToPage("");
-        // window.location.href = "./";
+        if (!signUpError) {
+            goToPage("");
+            sendEmailVerification();
+        }
     });
 }
 
@@ -91,7 +95,7 @@ function handleSignUp() {
  */
 function sendEmailVerification() {
     firebase.auth().currentUser.sendEmailVerification().then(function() {
-        alert('Email Verification Sent!');
+        alert('Email Verification Sent! Please check your email!');
     });
 }
 
@@ -104,12 +108,12 @@ function sendPasswordReset() {
         var errorCode = error.code;
         var errorMessage = error.message;
         if (errorCode == 'auth/invalid-email') {
-        alert(errorMessage);
+            alert(errorMessage);
         } else if (errorCode == 'auth/user-not-found') {
-        alert(errorMessage);
+            alert(errorMessage);
         }
         console.log(error);
     });
 }
 
-console.log("signIn.js has loaded!");
+console.log("signIn.js Loaded!");

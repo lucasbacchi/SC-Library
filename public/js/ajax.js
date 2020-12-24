@@ -3,11 +3,6 @@ var path = window.location.pathname;
 var query = window.location.search;
 var hash = window.location.hash;
 
-var baseAdditionsLoaded = false;
-var subAdditionsLoaded = false;
-
-console.log(path);
-console.log(hash);
 
 // Search Content folder
 var directory = [
@@ -27,6 +22,7 @@ var directory = [
     "/signup",
     "/sitemap"
 ];
+var loadedSources = [];
 
 var xhttp = new XMLHttpRequest();
 
@@ -66,10 +62,9 @@ function goToPage(pageName, goingBack = false) {
             if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
                 pageUrl = "../";
             }
+
             if (!goingBack) {
                 window.history.pushState({}, "", pageUrl);
-            } else {
-                
             }
 
             document.getElementById("content").innerHTML = xhttp.responseText;
@@ -95,6 +90,7 @@ function goToPage(pageName, goingBack = false) {
                 "/sitemap": "Sitemap"
             }
 
+            // Add Titles baseed on page Name
             if (titleList[pageName] != undefined) {
                 document.title = titleList[pageName] + " | South Church Library Catalog";
             } else if (pageUrl == "./") {
@@ -103,40 +99,82 @@ function goToPage(pageName, goingBack = false) {
                 document.title = "South Church Library Catalog";
             }
 
-            // Load Additional Resources like JS and CSS
-            // If the files are down a directory    
-            if (pageName.split('/').length - 1 == 2 && !subAdditionsLoaded) {
-                // CSS
-                $('head').append('<link rel="stylesheet" href="../css/main.css" type="text/css">');
-                $('head').append('<link rel="stylesheet" href="../css/search.css" type="text/css">');
-
-                // JS
-                $('head').append('<script src="../js/main.js">');
-                $('head').append('<script src="../js/search.js">');
-                $('head').append('<script src="../js/signIn.js">');
-
-                // Images + Favicon
-                $('head').append('<script src="../js/main.js">');
-
-                subAdditionsLoaded = true;
-                console.log("Page loaded and sub scripts loaded");
-            } 
-            // If the files are in the base directory
-            else if (pageName.split('/').length - 1 == 1 && !baseAdditionsLoaded) {
-                $('head').append('<link rel="stylesheet" href="/css/main.css" type="text/css">');
-                $('head').append('<link rel="stylesheet" href="/css/search.css" type="text/css">');
-                $('head').append('<script src="/js/main.js">');
-                $('head').append('<script src="/js/search.js">');
-                $('head').append('<script src="/js/signIn.js">');
-                baseAdditionsLoaded = true;
-                console.log("Page loaded and base scripts loaded");
-            } else {
-                console.log("Page loaded and no scripts needed to load");
+            // Define what sources are required on each page
+            // (excluding favicon.ico, ajax.js, main.js, and main.css)
+            // These will always be loaded no matter what page.
+            var sourcesRequired = {
+                "/admin/addEntry": [],
+                "/admin/editEntry": [],
+                "/admin/main": [],
+                "/admin/report": [],
+                "/404": [],
+                "/about": [],
+                "/account": ["account.js", "account.css"],
+                "/advancedSearch": ["search.js", "search.css"],
+                "/autogenindex": [],
+                "/help": [],
+                "/login": ["signIn.js"],
+                "/main": [],
+                "/search": ["search.js", "search.css"],
+                "/signup": ["signIn.js"],
+                "/sitemap": []
             }
+
+            // Get an array of currently loaded Additional Resources like JS and CSS
+            // Iterate through the currently loaded css files
+            $('head > link.appended').each(function (index) {
+                // Get the href attribute of the link tag
+                var href = $(this)[0].attributes.href.value;
+                // If the source isn't in the list of loaded scoures, add it.
+                if (!loadedSources.includes(href.substr(href.lastIndexOf('/') + 1, href.length))) {
+                    loadedSources.push(href.substr(href.lastIndexOf('/') + 1, href.length));
+                }
+            });
+            // Iterate though the currently loaded js files
+            $('body > script.appended').each(function (index) {
+                // Get the src attribute of the script tag.
+                var src = $(this)[0].attributes.src.value;
+                // If the source isn't in the list of loaded scoures, add it.
+                if (!loadedSources.includes(src.substr(src.lastIndexOf('/') + 1, src.length))) {
+                    loadedSources.push(src.substr(src.lastIndexOf('/') + 1, src.length));
+                }
+            });
+
+            console.log(loadedSources);
+
+            // Check if this page has every thing it needs. If not, load additional resources
+            // Get the list of sources needed for the current page
+            var sourcesForPage = sourcesRequired[pageName];
+            // Correct the empty path if required, set it to main.
+            if (pageName == "/" || pageName == "/index.html" || pageName == "/index") {
+                sourcesForPage = sourcesRequired["/main"];
+            }
+            // Itterate through each of the scources needed
+            for (var i = 0; i < sourcesForPage.length; i++) {
+                // If the source hasn't already been loaded.
+                if (!loadedSources.includes(sourcesForPage[i])) {
+                    // If the source is a js file:
+                    if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
+                        $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
+                    }  
+                    // If the source is a css file
+                    else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
+                        $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
+                    } else {
+                        console.log("SOURCE NEEDED COULD NOT BE FOUND!!");
+                    }
+                }
+            }
+
+
 
             // Fire Additional Scripts based on Page
             if (pageName == "/login" || pageName == "/signup") {
                 setupSignIn();
+            }
+
+            if (pageName == "/search") {
+                setupSearch();
             }
             
             // Give the CSS time to apply - FIX THIS METHODOLOGY
