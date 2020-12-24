@@ -16,11 +16,12 @@
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <!-- Load Ajax Script -->
-        <script src="../js/ajax.js"></script>
+        <script src="/js/ajax.js"></script>
         <meta charset="utf-8">
         <meta name="description" content="Official Library Catalog of South Church in Andover!">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" href="../../img/favicon.ico" type="image/png">
+        <link rel="icon" href="/img/favicon.ico" type="image/png">
+        <link rel="stylesheet" href="/css/main.css" type="text/css">
 
     </head>
 
@@ -52,7 +53,7 @@
                         <p id="account-email">JohnDoe<wbr>@Something.com</p>
                     </div>
                     <div id="log-out" class="account-bottom" onclick="javascript:signOut();"><a>Log Out</a></div>
-                    <div id="account-settings" class="account-bottom"><a>View Account</a></div>
+                    <div id="account-settings" class="account-bottom" onclick="javascript:goToPage('account');"><a>View Account</a></div>
                 </div>
             </div>
         </header>
@@ -128,8 +129,8 @@
         </script>
 
 
+        <script type="text/javascript" src="/js/main.js"></script>
         <!--
-        <script type="text/javascript" src="js/main.js"></script>
         <script type="text/javascript" src="js/search.js"></script>
         <script type="text/javascript" src="js/signIn.js"></script>
         -->
