@@ -66,5 +66,14 @@ button.save-button {
 
 div.book-layout {
     height: 110px;
-    width: 100%
+    width: 100%;
+    float: none;
+}
+
+p.notification {
+    text-align: left;
+}
+
+p.unread {
+    color: var(--teal);
 }
