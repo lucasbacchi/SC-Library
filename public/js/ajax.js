@@ -140,8 +140,6 @@ function goToPage(pageName, goingBack = false) {
                 }
             });
 
-            console.log(loadedSources);
-
             // Check if this page has every thing it needs. If not, load additional resources
             // Get the list of sources needed for the current page
             var sourcesForPage = sourcesRequired[pageName];
