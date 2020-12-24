@@ -39,4 +39,6 @@ function goToSettingsPanel(newPanel) {
     }
 }
 
+goToSettingsPanel('overview');
+
 console.log("account.js has Loaded!");
