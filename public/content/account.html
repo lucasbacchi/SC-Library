@@ -14,14 +14,22 @@
     </div>
     <div class="settings-column">
         <div class="setting-section">
-            <h6 class="setting-title">Checkouts</h6>
-            <p class="setting-description">These are books you have checked out.</p>
-            <div class="book book-layout">
-                <img class="bookimage" src="img/favicon.ico">
-                <b><p class=title>The Bible</p></b>
-                <p class=author>Jesus, I guess</p>
-                <p class=due-date>Due in <b>4</b> days</p>
-            </div>
+            <h6 class="setting-title">Notifications</h6>
+            <p class="setting-description"></p>
+            <p class="unread notification"><span class=unread>🔔</span>Your book, <b>The Bible</b>, is due in 4 days!</p>
+            <p class="notification">Your email address has NOT been verified! Click <a onclick="javascript:sendEmailVerification();">here</a> to verify it!</p>
+        </div>
+        <div class="setting-section">
+            <h6 class="setting-title">Notification Settings</h6>
+            <p class="setting-description">Give me notifications for:</p>
+            <ul>
+                <input type="checkbox" name="Checkouts" value=1> Checkouts
+                <br/>
+                <input type="checkbox" name="Holds" value=1> Holds
+            </ul>
+        </div>
+        <div class="setting-section">
+            <button class="save-button" onclick="javascript:updateAccount();">Save Changes</button>
         </div>
     </div>
 </div>
