@@ -334,6 +334,7 @@ footer {
     box-shadow: 0px 0px 8px -2px #333333;
     max-height: 120px;
     border: 2px solid white;
+    background-color: white;
 }
 
 #small-account-container {
@@ -347,6 +348,7 @@ footer {
     max-height: 50px;
     border-radius: 50px;
     border: 2.5px solid white;
+    background-color: white;
     transition: box-shadow 0.25s;
 }
 
@@ -420,6 +422,52 @@ footer {
     to {opacity: 1}
 }
 
+.main-column {
+    width: 786px;
+    position: relative;
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 0px 0px 12px 0px #cacaca;
+}
+
+.menu-column {
+    width: 30%;
+    height: 100%;
+    padding: 16px;
+    position: relative;
+    background-color: #f0f0f0;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: inline-block;
+}
+
+.account-info {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.settings-column {
+    width: calc(70% - 8px);
+    padding: 16px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.account-image {
+    width: 80%;
+    background-color: white;
+    margin: 8px;
+    margin: 0 auto;
+    border-radius: 600px;
+    border: 3px solid #ffffff;
+}
+
+.menu-list > li {
+    list-style-type: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
 
 
 
@@ -486,6 +534,10 @@ footer {
     .footer-div:nth-child(3) {
         width: 20%;
     }
+
+    .mainColumn {
+        width: 100%;
+    }
     
 
 }
@@ -509,6 +561,7 @@ footer {
         width: 0%;
         background-color: var(--teal);
         transition: 0.5s;
+        overflow: hidden;
     }
 
     nav > li > a {
