@@ -1,34 +1,45 @@
 // Manage Menu Button event listener
 $('#hamburger-button').click(function() {
+    openNavMenu();
+
+});
+
+function openNavMenu() {
+    $('nav').css("transition", "0.5s");
     $('nav').width('60%');
     $('nav > li > a').show();
     $('nav > li > a').css('opacity', '1');
     $('#close-button').css('display', 'block');
     $('#close-button').css('opacity', '1');
-
-});
+}
 
 // Manage Menu Close Button event listener
 $('#close-button').click(function() {
+    closeNavMenu();
+});
+
+function closeNavMenu() {
+    $('nav').css("transition", "0.5s");
     $('nav').width('0');
     $('#close-button').delay(400).hide(0);
     $('nav > li > a').css('opacity', '0');
     $('#close-button').css('opacity', '0');
     $('nav > li > a').delay(400).hide(0);
-});
+}
 
 // Manage Nav Links when screen gets small
 $(window).resize(function () {
     /*console.log($(window).width());*/
-    if ($(window).width() > 500) {
+    if ($(window).width() > 570) {
+        $('nav').css("transition", "");
         $('nav').width('fit-content');
         $('nav > li > a').show();
         $('nav > li > a').css('opacity', '1');
         $('#close-button').hide();
-
     }
-    if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
-        $('nav').width('0');
+    if ($(window).width() <= 570 && $('#close-button').css('display') == 'none') {
+        $('nav').width('');
+        $('nav').css("transition", "0.5s");
         $('nav > li > a').hide();
         $('nav > li > a').css('opacity', '0');
 
@@ -174,6 +185,10 @@ function updateUserAccountInfo() {
         $('#account-name').html('No user signed in');
         $('#account-settings').hide();
         $('#log-out').html('<a href="login.html">Log In</a>').css('width', '100%').attr('onclick', '');
+    }
+
+    if (currentPage == "/account") {
+        accountPageSetup();
     }
 }
 

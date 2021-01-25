@@ -8,7 +8,6 @@
 
 .menu-column {
     width: 30%;
-    height: 100%;
     padding: 16px;
     position: relative;
     background-color: #f0f0f0;
@@ -23,7 +22,7 @@
 }
 
 .setting-section {
-    margin-bottom: 20px;
+    margin-bottom: 40px;
 }
 
 #settings-column {
@@ -31,6 +30,7 @@
     padding: 16px;
     display: inline-block;
     vertical-align: top;
+    margin-bottom: 20px;
 }
 
 .account-image {
@@ -55,8 +55,9 @@ h6 {
 
 p.setting-description {
     text-align: left;
-    margin: 10px 0;
-    font-size: .9em;
+    margin-top: 4px;
+    margin-bottom: 16px;
+    font-size: .7em;
 }
 
 button.save-button {
@@ -76,4 +77,8 @@ p.notification {
 
 p.unread {
     color: var(--teal);
+}
+
+input.account-input {
+    width: 50%;
 }

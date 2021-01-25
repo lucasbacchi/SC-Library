@@ -12,6 +12,7 @@
     margin-left: 20px;
     border-radius: 6px;
     box-shadow: 0px 0px 8px 0px #cccccc;
+    margin-bottom: 10px;
 }
 
 #sort-main-title {
@@ -156,6 +157,7 @@ h4 {
         margin: 0px 10px;
         transition: 1s;
         max-height: 58px;
+        margin-bottom: 0px;
     }
 
     h3#sort-main-title {

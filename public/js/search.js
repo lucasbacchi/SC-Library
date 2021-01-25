@@ -7,7 +7,7 @@ $(window).resize(function () {
         $('.sort-section').css('opacity', '1');
         $('#close-button').hide();
         $('#sort-sidebar').css('overflow-y', 'visible');
-        $('#sort-sidebar').css('max-height', 'unset');
+        $('#sort-sidebar').css('max-height', '');
 
     }
     if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
