@@ -70,6 +70,10 @@ header {
     margin-bottom: 20px;
     font-family: Poppins, sans-serif;
     display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
 }
 
 h1 {
