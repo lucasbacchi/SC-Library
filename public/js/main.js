@@ -94,6 +94,14 @@ if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
     });
 }
 
+$(window).on("scroll", function() {
+    if ($(document).scrollTop() > 0) {
+        $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
+    } else {
+        $("header").css("box-shadow", "");
+    }
+});
+
 
 
 
