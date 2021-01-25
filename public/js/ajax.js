@@ -38,12 +38,35 @@ $(document).ready(function () {
 var currentPage;
 function goToPage(pageName, goingBack = false) {
     $("#content").removeClass("fade");
+    if ($(window).width() <= 570) {
+        closeNavMenu();
+    }
+
+    var pageHash = "";
+    var pageQuery = "";
+    var pageExtension = "";
+
+    // This removes the hash if one was passed in and stores it to a separate variable.
+    if (pageName.indexOf("#") != -1) {
+        pageHash = pageName.substr(pageName.indexOf("#"), pageName.length);
+        pageName = pageName.substr(0, pageName.indexOf("#"));
+    }
+
+    // This removes the query if one was passed in and stores it to a separate variable.
+    if (pageName.indexOf("?") != -1) {
+        pageQuery = pageName.substr(pageName.indexOf("?"), pageName.length);
+        pageName = pageName.substr(0, pageName.indexOf("?"));
+    }
+
+    // This removes the file extension if one was passed in and stores it to a separate variable.
+    if (pageName.indexOf(".") != -1) {
+        pageExtension = pageName.substr(pageName.indexOf("."), pageName.length);
+        pageName = pageName.substr(0, pageName.indexOf("."));
+    }
 
     pageName = "/" + pageName;
     if (directory.includes(pageName)){
-        xhttp.open("GET", "/content" + pageName + ".html" + query + hash, true);
-    } else if (directory.includes(pageName.substr(0, pageName.indexOf(".")))) {
-        xhttp.open("GET", "/content" + pageName + query + hash, true);
+        xhttp.open("GET", "/content" + pageName + ".html" + query + hash, true); // This may require a rework for handling hash/query
     } else if (pageName == "/" || pageName == "/index.html" || pageName == "/index") {
         xhttp.open("GET", "/content/main.html" + query + hash, true);
     } else {
@@ -51,12 +74,15 @@ function goToPage(pageName, goingBack = false) {
     }
     xhttp.send();
 
+    
+
     // Set the content of the page
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             if (currentPage != pageName) {
                 $('#content').addClass("fade");
             }
+            
 
             var pageUrl = pageName;
             if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
@@ -64,12 +90,12 @@ function goToPage(pageName, goingBack = false) {
             }
 
             if (!goingBack) {
-                window.history.pushState({}, "", pageUrl);
+                window.history.pushState({}, "", pageUrl + pageQuery + pageHash);
             }
 
             document.getElementById("content").innerHTML = xhttp.responseText;
             // Remove Placeholder Height
-            document.getElementById("content").style.height = "";
+            document.getElementById("content").style.height = "100%";
 
             // Set Title Correctly
             var titleList = {
@@ -164,6 +190,18 @@ function goToPage(pageName, goingBack = false) {
                 }
             }
 
+            // Page Content has now Loaded
+
+            // Scroll to a specific part of the page if needed
+            // If no hash, scroll to the top of the page.
+            if (pageHash) {
+                document.querySelector(pageHash).scrollIntoView();
+            } else {
+                if (currentPage != pageName) {
+                    $(document).scrollTop(0); // Could change later if we don't like this behavior
+                }
+            }
+
 
 
             // Fire Additional Scripts based on Page
@@ -174,12 +212,16 @@ function goToPage(pageName, goingBack = false) {
             if (pageName == "/search") {
                 setupSearch();
             }
+
+            if (pageName == "/account") {
+                accountPageSetup();
+            }
             
             // Give the CSS time to apply - FIX THIS METHODOLOGY
             setTimeout(function() {
                 $("#cover").hide();
                 $("body").addClass("fade");
-                $("body").css('overflow', 'visible');
+                $("body").css('overflow', '');
             }, 200);
             
                         

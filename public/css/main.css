@@ -10,11 +10,6 @@
     box-sizing: border-box;
 }
 
-html {
-    scroll-behavior: smooth;
-    overflow-x: hidden;
-}
-
 @media screen and (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;
@@ -25,22 +20,23 @@ html {
 
 /* width */
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background-color: transparent;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-    background: #888;
+    background-color: #888;
+    border-radius: 20px;
 }
 
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
-    background: #6a6a6a;
+    background-color: #6a6a6a;
 }
 
 /* Text Selection */
@@ -53,10 +49,16 @@ html, body {
     font-family: Oswald, sans-serif;
 }
 
+html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    overflow-y: overlay;
+}
+
 body {
-    height: 100%;
     min-height: 100vh;
     position: relative;
+    overflow-y: hidden;
 }
 
 header {
@@ -77,6 +79,21 @@ h1 {
 h2 {
     width: fit-content;
     margin: 20px auto 10px;
+}
+
+p.question, p.answer {
+    margin: 0 10px;
+}
+
+#error-box {
+    margin: 0 auto;
+    width: 500px;
+    box-shadow: 4px 4px 6px 2px #cccccc;
+    border-radius: 20px;
+    height: 200px;
+    border: 5px solid var(--mint);
+    margin-bottom: 100px;
+    padding: 20px;
 }
 
 header>h1>a,
@@ -167,6 +184,10 @@ a.sign-in-switch:visited {
     clear: both;
 }
 
+#nav-login-signup {
+    margin-top: 2px;
+}
+
 #nav-login {
     float: left;
     padding: 5px 15px;
@@ -246,7 +267,8 @@ p.due-date {
 }
 
 #close-button {
-    padding: 20px;
+    padding: 17px;
+    padding-left: 26px;
     display: none;
     font-size: 30px;
     color: var(--mint);
@@ -254,8 +276,7 @@ p.due-date {
 
 .welcome-text {
     margin-top: 12px;
-    width: 100%;
-    float: left;
+    margin: 0 10px;
 }
 
 footer {
@@ -318,7 +339,7 @@ footer {
     z-index: 20;
     position: absolute;
     right: -500%;
-    top: calc(100% + 6px);
+    top: calc(100% + 12px);
     width: 300px;
     background-color: #f9f9f9;
     border-radius: 20px;
@@ -471,6 +492,10 @@ footer {
         font-size: 17px;
     }
 
+    nav {
+        margin-top: 2px;
+    }
+
     header > a {
         font-size: 17px;
     }
@@ -499,16 +524,8 @@ footer {
 
 }
 
-/* Content if screen is extremely small */
-@media screen and (max-width:500px) {
-    .book {
-        width: 98%;
-    }
-
-    #books {
-        width: 100%;
-    }
-
+/* Content if screen is really small */
+@media screen and (max-width:570px) {
     nav {
         position: fixed;
         left: 0;
@@ -517,8 +534,8 @@ footer {
         height: 100%;
         width: 0%;
         background-color: var(--teal);
-        transition: 0.5s;
         overflow: hidden;
+        margin: 0;
     }
 
     nav > li > a {
@@ -537,8 +554,7 @@ footer {
 
     #hamburger-button {
         display: block;
-        font-size: 30px;
-        color: var(--mint);
+        padding-left: 10px;
         float: left;
     }
 
@@ -547,10 +563,7 @@ footer {
     }
 
     #close-button {
-        padding: 20px;
-        display: none;
         font-size: 30px;
-        color: var(--mint);
         transition: 0.5s;
     }
 
@@ -558,10 +571,25 @@ footer {
         cursor: pointer;
     }
 
+}
+
+    
+/* Content if screen is super small */
+@media screen and (max-width:500px) {
+    .book {
+        width: 98%;
+    }
+
+    #books {
+        width: 100%;
+    }
+
+    #error-box {
+        width: 98%;
+    }
+
     .welcome-text {
         margin-top: 24px;
-        float: left;
-        width: 100%;
     }
 
     .search {
@@ -588,9 +616,7 @@ footer {
     }
 
     #large-account-container {
-        max-width: 200px;
+        max-width: calc(100vw - 40px);
     }
-
-
-
+    
 }
