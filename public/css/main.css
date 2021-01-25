@@ -258,6 +258,16 @@ p {
     float: left;
 }
 
+#search-input {
+    min-width: 275px;
+    padding-left: 4px;
+}
+
+#search-button-container {
+    float: right;
+    margin-left: 4px;
+}
+
 p.title,
 p.author,
 p.due-date {
@@ -280,8 +290,8 @@ p.due-date {
 }
 
 .welcome-text {
-    margin-top: 12px;
     margin: 0 10px;
+    margin-top: 12px;
 }
 
 footer {
@@ -593,10 +603,6 @@ footer {
         width: 98%;
     }
 
-    .welcome-text {
-        margin-top: 24px;
-    }
-
     .search {
         margin-bottom: 10px;
         width: 100%;
@@ -604,7 +610,14 @@ footer {
     }
 
     #search-input {
-        min-width: 150px !important;
+        min-width: 92vw;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    #search-button-container {
+        float: none;
+        margin-left: 0px;
     }
 
     .footer-div {
