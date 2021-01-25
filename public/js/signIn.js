@@ -101,6 +101,10 @@ function sendEmailVerification() {
 
 function sendPasswordReset() {
     var email = document.getElementById('email').value;
+    if (email.indexOf('@') == -1 || email.lastIndexOf('.') < email.indexOf('@')){
+        alert("Please enter a valid email into the Email box above. Then try again.");
+        return;
+    }
     firebase.auth().sendPasswordResetEmail(email).then(function() {
         alert('Password Reset Email Sent!');
     }).catch(function(error) {
