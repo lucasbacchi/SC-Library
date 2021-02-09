@@ -19,6 +19,7 @@
 .account-info {
     margin-bottom: 20px;
     text-align: center;
+    position: relative;
 }
 
 .setting-section {
@@ -33,13 +34,36 @@
     margin-bottom: 20px;
 }
 
-.account-image {
+.account-image-container {
     width: 80%;
+    margin: 0 auto;
+    position: relative;
+}
+
+#account-page-image {
+    width: 100% !important;
+    border-radius: 600px;
+    border: 3px solid #ffffff;    
     background-color: white;
-    margin: 8px;
+}
+
+#account-image-overlay {
+    width: 100%;
+    height: calc(100% - 5px);
+    padding-top: calc(50% - 1em);
+    background-color: #aaaaaa9a;
     margin: 0 auto;
     border-radius: 600px;
+    z-index: 2;
     border: 3px solid #ffffff;
+    opacity: 0;
+    transition: 0.3s;
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    cursor: pointer;
 }
 
 .menu-list > li {
@@ -58,11 +82,6 @@ p.setting-description {
     margin-top: 4px;
     margin-bottom: 16px;
     font-size: .7em;
-}
-
-button.save-button {
-    position: absolute;
-    bottom: 16px;
 }
 
 div.book-layout {

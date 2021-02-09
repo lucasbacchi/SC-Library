@@ -28,8 +28,6 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="#3D7A8B">
         <link rel="icon" href="/img/favicon.ico" type="image/png">
         <link rel="stylesheet" href="/css/main.css" type="text/css">
-        <link rel="stylesheet" href="/css/account.css" type="text/css">
-
     </head>
 
     <body style="overflow: hidden;">
@@ -139,62 +137,6 @@
 
         <script type="text/javascript" src="/js/main.js"></script>
 
-        <!-- This used to be a test of the database SAVE THIS CODE FOR NOW -->
-        <!--<script>
-
-            /*var firebaseConfig = {
-                apiKey: "AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU",
-                authDomain: "south-church-library.firebaseapp.com",
-                databaseURL: "https://south-church-library.firebaseio.com",
-                projectId: "south-church-library",
-                storageBucket: "south-church-library.appspot.com",
-                messagingSenderId: "695036619849",
-                appId: "1:695036619849:web:5e99fa7a4f64cec2daa398",
-                measurementId: "G-MRXNED32DZ"
-            };*/
-
-
-            // Initialize Cloud Firestore through Firebase
-            /*firebase.initializeApp({
-                apiKey: 'AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU',
-                authDomain: 'south-church-library.firebaseapp.com',
-                projectId: 'south-church-library'
-            });*/
-
-            var db = firebase.firestore();
-
-            db.collection("users").add({
-                    first: "Ada",
-                    last: "Lovelace",
-                    born: 1815
-                })
-                .then(function (docRef) {
-                    console.log("Document written with ID: ", docRef.id);
-                })
-                .catch(function (error) {
-                    console.error("Error adding document: ", error);
-                });
-
-            // Add a second document with a generated ID.
-            db.collection("users").add({
-                    first: "Alan",
-                    middle: "Mathison",
-                    last: "Turing",
-                    born: 1912
-                })
-                .then(function (docRef) {
-                    console.log("Document written with ID: ", docRef.id);
-                })
-                .catch(function (error) {
-                    console.error("Error adding document: ", error);
-                });
-
-            db.collection("users").get().then((querySnapshot) => {
-                querySnapshot.forEach((doc) => {
-                    console.log(`${doc.id} => ${doc.data()}`);
-                });
-            });
-        </script>-->
     </body>
 
 </html>

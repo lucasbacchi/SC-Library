@@ -1,7 +1,11 @@
 <div class="main-column">
     <div class="menu-column">
         <div class="account-info">
-            <img class="account-image" id="account-page-image" src="../img/default-user.jpg">
+            <div class="account-image-container">
+                <img id="account-page-image" src="../img/default-user.jpg" style="width: 0px;">
+                <div id="account-image-overlay">Change Photo</div>
+                <input type="file" id="file-input" style="display: none;" accept="image/jpg, image/png">
+            </div>
                 <p id="account-page-name"><b></b></p>
                 <p id="account-page-email"></p>
         </div>

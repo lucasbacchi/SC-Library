@@ -1,3 +1,5 @@
+var db = firebase.firestore();
+
 // Manage Menu Button event listener
 $('#hamburger-button').click(function() {
     openNavMenu();
@@ -85,6 +87,9 @@ if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
 
 
     $(window).click(function(event) {
+        // Added to fix dupe input bug
+        event.stopPropagation();
+        // might need to remove...
         if (!($.contains($('#large-account-container')[0], event.target) || event.target == $('#large-account-container')[0])) {
             if (largeAccountOpen) {
                 closeLargeAccount();
@@ -108,18 +113,12 @@ $(window).on("scroll", function() {
 
 /* AUTHENTICATION START */
 
-initApp()
-.then(function() {
-
-}, function(error) {
-    console.log(error);
-});
 
 function signOut() {
     if (firebase.auth().currentUser) {
         firebase.auth().signOut();
         /* could change 'replace' to 'href' if we wanted to keep the page in the history */
-        window.location.replace('./');
+        window.location.replace('/');
     } else {
         alert("No user is currently signed in.");
     }
@@ -157,18 +156,25 @@ function updateUserAccountInfo() {
     var user = firebase.auth().currentUser;
     if (user) {
         // User is signed in.
+        db.collection("users").doc(user.uid).get().then((doc) => {
+            if (!doc.exists) {
+                console.error("The user document could not be found.");
+                return;
+            }
+            $('#account-name').text(doc.data().firstName + " " + doc.data().lastName);
+        });
 
-        var displayName = user.displayName;
-        $('#account-name').text(displayName);
         var email = user.email;
+        email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length)
         $('#account-email').text(email);
         var emailVerified = user.emailVerified;
         var photoURL = user.photoURL;
         if (photoURL != null) {
-            $('#small-account-image, #small-account-image').attr('src', photoURL);
+            $('#small-account-image').attr('src', photoURL);
+            $('#large-account-image').attr('src', photoURL);
         }
         var isAnonymous = user.isAnonymous;
-        var uid = user.uid; // Not to be used for authentication or identification (User.getToken();)
+        var uid = user.uid; // Not to be used for authentication (User.getToken();)
         var providerData = user.providerData; // Should not have any with email signup
         if (!emailVerified) {
             // User's email is not verified
@@ -195,9 +201,6 @@ function updateUserAccountInfo() {
         $('#log-out').html('<a href="login.html">Log In</a>').css('width', '100%').attr('onclick', '');
     }
 
-    if (currentPage == "/account") {
-        accountPageSetup();
-    }
 }
 
 
