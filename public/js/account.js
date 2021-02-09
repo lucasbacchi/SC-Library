@@ -50,14 +50,23 @@ alignMenuColumn();
 
 
 
+
 // Load correct info for account
 function accountPageSetup() {
     var user = firebase.auth().currentUser;
     if (user) {
+        
         $('#account-page-name').text(user.displayName);
         $('#account-page-email').text(user.email);
         // TO DO: Update to include first name and last name when it is stored in the auth object properly
-        $('#setting-first-name').val(user.displayName);
+        db.collection("users").doc(user.uid).get().then((doc) => {
+            if (!doc.exists) {
+                console.error("The user document could not be found.");
+                return;
+            }
+            $("#setting-first-name").val(doc.data().firstName);
+            $("#setting-last-name").val(doc.data().lastName);
+        });
         $('#setting-email').val(user.email);
         if (user.photoURL != null) {
             $('#account-page-image').attr('src', user.photoURL);
@@ -68,6 +77,70 @@ function accountPageSetup() {
     } else {
         $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
     }
+
+    // Create Event Listeners to handle PFP changes
+    // All are required to handle leaving the element and coming back again
+    $("#account-page-image").mouseover(function() {
+        showAccountImageOverlay();
+    });
+    $("#account-image-overlay").mouseleave(function() {
+        $("#account-image-overlay").css("opacity", "0");
+        $("#account-image-overlay").delay(300).hide(0);
+    });
+    $("#account-image-overlay").mouseover(function() {
+        $("#account-image-overlay").clearQueue().stop();
+        showAccountImageOverlay();
+    });
+
+    function showAccountImageOverlay() {
+        $("#account-image-overlay").show();
+        setTimeout(() => {
+            $("#account-image-overlay").css("opacity", "1");
+        }, 5);
+    }
+    
+    // If a user clicks the button to change their pfp, click the input button
+    $("#account-image-overlay").click(function(event) {
+        if ($("#file-input")) {
+            $("#file-input").click();
+        }
+    });
+
+    // When there is a change to the input, upload the file
+    $("#file-input").on("change", function() {
+        if (!$("#file-input")[0].files) {
+            return;
+        }
+        const file = $("#file-input")[0].files[0];
+        var userSpecificRef = firebase.storage().ref().child("users");
+        var meta;
+        if (file.type == "image/jpg") {
+            userSpecificRef = userSpecificRef.child(user.uid + "/pfp.jpg");
+            meta = {contentType: 'image/jpeg'};
+        } else if (file.type == "image/png") {
+            userSpecificRef = userSpecificRef.child(user.uid + "/pfp.png");
+            meta = {contentType: 'image/png'};
+        } else {
+            alert("That file type is not supported. Please upload a JPG or PNG file.");
+            return;
+        }
+        userSpecificRef.put(file, meta).then((snapshot) => {
+            console.log('Uploaded the file!');
+            userSpecificRef.getDownloadURL().then((url) => {
+                user.updateProfile({
+                    photoURL: url
+                  }).then(function() {
+                    if (user.photoURL != null) {
+                        $('#account-page-image').attr('src', user.photoURL);
+                        $('#large-account-image').attr('src', user.photoURL);
+                        $('#small-account-image').attr('src', user.photoURL);
+                    }
+                  }).catch(function(error) {
+                    console.error(error);
+                  });
+            });
+        });
+    })
 }
 
 
@@ -140,7 +213,5 @@ $(window).on("beforeunload", function (event) {
         alert("You have unsaved changes! Please save changes before leaving!");
     }
 });
-
-goToSettingsPanel('overview', true);
 
 console.log("account.js has Loaded!");

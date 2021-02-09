@@ -433,6 +433,11 @@ footer {
     cursor: pointer;
 }
 
+button.save-button {
+    position: absolute;
+    bottom: 16px;
+}
+
 .fade {
     -webkit-animation-name: fade;
     -webkit-animation-duration: 0.5s;

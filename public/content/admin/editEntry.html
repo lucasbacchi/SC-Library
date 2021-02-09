@@ -1,1 +1,34 @@
-<h1>The Entry Editing Page! Some conent will appear below at some point lol...</h1>
+<a onclick="javascript:goToPage('admin/main');">Back</a>
+<div id="form-container">
+    <h1>Edit This Entry:</h1>
+    <div class="form-section">
+        <p id="barcode" class="form-description">Barcode: </p>
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Title</h6>
+        <p class="form-description"></p>
+        <input id="book-title" placeholder="Enter a Title (required)" class="form-input">
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Author</h6>
+        <p class="form-description"></p>
+        <input id="book-author" placeholder="Enter the Author" class="form-input">
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Subject</h6>
+        <p class="form-description"></p>
+        <input id="book-subject" placeholder="Enter the subject" class="form-input">
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Description</h6>
+        <p class="form-description"></p>
+        <input id="book-description" placeholder="Enter a description" class="form-input">
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">ISBN Number</h6>
+        <p class="form-description"></p>
+        <input id="book-isbn" placeholder="Enter the ISBN number" class="form-input">
+    </div>
+    <p>More later...</p>
+    <button class="save-button" onclick="javascript:editEntry();">Edit Entry</button>
+</div>

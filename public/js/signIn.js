@@ -53,7 +53,8 @@ function signIn() {
  * Handles the sign up button press.
  */
 function handleSignUp() {
-    // var name = document.getElementById('name').value;
+    var firstName = document.getElementById('firstName').value;
+    var lastName = document.getElementById('lastName').value;
     var email = document.getElementById('email').value;
     var password = document.getElementById('password').value;
     if (email.length < 4) {
@@ -64,10 +65,14 @@ function handleSignUp() {
         alert('Please enter a longer password.');
         return;
     }
-    /*if (name.length < 1) {
-        alert('Please enter a name.');
+    if (firstName.length < 1) {
+        alert('Please enter a first name.');
         return;
-    }*/
+    }
+    if (lastName.length < 1) {
+        alert('Please enter a last name.');
+        return;
+    }
     var signUpError = false;
     // Create user with email and pass, then logs them in.
     firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
@@ -84,8 +89,18 @@ function handleSignUp() {
     }).then(function() {
         // TO DO: set it up so that the user is redirected to their page
         if (!signUpError) {
-            goToPage("");
-            sendEmailVerification();
+            var user = firebase.auth().currentUser;
+            var usersPath = db.collection("users");
+            var pfpRef = firebase.storage().ref().child("/public/default-user.jpg");
+            var pfpLink = pfpRef.getDownloadURL();
+            user.photoURL = pfpLink;
+            usersPath.doc(user.uid).set({
+                firstName: firstName,
+                lastName: lastName
+            }).then(function() {
+                goToPage("");
+                sendEmailVerification();
+            });
         }
     });
 }
