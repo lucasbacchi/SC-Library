@@ -48,6 +48,7 @@ var currentPage;
         return new Promise(function (resolve, reject) {
             if (isAdmin == null) {
                 firebase.firestore().collection("config").doc("private_vars").get().then((doc) => {
+                    debugger;
                     isAdmin = true;
                     resolve(true);
                 }).catch((error) => {
@@ -105,6 +106,7 @@ var currentPage;
                 if (pageName.indexOf("login") == -1 && pageName.indexOf("signup") == -1) {
                     getPage(pageName);
                 } else {
+                    // TO DO: Might have broken reauth.
                     if (firebase.auth().currentUser != null) {
                         goToPage("");
                         return;
@@ -123,9 +125,11 @@ var currentPage;
 
             
 
-            if (isAdminCheck().catch((error) => {}) && !$("#admin-link").length) {                
-                $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
-            }
+            isAdminCheck().catch((error) => {}).then((result) => {
+                if (result && !$("#admin-link").length) {                
+                    $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
+                }
+            });
 
             function getPage(pageName) {
                 if (directory.includes(pageName)) {

@@ -49,9 +49,13 @@ function signInSubmit(pageQuery) {
         } else {
             reAuth = false;
         }
-        signIn(reAuth).then(function() {
-            authRedirect(pageQuery);
-        });
+        signIn(reAuth).then(function(reAuth) {
+            if (reAuth) {
+                authRedirect(pageQuery);
+            } else {
+                goToPage("");
+            }
+        }).catch(() => {});
     } else if (currentPage == '/signup') {
         handleSignUp().then(function() {
             authRedirect(pageQuery);
@@ -78,7 +82,9 @@ function signIn(reAuth = false) {
             var signInError = false;
             if (!reAuth) {
                 // Sign in with email and pass.
-                firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
+                firebase.auth().signInWithEmailAndPassword(email, password).then(function() {
+                    resolve(reAuth);
+                }).catch(function(error) {
                     // Handle Errors here.
                     signInError = true;
                     var errorCode = error.code;
@@ -91,8 +97,7 @@ function signIn(reAuth = false) {
                     console.log(error);
                     $('#email').val('');
                     $('#password').val('');
-                }).then(function() {
-                    resolve();
+                    reject();
                 });
             } else {
                 // Reauthenticate
