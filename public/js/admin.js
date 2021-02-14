@@ -43,3 +43,9 @@
     }
 
 }
+
+function adminSearch() {
+    var searchQuery = $("#edit-entry-input").val();
+
+    searchQuery(searchQuery);
+}

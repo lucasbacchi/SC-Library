@@ -17,7 +17,7 @@
 }
 
 .account-info {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     text-align: center;
     position: relative;
 }
@@ -42,6 +42,7 @@
 
 #account-page-image {
     width: 100% !important;
+    height: calc((786px * 0.3 - 32px) * 0.8);
     border-radius: 600px;
     border: 3px solid #ffffff;    
     background-color: white;
@@ -92,6 +93,11 @@ div.book-layout {
 
 p.notification {
     text-align: left;
+}
+
+.account-info > p {
+    margin-top: 4px;
+    margin-bottom: 4px;
 }
 
 p.unread {

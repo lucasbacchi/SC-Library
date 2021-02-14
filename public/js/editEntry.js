@@ -23,20 +23,8 @@ function editEntry() {
     }
     // Create a list of keywords from the description
     var keywordsValue = descriptionValue.split(" ");
-    // List of words to remove from the keywords list
-    var meaninglessWords = ["the", "is", "it"];
-    // Itterate through each word
-    for (var i = 0; i < keywordsValue.length; i++) {
-        // Remove all punctuation and make it lowercase
-        keywordsValue[i] = keywordsValue[i].replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-        keywordsValue[i] = keywordsValue[i].toLowerCase();
-        console.log("This should have no punctuation: " + keywordsValue[i]);
-        // Remove it from the list if it's meaningless
-        if (meaninglessWords.includes(keywordsValue[i])) {
-            keywordsValue.splice(i, 1);
-            i--;
-        }
-    }
+
+    keywordsValue = cleanUpSearchTerm(keywordsValue);
 
     // Updates the book with the information
     batch.update(booksPath.doc(barcodeValue), {

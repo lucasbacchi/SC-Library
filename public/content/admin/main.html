@@ -1,12 +1,76 @@
 <h2>Overview</h2>
-<div class="mgmt">
-    <p><span id="total">Some amount of</span> books are in the database. <span id=checkedout>Some subset</span> of them
-        are currently checked out. <span id=lost>Hopefully none</span> are unaccounted for.</p>
+<div id="admin-header">
+    <p><span id="total">Some amount of</span> books are in the database. <span id="checkedout">Some subset</span> of them
+        are currently checked out. <span id="lost">Hopefully none</span> are unaccounted for.</p>
     <p><a onclick="javascript:goToPage('admin/report');">Generate a Report</a></p>
 </div>
 
 <h2>Database Management</h2>
-<div class="mgmt">
-    <p><a onclick="javascript:addEntry();">Add Entry</a></p>
-    <p><a onclick="javascript:goToPage('admin/editEntry')">Edit Entry</a></p>
+<div id="management-grid">
+    <div class="mgmt" id="add-entry">
+        <h3>There are currently SOME NUMBER of unique books</h3>
+        <p>If you'd like to add a new book, click here: <a onclick="javascript:addEntry();">Add Entry</a></p>
+    </div>
+    <div class="mgmt" id="edit-entry">
+        <h3>Search for an entry to edit below:</h3>
+        <input id="edit-entry-barcode">
+        <button id="edit-entry-search" onclick="javascript:adminSearch();">Search</button>
+        <p><a onclick="javascript:goToPage('admin/editEntry')">Edit Entry</a></p>
+    </div>
+    <div class="mgmt" id="checked-out">
+        <h3>Here are the 5 most recently checked out books:</h3>
+        <div id="checked-out-books-container">
+            <div class="book">
+                <img src="/img/favicon.ico" class="bookimage">
+                <div>
+                    <b>
+                        <p class="title">The Martian</p>
+                    </b>
+                    <p class="author">Andy Weir</p>
+                </div>
+            </div>
+            <div class="book">
+                <img src="/img/favicon.ico" class="bookimage">
+                <div>
+                    <b>
+                        <p class="title">The Martian</p>
+                    </b>
+                    <p class="author">Andy Weir</p>
+                </div>
+            </div>
+            <div class="book">
+                <img src="/img/favicon.ico" class="bookimage">
+                <div>
+                    <b>
+                        <p class="title">The Martian</p>
+                    </b>
+                    <p class="author">Andy Weir</p>
+                </div>
+            </div>
+            <div class="book">
+                <img src="/img/favicon.ico" class="bookimage">
+                <div>
+                    <b>
+                        <p class="title">The Martian</p>
+                    </b>
+                    <p class="author">Andy Weir</p>
+                </div>
+            </div>
+            <div class="book">
+                <img src="/img/favicon.ico" class="bookimage">
+                <div>
+                    <b>
+                        <p class="title">The Martian</p>
+                    </b>
+                    <p class="author">Andy Weir</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mgmt" id="report">
+        <h3>Select your type of report:</h3>
+        <p><a onclick="javascript:goToPage('admin/report?type=report1')">Report 1</a></p>
+        <p><a onclick="javascript:goToPage('admin/report?type=report2')">Report 2</a></p>
+        <p><a onclick="javascript:goToPage('admin/report?type=report3')">Report 3</a></p>
+    </div>
 </div>

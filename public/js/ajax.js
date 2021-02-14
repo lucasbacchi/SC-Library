@@ -2,6 +2,7 @@ var url = window.location.href;
 var path = window.location.pathname;
 var query = window.location.search;
 var hash = window.location.hash;
+var fullExtension = path + query + hash;
 
 
 // Search Content folder
@@ -17,6 +18,7 @@ var directory = [
     "/help",
     "/login",
     "/main",
+    "/result",
     "/search",
     "/signup",
     "/sitemap"
@@ -29,7 +31,7 @@ var xhttp = new XMLHttpRequest();
 $(document).ready(function () {
     initApp()
     .then(function() {
-        goToPage(path.substr(1, path.length), true);
+        goToPage(fullExtension.substr(1, fullExtension.length), true);
     }, function(error) {
         console.log(error);
     });
@@ -45,7 +47,6 @@ var currentPage;
     function isAdminCheck() {
         return new Promise(function (resolve, reject) {
             if (isAdmin == null) {
-                console.warn("This code should only execute once!")
                 firebase.firestore().collection("config").doc("private_vars").get().then((doc) => {
                     isAdmin = true;
                     resolve(true);
@@ -63,7 +64,7 @@ var currentPage;
         });
     }
     
-    function goToPage(pageName, goingBack = false) {
+    function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         return new Promise (function (resolve, reject) {
             $("#content").removeClass("fade");
             if ($(window).width() <= 570) {
@@ -93,22 +94,42 @@ var currentPage;
                 pageName = pageName.substr(0, pageName.indexOf("."));
             }
 
+            if (pageName == "" || pageName == "index.html" || pageName == "index") {
+                pageName = "main";
+            }
+
             pageName = "/" + pageName;
+            // Prevent users from viewing admin pages without having admin privilages
             if (pageName.indexOf("admin") == -1) {
-                getPage(pageName);
+                // Prevent users from going to the sign in/up page if they are signed in
+                if (pageName.indexOf("login") == -1 && pageName.indexOf("signup") == -1) {
+                    getPage(pageName);
+                } else {
+                    if (firebase.auth().currentUser != null) {
+                        goToPage("");
+                        return;
+                    } else {
+                        getPage(pageName);
+                    }
+                }
             } else {
                 isAdminCheck().then((isAdmin) => {
                     getPage(pageName);
                 }).catch((error) => {
                     goToPage("");
+                    return;
                 })
+            }
+
+            
+
+            if (isAdminCheck().catch((error) => {}) && !$("#admin-link").length) {                
+                $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
             }
 
             function getPage(pageName) {
                 if (directory.includes(pageName)) {
-                    xhttp.open("GET", "/content" + pageName + ".html" + query + hash, true); // This may require a rework for handling hash/query
-                } else if (pageName == "/" || pageName == "/index.html" || pageName == "/index") {
-                    xhttp.open("GET", "/content/main.html" + query + hash, true);
+                    xhttp.open("GET", "/content" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
                 } else {
                     xhttp.open("GET", "/content/404.html", true);
                 }
@@ -151,6 +172,7 @@ var currentPage;
                         "/help": "Help",
                         "/login": "Login",
                         "/main": "Home",
+                        "result": "Result", // This will get changed on the page to be specific to the title.
                         "/search": "Search Results",
                         "/signup": "Signup",
                         "/sitemap": "Sitemap"
@@ -170,7 +192,7 @@ var currentPage;
                     // These will always be loaded no matter what page.
                     var sourcesRequired = {
                         "/admin/editEntry": ["form.css", "editEntry.js"],
-                        "/admin/main": ["admin.js"],
+                        "/admin/main": ["admin.js", "admin.css"],
                         "/admin/report": [],
                         "/404": [],
                         "/about": [],
@@ -180,6 +202,7 @@ var currentPage;
                         "/help": [],
                         "/login": ["signIn.js"],
                         "/main": [],
+                        "/result": ["search.js", "search.css"],
                         "/search": ["search.js", "search.css"],
                         "/signup": ["signIn.js"],
                         "/sitemap": []
@@ -243,17 +266,24 @@ var currentPage;
 
                     
                     // Fire Additional Scripts based on Page
+                    if (pageName == "/main") {
+                        setupMain();
+                    }
+
                     if (pageName == "/login" || pageName == "/signup") {
-                        setupSignIn();
+                        setupSignIn(pageQuery);
                     }
 
                     if (pageName == "/search") {
-                        setupSearch();
+                        if (searchResultsArray == null) {
+                            setupSearch(null, pageQuery);
+                        } else {
+                            setupSearch(searchResultsArray);
+                        }
                     }
 
                     if (pageName == "/account") {
-                        goToSettingsPanel('overview', true);
-                        accountPageSetup();
+                        accountPageSetup(pageQuery);
                     }
                     
                     /* TRYING THIS IN A .THEN We'll see how that goes...

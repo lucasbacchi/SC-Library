@@ -32,9 +32,9 @@
 
     <body style="overflow: hidden;">
         <header>
-            <h1><a onclick="javascript:goToPage('main');">South Church Library</a></h1>
-            <span id="hamburger-button">&#9776;</span>
-            <nav>
+            <h1><a onclick="javascript:goToPage('main');" class="no-select">South Church Library</a></h1>
+            <span id="hamburger-button" class="no-select">&#9776;</span>
+            <nav class="no-select">
                 <span id="close-button">&#10006;</span>
                 <li class=navlink><a onclick="javascript:goToPage('main');">Home</a></li>
                 <li class=navlink><a onclick="javascript:goToPage('about');">About</a></li>
@@ -43,19 +43,19 @@
                 <li class=navlink><a onclick="javascript:goToPage('help');">Help</a></li>
             </nav>
             <div id="account-container">
-                <div id="nav-login-signup">
+                <div id="nav-login-signup" class="no-select">
                     <div id="nav-login"><a onclick="javascript:goToPage('login');">Log In</a></div>
                     <div id="nav-signup"><a onclick="javascript:goToPage('signup');">Sign Up</a></div>
                 </div>
-                <div id="small-account-container">
+                <div id="small-account-container" class="no-select">
                     <img id="small-account-image" src="../img/default-user.jpg">
                     <span id="account-arrow">&#9660;</span>
                 </div>
                 <div id="large-account-container">
-                    <img id="large-account-image" src="../img/default-user.jpg">
-                    <div>
-                        <p id="account-name"><b>John Doe</b></p>
-                        <p id="account-email">JohnDoe<wbr>@Something.com</p>
+                    <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
+                    <div id="account-information-container">
+                        <p id="account-name"></p>
+                        <p id="account-email"></p>
                     </div>
                     <div id="log-out" class="account-bottom" onclick="javascript:signOut();"><a>Log Out</a></div>
                     <div id="account-settings" class="account-bottom" onclick="javascript:goToPage('account');"><a>View Account</a></div>
@@ -73,7 +73,7 @@
         <div id="footer-spacer" style="clear: both; height: 200px;"></div>
         <footer>
             <div class="footer-div">
-                <h2 class="footer-title">Contact Us</h2>
+                <h2 class="footer-title no-select">Contact Us</h2>
                 <ul class="footer-list">
                     <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a></li>
                     <li><a href="mailto:scand@southchurch.com" target="_blank">scand@southchurch.com</a></li>
@@ -81,7 +81,7 @@
                 </ul>
             </div>
             <div class="footer-div">
-                <h2 class="footer-title">South Church</h2>
+                <h2 class="footer-title no-select">South Church</h2>
                 <ul class="footer-list">
                     <li><a href="https://www.southchurch.com" target="_blank">Website</a></li>
                     <li><a href="https://southchurch.com/worship" target="_blank">Worship</a></li>
@@ -89,7 +89,7 @@
                 </ul>
             </div>
             <div class="footer-div">
-                <h2 class="footer-title">Help</h2>
+                <h2 class="footer-title no-select">Help</h2>
                 <ul class="footer-list">
                     <li><a onclick="javascript:goToPage('help');">Help Page</a></li>
                     <li><a onclick="javascript:goToPage('help#FAQ');">FAQs</a></li>
