@@ -11,25 +11,22 @@ $(window).on("resize", function() {
 
 
 // Set up a mutation observer to resize the menu column whenver content changes.
-{
-    const observer = new MutationObserver(function (mutationList, mutationObserver) {
-        mutationList.forEach(function (mutation) {
-            if (mutation.type != "attributes" || mutation.target != $('.menu-column')[0]) {
-                alignMenuColumn();
-            }
-        });
+const observer = new MutationObserver(function (mutationList, mutationObserver) {
+    mutationList.forEach(function (mutation) {
+        if (mutation.type != "attributes" || (!$('.menu-column')[0].contains(mutation.target) && mutation.target != $('.menu-column')[0])) {
+            alignMenuColumn();
+        }
     });
-    const observerOptions = {
-        childList: true,
-        attributes: true,
-    
-        // Omit (or set to false) to observe only changes to the parent node
-        subtree: true
-    }
-    observer.observe($('.main-column')[0], observerOptions);
+});
+const observerOptions = {
+    childList: true,
+    attributes: true,
+
+    // Omit (or set to false) to observe only changes to the parent node
+    subtree: true
 }
 
-
+var heightCheck = 500;
 // Use the height of the main column to stretch the height of the menu column.
 function alignMenuColumn() {
     // Get the padding above and below the column.
@@ -37,46 +34,68 @@ function alignMenuColumn() {
     var padding = parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
     paddingStr = $('.menu-column').css('padding-bottom');
     padding += parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
+
+    var mainColumnHeight = $('.main-column').height();
+    var menuColumnFullHeight = $('.menu-column').height() + padding;
     
     // Set the height of the column. If it is smaller than the content, then it can use default heights.
-    if ($('.main-column').height() - padding > $('.menu-column').height()) {
-        $('.menu-column').height($('.main-column').height() - padding);
-    } else {
+    if (mainColumnHeight <= menuColumnFullHeight) {
         $('.menu-column').css("height", "");
     }
+    menuColumnFullHeight = $('.menu-column').height() + padding;
+    mainColumnHeight = $('.main-column').height();
+    
+    if (mainColumnHeight > menuColumnFullHeight) {
+        $('.menu-column').height(mainColumnHeight - padding);
+    }
+
+    
+    var interval = setInterval(() => {
+        if ($('.menu-column').height() > heightCheck) {
+            heightCheck += 10;
+            alignMenuColumn();
+        } else {
+            clearInterval(interval);
+        }
+    }, 50);
 }
 
-alignMenuColumn();
 
 
 
-
+var firstName;
+var lastName;
 // Load correct info for account
-function accountPageSetup() {
+function accountPageSetup(pageQuery) {
     var user = firebase.auth().currentUser;
     if (user) {
         
-        $('#account-page-name').text(user.displayName);
-        $('#account-page-email').text(user.email);
-        // TO DO: Update to include first name and last name when it is stored in the auth object properly
+        var email = user.email;
+        email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
+        $('#account-page-email').text(email);
+        // Get the stored first and last name from the database
         db.collection("users").doc(user.uid).get().then((doc) => {
             if (!doc.exists) {
                 console.error("The user document could not be found.");
                 return;
             }
-            $("#setting-first-name").val(doc.data().firstName);
-            $("#setting-last-name").val(doc.data().lastName);
+            firstName = doc.data().firstName;
+            lastName = doc.data().lastName;
+            accountOverviewSetup(doc.data().firstName, doc.data().lastName);
+            $('#account-page-name').text(firstName + " " + lastName);
         });
-        $('#setting-email').val(user.email);
         if (user.photoURL != null) {
             $('#account-page-image').attr('src', user.photoURL);
-        }
-        if (user.emailVerified) {
-            $('#email-verified').show();
         }
     } else {
         $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
     }
+
+    goToSettingsPanel('overview', true);
+    accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
+
+    // Create an "Event Listener" for mutations to the settings column
+    observer.observe($('.main-column')[0], observerOptions);
 
     // Create Event Listeners to handle PFP changes
     // All are required to handle leaving the element and coming back again
@@ -143,10 +162,74 @@ function accountPageSetup() {
     })
 }
 
+function accountOverviewSetup(firstName, lastName, email) {
+    var user = firebase.auth().currentUser;
+    if (firstName && firstName != "") {
+        $("#setting-first-name").val(firstName);
+    }
+    if (lastName && lastName != "") {
+        $("#setting-last-name").val(lastName);
+    }
+    if (email && email != "") {
+        $('#setting-email').val(email);
+    }
+    if (!user.emailVerified) {
+        $('#email-verified').show();
+    }
+}
 
 
+// Runs when the user clicks the Save button on hte account page
 function updateAccount() {
-    alert("To Do: add functionality...");
+    var user = firebase.auth().currentUser;
+    if (!checkForChangedFields()) {
+        alert("There are no changes to save.");
+    } else {
+        var nameError = false;
+        // If the names were changed, update them.
+        if (($('#setting-first-name').val() != firstName && $('#setting-first-name').val() != undefined) || ($('#setting-last-name').val() != lastName && $('#setting-last-name').val() != undefined)) {
+            db.collection("users").doc(user.uid).update({
+                firstName: $('#setting-first-name').val(),
+                lastName: $('#setting-last-name').val()
+            }).catch((error) => {
+                nameError = true;
+                alert("An error has occured. Please try again later.");
+                console.log(error);
+            }).then(function(error) {
+                if (!nameError) {
+                    // Assuming there was no problem with the update, set the new values.
+                    firstName = $('#setting-first-name').val();
+                    lastName = $('#setting-last-name').val();
+                    alert("Your name was saved successfully.");
+                }
+            });
+        }
+        var emailError = false;
+        // If the email was changed update it.
+        if ($('#setting-email').val() != user.email && $('#setting-email').val() != undefined) {
+            user.updateEmail($('#setting-email').val()).catch((error) => {
+                emailError = true;
+                // If the user needs to reauthenticate:
+                if (error.code == "auth/requires-recent-login") {
+                    alert("You must sign in again to complete this opperation.");
+                    // Send them to the login page with a query
+                    goToPage("login?redirect=account&email=" + $('#setting-email').val())
+                } else {
+                    alert("An error has occured. Please try again later.");
+                    console.log(error);
+                }
+            }).then(function(error) {
+                if (!emailError) {
+                    email = user.email;
+                    if (!user.emailVerified) {
+                        $('#email-verified').show();
+                    }
+                    updateEmail(email);
+                    alert("Your email was saved successfully.");
+                }
+            });
+        }
+    }
 }
 
 
@@ -187,6 +270,12 @@ function goToSettingsPanel(newPanel, firstTime = false) {
             // Remove Placeholder Height
             document.getElementById("settings-column").style.height = "";
 
+            if (newPanel == "/overview") {
+                accountOverviewSetup(firstName, lastName, user.email);
+            }
+
+            alignMenuColumn();
+
             currentPanel = newPanel;
         }
     }
@@ -196,21 +285,46 @@ function goToSettingsPanel(newPanel, firstTime = false) {
 function checkForChangedFields() {
     var answer = false;
     var user = firebase.auth().currentUser;
-    // TO DO: Check to see if the user has unsaved changes on the page. (Cross Check with database? hold existing values?)
-
-    // TO DO: Update to include first name and last name when it is stored in the auth object properly
-    /*if ($('#setting-first-name').val() != user.displayName && $('#setting-first-name').val() != undefined)
-        answer = true;*/
+    
+    if ($('#setting-first-name').val() != firstName && $('#setting-first-name').val() != undefined)
+        answer = true;
+    if ($('#setting-last-name').val() != lastName && $('#setting-last-name').val() != undefined)
+        answer = true;
     if ($('#setting-email').val() != user.email && $('#setting-email').val() != undefined)
         answer = true;
     return answer;
 }
 
+
+/**
+ * Sends an email verification to the user.
+ */
+function sendEmailVerification() {
+    var user = firebase.auth().currentUser;
+    user.sendEmailVerification().then(function() {
+        alert('Email Verification Sent! Please check your email!');
+    });
+    var count = 0;
+    // After a user sends a verification email, check ever 2 seconds to see if it went through.
+    // Cancel it if it goes too long.
+    var interval = setInterval(() => {
+        if (firebase.auth().currentUser.emailVerified) {
+            $('#email-verified').hide();
+            clearInterval(interval);
+        }
+        count++;
+        if (count > 500) {
+            clearInterval(interval);
+        }
+    }, 2000);
+}
+
+
 // If the user attempts to leave, let them know if they have unsaved changes
 $(window).on("beforeunload", function (event) {
     if (checkForChangedFields()) {
         event.preventDefault();
-        alert("You have unsaved changes! Please save changes before leaving!");
+        return "You have unsaved changes! Please save changes before leaving!";
     }
 });
 

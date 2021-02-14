@@ -44,6 +44,10 @@
     background: #0060ff50;
 }
 
+.no-select {
+    user-select: none;
+}
+
 html, body {
     margin: 0px;
     font-family: Oswald, sans-serif;
@@ -216,15 +220,6 @@ div#nav-login > a, div#nav-signup > a {
     width: fit-content;
     padding-left: 20px;
     margin-bottom: 12px;
-}
-
-div.mgmt {
-    width: fit-content;
-    margin: 0 auto;
-}
-
-div.mgmt > p {
-    margin: 5px;
 }
 
 p {

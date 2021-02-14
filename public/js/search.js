@@ -28,7 +28,7 @@ if ($(window).width() <= 500) {
 
 }
 
-function setupSearch() {
+function setupSearch(searchResultsArray, pageQuery) {
     // Create Sort Dropdown Event Listener
     $('#sort-main-title').click(function() {
         if ($('.sort-section').css('display') == 'none') {
@@ -42,6 +42,60 @@ function setupSearch() {
             $('#sort-sidebar').css('max-height', '58px');
             $('.sort-section').css('opacity', '0');
         }
+    });
+
+    if (searchResultsArray == null) {
+        var queryFromURL = pageQuery.substring(pageQuery.indexOf("=") + 1, pageQuery.length);
+        var searchResultsPromise = search(queryFromURL);
+        searchResultsPromise.then((resultsArray) => {
+            createSearchResultsPage(resultsArray);
+        });
+    } else {
+        createSearchResultsPage(searchResultsArray);
+    }
+}
+
+
+function createSearchResultsPage(searchResultsArray) {
+    searchResultsArray.forEach((doc, index) => {
+        var container = document.createElement("div");
+        container.id = "result-number-" + index;
+        container.className = "result-listing";
+        $("#results-container")[0].appendChild(container);
+
+        var resultNumber = document.createElement("div");
+        resultNumber.className = "result-number";
+        resultNumber.innerHTML = index + 1 + ".";
+        $("#result-number-" + index)[0].appendChild(resultNumber);
+
+        var resultImage = document.createElement("img");
+        resultImage.className = "result-image";
+        if (doc.data().photoURL) {
+            resultImage.src = doc.data().photoURL;
+        } else {
+            resultImage.src = "img/favicon.ico";
+        }
+        $("#result-number-" + index)[0].appendChild(resultImage);
+
+        var resultTitle = document.createElement("h4");
+        resultTitle.className = "result-title";
+        resultTitle.id = "result-title-number-" + index;
+        $("#result-number-" + index)[0].appendChild(resultTitle);
+
+        var resultTitleLink = document.createElement("a");
+        resultTitleLink.setAttribute("onclick", "javascript:goToPage('result?id=" + doc.data().barcode + "');");
+        resultTitleLink.innerHTML = doc.data().title;
+        $("#result-title-number-" + index)[0].appendChild(resultTitleLink);
+
+        var resultInfo = document.createElement("div");
+        resultInfo.className = "result-info";
+        resultInfo.id = "result-info-number-" + index;
+        $("#result-number-" + index)[0].appendChild(resultInfo);
+
+        var resultText = document.createElement("p");
+        resultText.className = "result-text";
+        resultText.innerHTML = doc.data().short_description;
+        $("#result-info-number-" + index)[0].appendChild(resultText);
     });
 }
 

@@ -52,6 +52,10 @@ h4 {
     margin: 0;
 }
 
+h4:hover {
+    text-decoration: underline;
+}
+
 .result-image {
     max-width: 120px;
     border: 1px solid var(--mint);
@@ -84,7 +88,7 @@ h4 {
 
 .result-number {
     float: left;
-    margin-right: 8px;
+    margin-right: 16px;
 }
 
 .result-text {
@@ -95,6 +99,45 @@ h4 {
 
 .result-info {
     float: left;
+}
+
+#result-page-container {
+    margin: 0 auto;
+    margin-top: 10px;
+    display: grid;
+    width: 60%;
+    grid-template-columns: 25% 25% 25% 25%;
+    grid-template-rows: 200px 200px 200px 200px;
+    gap: 16px 16px;
+    justify-items: stretch;
+    align-items: stretch;
+}
+
+#result-page-info-bar {
+    grid-row: 1 / 5;
+    grid-column: 1 / 2;
+}
+
+#result-page-details {
+    grid-row: 1 / 5;
+    grid-column: 2 / 5;
+}
+
+#result-page-image {
+    max-width: 200px;
+}
+
+div#result-page-info-bar > p {
+    text-align: left;
+}
+
+#checkout-button {
+    padding: 16px;
+    margin: 8px auto;
+    width: 80%;
+    background-color: var(--mint);
+    border-radius: 8px;
+    text-align: center;
 }
 
 
