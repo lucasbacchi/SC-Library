@@ -48,7 +48,6 @@ var currentPage;
         return new Promise(function (resolve, reject) {
             if (isAdmin == null) {
                 firebase.firestore().collection("config").doc("private_vars").get().then((doc) => {
-                    debugger;
                     isAdmin = true;
                     resolve(true);
                 }).catch((error) => {
