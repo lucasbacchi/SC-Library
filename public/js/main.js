@@ -240,7 +240,7 @@ function search(searchQuery) {
 
     var bookIndexNumber = 0;
     var bookSearchResults = [];
-    // TO DO: Add other seraches. Only seaches by keywords at the moment
+    // TO DO: Add other searches. Only seaches by keywords at the moment
     var keywordsSearch = new Promise(function(resolve, reject) {
         index_books.where('keywords', 'array-contains-any', searchQueryArray).limit(10).get().then((querySnapshot) => { // We can change this limit later, just for testing
             querySnapshot.forEach((doc) => {
@@ -252,7 +252,7 @@ function search(searchQuery) {
             });
             resolve();
         }).catch((error) => {
-            alert("An error occured when accessing the database so your serach could not be completed. Please try again later.");
+            alert("An error occured when accessing the database so your search could not be completed. Please try again later.");
             console.error(error);
             reject();
         });
