@@ -4,10 +4,10 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/config/private_vars).data.admins;
     }
-    match /books {
+    match /books/{barcode} {
       allow read: if true;
     }
-    match /index_books {
+    match /index_books/{barcode} {
       allow read: if true;
     }
     match /config/cloud_vars {
