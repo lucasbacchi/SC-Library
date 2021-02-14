@@ -8,7 +8,7 @@ service firebase.storage {
     match /{allPaths=**} {
       allow read, write: if isAdmin();
     }
-    match /users/{userId} {
+    match /users/{userId}/{fileName} {
       allow read, write: if request.auth.uid == userId;
     }
     match /public {
