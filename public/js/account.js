@@ -236,47 +236,51 @@ function updateAccount() {
 
 
 var currentPanel;
-function goToSettingsPanel(newPanel, firstTime = false) {
-    var user = firebase.auth().currentUser;
-    if (!user && firstTime == false) {
-        alert("There is no user currently signed in.");
-        return;
-    }
-    if (firstTime == false && checkForChangedFields()) {
-        alert("You have unsaved changes. Please save any changes and try again.");
-        return;
-    }
+{
+    const xhttp = new XMLHttpRequest();
+    function goToSettingsPanel(newPanel, firstTime = false) {
+        var user = firebase.auth().currentUser;
+        // TODO: Test if this is needed. I think once I made goToPage into a promise, it probably fixed this.
+        if (!user && firstTime == false) {
+            alert("There is no user currently signed in.");
+            return;
+        }
+        if (firstTime == false && checkForChangedFields()) {
+            alert("You have unsaved changes. Please save any changes and try again.");
+            return;
+        }
 
-    $("#settings-column").removeClass("fade");
+        $("#settings-column").removeClass("fade");
 
-    newPanel = "/" + newPanel;
-    if (settingsDirectory.includes(newPanel)){
-        xhttp.open("GET", "/content/account" + newPanel + ".html" + query + hash, true);
-    } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
-        xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
-    } else {
-        xhttp.open("GET", "/content/404.html", true);
-    }
-    xhttp.send();
+        newPanel = "/" + newPanel;
+        if (settingsDirectory.includes(newPanel)){
+            xhttp.open("GET", "/content/account" + newPanel + ".html" + query + hash, true);
+        } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
+            xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
+        } else {
+            xhttp.open("GET", "/content/404.html", true);
+        }
+        xhttp.send();
 
-    // Set the content of the page
-    xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-            if (currentPanel != newPanel) {
-                $('#settings-column').addClass("fade");
+        // Set the content of the page
+        xhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                if (currentPanel != newPanel) {
+                    $('#settings-column').addClass("fade");
+                }
+
+                document.getElementById("settings-column").innerHTML = xhttp.responseText;
+                // Remove Placeholder Height
+                document.getElementById("settings-column").style.height = "";
+
+                if (newPanel == "/overview") {
+                    accountOverviewSetup(firstName, lastName, user.email);
+                }
+
+                alignMenuColumn();
+
+                currentPanel = newPanel;
             }
-
-            document.getElementById("settings-column").innerHTML = xhttp.responseText;
-            // Remove Placeholder Height
-            document.getElementById("settings-column").style.height = "";
-
-            if (newPanel == "/overview") {
-                accountOverviewSetup(firstName, lastName, user.email);
-            }
-
-            alignMenuColumn();
-
-            currentPanel = newPanel;
         }
     }
 }
