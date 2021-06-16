@@ -8,6 +8,7 @@ div.mgmt {
     box-shadow: 0px 0px 12px 0px #cacaca;
     border: 2px solid var(--teal);
     padding: 8px;
+    text-align: center;
 }
 
 div.mgmt > p {
