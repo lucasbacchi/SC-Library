@@ -12,13 +12,89 @@
     box-shadow: 0px 0px 12px 0px #cacaca;
 }
 
+.form-title {
+    font-family: "Poppins", sans-serif;
+    font-size: 1.4em;
+    border-bottom: 2px solid var(--teal);
+    margin: 0;
+    padding: 4px 0px;
+    margin-bottom: 8px;
+}
+
 p.form-description {
     text-align: left;
     margin-top: 4px;
-    margin-bottom: 16px;
-    font-size: .7em;
+    margin-bottom: 24px;
+    font-size: .9em;
 }
 
-input.form-input {
-    width: 50%;
+input.normal-form-input, input.form-input {
+    width: 250px;
+    display: block;
+}
+
+.long-form-input {
+    min-width: 50%;
+}
+
+input.short-form-input {
+    width: 150px;
+}
+
+input {
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 1em;
+}
+
+textarea {
+    margin-bottom: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 1em;
+    min-height: 60px;
+}
+
+#edit-entry-header {
+    font-family: sans-serif;
+    margin-bottom: 18px;
+}
+
+.subject-field, .add-subject {
+    display: block;
+}
+
+#barcode {
+    background-color: #dddddd;
+    border: 1px solid;
+    padding: 2px 3px;
+}
+
+.book-cover-image-container {
+    max-width: 200px;
+    margin: 0;
+    position: relative;
+}
+
+#book-cover-image {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    background-color: #eeeeee;
+    box-shadow: 0px 0px 16px 0px #aaaaaa4a;
+}
+
+#book-cover-image-overlay {
+    width: 100%;
+    height: 100%;
+    padding-top: 50%;
+    background-color: #ffffffaa;
+    z-index: 2;
+    opacity: 0;
+    transition: 0.3s;
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    cursor: pointer;
 }
