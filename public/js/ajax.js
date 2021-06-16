@@ -43,7 +43,7 @@ $(document).ready(function () {
 
 var currentPage;
 {
-    var isAdmin;
+    let isAdmin;
     function isAdminCheck() {
         return new Promise(function (resolve, reject) {
             if (isAdmin == null) {
@@ -208,7 +208,7 @@ var currentPage;
                         "/result": ["search.js", "search.css"],
                         "/search": ["search.js", "search.css"],
                         "/signup": ["signIn.js"],
-                        "/sitemap": []
+                        "/sitemap": ["sitemap.js"]
                     }
 
                     // Get an array of currently loaded Additional Resources like JS and CSS
@@ -287,6 +287,10 @@ var currentPage;
 
                     if (pageName == "/account") {
                         accountPageSetup(pageQuery);
+                    }
+
+                    if (pageName == "/sitemap") {
+                        sitemapSetup();
                     }
                     
                     /* TRYING THIS IN A .THEN We'll see how that goes...
