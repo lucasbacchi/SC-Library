@@ -222,6 +222,10 @@ div#nav-login > a, div#nav-signup > a {
     margin-bottom: 12px;
 }
 
+.sitemap-title, #sitemap {
+    margin: 0 40px;
+}
+
 p {
     text-align: center;
     margin: auto;
