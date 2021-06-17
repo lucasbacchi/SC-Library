@@ -45,7 +45,7 @@ $(document).ready(function () {
 
 var currentPage;
 {
-    var isAdmin;
+    let isAdmin;
     function isAdminCheck() {
         return new Promise(function (resolve, reject) {
             if (isAdmin == null) {
@@ -220,7 +220,7 @@ var currentPage;
                             "/result": ["search.js", "search.css"],
                             "/search": ["search.js", "search.css"],
                             "/signup": ["signIn.js"],
-                            "/sitemap": []
+                            "/sitemap": ["sitemap.js"]
                         }
 
                         // Get an array of currently loaded Additional Resources like JS and CSS
@@ -322,6 +322,23 @@ var currentPage;
                         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
                         resolve();
                     }
+
+                    if (pageName == "/sitemap") {
+                        sitemapSetup();
+                    }
+                    
+                    /* TRYING THIS IN A .THEN We'll see how that goes...
+                    // Give the CSS time to apply - FIX THIS METHODOLOGY
+                    setTimeout(function() {
+                        $("#cover").hide();
+                        $("body").addClass("fade");
+                        $("body").css('overflow', '');
+                    }, 200);*/
+                    
+                                
+                    currentPage = pageName;
+                    // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
+                    resolve();
                 }
             }
         }).then(function() {
