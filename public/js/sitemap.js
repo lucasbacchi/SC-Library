@@ -14,11 +14,12 @@ function sitemapSetup() {
             }
             folder = newFolder;
             var char;
-            if (folder == "account") char = "?"; else char = "/";
-            $('#' + folder).append("<li><a onclick='javascript:goToPage(\"" + folder + char + page + "\");'>" + formatPageString(page) + "</a></li>");
+            if (folder == "account") char = "?"; else if (folder == "") char = ""; else char = "/";
+            $('#' + folder).append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
         } else {
             folder = "";
-            $('#sitemap').append("<li><a onclick='javascript:goToPage(\"" + folder + char + page + "\");'>" + formatPageString(page) + "</a></li>");
+            char = "";
+            $('#sitemap').append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
         }
     }
     isAdminCheck().then((x) => {buildAdminSitemap();}).catch((y) => {});
@@ -34,7 +35,7 @@ function buildAdminSitemap() {
             var newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
-            $('#admin').append("<li><a onclick='javascript:goToPage(\"admin/" + page + "\");'>" + formatPageString(page) + "</a></li>");
+            $('#admin').append("<li><a onclick='javascript:goToPage(&quot;admin/" + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
         }
     }
 }
