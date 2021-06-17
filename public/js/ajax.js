@@ -341,7 +341,7 @@ var currentPage;
 
 // Catch History Events such as forward and back and then go to those pages
 window.onpopstate = function (event) {
-    goToPage(document.location.pathname.substr(1, document.location.pathname.length), true);
+    goToPage(document.location.pathname.substring(1), true);
 };
 
 

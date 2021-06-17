@@ -15,6 +15,7 @@ function setupEditEntry(pageQuery) {
     }
 
     if (!newEntry) {
+        if (isNaN(barcodeNumber)) return;
         var docRef = firebase.firestore().collection("books").doc(barcodeNumber);
         docRef.get().then((doc) => {
             $("#book-title").val(doc.data().title);
