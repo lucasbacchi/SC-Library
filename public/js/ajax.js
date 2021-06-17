@@ -116,9 +116,9 @@ var currentPanel;
             }
 
             // Prevent users from viewing admin pages without having admin privilages
-            if (pageName.includes("admin")) {
+            if (!pageName.includes("admin")) {
                 // Prevent users from going to the sign in/up page if they are signed in
-                if (pageName.includes("login") && pageName.includes("signup")) {
+                if (!pageName.includes("login") && !pageName.includes("signup")) {
                     getPage(pageName);
                 } else {
                     // TO DO: Might have broken reauth.
