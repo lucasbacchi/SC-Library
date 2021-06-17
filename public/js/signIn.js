@@ -44,7 +44,7 @@
         }
     }
 
-    function signInSubmit(pageQuery) {
+    function signInSubmit(pageQuery = "") {
         if (currentPage == '/login') {
             var reAuth;
             if (pageQuery.length > 1) {

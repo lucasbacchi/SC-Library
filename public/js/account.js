@@ -1,8 +1,9 @@
+// TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
 var settingsDirectory = [
     "/overview",
     "/notifications",
     "/checkouts",
-    "/delete"
+    "/security"
 ];
 
 $(window).on("resize", function() {
@@ -91,8 +92,12 @@ function accountPageSetup(pageQuery) {
         $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
     }
 
-    goToSettingsPanel('overview', true);
-    accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
+    if (query.substring(1, query.length) != "" && directory.includes('/account/' + query.substring(1, query.length))) {
+        goToSettingsPanel(query.substring(1, query.length), true);
+    } else {
+        goToSettingsPanel('overview', true);
+        accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
+    }
 
     // Create an "Event Listener" for mutations to the settings column
     observer.observe($('.main-column')[0], observerOptions);
@@ -238,7 +243,7 @@ function updateAccount() {
 var currentPanel;
 {
     const xhttp = new XMLHttpRequest();
-    function goToSettingsPanel(newPanel, firstTime = false) {
+    function goToSettingsPanel(newPanel, firstTime = false, goingBack = false) {
         var user = firebase.auth().currentUser;
         // TODO: Test if this is needed. I think once I made goToPage into a promise, it probably fixed this.
         if (!user && firstTime == false) {
@@ -253,8 +258,15 @@ var currentPanel;
         $("#settings-column").removeClass("fade");
 
         newPanel = "/" + newPanel;
+        if (newPanel == currentPanel) {
+            console.log("The user attempted to view the same account panel twice and it was prevented.");
+            return;
+        }
+
         if (settingsDirectory.includes(newPanel)){
             xhttp.open("GET", "/content/account" + newPanel + ".html" + query + hash, true);
+        } else if (directory.includes("/account" + newPanel)) {
+            xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
         } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
             xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
         } else {
@@ -278,6 +290,10 @@ var currentPanel;
                 }
 
                 alignMenuColumn();
+
+                if (goingBack == false) {
+                    window.history.pushState({}, "", "/account?" + newPanel.substring(1));
+                }
 
                 currentPanel = newPanel;
             }
@@ -324,6 +340,51 @@ function sendEmailVerification() {
 }
 
 
+
+
+function changePassword() {
+    var currentPassword = $("#current-password").val();
+    var newPassword = $("#new-password").val();
+    if (newPassword != $("#confirm-new-password").val()){
+        alert("The new passwords do not match!");
+        $("#current-password").val('');
+        $("#new-password").val('');
+        $("#confirm-new-password").val('');
+    } else if (newPassword.length >= 4) {
+        var user = firebase.auth().currentUser;
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+        user.reauthenticateWithCredential(credential).then(function() {
+            // User re-authenticated.
+            user.updatePassword(newPassword).then(() => {
+                // Update successful
+                alert("Your password was succesfully changed");
+                goToPage('');
+            }).catch((error) => {
+                console.log(error);
+            });
+        }).catch(function(error) {
+            // An error happened.
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            if (errorCode === 'auth/wrong-password') {
+                alert('The current password that you entered was incorrect.');
+            } else {
+                alert(errorMessage);
+            }
+            console.log(error);
+            $("#current-password").val('');
+            $("#new-password").val('');
+            $("#confirm-new-password").val('');
+        });
+    } else {
+        alert("You must enter a longer password");
+        $("#current-password").val('');
+        $("#new-password").val('');
+        $("#confirm-new-password").val('');
+    }
+}
+
+
 // If the user attempts to leave, let them know if they have unsaved changes
 $(window).on("beforeunload", function (event) {
     if (checkForChangedFields()) {
@@ -331,5 +392,10 @@ $(window).on("beforeunload", function (event) {
         return "You have unsaved changes! Please save changes before leaving!";
     }
 });
+
+// Catch History Events such as forward and back and then go to those pages
+window.onpopstate = function (event) {
+    goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), false, true);
+};
 
 console.log("account.js has Loaded!");
