@@ -49,6 +49,7 @@ $(window).resize(function () {
 
 
 function setupMain() {
+    homeBookBoxes();
     $("#search-input").keydown(function(event) {
         if (event.keyCode === 13) {
             homePageSearch();
@@ -312,5 +313,37 @@ function findURLValue(string, key) {
     return value;
 }
 
+function homeBookBoxes() {
+    var objects = [{img: "img/favicon.ico", title: "The Martian", author: "Andy Weir"}, 
+                   {img: "img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"}, 
+                   {img: "img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"}]
+    for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+            $('div.row')[i].appendChild(buildBookBox(objects[j]));
+        }
+    }
+}
+
+function buildBookBox(obj) {
+    const div = document.createElement('div');
+    div.classList.add('book');
+    const img = document.createElement('img');
+    img.classList.add('bookimage');
+    img.src = obj.img;
+    const subdiv = document.createElement('div');
+    const b = document.createElement('b');
+    const title = document.createElement('p');
+    title.classList.add('title');
+    title.appendChild(document.createTextNode(obj.title));
+    const author = document.createElement('p');
+    author.classList.add('author');
+    author.appendChild(document.createTextNode(obj.author));
+    b.appendChild(title);
+    subdiv.appendChild(b);
+    subdiv.appendChild(author);
+    div.appendChild(img);
+    div.appendChild(subdiv);
+    return div;
+}
 
 console.log("main.js Loaded!");
