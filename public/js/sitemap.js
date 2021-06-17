@@ -1,5 +1,6 @@
 function sitemapSetup() {
     var folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
+    if (firebase.auth().currentUser) blacklist.push('login', 'signup');
     for (var i = 0; i < directory.length; i++) {
         var page = directory[i].substring(1);
         if (blacklist.indexOf(page) != -1) continue;
