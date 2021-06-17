@@ -308,6 +308,10 @@ var currentPage;
                         if (pageName == "/admin/editEntry") {
                             setupEditEntry(pageQuery);
                         }
+
+                        if (pageName == "/sitemap") {
+                            sitemapSetup();
+                        }
                         
                         /* TRYING THIS IN A .THEN We'll see how that goes...
                         // Give the CSS time to apply - FIX THIS METHODOLOGY
