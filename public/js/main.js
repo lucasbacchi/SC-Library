@@ -288,4 +288,27 @@ function cleanUpSearchTerm(searchArray) {
 }
 
 
+function findURLValue(string, key) {
+    var value;
+    var keyNameIsNotComplete = (!string.includes("?" + key + "=") && !string.includes("&" + key + "="));
+    if (!string.includes(key) || keyNameIsNotComplete || key == "") {
+        console.warn("That key could not be found in the URL.");
+        return "";
+    }
+
+    if (string.includes("?")) {
+        string = string.substring(string.indexOf("?"));
+    }
+
+    var position = string.indexOf(key);
+    if (string.substring(position).includes("&")) {
+        value = string.substring(string.indexOf("=", position) + 1, string.indexOf("&", position));
+    } else {
+        value = string.substring(string.indexOf("=", position) + 1);
+    }
+
+    return value;
+}
+
+
 console.log("main.js Loaded!");

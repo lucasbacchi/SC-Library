@@ -1,73 +1,64 @@
-{
-    let pageQuery;
-
-    function setupSignIn(pageQueryInput) {
-        $("#submit, .login > input").keydown(function(event) {
-            if (event.keyCode === 13) {
-                signInSubmit();
-            }
-        });
-        pageQuery = pageQueryInput;
-    }
-
-    function authRedirect(pageQuery) {
-        /* This is probably the proper way to do it
-        * Since these are hardcoded, I'm not going to bother
-        for (var i = 0; i < pageQuery.split("&").length-1; i++) {
-            var key = pageQuery.indexOf("?")
-        }*/
-
-        // Find the redirect path in the query
-        var redirect = pageQuery.substring(pageQuery.indexOf("=") + 1, pageQuery.indexOf("&"));
-
-        // If they are being redirected with an email (to the account page)
-        if (pageQuery.includes("email")) {
-            var newEmail = pageQuery.substring(pageQuery.indexOf("=", pageQuery.indexOf("&")) + 1);
-
-            var emailError = false;
-            var user = firebase.auth().currentUser;
-            // Attempt to udpate the account
-            user.updateEmail(newEmail).catch((error) => {
-                emailError = true;
-                alert("There was an error updating your email. Please try again later.");
-                console.error(error);
-            }).then(function(error) {
-                if (!emailError) {
-                    alert("Your email was saved successfully.");
-                }
-                goToPage(redirect + "?email=" + newEmail);
-            });
-        } else {
-            // If they do not have an email in the query
-            // TO DO: Add additional redirects as needed
-            goToPage(redirect);
+function setupSignIn(pageQueryInput) {
+    $("#submit, .login > input").keydown(function(event) {
+        if (event.keyCode === 13) {
+            signInSubmit(pageQueryInput);
         }
-    }
-
-    function signInSubmit(pageQuery = "") {
-        if (currentPage == '/login') {
-            var reAuth;
-            if (pageQuery.length > 1) {
-                reAuth = true;
-            } else {
-                reAuth = false;
-            }
-            signIn(reAuth).then(function(reAuth) {
-                if (reAuth) {
-                    authRedirect(pageQuery);
-                } else {
-                    goToPage("");
-                }
-            }).catch(() => {});
-        } else if (currentPage == '/signup') {
-            handleSignUp().then(function() {
-                authRedirect(pageQuery);
-            });
-        }
-    }
-
-
+    });
 }
+
+function authRedirect(pageQuery) {
+    // Find the redirect path in the query
+    var redirect = findURLValue(pageQuery, "redirect");
+
+    // If they are being redirected with an email (to the account page)
+    if (pageQuery.includes("email")) {
+        var newEmail = findURLValue(pageQuery, "email");
+
+        var emailError = false;
+        var user = firebase.auth().currentUser;
+        // Attempt to update the account
+        user.updateEmail(newEmail).catch((error) => {
+            emailError = true;
+            alert("There was an error updating your email. Please try again later.");
+            console.error(error);
+        }).then(function(error) {
+            if (!emailError) {
+                alert("Your email was saved successfully.");
+            }
+            goToPage(redirect + "?email=" + newEmail);
+        });
+    } else {
+        // If they do not have an email in the query
+        // TO DO: Add additional redirects as needed
+        goToPage(redirect);
+    }
+}
+
+function signInSubmit(pageQuery = "") {
+    debugger;
+    if (currentPage == '/login') {
+        var reAuth;
+        if (pageQuery.length > 1) {
+            reAuth = true;
+        } else {
+            reAuth = false;
+        }
+        signIn(reAuth).then(function(reAuth) {
+            if (reAuth) {
+                authRedirect(pageQuery);
+            } else {
+                goToPage("");
+            }
+        }).catch(() => {});
+    } else if (currentPage == '/signup') {
+        handleSignUp().then(function() {
+            authRedirect(pageQuery);
+        });
+    }
+}
+
+
+
 
 function signIn(reAuth = false) {
     return new Promise(function(resolve, reject) {
