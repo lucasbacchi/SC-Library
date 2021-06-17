@@ -7,6 +7,10 @@ var fullExtension = path + query + hash;
 
 // Search Content folder
 var directory = [
+    "/account/overview",
+    "/account/notifications",
+    "/account/checkouts",
+    "/account/security",
     "/admin/editEntry",
     "/admin/main",
     "/admin/report",
@@ -92,11 +96,23 @@ var currentPage;
                 pageName = pageName.substr(0, pageName.indexOf("."));
             }
 
+            // This removes an ending slash if one was mistakenly included
+            if (pageName.substring(pageName.length - 1) == "/") {
+                pageName = pageName.substring(0, pageName.length - 1);
+            }
+
             if (pageName == "" || pageName == "index.html" || pageName == "index") {
                 pageName = "main";
             }
 
             pageName = "/" + pageName;
+
+            // Prevent users from going to the same page (just don't reload the content if you do)
+            if (pageName == currentPage) {
+                console.log("The user attempted to view the current page, and it was blocked.");
+                return;
+            }
+
             // Prevent users from viewing admin pages without having admin privilages
             if (pageName.indexOf("admin") == -1) {
                 // Prevent users from going to the sign in/up page if they are signed in

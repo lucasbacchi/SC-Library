@@ -106,4 +106,14 @@ p.unread {
 
 input.account-input {
     width: 50%;
+    margin-bottom: 8px;
+}
+
+.setting-section > button {
+    display: block;
+    margin-top: 16px;
+}
+
+.setting-section > p {
+    text-align: left;
 }
