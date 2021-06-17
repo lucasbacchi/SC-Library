@@ -322,23 +322,6 @@ var currentPage;
                         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
                         resolve();
                     }
-
-                    if (pageName == "/sitemap") {
-                        sitemapSetup();
-                    }
-                    
-                    /* TRYING THIS IN A .THEN We'll see how that goes...
-                    // Give the CSS time to apply - FIX THIS METHODOLOGY
-                    setTimeout(function() {
-                        $("#cover").hide();
-                        $("body").addClass("fade");
-                        $("body").css('overflow', '');
-                    }, 200);*/
-                    
-                                
-                    currentPage = pageName;
-                    // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
-                    resolve();
                 }
             }
         }).then(function() {
