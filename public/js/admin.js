@@ -24,7 +24,7 @@ var worksObject;
 
     function addEntry() {
         var isbn = $("#add-entry-isbn").val();
-        var check = varifyISBN(isbn);
+        var check = verifyISBN(isbn);
         if (!check) {
             alert("The number you entered is not a valid ISBN Number.");
             return;
