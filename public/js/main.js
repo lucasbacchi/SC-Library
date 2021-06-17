@@ -158,7 +158,7 @@ function updateUserAccountInfo() {
             $('#account-page-name').text(doc.data().firstName + " " + doc.data().lastName);
         }, (error) => {
             console.log("The User Document is no longer listening for updates:");
-            console.log(error);
+            console.error(error);
         });
 
         var email = user.email;

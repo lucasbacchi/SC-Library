@@ -67,7 +67,7 @@ function alignMenuColumn() {
 var firstName;
 var lastName;
 // Load correct info for account
-function accountPageSetup(pageQuery) {
+function accountPageSetup(pageQuery, goingBack = false) {
     var user = firebase.auth().currentUser;
     if (user) {
         
@@ -92,10 +92,11 @@ function accountPageSetup(pageQuery) {
         $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
     }
 
-    if (pageQuery.substring(1, pageQuery.length) != "" && directory.includes('/account/' + pageQuery.substring(1, pageQuery.length))) {
-        goToSettingsPanel(pageQuery.substring(1, pageQuery.length), true);
+    if (pageQuery.substring(1) != "" && directory.includes('/account/' + pageQuery.substring(1))) {
+        goToSettingsPanel(pageQuery.substring(1), goingBack);
     } else {
-        goToSettingsPanel('overview', true);
+        goToSettingsPanel('overview', goingBack);
+        // TODO: Figure out what was put in the URL bar to be processed here.... What page puts it there....
         accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
     }
 
@@ -195,7 +196,7 @@ function accountSecuritySetup() {
     return true;
 }
 
-// Runs when the user clicks the Save button on hte account page
+// Runs when the user clicks the Save button on the account page
 function updateAccount() {
     var user = firebase.auth().currentUser;
     if (!checkForChangedFields()) {
@@ -210,7 +211,7 @@ function updateAccount() {
             }).catch((error) => {
                 nameError = true;
                 alert("An error has occured. Please try again later.");
-                console.log(error);
+                console.error(error);
             }).then(function(error) {
                 if (!nameError) {
                     // Assuming there was no problem with the update, set the new values.
@@ -232,7 +233,7 @@ function updateAccount() {
                     goToPage("login?redirect=account&email=" + $('#setting-email').val())
                 } else {
                     alert("An error has occured. Please try again later.");
-                    console.log(error);
+                    console.error(error);
                 }
             }).then(function(error) {
                 if (!emailError) {
@@ -251,25 +252,16 @@ function updateAccount() {
 
 
 
-var currentPanel;
 {
     const xhttp = new XMLHttpRequest();
-    function goToSettingsPanel(newPanel, firstTime = false, goingBack = false) {
+    function goToSettingsPanel(newPanel, goingBack = false) {
         var user = firebase.auth().currentUser;
-        // TODO: Test if this is needed. I think once I made goToPage into a promise, it probably fixed this.
-        if (!user && firstTime == false) {
-            alert("There is no user currently signed in.");
-            return;
-        }
-        if (firstTime == false && checkForChangedFields()) {
-            alert("You have unsaved changes. Please save any changes and try again.");
-            return;
-        }
 
         $("#settings-column").removeClass("fade");
 
         newPanel = "/" + newPanel;
         if (newPanel == currentPanel) {
+            // TODO: Remove after I know it's not breaking anything...
             console.log("The user attempted to view the same account panel twice and it was prevented.");
             return;
         }
@@ -377,7 +369,7 @@ function changePassword() {
                 alert("Your password was succesfully changed");
                 goToPage('');
             }).catch((error) => {
-                console.log(error);
+                console.error(error);
             });
         }).catch(function(error) {
             // An error happened.
@@ -388,7 +380,7 @@ function changePassword() {
             } else {
                 alert(errorMessage);
             }
-            console.log(error);
+            console.error(error);
             $("#current-password").val('');
             $("#new-password").val('');
             $("#confirm-new-password").val('');
@@ -412,7 +404,11 @@ $(window).on("beforeunload", function (event) {
 
 // Catch History Events such as forward and back and then go to those pages
 window.onpopstate = function (event) {
-    goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), false, true);
+    if (currentPage.includes("account") && document.location.pathname.includes("account")) {
+        goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), true);
+    } else {
+        handleHistoryPages();
+    }
 };
 
 console.log("account.js has Loaded!");

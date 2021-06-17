@@ -21,7 +21,7 @@
         var redirect = pageQuery.substring(pageQuery.indexOf("=") + 1, pageQuery.indexOf("&"));
 
         // If they are being redirected with an email (to the account page)
-        if (pageQuery.indexOf("email") != -1) {
+        if (pageQuery.includes("email")) {
             var newEmail = pageQuery.substring(pageQuery.indexOf("=", pageQuery.indexOf("&")) + 1);
 
             var emailError = false;
@@ -30,7 +30,7 @@
             user.updateEmail(newEmail).catch((error) => {
                 emailError = true;
                 alert("There was an error updating your email. Please try again later.");
-                console.log(error);
+                console.error(error);
             }).then(function(error) {
                 if (!emailError) {
                     alert("Your email was saved successfully.");
@@ -100,7 +100,7 @@ function signIn(reAuth = false) {
                     } else {
                         alert(errorMessage);
                     }
-                    console.log(error);
+                    console.error(error);
                     $('#email').val('');
                     $('#password').val('');
                     reject();
@@ -121,7 +121,7 @@ function signIn(reAuth = false) {
                     } else {
                         alert(errorMessage);
                     }
-                    console.log(error);
+                    console.error(error);
                     $('#email').val('');
                     $('#password').val('');
                 });
@@ -168,7 +168,7 @@ function handleSignUp() {
             } else {
                 alert(errorMessage);
             }
-            console.log(error);
+            console.error(error);
             reject();
         }).then(function() {
             if (!signUpError) {
@@ -200,7 +200,7 @@ function sendEmailVerification() {
 
 function sendPasswordReset() {
     var email = document.getElementById('email').value;
-    if (email.indexOf('@') == -1 || email.lastIndexOf('.') < email.indexOf('@')){
+    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')){
         alert("Please enter a valid email into the Email box above. Then try again.");
         return;
     }
@@ -215,7 +215,7 @@ function sendPasswordReset() {
         } else if (errorCode == 'auth/user-not-found') {
             alert(errorMessage);
         }
-        console.log(error);
+        console.error(error);
     });
 }
 
