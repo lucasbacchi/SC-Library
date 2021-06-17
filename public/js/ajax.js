@@ -35,7 +35,7 @@ $(document).ready(function () {
     .then(function() {
         goToPage(fullExtension.substr(1, fullExtension.length), true);
     }, function(error) {
-        console.log(error);
+        console.error(error);
     });
 });
 
@@ -44,6 +44,7 @@ $(document).ready(function () {
 
 
 var currentPage;
+var currentPanel;
 {
     let isAdmin;
     function isAdminCheck() {
@@ -79,19 +80,19 @@ var currentPage;
             var pageExtension = "";
 
             // This removes the hash if one was passed in and stores it to a separate variable.
-            if (pageName.indexOf("#") != -1) {
+            if (pageName.includes("#")) {
                 pageHash = pageName.substr(pageName.indexOf("#"), pageName.length);
                 pageName = pageName.substr(0, pageName.indexOf("#"));
             }
 
             // This removes the query if one was passed in and stores it to a separate variable.
-            if (pageName.indexOf("?") != -1) {
+            if (pageName.includes("?")) {
                 pageQuery = pageName.substr(pageName.indexOf("?"), pageName.length);
                 pageName = pageName.substr(0, pageName.indexOf("?"));
             }
 
             // This removes the file extension if one was passed in and stores it to a separate variable.
-            if (pageName.indexOf(".") != -1) {
+            if (pageName.includes(".")) {
                 pageExtension = pageName.substr(pageName.indexOf("."), pageName.length);
                 pageName = pageName.substr(0, pageName.indexOf("."));
             }
@@ -109,14 +110,15 @@ var currentPage;
 
             // Prevent users from going to the same page (just don't reload the content if you do)
             if (pageName == currentPage) {
+                // TODO: Remove when I know it's not going to break everything
                 console.log("The user attempted to view the current page, and it was blocked.");
                 return;
             }
 
             // Prevent users from viewing admin pages without having admin privilages
-            if (pageName.indexOf("admin") == -1) {
+            if (pageName.includes("admin")) {
                 // Prevent users from going to the sign in/up page if they are signed in
-                if (pageName.indexOf("login") == -1 && pageName.indexOf("signup") == -1) {
+                if (pageName.includes("login") && pageName.includes("signup")) {
                     getPage(pageName);
                 } else {
                     // TO DO: Might have broken reauth.
@@ -166,7 +168,7 @@ var currentPage;
                             pageUrl = "../";
                         }
 
-                        if (!goingBack) {
+                        if (!goingBack && !pageName.includes("account")) {
                             window.history.pushState({}, "", pageUrl + pageQuery + pageHash);
                         }
 
@@ -262,7 +264,7 @@ var currentPage;
                                 else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
                                     $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
                                 } else {
-                                    console.log("SOURCE NEEDED COULD NOT BE FOUND!!");
+                                    console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
                                 }
                             }
                         }
@@ -298,7 +300,9 @@ var currentPage;
                         }
 
                         if (pageName == "/account") {
-                            accountPageSetup(pageQuery);
+                            accountPageSetup(pageQuery, goingBack);
+                        } else {
+                            currentPanel = null;
                         }
 
                         if (pageName == "/admin/main") {
@@ -341,8 +345,15 @@ var currentPage;
 
 // Catch History Events such as forward and back and then go to those pages
 window.onpopstate = function (event) {
-    goToPage(document.location.pathname.substring(1), true);
+    handleHistoryPages();
 };
+
+function handleHistoryPages() {
+    let path = document.location.pathname.substring(1);
+    let search = document.location.search;
+    let hash = document.location.hash;
+    goToPage(path + search + hash, true);
+}
 
 
 console.log("ajax.js has Loaded!");

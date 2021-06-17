@@ -2,7 +2,7 @@ function setupEditEntry(pageQuery) {
     var newEntry;
     var barcodeNumber;
     var isbn;
-    if (pageQuery.indexOf("new") != -1) {
+    if (pageQuery.includes("new")) {
         if (pageQuery.substring(pageQuery.indexOf("new") + 4, pageQuery.indexOf("&", pageQuery.indexOf("new"))) == "true") {
             newEntry = true;
         } else {
