@@ -92,8 +92,8 @@ function accountPageSetup(pageQuery) {
         $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
     }
 
-    if (query.substring(1, query.length) != "" && directory.includes('/account/' + query.substring(1, query.length))) {
-        goToSettingsPanel(query.substring(1, query.length), true);
+    if (pageQuery.substring(1, pageQuery.length) != "" && directory.includes('/account/' + pageQuery.substring(1, pageQuery.length))) {
+        goToSettingsPanel(pageQuery.substring(1, pageQuery.length), true);
     } else {
         goToSettingsPanel('overview', true);
         accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
@@ -183,6 +183,17 @@ function accountOverviewSetup(firstName, lastName, email) {
     }
 }
 
+function accountCheckoutsSetup() {
+    return true;
+}
+
+function accountNotificationsSetup() {
+    return true;
+}
+
+function accountSecuritySetup() {
+    return true;
+}
 
 // Runs when the user clicks the Save button on hte account page
 function updateAccount() {
@@ -287,6 +298,12 @@ var currentPanel;
 
                 if (newPanel == "/overview") {
                     accountOverviewSetup(firstName, lastName, user.email);
+                }if (newPanel == "/checkouts") {
+                    accountCheckoutsSetup();
+                }if (newPanel == "/notifications") {
+                    accountNotificationsSetup();
+                }if (newPanel == "/security") {
+                    accountSecuritySetup();
                 }
 
                 alignMenuColumn();
