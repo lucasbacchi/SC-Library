@@ -228,10 +228,10 @@ function search(searchQuery) {
 
     // Make sure each search is only 10 words long. Firebase can't handle more
     // Currently we are only handling queries up to 30 words.
-    if (searchQueryArray.length > 10 && searchQueryArray.length <= 20) {
+    if (searchQueryArray.length > 10) {
         var searchQueryArray2 = searchQueryArray.splice(10, searchQueryArray.length);
         searchQueryArray = searchQueryArray.splice(0, 10);
-        if (searchQueryArray2.length > 10 && searchQueryArray2.length <= 20) {
+        if (searchQueryArray2.length > 10) {
             var searchQueryArray3 = searchQueryArray2.splice(10, searchQueryArray2.length);
             searchQueryArray2 = searchQueryArray2.splice(0, 10);
             if (searchQueryArray3.length > 10) {
@@ -243,7 +243,7 @@ function search(searchQuery) {
 
     var bookIndexNumber = 0;
     var bookSearchResults = [];
-    // TO DO: Add other searches. Only seaches by keywords at the moment
+    // TO DO: Add other searches. Only searches by keywords at the moment
     var keywordsSearch = new Promise(function(resolve, reject) {
         index_books.where('keywords', 'array-contains-any', searchQueryArray).limit(10).get().then((querySnapshot) => { // We can change this limit later, just for testing
             querySnapshot.forEach((doc) => {
@@ -314,22 +314,39 @@ function findURLValue(string, key) {
 }
 
 function homeBookBoxes() {
-    var objects = [{img: "img/favicon.ico", title: "The Martian", author: "Andy Weir"}, 
-                   {img: "img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"}, 
-                   {img: "img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"}]
+    var objects = [{photoURL: "img/favicon.ico", title: "The Martian", author: "Andy Weir"}, 
+                   {photoURL: "img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"}, 
+                   {photoURL: "img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"}];
     for (var i = 0; i < 3; i++) {
         for (var j = 0; j < 3; j++) {
-            $('div.row')[i].appendChild(buildBookBox(objects[j]));
+            $('div.row')[i].appendChild(buildBookBox(objects[j], "main"));
         }
     }
 }
 
-function buildBookBox(obj) {
+function buildBookBox(obj, page, num = 0) {
     const div = document.createElement('div');
-    div.classList.add('book');
+    switch (page) {
+        case "search":
+            div.classList.add("result-listing");
+            break;
+        case "account":
+            div.classList.add("book-layout");
+        case "main":
+        case "admin":
+        default:
+            div.classList.add("book");
+    }
+    if (page == "search" && num > 0) {
+        div.id = "result-number-" + num;
+        const number = document.createElement('div');
+        number.classList.add("result-number");
+        number.appendChild(document.createTextNode(num + "."));
+        div.appendChild(number);
+    }
     const img = document.createElement('img');
     img.classList.add('bookimage');
-    img.src = obj.img;
+    img.src = obj.photoURL;
     const subdiv = document.createElement('div');
     const b = document.createElement('b');
     const title = document.createElement('p');
@@ -341,6 +358,31 @@ function buildBookBox(obj) {
     b.appendChild(title);
     subdiv.appendChild(b);
     subdiv.appendChild(author);
+    if (page == "account") {
+        var frontstr = "", boldstr = "" + num, backstr = "";
+        if (num < 0) {
+            boldstr = "Overdue";
+        }
+        else if (num == 0) {
+            frontstr = "Due ";
+            boldstr = "today";
+        }
+        else if (num > 0) {
+            frontstr = "Due in ";
+            backstr = " day";
+        }
+        if (num > 1) {
+            backstr += "s";
+        }
+        const due = document.createElement('p');
+        due.classList.add("due-date");
+        due.appendChild(document.createTextNode(frontstr));
+        const bold = document.createElement('b');
+        bold.appendChild(document.createTextNode(boldstr));
+        due.appendChild(bold);
+        due.appendChild(document.createTextNode(backstr));
+        subdiv.appendChild(due);
+    }
     div.appendChild(img);
     div.appendChild(subdiv);
     return div;
