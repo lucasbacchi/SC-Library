@@ -10,6 +10,8 @@ function setupAdminMain() {
             addEntry();
         }
     });
+
+    recentlyCheckedOut();
 }
 
 var bookObject;
@@ -244,5 +246,16 @@ function verifyISBN(number) {
         return true;
     } else {
         return false;
+    }
+}
+
+function recentlyCheckedOut() {
+    var books = [{photoURL: "../img/favicon.ico", title: "The Martian", author: "Andy Weir"},
+                 {photoURL: "../img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"},
+                 {photoURL: "../img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"},
+                 {photoURL: "../img/favicon.ico", title: "Macbeth", author: "William Shakespeare"},
+                 {photoURL: "../img/favicon.ico", title: "Artemis Fowl", author: "Eoin Colfer"}];
+    for (var i = 0; i < books.length; i++) {
+        $("#checked-out-books-container")[0].appendChild(buildBookBox(books[i], "admin"));
     }
 }

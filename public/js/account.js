@@ -89,7 +89,7 @@ function accountPageSetup(pageQuery, goingBack = false) {
             $('#account-page-image').attr('src', user.photoURL);
         }
     } else {
-        $("#settings-column").html("No User is Signed in. If you are looking to sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>");
+        $("#settings-column").html("No user is signed in. To sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>.");
     }
 
     if (pageQuery.substring(1) != "" && directory.includes('/account/' + pageQuery.substring(1))) {
@@ -185,7 +185,9 @@ function accountOverviewSetup(firstName, lastName, email) {
 }
 
 function accountCheckoutsSetup() {
-    return true;
+    var checkouts = getCheckouts(), holds = getHolds();
+    createCheckoutsAndHolds(checkouts, "checkouts");
+    createCheckoutsAndHolds(holds, "holds");
 }
 
 function accountNotificationsSetup() {
@@ -194,6 +196,34 @@ function accountNotificationsSetup() {
 
 function accountSecuritySetup() {
     return true;
+}
+
+function getCheckouts() {
+    return [{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}];
+}
+
+function getHolds() {
+    return [{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}];
+}
+
+function createCheckoutsAndHolds(books, str) {
+    if (books.length == 0) {
+        if (str == "checkouts") {
+            const p = document.createElement('p');
+            p.appendChild(document.createTextNode("You have no books checked out."));
+            $("#checkouts")[0].appendChild(p);
+        } else if (str == "holds") {
+            const p = document.createElement('p');
+            p.appendChild(document.createTextNode("You have no books on hold."));
+            $("#holds")[0].appendChild(p);
+        }
+    }
+    for (var i = 0; i < books.length; i++) {
+        if (str == "checkouts")
+            $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
+        else if (str == "holds")
+            $("#holds")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
+    }
 }
 
 // Runs when the user clicks the Save button on the account page
