@@ -29,7 +29,6 @@ function setupEditEntry(pageQuery) {
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
-            debugger;
             var docRef = firebase.firestore().collection("books").doc("" + barcodeNumber);
             docRef.get().then((doc) => {
                 $('#barcode').val(barcodeNumber);
