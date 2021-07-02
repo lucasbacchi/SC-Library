@@ -59,6 +59,12 @@ textarea {
     min-height: 60px;
 }
 
+select {
+    margin-bottom: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 1em;
+}
+
 #edit-entry-header {
     font-family: 'Poppins', sans-serif;
     margin-bottom: 18px;

@@ -493,12 +493,24 @@ function uploadCoverImageFromExternal(link) {
     });
 }
 
+$("#book-medium")[0].addEventListener("input", (event) => {
+    if (event.target.value == "dvd") {
+        var goAway = $(".no-dvd");
+        for (var i = 0; i < goAway.length; i++)
+            goAway[i].style.display = "none";
+    } else {
+        var goAway = $(".no-dvd");
+        for (var i = 0; i < goAway.length; i++)
+            goAway[i].style.display = "";
+    }
+});
 
 function validateEntry() {
     // Gets the values of all the input elements
     var titleValue = $("#book-title").val();
     var author1LastValue = $("#book-author-1-last").val();
     var author1FirstValue = $("#book-author-1-first").val();
+    var mediumValue = $("#book-medium")[0].value;
     var coverLink = $("#book-cover-image").attr('src');
     var subjectValues = [];
     var maxSubject = false;
@@ -510,6 +522,10 @@ function validateEntry() {
         }
     }
     var descriptionValue = $("#book-description").val();
+    var childrenValue = $("#book-audience-children")[0].checked;
+    var youthValue = $("#book-audience-youth")[0].checked;
+    var adultValue = $("#book-audience-adult")[0].checked;
+    var noneValue = $("#book-audience-none")[0].checked;
     var isbn10Value = $("#book-isbn-10").val();
     var isbn13Value = $("#book-isbn-13").val();
     var publisher1Value = $("#book-publisher-1").val();
@@ -517,13 +533,12 @@ function validateEntry() {
     var publishDayValue = $("#book-publish-day").val();
     var publishYearValue = $("#book-publish-year").val();
     var numPagesValue = $("#book-pages").val();
+    var unNumbered = $("#book-unnumbered")[0].checked;
     var ddcValue = $("#book-dewey").val();
-    var copiesValue = $("#book-copies").val();
     var purchaseMonthValue = $("#book-purchase-month").val();
     var purchaseDayValue = $("#book-purchase-day").val();
     var purchaseYearValue = $("#book-purchase-year").val();
     var purchasePriceValue = $("#book-purchase-price").val();
-    var vendorValue = $("#book-vendor").val();
     
     // Validate inputs
     if (titleValue == "") {
@@ -551,6 +566,17 @@ function validateEntry() {
         $("#book-author-1-first")[0].onkeydown = function(e) {
             $("#book-author-1-last")[0].style.borderColor = "";
             $("#book-author-1-first")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (mediumValue == "") {
+        alert("Medium is required!");
+        var rect = $("#book-medium")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-medium")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-medium")[0].focus();}, 600);
+        $("#book-medium")[0].onclick = function(e) {
+            $("#book-medium")[0].style.borderColor = "";
         }
         return false;
     }
@@ -587,7 +613,24 @@ function validateEntry() {
         }
         return false;
     }
-    if (isbn10Value == "" && isbn13Value == "") {
+    if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
+        alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
+        var rect = $("#book-audience-children")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-audience-children")[0].style.outline = "2px solid red";
+        $("#book-audience-youth")[0].style.outline = "2px solid red";
+        $("#book-audience-adult")[0].style.outline = "2px solid red";
+        $("#book-audience-none")[0].style.outline = "2px solid red";
+        setTimeout(function() {$("#book-audience-children")[0].focus();}, 600);
+        $("#book-audience-children")[0].onkeydown = function(e) {
+            $("#book-audience-children")[0].style.outline = "";
+            $("#book-audience-youth")[0].style.outline = "";
+            $("#book-audience-adult")[0].style.outline = "";
+            $("#book-audience-none")[0].style.outline = "";
+        }
+        return false;
+    }
+    if (mediumValue != "dvd" && isbn10Value == "" && isbn13Value == "") {
         alert("Please enter at least one ISBN number!");
         var rect = $("#book-isbn-10")[0].getBoundingClientRect();
         window.scrollBy(0, rect.top - 180);
@@ -756,6 +799,7 @@ function editEntry() {
     var illustrator1FirstValue = $("#book-illustrator-1-first").val();
     var illustrator2LastValue = $("#book-illustrator-2-last").val();
     var illustrator2FirstValue = $("#book-illustrator-2-first").val();
+    var mediumValue = $("#book-medium")[0].value;
     var coverLink = $("#book-cover-image").attr('src');
     var subjectValues = [];
     var maxSubject = false;
@@ -767,6 +811,10 @@ function editEntry() {
         }
     }
     var descriptionValue = $("#book-description").val();
+    var childrenValue = $("#book-audience-children")[0].checked;
+    var youthValue = $("#book-audience-youth")[0].checked;
+    var adultValue = $("#book-audience-adult")[0].checked;
+    var noneValue = $("#book-audience-none")[0].checked;
     var isbn10Value = $("#book-isbn-10").val();
     var isbn13Value = $("#book-isbn-13").val();
     var publisher1Value = $("#book-publisher-1").val();
@@ -776,7 +824,6 @@ function editEntry() {
     var publishYearValue = $("#book-publish-year").val();
     var numPagesValue = $("#book-pages").val();
     var ddcValue = $("#book-dewey").val();
-    var copiesValue = $("#book-copies").val();
     var purchaseMonthValue = $("#book-purchase-month").val();
     var purchaseDayValue = $("#book-purchase-day").val();
     var purchaseYearValue = $("#book-purchase-year").val();
