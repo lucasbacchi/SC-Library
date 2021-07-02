@@ -32,7 +32,7 @@ function setupEditEntry(pageQuery) {
             debugger;
             var docRef = firebase.firestore().collection("books").doc("" + barcodeNumber);
             docRef.get().then((doc) => {
-                debugger;
+                $('#barcode').val(barcodeNumber);
                 $("#book-title").val(doc.data().title);
                 $("#book-subtitle").val(doc.data().subtitle);
 
@@ -495,7 +495,254 @@ function uploadCoverImageFromExternal(link) {
 }
 
 
+function validateEntry() {
+    // Gets the values of all the input elements
+    var titleValue = $("#book-title").val();
+    var author1LastValue = $("#book-author-1-last").val();
+    var author1FirstValue = $("#book-author-1-first").val();
+    var coverLink = $("#book-cover-image").attr('src');
+    var subjectValues = [];
+    var maxSubject = false;
+    for (var i = 1; !maxSubject; i++) {
+        if ($("#book-subject-" + i)[0]) {
+            subjectValues.push($("#book-subject-" + i).val());
+        } else {
+            maxSubject = true;
+        }
+    }
+    var descriptionValue = $("#book-description").val();
+    var isbn10Value = $("#book-isbn-10").val();
+    var isbn13Value = $("#book-isbn-13").val();
+    var publisher1Value = $("#book-publisher-1").val();
+    var publishMonthValue = $("#book-publish-month").val();
+    var publishDayValue = $("#book-publish-day").val();
+    var publishYearValue = $("#book-publish-year").val();
+    var numPagesValue = $("#book-pages").val();
+    var ddcValue = $("#book-dewey").val();
+    var copiesValue = $("#book-copies").val();
+    var purchaseMonthValue = $("#book-purchase-month").val();
+    var purchaseDayValue = $("#book-purchase-day").val();
+    var purchaseYearValue = $("#book-purchase-year").val();
+    var purchasePriceValue = $("#book-purchase-price").val();
+    var vendorValue = $("#book-vendor").val();
+    
+    // Validate inputs
+    if (titleValue == "") {
+        alert("Title is required!");
+        var rect = $("#book-title")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-title")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-title")[0].focus();}, 600);
+        $("#book-title")[0].onkeydown = function(e) {
+            $("#book-title")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (author1LastValue == "" && author1FirstValue == "") {
+        alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
+        var rect = $("#book-author-1-last")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-author-1-last")[0].style.borderColor = "red";
+        $("#book-author-1-first")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-author-1-last")[0].focus();}, 600);
+        $("#book-author-1-last")[0].onkeydown = function(e) {
+            $("#book-author-1-last")[0].style.borderColor = "";
+            $("#book-author-1-first")[0].style.borderColor = "";
+        }
+        $("#book-author-1-first")[0].onkeydown = function(e) {
+            $("#book-author-1-last")[0].style.borderColor = "";
+            $("#book-author-1-first")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (coverLink == "../img/favicon.ico") {
+        alert("Cover image is required!");
+        var rect = $("#book-cover-image")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
+        setTimeout(function() {$("#book-cover-image")[0].focus();}, 600);
+        $("#book-cover-image")[0].onkeydown = function(e) {
+            $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
+        }
+        return false;
+    }
+    if (subjectValues[0] == "") {
+        alert("Please enter at least one subject!");
+        var rect = $("#book-subject-1")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-subject-1")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-subject-1")[0].focus();}, 600);
+        $("#book-subject-1")[0].onkeydown = function(e) {
+            $("#book-subject-1")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (descriptionValue == "") {
+        alert("Description is required!");
+        var rect = $("#book-description")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-description")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-description")[0].focus();}, 600);
+        $("#book-description")[0].onkeydown = function(e) {
+            $("#book-description")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (isbn10Value == "" && isbn13Value == "") {
+        alert("Please enter at least one ISBN number!");
+        var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-isbn-10")[0].style.borderColor = "red";
+        $("#book-isbn-13")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
+        $("#book-isbn-10")[0].onkeydown = function(e) {
+            $("#book-isbn-10")[0].style.borderColor = "";
+            $("#book-isbn-13")[0].style.borderColor = "";
+        }
+        $("#book-isbn-13")[0].onkeydown = function(e) {
+            $("#book-isbn-10")[0].style.borderColor = "";
+            $("#book-isbn-13")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (!verifyISBN(isbn10Value) && isbn10Value != "") {
+        alert("The ISBN number you entered was not valid! Please double check it.");
+        var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-isbn-10")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
+        $("#book-isbn-10")[0].onkeydown = function(e) {
+            $("#book-isbn-10")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (!verifyISBN(isbn13Value) && isbn13Value != "") {
+        alert("The ISBN number you entered was not valid! Please double check it.");
+        var rect = $("#book-isbn-13")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-isbn-13")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-isbn-13")[0].focus();}, 600);
+        $("#book-isbn-13")[0].onkeydown = function(e) {
+            $("#book-isbn-13")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (publisher1Value == "") {
+        alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
+        var rect = $("#book-publisher-1")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-publisher-1")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-publisher-1")[0].focus();}, 600);
+        $("#book-publisher-1")[0].onkeydown = function(e) {
+            $("#book-publisher-1")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue)) {
+        alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+        var rect = $("#book-publish-month")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-publish-month")[0].style.borderColor = "red";
+        $("#book-publish-day")[0].style.borderColor = "red";
+        $("#book-publish-year")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-publish-month")[0].focus();}, 600);
+        $("#book-publish-month")[0].onkeydown = function(e) {
+            $("#book-publish-month")[0].style.borderColor = "";
+            $("#book-publish-day")[0].style.borderColor = "";
+            $("#book-publish-year")[0].style.borderColor = "";
+        }
+        $("#book-publish-day")[0].onkeydown = function(e) {
+            $("#book-publish-month")[0].style.borderColor = "";
+            $("#book-publish-day")[0].style.borderColor = "";
+            $("#book-publish-year")[0].style.borderColor = "";
+        }
+        $("#book-publish-year")[0].onkeydown = function(e) {
+            $("#book-publish-month")[0].style.borderColor = "";
+            $("#book-publish-day")[0].style.borderColor = "";
+            $("#book-publish-year")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (unNumbered == false && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
+        alert("Please enter a valid number of pages!");
+        var rect = $("#book-pages")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-pages")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-pages")[0].focus();}, 600);
+        $("#book-pages")[0].onkeydown = function(e) {
+            $("#book-pages")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
+        alert("Please enter a valid Dewey Decimal Classification!");
+        var rect = $("#book-dewey")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-dewey")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-dewey")[0].focus();}, 600);
+        $("#book-dewey")[0].onkeydown = function(e) {
+            $("#book-dewey")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
+        alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+        var rect = $("#book-purchase-month")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-purchase-month")[0].style.borderColor = "red";
+        $("#book-purchase-day")[0].style.borderColor = "red";
+        $("#book-purchase-year")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-purchase-month")[0].focus();}, 600);
+        $("#book-purchase-month")[0].onkeydown = function(e) {
+            $("#book-purchase-month")[0].style.borderColor = "";
+            $("#book-purchase-day")[0].style.borderColor = "";
+            $("#book-purchase-year")[0].style.borderColor = "";
+        }
+        $("#book-purchase-day")[0].onkeydown = function(e) {
+            $("#book-purchase-month")[0].style.borderColor = "";
+            $("#book-purchase-day")[0].style.borderColor = "";
+            $("#book-purchase-year")[0].style.borderColor = "";
+        }
+        $("#book-purchase-year")[0].onkeydown = function(e) {
+            $("#book-purchase-month")[0].style.borderColor = "";
+            $("#book-purchase-day")[0].style.borderColor = "";
+            $("#book-purchase-year")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
+        alert("Please enter a valid purchase price!");
+        var rect = $("#book-purchase-price")[0].getBoundingClientRect();
+        window.scrollBy(0, rect.top - 180);
+        $("#book-purchase-price")[0].style.borderColor = "red";
+        setTimeout(function() {$("#book-purchase-price")[0].focus();}, 600);
+        $("#book-purchase-price")[0].onkeydown = function(e) {
+            $("#book-purchase-price")[0].style.borderColor = "";
+        }
+        return false;
+    }
+    return true;
+}
 
+function isValidDate(m, d, y) {
+    var year = parseInt(y);
+    if (isNaN(year)) return false;
+    var month = parseInt(m);
+    if (isNaN(month) && m != "") return false;
+    var day = parseInt(d);
+    if (isNaN(day) && d != "") return false;
+    if (m == "" && d != "") return false;
+    if (month > 11 || month < 0) return false;
+    if (day > 31 || day < 1) return false;
+    if (day == 31 & (month == 4 || month == 6 || month == 9 || month == 11)) return false;
+    if (month == 2 && day > 29) return false;
+    if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 2 && day == 29) return false;
+    var date = new Date(year, month - 1, day);
+    if (date.getTime() > Date.now()) return false;
+    var founded = new Date(1711, 9, 17);
+    if (date.getTime() < founded.getTime()) return false;
+    return true;
+}
 
 function editEntry() {
     // Gets the values of all the input elements
@@ -506,10 +753,41 @@ function editEntry() {
     var author1FirstValue = $("#book-author-1-first").val();
     var author2LastValue = $("#book-author-2-last").val();
     var author2FirstValue = $("#book-author-2-first").val();
-    var coverLink = $("book-cover-image").attr('src');
-    var subjectValue = $("#book-subject").val();
+    var illustrator1LastValue = $("#book-illustrator-1-last").val();
+    var illustrator1FirstValue = $("#book-illustrator-1-first").val();
+    var illustrator2LastValue = $("#book-illustrator-2-last").val();
+    var illustrator2FirstValue = $("#book-illustrator-2-first").val();
+    var coverLink = $("#book-cover-image").attr('src');
+    var subjectValues = [];
+    var maxSubject = false;
+    for (var i = 1; !maxSubject; i++) {
+        if ($("#book-subject-" + i)[0]) {
+            subjectValues.push($("#book-subject-" + i).val());
+        } else {
+            maxSubject = true;
+        }
+    }
     var descriptionValue = $("#book-description").val();
-    var isbnValue = $("#book-isbn").val();
+    var isbn10Value = $("#book-isbn-10").val();
+    var isbn13Value = $("#book-isbn-13").val();
+    var publisher1Value = $("#book-publisher-1").val();
+    var publisher2Value = $("#book-publisher-2").val();
+    var publishMonthValue = $("#book-publish-month").val();
+    var publishDayValue = $("#book-publish-day").val();
+    var publishYearValue = $("#book-publish-year").val();
+    var numPagesValue = $("#book-pages").val();
+    var ddcValue = $("#book-dewey").val();
+    var copiesValue = $("#book-copies").val();
+    var purchaseMonthValue = $("#book-purchase-month").val();
+    var purchaseDayValue = $("#book-purchase-day").val();
+    var purchaseYearValue = $("#book-purchase-year").val();
+    var purchasePriceValue = $("#book-purchase-price").val();
+    var vendorValue = $("#book-vendor").val();
+
+    // Validate inputs
+    if (!validateEntry()) {
+        return;
+    }
 
     // Defines the paths of the the two database collections
     var indexBooksPath = db.collection("index_books");
@@ -534,7 +812,7 @@ function editEntry() {
     batch.update(booksPath.doc(barcodeValue), {
         title: titleValue,
         author: authorValue,
-        subject: subjectValue,
+        subject: subjectValues,
         description: descriptionValue,
         isbn: isbnValue
     });
@@ -543,7 +821,7 @@ function editEntry() {
     batch.update(indexBooksPath.doc(barcodeValue), {
         title: titleValue,
         author: authorValue,
-        subject: subjectValue,
+        subject: subjectValues,
         short_description: shortDescriptionValue,
         isbn: isbnValue,
         keywords: keywordsValue
