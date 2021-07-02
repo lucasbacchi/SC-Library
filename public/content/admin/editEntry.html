@@ -34,6 +34,13 @@
         <input id="book-illustrator-2-first" placeholder="First Name" class="short-form-input">
     </div>
     <div class="form-section">
+        <h6 class="form-title">Medium</h6>
+        <p class="form-description">Required.</p>
+        <input type="radio" id="book-medium-hc" value="hardcover">Hardcover
+        <input type="radio" id="book-medium-pb" value="paperback">Paperback
+        <input type="radio" id="book-medium-dvd" value="dvd" onclick="javascript:toggleDVD();">DVD
+    </div>
+    <div class="form-section">
         <h6 class="form-title">Cover</h6>
         <p class="form-description">An image of the cover of the book. If one does not automatically load, then try finding a picture of it online. Worst case senerio, you can always take a picture of it and upload it.</p>
         <div class="book-cover-image-container no-select">
@@ -52,6 +59,14 @@
         <h6 class="form-title">Description</h6>
         <p class="form-description">If a description did not load automatically, please enter a brief description. These can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes keywords that someone might use to search for the book.</p>
         <textarea id="book-description" placeholder="Enter a description" class="long-form-input"></textarea>
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Audience</h6>
+        <p class="form-description">You should be able to find this on the card.</p>
+        <input type="checkbox" id="book-audience-children" value="children">Children
+        <input type="checkbox" id="book-audience-youth" value="youth">Youth
+        <input type="checkbox" id="book-audience-adult" value="adult">Adult
+        <input type="checkbox" id="book-audience-none" value="none">None
     </div>
     <div class="form-section">
         <h6 class="form-title">ISBN 10 Number</h6>
