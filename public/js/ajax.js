@@ -33,7 +33,7 @@ var loadedSources = [];
 $(document).ready(function () {
     initApp()
     .then(function() {
-        goToPage(fullExtension.substr(1, fullExtension.length), true);
+        goToPage(fullExtension.substr(1), true);
     }, function(error) {
         console.error(error);
     });
@@ -45,11 +45,15 @@ $(document).ready(function () {
 
 var currentPage;
 var currentPanel;
+
+var currentHash;
+var currentQuery = "";
+var currentExtension;
 {
     let isAdmin;
-    function isAdminCheck() {
+    function isAdminCheck(recheck = false) {
         return new Promise(function (resolve, reject) {
-            if (isAdmin == null) {
+            if (isAdmin == null || recheck) {
                 firebase.firestore().collection("config").doc("private_vars").get().then((doc) => {
                     isAdmin = true;
                     resolve(true);
@@ -69,6 +73,15 @@ var currentPanel;
     
     function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         return new Promise (function (resolve, reject) {
+            // If there is any reason for the user to not leave a page, then it will reject.
+            // Currently, this handles unsaved changes on the edit entry page.
+            // TODO: Add more
+            if (currentPage == "/admin/editEntry" && unSavedChangesEditEntry()) {
+                // It's fine to call it regardless because it will only call if the first argument is true.
+                reject("The User attempted to leave the page without saving.");
+                return;
+            }
+
             $("#content").removeClass("fade");
             if ($(window).width() <= 570) {
                 closeNavMenu();
@@ -109,7 +122,7 @@ var currentPanel;
             pageName = "/" + pageName;
 
             // Prevent users from going to the same page (just don't reload the content if you do)
-            if (pageName == currentPage) {
+            if (currentPage && ((pageName == currentPage && pageName != "/search") || (pageName == "/search" && findURLValue(currentQuery, "query", true) == findURLValue(pageQuery, "query", true) && findURLValue(pageQuery, "query", true) != ""))) {
                 // TODO: Remove when I know it's not going to break everything
                 console.log("The user attempted to view the current page, and it was blocked.");
                 return;
@@ -130,7 +143,7 @@ var currentPanel;
                     }
                 }
             } else {
-                isAdminCheck().then((isAdmin) => {
+                isAdminCheck(true).then((isAdmin) => {
                     getPage(pageName);
                 }).catch((error) => {
                     goToPage("");
@@ -139,8 +152,8 @@ var currentPanel;
             }
 
             
-
-            isAdminCheck().catch((error) => {}).then((result) => {
+            
+            isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {}).then((result) => {
                 if (result && !$("#admin-link").length) {                
                     $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
                 }
@@ -168,6 +181,7 @@ var currentPanel;
                             pageUrl = "../";
                         }
 
+                        // The account pages handle their own states because they are panels
                         if (!goingBack && !pageName.includes("account")) {
                             window.history.pushState({}, "", pageUrl + pageQuery + pageHash);
                         }
@@ -327,16 +341,19 @@ var currentPanel;
                         
                                     
                         currentPage = pageName;
+                        currentHash = pageHash;
+                        currentQuery = pageQuery;
+                        currentExtension = pageExtension;
                         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
                         resolve();
                     }
                 }
             }
-        }).then(function() {
+        }).then(() => {
             $("#cover").hide();
             $("body").addClass("fade");
             $("body").css('overflow', '');
-        }).catch(function(error) {
+        }).catch((error) => {
             console.error("goToPage function failed: " + error);
         });
         

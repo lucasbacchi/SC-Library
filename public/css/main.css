@@ -260,6 +260,7 @@ p {
 #search-input {
     min-width: 275px;
     padding-left: 4px;
+    font-size: 13.3333px;
 }
 
 #search-button-container {
