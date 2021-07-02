@@ -31,35 +31,53 @@ var worksObject;
             alert("The number you entered is not a valid ISBN Number.");
             return;
         }
-        createEntry().then((newBarcode) => {
-            // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
-            goToPage('admin/editEntry?id=' + newBarcode + "&new=true&isbn=" + isbn);
-        });
-        
+        // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
+        goToPage('admin/editEntry?new=true&isbn=' + isbn);
+    }
+
+    function addEntryWithoutISBN() {
+        goToPage('admin/editEntry?new=true');
     }
     
     function gatherExternalInformation(isbn) {
         return new Promise(function (resolve, reject) {
-            lookupBook(isbn).then((bookObjectReturn) => {
+            if (isbn == "") {
+                // In this case, the entry was created without an isbn
+                resolve(true);
+            }
+            lookupBook(isbn)
+            .then((bookObjectReturn) => {
                 bookObject = bookObjectReturn;
-                lookupAuthor(bookObject);
-            }).then((authorObjectReturn) => {
-                authorObject = authorObjectReturn;
-                lookupWorks(bookObject);
-            }).then((worksObjectReturn) => {
-                worksObject = worksObjectReturn;
-                resolve();
+                lookupAuthor(bookObject)
+                .then((authorObjectReturn) => {
+                    authorObject = authorObjectReturn;
+                    lookupWorks(bookObject)
+                    .then((worksObjectReturn) => {
+                        worksObject = worksObjectReturn;
+                        resolve();
+                    }).catch((error) => {
+                        alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
+                        console.error(error);
+                        reject();
+                    });
+                }).catch((error) => {
+                    alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
+                    console.error(error);
+                    reject();
+                });
             }).catch((error) => {
                 alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
                 console.error(error);
                 reject();
             });
         });
-        
     }
 
 
     function createEntry() {
+        if (!validateEntry()) {
+            return;
+        }
         return new Promise(function (resolve, reject) {
             // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
             db.runTransaction((transaction) => {
@@ -181,7 +199,12 @@ function adminSearch() {
     var searchQuery = $("#edit-entry-input").val();
 
     if (searchQuery) {
-        search(searchQuery);
+        $("#edit-entry-search-results").empty();
+        search(searchQuery).then((results) => {
+            adminBookBoxes(results);
+        });
+    } else {
+        alert("Please enter a search query");
     }
 }
 
@@ -222,14 +245,18 @@ function switchISBNformats(number) {
         number = number.substring(0, number.length - 1)
     }
     number = number + calculateISBNCheckDigit(number);
+    number = parseInt(number);
     return number;
 }
 
 function verifyISBN(number) {
+    if (number.toString().substring(0, 3) != "978") {
+        number = switchISBNformats(number);
+    }
     number = number.toString();
     
     var digits = [];
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < number.length; i++) {
         digits[i] = parseInt(number.substring(0 + i, 1 + i));
     }
 

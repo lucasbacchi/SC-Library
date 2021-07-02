@@ -1,262 +1,227 @@
-function setupEditEntry(pageQuery) {
-    var newEntry;
-    var barcodeNumber;
-    var isbn;
-    if (pageQuery.includes("new")) {
-        if (pageQuery.substring(pageQuery.indexOf("new") + 4, pageQuery.indexOf("&", pageQuery.indexOf("new"))) == "true") {
-            newEntry = true;
-        } else {
-            newEntry = false;
+/* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
+db.runTransaction((transaction) => {
+    // This code may run multiple times if there are confilcts
+    var bookPath = db.collection("books").doc(barcodeNumber);
+    // Get the variable stored in the cloud_vars area
+    return transaction.get(bookPath).then((doc) => {
+        if (!doc.exists) {
+            throw "Document does not exist!";
         }
-        barcodeNumber = parseInt(pageQuery.substring(pageQuery.indexOf("id") + 3, pageQuery.indexOf("&")));
-        isbn = pageQuery.substring(pageQuery.indexOf("isbn") + 5, pageQuery.length);
-    } else {
-        barcodeNumber = parseInt(pageQuery.substring(pageQuery.indexOf("id") + 3, pageQuery.length));
+    });
+}).then((content) => {
+    // Will run after transaction success.
+}).catch((error) => {
+    // Will run after transaction failure.
+});
+*/
+
+function setupEditEntry(pageQuery) {
+    var newEntry = (findURLValue(pageQuery, "new") == "true");
+    var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
+    var isbn = findURLValue(pageQuery, "isbn", true);
+    
+    if (barcodeNumber == "" && newEntry == false) {
+        alert("The barcode that you are trying to edit is not valid.");
+        goToPage("admin/main");
+        return;
     }
 
     if (!newEntry) {
-        if (isNaN(barcodeNumber)) return;
-        var docRef = firebase.firestore().collection("books").doc(barcodeNumber);
-        docRef.get().then((doc) => {
-            $("#book-title").val(doc.data().title);
-            $("#book-subtitle").val(doc.data().subtitle);
-
-            for (var i = 0; i < doc.data().authors; i++) {
-                $("#book-author-" + i + "last").val(doc.data().authors[i].last);
-                $("#book-author-" + i + "first").val(doc.data().authors[i].first);
-            }
-
-            for (var i = 0; i < doc.data().subjects; i++) {
-                addSubject();
-                $("#book-subject-" + (i + 1)).val(doc.data().subjects[i]);
-            }
-
-            $("#book-description").val(doc.data().description);
-            
-            $("#book-isbn-10").val(doc.data().isbn_10);
-            $("#book-isbn-13").val(doc.data().isbn_13);
-
-            $("#book-publisher-1").val(doc.data().publishers[0]);
-            $("#book-publisher-2").val(doc.data().publishers[1]);
-            
-            $("#book-publish-day").val(doc.data().publish_date.getDay);
-            $("#book-publish-month").val(doc.data().publish_date.getMonth);
-            $("#book-publish-year").val(doc.data().publish_date.getFullYear);
-
-            $("#book-pages").val(doc.data().number_of_pages);
-            $("#book-dewey").val(doc.data().dewey);
-            $("#book-copies").val(doc.data().copies);
-
-            $("#book-purchase-day").val(doc.data().purchase_date.getDay);
-            $("#book-purchase-month").val(doc.data().purchase_date.getMonth);
-            $("#book-purchase-year").val(doc.data().purchase_date.getFullYear);
-
-            $("#book-purchase-price").val(doc.data().purchase_price);
-            $("#book-vendor").val(doc.data().vendor);
-
-            // TO DO: Fix...
-            $("#updated-time").val(doc.data().last_updated.toString());
-        });
-
-        var coverImageLink;
-        firebase.storage().ref().child("books").child(barcodeNumber).listAll().then((result) => {
-            result.items.forEach((itemRef) => {
-                // If we store more that just one image per book, this will probably break.
-                coverImageLink = itemRef.getDownloadURL();
-                $("#book-cover-image").attr('src', coverImageLink);
-            });
-        }).catch((error) => {
-            console.error(error);
-        });
-    } else {
-        // If this is an existing entry (and they aren't creating it for the first time)
-        gatherExternalInformation(isbn).then(() => {
+        // If this is not a new entry, just get the content that exists in the database
+        if (!isNaN(barcodeNumber)) {
             debugger;
-            // If this is a brand new entry...
-            $('#barcode').val(barcodeNumber);
-            
-            // Title
-            try {
-                $('#book-title').val(bookObject.title);
-            } catch {
-                console.error("The book doesn't have a title????? Something is wrong.");
-                console.log(bookObject);
-            }
+            var docRef = firebase.firestore().collection("books").doc("" + barcodeNumber);
+            docRef.get().then((doc) => {
+                debugger;
+                $("#book-title").val(doc.data().title);
+                $("#book-subtitle").val(doc.data().subtitle);
 
-            // Subtitle
-            try {
-                $('#book-subtitle').val(bookObject.subtitle);
-            } catch {
-                console.log("No subtitle found");
-                console.log(bookObject);
-            }
-
-            // Author
-            try {
-                for (var i = 0; i < authorObject.length; i++) {
-                    var fullName = authorObject[i].name;
-                    var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
-                    var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
-                    $('#book-author-' + (i + 1) + '-last').val(lastName);
-                    $('#book-author-' + (i + 1) + '-first').val(firstName);
+                for (var i = 0; i < doc.data().authors; i++) {
+                    $("#book-author-" + i + "last").val(doc.data().authors[i].last);
+                    $("#book-author-" + i + "first").val(doc.data().authors[i].first);
                 }
-            } catch {
-                console.error("The book doesn't have an author?");
-                console.log(bookObject);
-                console.log(authorObject);
-            }
 
-            // Cover
-            // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
-            try {
-                $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-                uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-            } catch {
-                try {
-                    $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                    uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                } catch {
-                    console.warn("A cover could not be found for either the book or the work");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-
-
-            // Description - Only get's the description from the first work (if there are multiple)
-            try {
-                $("book-description").val(worksObject[0].description.value);
-            } catch {
-                console.log("The works object did not have a description. Falling back to the book object.");
-                try {
-                    $("book-description").val(bookObject.description.value);
-                } catch {
-                    console.warn("Neither source had a description for this book.");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-
-            // Subject
-            try {
-                for (var i = 0; i < bookObject.subjects.length; i++) {
+                for (var i = 0; i < doc.data().subjects; i++) {
                     addSubject();
-                    $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
+                    $("#book-subject-" + (i + 1)).val(doc.data().subjects[i]);
                 }
-            } catch {
-                console.log("The books object did not have any subjects. Falling back to the works object")
+
+                $("#book-description").val(doc.data().description);
+                
+                $("#book-isbn-10").val(doc.data().isbn_10);
+                $("#book-isbn-13").val(doc.data().isbn_13);
+
+                $("#book-publisher-1").val(doc.data().publishers[0]);
+                $("#book-publisher-2").val(doc.data().publishers[1]);
+                
+                $("#book-publish-day").val(doc.data().publish_date.getDay);
+                $("#book-publish-month").val(doc.data().publish_date.getMonth);
+                $("#book-publish-year").val(doc.data().publish_date.getFullYear);
+
+                $("#book-pages").val(doc.data().number_of_pages);
+                $("#book-dewey").val(doc.data().dewey);
+                $("#book-copies").val(doc.data().copies);
+
+                $("#book-purchase-day").val(doc.data().purchase_date.getDay);
+                $("#book-purchase-month").val(doc.data().purchase_date.getMonth);
+                $("#book-purchase-year").val(doc.data().purchase_date.getFullYear);
+
+                $("#book-purchase-price").val(doc.data().purchase_price);
+                $("#book-vendor").val(doc.data().vendor);
+
+                // TO DO: Fix...
+                $("#updated-time").val(doc.data().last_updated.toString());
+            });
+
+            var coverImageLink;
+            firebase.storage().ref().child("books").child("" + barcodeNumber).listAll().then((result) => {
+                result.items.forEach((itemRef) => {
+                    // If we store more that just one image per book, this will probably break.
+                    coverImageLink = itemRef.getDownloadURL();
+                    $("#book-cover-image").attr('src', coverImageLink);
+                });
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+        
+    } else {
+        // If this is a new entry (and they are creating it for the first time) go get info from open library
+        $("button#edit-entry-save").attr("onclick", "javascript:createEntry();");
+        if (isbn.length >= 10) {
+            gatherExternalInformation(isbn).then((noISBN = false) => {
+                // If this is a brand new entry...
+                $('#barcode').val(barcodeNumber);
+
+                if (noISBN) {
+                    return;
+                }
+                
+                // Title
                 try {
-                    for (var i = 0; i < worksObject[0].subjects.length; i++) {
-                        addSubject();
-                        $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
+                    $('#book-title').val(bookObject.title);
+                } catch {
+                    console.error("The book doesn't have a title????? Something is wrong.");
+                    console.log(bookObject);
+                }
+
+                // Subtitle
+                try {
+                    $('#book-subtitle').val(bookObject.subtitle);
+                } catch {
+                    console.log("No subtitle found");
+                    console.log(bookObject);
+                }
+
+                // Author
+                try {
+                    for (var i = 0; i < authorObject.length; i++) {
+                        var fullName = authorObject[i].name;
+                        var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
+                        var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
+                        $('#book-author-' + (i + 1) + '-last').val(lastName);
+                        $('#book-author-' + (i + 1) + '-first').val(firstName);
                     }
                 } catch {
-                    console.warn("Neither source had subjects for this book.");
+                    console.error("The book doesn't have an author?");
                     console.log(bookObject);
-                    console.log(worksObject);
+                    console.log(authorObject);
                 }
-            }
 
-            // ISBN 10 Number
-            if (isbn.length == 10) {
-                $("#book-isbn-10").val(isbn);
-            } else {
-                $("#book-isbn-10").val(switchISBNformats(isbn));
-            }
-
-            // ISBN 13 Number
-            if (isbn.length == 13) {
-                $("#book-isbn-13").val(isbn);
-            } else {
-                $("#book-isbn-13").val(switchISBNformats(isbn));
-            }
-
-            // Publisher
-            try {
-                for (var i = 0; i < bookObject.publishers.length; i++) {
-                    if (i > 1) {
-                        console.warn("A publisher was cut off because there was only two input boxes.");
-                        return;
-                    }
-                    $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
-                }
-            } catch {
-                console.log("The books object did not have any publishers. Falling back to the works object")
+                // Cover
+                // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
                 try {
-                    for (var i = 0; i < worksObject[0].publishers.length; i++) {
+                    $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+                    uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+                } catch {
+                    try {
+                        $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                        uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                    } catch {
+                        console.warn("A cover could not be found for either the book or the work");
+                        console.log(bookObject);
+                        console.log(worksObject);
+                    }
+                }
+
+
+                // Description - Only gets the description from the first work (if there are multiple)
+                try {
+                    $("book-description").val(worksObject[0].description.value);
+                } catch {
+                    console.log("The works object did not have a description. Falling back to the book object.");
+                    try {
+                        $("book-description").val(bookObject.description.value);
+                    } catch {
+                        console.warn("Neither source had a description for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
+                    }
+                }
+
+                // Subject
+                try {
+                    for (var i = 0; i < bookObject.subjects.length; i++) {
+                        addSubject();
+                        $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
+                    }
+                } catch {
+                    console.log("The books object did not have any subjects. Falling back to the works object")
+                    try {
+                        for (var i = 0; i < worksObject[0].subjects.length; i++) {
+                            addSubject();
+                            $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
+                        }
+                    } catch {
+                        console.warn("Neither source had subjects for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
+                    }
+                }
+
+                // ISBN 10 Number
+                if (isbn.length == 10) {
+                    $("#book-isbn-10").val(isbn);
+                } else {
+                    $("#book-isbn-10").val(switchISBNformats(isbn));
+                }
+
+                // ISBN 13 Number
+                if (isbn.length == 13) {
+                    $("#book-isbn-13").val(isbn);
+                } else {
+                    $("#book-isbn-13").val(switchISBNformats(isbn));
+                }
+
+                // Publisher
+                try {
+                    for (var i = 0; i < bookObject.publishers.length; i++) {
                         if (i > 1) {
                             console.warn("A publisher was cut off because there was only two input boxes.");
                             return;
                         }
-                        $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
+                        $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
                     }
                 } catch {
-                    console.warn("Neither source had publishers for this book.");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-
-            // Publish Date:
-            try {
-                var publish_date = bookObject.publish_date;
-                if (publish_date.length == 4) {
-                    // We can assume that this is only a year.
-                    $("#book-publish-year").val(publish_date);
-                } else {
-                    var month = publish_date.substring(0, publish_date.indexOf(" "));
-                    var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                    var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
-                    switch (month) {
-                        case "Jan":
-                            month = 1;
-                            break;
-                        case "Feb":
-                            month = 2;
-                            break;
-                        case "Mar":
-                            month = 3;
-                            break;
-                        case "Apr":
-                            month = 4;
-                            break;
-                        case "May":
-                            month = 5;
-                            break;
-                        case "Jun":
-                            month = 6;
-                            break;
-                        case "Jul":
-                            month = 7;
-                            break;
-                        case "Aug":
-                            month = 8;
-                            break;
-                        case "Sep":
-                            month = 9;
-                            break;
-                        case "Oct":
-                            month = 10;
-                            break;
-                        case "Nov":
-                            month = 11;
-                            break;
-                        case "Dec":
-                            month = 12;
-                            break;
-                    
-                        default:
-                            console.error("The month could not be detected");
-                            month = -1;
-                            break;
+                    console.log("The books object did not have any publishers. Falling back to the works object")
+                    try {
+                        for (var i = 0; i < worksObject[0].publishers.length; i++) {
+                            if (i > 1) {
+                                console.warn("A publisher was cut off because there was only two input boxes.");
+                                return;
+                            }
+                            $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
+                        }
+                    } catch {
+                        console.warn("Neither source had publishers for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
                     }
-                    $("#book-publish-year").val(year);
-                    $("#book-publish-month").val(month);
-                    $("#book-publish-day").val(day);
                 }
-            } catch {
-                var publish_date = worksObject[0].publish_date;
+
+                // Publish Date:
                 try {
+                    var publish_date = bookObject.publish_date;
                     if (publish_date.length == 4) {
                         // We can assume that this is only a year.
                         $("#book-publish-year").val(publish_date);
@@ -312,83 +277,141 @@ function setupEditEntry(pageQuery) {
                         $("#book-publish-day").val(day);
                     }
                 } catch {
-                    console.warn("Neither source had publish dates for this book.");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-
-            // Number of Pages
-            try {
-                $("#book-pages").val(bookObject.number_of_pages);
-            } catch {
-                try {
-                    $("#book-pages").val(worksObject[0].number_of_pages);
-                } catch {
-                    console.warn("Neither source had a number of pages for this book.");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-
-            // Dewey Decimal Class
-            // I don't see why there would be two, but in case there are, they will get put in the same input
-            try {
-                debugger;
-                var ddcAnswer;
-                for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
-                    if (i > 0) {
-                        ddcAnswer += " ";
+                    var publish_date = worksObject[0].publish_date;
+                    try {
+                        if (publish_date.length == 4) {
+                            // We can assume that this is only a year.
+                            $("#book-publish-year").val(publish_date);
+                        } else {
+                            var month = publish_date.substring(0, publish_date.indexOf(" "));
+                            var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+                            var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+                            switch (month) {
+                                case "Jan":
+                                    month = 1;
+                                    break;
+                                case "Feb":
+                                    month = 2;
+                                    break;
+                                case "Mar":
+                                    month = 3;
+                                    break;
+                                case "Apr":
+                                    month = 4;
+                                    break;
+                                case "May":
+                                    month = 5;
+                                    break;
+                                case "Jun":
+                                    month = 6;
+                                    break;
+                                case "Jul":
+                                    month = 7;
+                                    break;
+                                case "Aug":
+                                    month = 8;
+                                    break;
+                                case "Sep":
+                                    month = 9;
+                                    break;
+                                case "Oct":
+                                    month = 10;
+                                    break;
+                                case "Nov":
+                                    month = 11;
+                                    break;
+                                case "Dec":
+                                    month = 12;
+                                    break;
+                            
+                                default:
+                                    console.error("The month could not be detected");
+                                    month = -1;
+                                    break;
+                            }
+                            $("#book-publish-year").val(year);
+                            $("#book-publish-month").val(month);
+                            $("#book-publish-day").val(day);
+                        }
+                    } catch {
+                        console.warn("Neither source had publish dates for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
                     }
-                    ddcAnswer += bookObject.dewey_decimal_class[i];
                 }
-                $("#book-dewey").val(ddcAnswer);
-            } catch {
+
+                // Number of Pages
                 try {
-                    debugger;
+                    $("#book-pages").val(bookObject.number_of_pages);
+                } catch {
+                    try {
+                        $("#book-pages").val(worksObject[0].number_of_pages);
+                    } catch {
+                        console.warn("Neither source had a number of pages for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
+                    }
+                }
+
+                // Dewey Decimal Class
+                // I don't see why there would be two, but in case there are, they will get put in the same input
+                try {
                     var ddcAnswer;
                     for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
                         if (i > 0) {
-                            ddcAnswer += " ";
+                            ddcAnswer += ", ";
                         }
                         ddcAnswer += bookObject.dewey_decimal_class[i];
                     }
                     $("#book-dewey").val(ddcAnswer);
                 } catch {
-                    console.warn("Neither source had a DDC for this book.");
-                    console.log(bookObject);
-                    console.log(worksObject);
-                }
-            }
-            $("#last-updated").hide();
-        }).catch((error) => {
-            // The ISBN Number is valid, but there is not a listing in Open Library
-            alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. If there was a typo, you can retry this process. Otherwise, you will need to create an entry manually.");
-            goToPage('admin/main');
-            // This can happen async so the user is not interupted.
-            db.runTransaction((transaction) => {
-                var cloudVarsPath = db.collection("config").doc("cloud_vars");
-                var booksPath = db.collection("books");
-                // Get the variable stored in the cloud_vars area
-                return transaction.get(cloudVarsPath).then((doc) => {
-                    if (!doc.exists) {
-                        throw "Document does not exist!";
+                    try {
+                        var ddcAnswer;
+                        for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
+                            if (i > 0) {
+                                ddcAnswer += " ";
+                            }
+                            ddcAnswer += bookObject.dewey_decimal_class[i];
+                        }
+                        $("#book-dewey").val(ddcAnswer);
+                    } catch {
+                        console.warn("Neither source had a DDC for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
                     }
-                    transaction.update(cloudVarsPath, {
-                        missed_barcodes: firebase.firestore.FieldValue.arrayUnion(barcodeNumber)
-                    });
+                }
+                $("#last-updated").hide();
+            }).catch((error) => {
+                // The ISBN Number is valid, but there is not a listing in Open Library
+                alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
+                
+                // Used to delete the entry and make them start over... that's just a bad idea...
+                /*goToPage('admin/main');
+                // This can happen async so the user is not interupted.
+                db.runTransaction((transaction) => {
+                    var cloudVarsPath = db.collection("config").doc("cloud_vars");
+                    var booksPath = db.collection("books");
+                    // Get the variable stored in the cloud_vars area
+                    return transaction.get(cloudVarsPath).then((doc) => {
+                        if (!doc.exists) {
+                            throw "Document does not exist!";
+                        }
+                        transaction.update(cloudVarsPath, {
+                            missed_barcodes: firebase.firestore.FieldValue.arrayUnion(barcodeNumber)
+                        });
 
-                    transaction.delete(booksPath.doc(barcodeNumber.toString()))
-                });
-            }).then((barcodeNumber) => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: ", barcodeNumber);
-                resolve(barcodeNumber);
-            }).catch((err) => {
-                console.error(err);
-                reject(err);
+                        transaction.delete(booksPath.doc(barcodeNumber.toString()))
+                    });
+                }).then((barcodeNumber) => {
+                    // After both writes complete, send the user to the edit page and take it from there.
+                    console.log("New Entry Created with barcode: ", barcodeNumber);
+                    resolve(barcodeNumber);
+                }).catch((err) => {
+                    console.error(err);
+                    reject(err);
+                });*/
             });
-        });
+        }
     }
 
     
@@ -540,7 +563,15 @@ function editEntry() {
 
 
 function cancelEditEntry() {
-    alert("Add functionality");
-
     $(window).off("beforeunload");
+
+    window.history.back();
+}
+
+
+// Returns true if there are unsaved changes on the Edit Entry page
+function unSavedChangesEditEntry() {
+    // TODO: Fix
+
+    return false;
 }

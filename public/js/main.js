@@ -291,11 +291,13 @@ function cleanUpSearchTerm(searchArray) {
 }
 
 
-function findURLValue(string, key) {
+function findURLValue(string, key, mightReturnEmpty = false) {
     var value;
     var keyNameIsNotComplete = (!string.includes("?" + key + "=") && !string.includes("&" + key + "="));
     if (!string.includes(key) || keyNameIsNotComplete || key == "") {
-        console.warn("That key could not be found in the URL.");
+        if (!mightReturnEmpty) {
+            console.warn("The key (\"" + key + "\") could not be found in the URL.");
+        }
         return "";
     }
 
@@ -324,6 +326,12 @@ function homeBookBoxes() {
     }
 }
 
+function adminBookBoxes(objects) {
+    for (var i = 0; i < objects.length; i++) {
+        $('div#edit-entry-search-results')[0].appendChild(buildBookBox(objects[i].data(), "edit-entry"));
+    }
+}
+
 function buildBookBox(obj, page, num = 0) {
     const div = document.createElement('div');
     switch (page) {
@@ -343,6 +351,13 @@ function buildBookBox(obj, page, num = 0) {
         number.classList.add("result-number");
         number.appendChild(document.createTextNode(num + "."));
         div.appendChild(number);
+    }
+    if (page == "home") {
+        div.setAttribute("onclick","javascript:goToPage('result');");
+    }
+    if (page == "edit-entry") {
+        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcode + "');";
+        div.setAttribute("onclick", string);
     }
     const img = document.createElement('img');
     img.classList.add('bookimage');

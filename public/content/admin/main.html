@@ -12,12 +12,13 @@
         <p>If you'd like to add a new book, enter the ISBN below:</p>
         <input id="add-entry-isbn">
         <button onclick="javascript:addEntry();">Add Entry</button>
+        <a onclick="javascript:addEntryWithoutISBN();" style="display: block;">I don't have an ISBN number</a>
     </div>
     <div class="mgmt" id="edit-entry">
         <h3>Search for an entry to edit below:</h3>
-        <input id="edit-entry-barcode">
+        <input id="edit-entry-input">
         <button id="edit-entry-search" onclick="javascript:adminSearch();">Search</button>
-        <p><a onclick="javascript:goToPage('admin/editEntry')">Edit Entry</a></p>
+        <div id="edit-entry-search-results"></div>
     </div>
     <div class="mgmt" id="checked-out">
         <h3>Here are the 5 most recently checked out books:</h3>
