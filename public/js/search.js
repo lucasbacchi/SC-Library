@@ -46,6 +46,14 @@ function setupSearch(searchResultsArray, pageQuery) {
         }
     });
 
+    $('#author-show-more').click(function() {
+        alert("Add Functionality");
+    });
+
+    $('#subject-show-more').click(function() {
+        alert("Add Functionality");
+    });
+
     if (searchResultsArray == null) {
         var queryFromURL = findURLValue(pageQuery, "query");
         if (queryFromURL == "") {
@@ -69,7 +77,6 @@ function createSearchResultsPage(searchResultsArray) {
     if (searchResultsArray.length == 0) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
-        console.log(p);
         $('div#results-container')[0].appendChild(p);
     }
     for (var i = 0; i < searchResultsArray.length; i++) {

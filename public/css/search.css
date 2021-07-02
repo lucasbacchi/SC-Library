@@ -141,6 +141,14 @@ div#result-page-info-bar > p {
 }
 
 
+#author-show-more, #subject-show-more {
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 27px;
+    color: var(--teal);
+}
+
+
 
 
 
