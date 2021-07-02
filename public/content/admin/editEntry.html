@@ -22,7 +22,7 @@
         <span>, </span>
         <input id="book-author-2-first" placeholder="First Name" class="short-form-input">
     </div>
-    <div class="form-section">
+    <div class="form-section no-dvd">
         <h6 class="form-title">Illustrator</h6>
         <p class="form-description">Currently only allows for 2 illustrators to be added. If there are more than 2 illustrators, include it in the description.</p>
         <input id="book-illustrator-1-last" placeholder="Last Name" class="short-form-input">
@@ -32,6 +32,16 @@
         <input id="book-illustrator-2-last" placeholder="Last Name" class="short-form-input">
         <span>, </span>
         <input id="book-illustrator-2-first" placeholder="First Name" class="short-form-input">
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Medium</h6>
+        <p class="form-description">Required.</p>
+        <select id="book-medium" name="medium">
+            <option value="">Select One …</option>
+            <option value="hardcover">Hardcover</option>
+            <option value="paperback">Paperback</option>
+            <option value="dvd">DVD</option>
+        </select>
     </div>
     <div class="form-section">
         <h6 class="form-title">Cover</h6>
@@ -54,11 +64,19 @@
         <textarea id="book-description" placeholder="Enter a description" class="long-form-input"></textarea>
     </div>
     <div class="form-section">
+        <h6 class="form-title">Audience</h6>
+        <p class="form-description">This should be found on the card. If not, take your best guess, or just check "None".</p>
+        <input type="checkbox" id="book-audience-children" name="audience" value="children">Children
+        <input type="checkbox" id="book-audience-youth" name="audience" value="youth">Youth
+        <input type="checkbox" id="book-audience-adult" name="audience" value="adult">Adult
+        <input type="checkbox" id="book-audience-none" name="audience" value="none">None
+    </div>
+    <div class="form-section no-dvd">
         <h6 class="form-title">ISBN 10 Number</h6>
         <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10 digits long. Do not include any dashes.</p>
         <input id="book-isbn-10" placeholder="" class="short-form-input">
     </div>
-    <div class="form-section">
+    <div class="form-section no-dvd">
         <h6 class="form-title">ISBN 13 Number</h6>
         <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13 digits long and starts with "978". Do not include any dashes.</p>
         <input id="book-isbn-13" placeholder="" class="short-form-input">
@@ -76,10 +94,12 @@
         <input id="book-publish-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-publish-year" placeholder="Year" class="short-form-input" style="width: 120px;">
     </div>
-    <div class="form-section">
+    <div class="form-section no-dvd">
         <h6 class="form-title">Number of Pages</h6>
-        <p class="form-description">Enter the number of pages in the book</p>
+        <p class="form-description">Enter the number of pages in the book. If the book has no page numbers, check the box below instead.</p>
         <input id="book-pages" placeholder="" class="short-form-input">
+        <br>
+        <input id="book-unnumbered" type="checkbox"> This book does not have page numbers
     </div>
     <div class="form-section">
         <h6 class="form-title">Dewey Decimal Class</h6>
