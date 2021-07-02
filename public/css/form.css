@@ -21,6 +21,10 @@
     margin-bottom: 8px;
 }
 
+.no-underline {
+    border-bottom: 0;
+}
+
 p.form-description {
     text-align: left;
     margin-top: 4px;
@@ -35,6 +39,7 @@ input.normal-form-input, input.form-input {
 
 .long-form-input {
     min-width: 50%;
+    outline: none !important;
 }
 
 input.short-form-input {
@@ -55,18 +60,12 @@ textarea {
 }
 
 #edit-entry-header {
-    font-family: sans-serif;
+    font-family: 'Poppins', sans-serif;
     margin-bottom: 18px;
 }
 
 .subject-field, .add-subject {
     display: block;
-}
-
-#barcode {
-    background-color: #dddddd;
-    border: 1px solid;
-    padding: 2px 3px;
 }
 
 .book-cover-image-container {
