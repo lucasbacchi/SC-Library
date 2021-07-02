@@ -3,7 +3,8 @@ service firebase.storage {
   match /b/{bucket}/o {
     // TODO: Maybe stop hardcoding this...
   	function isAdmin() {
-      return request.auth.uid == "lcIml2tYz6ZjID6IZ9Dt3y5tSLB2"
+    	let adminList = ["lcIml2tYz6ZjID6IZ9Dt3y5tSLB2", "2agCUfz7xkZg6VZQAe265kRneOY2"];
+      return (request.auth.uid in adminList);
     }
     match /{allPaths=**} {
       allow read, write: if isAdmin();
@@ -11,7 +12,7 @@ service firebase.storage {
     match /users/{userId}/{fileName} {
       allow read, write: if request.auth.uid == userId;
     }
-    match /public {
+    match /public/{file} {
       allow read: if true;
     }
   }

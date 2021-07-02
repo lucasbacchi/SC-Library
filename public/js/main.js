@@ -151,10 +151,8 @@ function updateUserAccountInfo() {
     if (user) {
         // User is signed in.
         db.collection("users").doc(user.uid).onSnapshot((doc) => {
-            // TODO: Probably make this more efficient. Don't really want to read from the database on every single page refresh.
-            // Also, it maybe shouldn't listen all the time... It's not going to change randomly.... right
             if (!doc.exists) {
-                console.error("The user document could not be found.");
+                console.error("The user document could not be found. Ignore if the user just signed up.");
                 return;
             }
             $('#account-name').text(doc.data().firstName + " " + doc.data().lastName);

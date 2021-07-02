@@ -52,6 +52,8 @@ function signInSubmit(pageQuery = "") {
     } else if (currentPage == '/signup') {
         handleSignUp().then(function() {
             authRedirect(pageQuery);
+        }).catch((err) => {
+            console.warn("Signup failed (likely because the user failed validation)")
         });
     }
 }
@@ -129,22 +131,62 @@ function handleSignUp() {
         var firstName = document.getElementById('firstName').value;
         var lastName = document.getElementById('lastName').value;
         var email = document.getElementById('email').value;
+        var phone = document.getElementById('phone').value;
+        var address = document.getElementById('address').value;
+        var town = document.getElementById('town').value;
+        var state = document.getElementById('state').value;
+        var zip = document.getElementById('zip').value;
         var password = document.getElementById('password').value;
+        var confrimPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
             alert('Please enter an email address.');
             reject();
+            return;
         }
         if (password.length < 4) {
             alert('Please enter a longer password.');
             reject();
+            return;
+        }
+        if (password != confrimPassword) {
+            alert('Your passwords do not match.');
+            reject();
+            return;
+        }
+        if (phone < 10) {
+            alert('Please enter a valid phone number');
+            reject();
+            return;
+        }
+        if (address < 6) {
+            alert('Please enter a valid address');
+            reject();
+            return;
+        }
+        if (town < 3) {
+            alert('Please enter a valid address');
+            reject();
+            return;
+        }
+        if (state.length != 2) {
+            alert('Please enter the state as two letters (ex. MA)');
+            reject();
+            return;
+        }
+        if (zip.length != 5) {
+            alert('Please enter a valid zip code');
+            reject();
+            return;
         }
         if (firstName.length < 1) {
             alert('Please enter a first name.');
             reject();
+            return;
         }
         if (lastName.length < 1) {
             alert('Please enter a last name.');
             reject();
+            return;
         }
         var signUpError = false;
         // Create user with email and pass, then logs them in.
@@ -165,15 +207,47 @@ function handleSignUp() {
                 var user = firebase.auth().currentUser;
                 var usersPath = db.collection("users");
                 var pfpRef = firebase.storage().ref().child("/public/default-user.jpg");
-                var pfpLink = pfpRef.getDownloadURL();
-                user.photoURL = pfpLink;
-                usersPath.doc(user.uid).set({
-                    firstName: firstName,
-                    lastName: lastName
-                }).then(function() {
-                    sendEmailVerification();
-                    resolve();
+                pfpRef.getDownloadURL().then((pfpLink) => {
+                    user.photoURL = pfpLink;
+                    // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
+                    db.runTransaction((transaction) => {
+                        var cloudVarsPath = db.collection("config").doc("writable_vars");
+                        // Get the variable stored in the cloud_vars area
+                        return transaction.get(cloudVarsPath).then((doc) => {
+                            if (!doc.exists) {
+                                throw "Document does not exist!";
+                            }
+                            // Save the max value and incriment it by one.
+                            var newCardNumber = doc.data().maxCardNumber + 1;
+                            // Set the document to exist in the users path
+                            transaction.set(usersPath.doc(user.uid), {
+                                firstName: firstName,
+                                lastName: lastName,
+                                address: address + ", " + town + ", " + state + " " + zip,
+                                phone: phone,
+                                email: email,
+                                cardNumber: newCardNumber,
+                                pfpLink: pfpLink,
+                                checkouts: [{}],
+                            });
+                            // Update the cloud var to contain the next card number value
+                            transaction.update(cloudVarsPath, {
+                                maxCardNumber: newCardNumber
+                            });
+                            return newCardNumber;
+                        });
+                    }).then((newCardNumber) => {
+                        // After both writes complete, send the user to the edit page and take it from there.
+                        console.log("New User Created with card number: ", newCardNumber);
+                        updateUserAccountInfo();
+                        sendEmailVerification();
+                        resolve();
+                    }).catch((err) => {
+                        console.error(err);
+                        reject(err);
+                    });
                 });
+                
             }
         });
     });
