@@ -35,7 +35,6 @@ function authRedirect(pageQuery) {
 }
 
 function signInSubmit(pageQuery = "") {
-    debugger;
     if (currentPage == '/login') {
         var reAuth;
         if (pageQuery.length > 1) {
