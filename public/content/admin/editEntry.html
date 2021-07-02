@@ -1,10 +1,6 @@
 <div id="form-container">
     <h1 id="edit-entry-header">Edit This Entry:</h1>
-    <div class="form-section">
-        <h6 class="form-title">Barcode</h6>
-        <p class="form-description">This cannot be changed after the creation of a book. If you have are trying to edit a specific barcode, please search for that entry and edit it.</p>
-        <input id="barcode" class="short-form-input no-select" readonly>
-    </div>
+    <h6 class="form-title no-underline">Barcode: <span id="barcode"></span></h6>
     <div class="form-section">
         <h6 class="form-title">Title</h6>
         <p class="form-description">Required.</p>
@@ -27,8 +23,19 @@
         <input id="book-author-2-first" placeholder="First Name" class="short-form-input">
     </div>
     <div class="form-section">
+        <h6 class="form-title">Illustrator</h6>
+        <p class="form-description">Currently only allows for 2 illustrators to be added. If there are more than 2 illustrators, include it in the description.</p>
+        <input id="book-illustrator-1-last" placeholder="Last Name" class="short-form-input">
+        <span>, </span>
+        <input id="book-illustrator-1-first" placeholder="First Name" class="short-form-input">
+        <br>
+        <input id="book-illustrator-2-last" placeholder="Last Name" class="short-form-input">
+        <span>, </span>
+        <input id="book-illustrator-2-first" placeholder="First Name" class="short-form-input">
+    </div>
+    <div class="form-section">
         <h6 class="form-title">Cover</h6>
-        <p class="form-description">A Picutre of the cover of the book. If one does not automatically load, then try finding a picture of it online. Worst case senerio, you can always take a picture of it and upload it.</p>
+        <p class="form-description">An image of the cover of the book. If one does not automatically load, then try finding a picture of it online. Worst case senerio, you can always take a picture of it and upload it.</p>
         <div class="book-cover-image-container no-select">
             <img id="book-cover-image" src="../img/favicon.ico">
             <div id="book-cover-image-overlay">Change Photo</div>
@@ -43,28 +50,28 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Description</h6>
-        <p class="form-description">If a description did not load automatically, please enter a brief description. These can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes keyworks that someone might use to search for the book.</p>
+        <p class="form-description">If a description did not load automatically, please enter a brief description. These can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes keywords that someone might use to search for the book.</p>
         <textarea id="book-description" placeholder="Enter a description" class="long-form-input"></textarea>
     </div>
     <div class="form-section">
         <h6 class="form-title">ISBN 10 Number</h6>
-        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10 digits long. Do not include any dashsess</p>
+        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10 digits long. Do not include any dashes.</p>
         <input id="book-isbn-10" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">ISBN 13 Number</h6>
-        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13 digits long and starts with "978". Please do not include any dashes.</p>
+        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13 digits long and starts with "978". Do not include any dashes.</p>
         <input id="book-isbn-13" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Publisher</h6>
-        <p class="form-description">Currently, this only supports adding a maximum of two publishers. If there are more, please list them in the description</p>
+        <p class="form-description">Currently, this only supports adding a maximum of two publishers. If there are more, please list them in the description.</p>
         <input id="book-publisher-1" placeholder="" class="normal-form-input">
         <input id="book-publisher-2" placeholder="" class="normal-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Publish Date</h6>
-        <p class="form-description">Sometimes found on the first few pages of the book. If you can't find a publishing date, you can use the copyright date. If you can only find the year, just enter that.</p>
+        <p class="form-description">Sometimes found on the first few pages of the book. If you can't find a publishing date, you can use the copyright date. If you can only find the year, or only the month and the year, just enter what you can find.</p>
         <input id="book-publish-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-publish-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-publish-year" placeholder="Year" class="short-form-input" style="width: 120px;">
@@ -76,21 +83,15 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Dewey Decimal Class</h6>
-        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
+        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, if it's not on the book or the card, you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
         <input id="book-dewey" placeholder="" class="short-form-input">
-    </div>
-    <!-- TO DO: Might have to add call number as well. Should look into that. -->
-    <div class="form-section">
-        <h6 class="form-title">Copies</h6>
-        <p class="form-description">If there are multiple copies of this book in the library, please denote the number below.</p>
-        <input id="book-copies" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Date of Purchase</h6>
         <p class="form-description">The date the book was purchased for the library. Hopefully this is on the card from the card catalog.</p>
-        <input id="book-purchase-day" placeholder="Day" class="short-form-input">
-        <input id="book-purchase-month" placeholder="Month" class="short-form-input">
-        <input id="book-purchase-year" placeholder="Year" class="short-form-input">
+        <input id="book-purchase-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> / </span>
+        <input id="book-purchase-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
+        <input id="book-purchase-year" placeholder="Year" class="short-form-input" style="width: 120px;">
     </div>
     <div class="form-section">
         <h6 class="form-title">Purchase Price</h6>
