@@ -8,7 +8,7 @@
     <div class="form-section">
         <h6 class="form-title">Title</h6>
         <p class="form-description">Required.</p>
-        <input id="book-title" placeholder="" class="normal-form-input">
+        <input id="book-title" placeholder="" class="long-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Subtitle</h6>
@@ -103,6 +103,6 @@
         <input id="book-vendor" placeholder="" class="short-form-input">
     </div>
     <p id="last-updated">This entry was last updated on: <span id="updated-date">DATE</span> at <span id="updated-time">TIME</span></p>
-    <button onclick="javascript:editEntry();">Save</button>
-    <button onclick="javascript:alert('Add functionality');">Cancel</button>
+    <button id="edit-entry-save" onclick="javascript:editEntry();">Save</button>
+    <button id="edit-entry-cancel" onclick="javascript:cancelEditEntry();">Cancel</button>
 </div>
