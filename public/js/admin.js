@@ -277,12 +277,32 @@ function verifyISBN(number) {
 }
 
 function recentlyCheckedOut() {
-    var books = [{photoURL: "../img/favicon.ico", title: "The Martian", author: "Andy Weir"},
-                 {photoURL: "../img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"},
-                 {photoURL: "../img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"},
-                 {photoURL: "../img/favicon.ico", title: "Macbeth", author: "William Shakespeare"},
-                 {photoURL: "../img/favicon.ico", title: "Artemis Fowl", author: "Eoin Colfer"}];
-    for (var i = 0; i < books.length; i++) {
-        $("#checked-out-books-container")[0].appendChild(buildBookBox(books[i], "admin"));
-    }
+    var d = new Date(2021, 1, 1);
+    db.collection("users").where("lastCheckoutTime", ">", d).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
+        var bookTimes = [];
+        querySnapshot.forEach((doc) => {
+            var co = doc.data().checkouts;
+            for (var i = 0; i < co.length; i++) {
+                bookTimes.push({book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut});
+                if (bookTimes.length == 6) {
+                    bookTimes.sort((a, b) => a.time - b.time);
+                    bookTimes.pop();
+                }
+            }
+        });
+        for (var i = 0; i < bookTimes.length; i++) {
+            var currentBook = bookTimes[i];
+            currentBook.book.get().then((doc) => {
+                if (!doc.exists) {
+                    console.error("doc does not exist");
+                    return;
+                }
+                for (var j = 0; j < doc.data().books.length; j++) {
+                    if (doc.data().books[j].barcodeNumber == currentBook.barcode) {
+                        $("#checked-out-books-container")[0].appendChild(buildBookBox(doc.data().books[j], "admin"));
+                    }
+                }
+            });
+        }
+    });
 }
