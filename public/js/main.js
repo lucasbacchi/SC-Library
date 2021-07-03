@@ -314,14 +314,36 @@ function findURLValue(string, key, mightReturnEmpty = false) {
 }
 
 function homeBookBoxes() {
-    var objects = [{photoURL: "img/favicon.ico", title: "The Martian", author: "Andy Weir"}, 
-                   {photoURL: "img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"}, 
-                   {photoURL: "img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"}];
-    for (var i = 0; i < 3; i++) {
-        for (var j = 0; j < 3; j++) {
-            $('div.row')[i].appendChild(buildBookBox(objects[j], "main"));
+    db.collection("config").doc("cloud_vars").get().then((doc) => {
+        if (!doc.exists) {
+            console.error("cloud_vars does not exist");
+            return;
         }
-    }
+        var numBooks = doc.data().maxBarcode - 1171100000;
+        var docs = Math.ceil((numBooks/* - 25*/) / 100);
+        var rand = Math.floor(Math.random() * docs) + 1;
+        rand = "0" + rand;
+        if (rand.length == 2) rand = "0" + rand;
+        db.collection("books").doc(rand).get().then((doc) => {
+            if (!doc.exists) {
+                console.error("books " + rand + " does not exist");
+                return;
+            }
+            var values = [];
+            for (var i = 0; i < 9; i++) {
+                var random = Math.floor(Math.random() * doc.data().books.length);
+                if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted) {
+                    i--;
+                } else {
+                    values.push(random);
+                }
+            }
+            for (var i = 0; i < 9; i++) {
+                var book = doc.data().books[values[i]];
+                $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+            }
+        });
+    });
 }
 
 function adminBookBoxes(objects) {
@@ -350,16 +372,15 @@ function buildBookBox(obj, page, num = 0) {
         number.appendChild(document.createTextNode(num + "."));
         div.appendChild(number);
     }
-    if (page == "home") {
-        div.setAttribute("onclick","javascript:goToPage('result');");
-    }
     if (page == "edit-entry") {
         let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcode + "');";
         div.setAttribute("onclick", string);
+    } else {
+        div.setAttribute("onclick","javascript:goToPage('result');");
     }
     const img = document.createElement('img');
     img.classList.add('bookimage');
-    img.src = obj.photoURL;
+    img.src = obj.coverImageLink;
     const subdiv = document.createElement('div');
     const b = document.createElement('b');
     const title = document.createElement('p');
@@ -367,7 +388,12 @@ function buildBookBox(obj, page, num = 0) {
     title.appendChild(document.createTextNode(obj.title));
     const author = document.createElement('p');
     author.classList.add('author');
-    author.appendChild(document.createTextNode(obj.author));
+    var authorString = "";
+    for (var i = 0; i < obj.authors.length; i++) {
+        if (i == 1) authorString += " & ";
+        authorString += obj.authors[i].last + ", " + obj.authors[i].first;
+    }
+    author.appendChild(document.createTextNode(authorString));
     b.appendChild(title);
     subdiv.appendChild(b);
     subdiv.appendChild(author);

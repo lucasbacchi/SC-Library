@@ -505,6 +505,18 @@ $("#book-medium")[0].addEventListener("input", (event) => {
     }
 });
 
+$("#book-unnumbered")[0].addEventListener("input", (event) => {
+    if (event.target.checked == true) {
+        $("#book-pages").val("");
+        $("#book-pages")[0].style.backgroundColor = "#eee";
+        $("#book-pages")[0].readOnly = true;
+    } else {
+        $("#book-pages").val("");
+        $("#book-pages")[0].style.backgroundColor = "white";
+        $("#book-pages")[0].readOnly = false;
+    }
+});
+
 function validateEntry() {
     // Gets the values of all the input elements
     var titleValue = $("#book-title").val();
