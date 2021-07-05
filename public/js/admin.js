@@ -72,49 +72,6 @@ var worksObject;
             });
         });
     }
-
-
-    function createEntry() {
-        if (!validateEntry()) {
-            return;
-        }
-        return new Promise(function (resolve, reject) {
-            // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
-            db.runTransaction((transaction) => {
-                var cloudVarsPath = db.collection("config").doc("cloud_vars");
-                // Get the variable stored in the cloud_vars area
-                return transaction.get(cloudVarsPath).then((doc) => {
-                    if (!doc.exists) {
-                        throw "Document does not exist!";
-                    }
-                    // Save the max value and incriment it by one.
-                    var newBarcode = doc.data().maxBarcode + 1;
-                    // Set the document to exist in the BOOKS path
-                    transaction.set(booksPath.doc(newBarcode.toString()), {
-                        barcode: newBarcode
-                    });
-                    // Set the document to exist in the INDEX_BOOKS path
-                    transaction.set(indexBooksPath.doc(newBarcode.toString()), {
-                        barcode: newBarcode
-                    });
-                    // Update the cloud var to contain the next barcode value
-                    transaction.update(cloudVarsPath, {
-                        maxBarcode: newBarcode
-                    });
-                    return newBarcode;
-                });
-            }).then((newBarcode) => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: ", newBarcode);
-                resolve(newBarcode);
-            }).catch((err) => {
-                console.error(err);
-                reject(err);
-            });
-        });
-        
-    }
-
 }
 
 function lookupBook(isbn) {
@@ -277,32 +234,12 @@ function verifyISBN(number) {
 }
 
 function recentlyCheckedOut() {
-    var d = new Date(2021, 1, 1);
-    db.collection("users").where("lastCheckoutTime", ">", d).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
-        var bookTimes = [];
-        querySnapshot.forEach((doc) => {
-            var co = doc.data().checkouts;
-            for (var i = 0; i < co.length; i++) {
-                bookTimes.push({book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut});
-                if (bookTimes.length == 6) {
-                    bookTimes.sort((a, b) => a.time - b.time);
-                    bookTimes.pop();
-                }
-            }
-        });
-        for (var i = 0; i < bookTimes.length; i++) {
-            var currentBook = bookTimes[i];
-            currentBook.book.get().then((doc) => {
-                if (!doc.exists) {
-                    console.error("doc does not exist");
-                    return;
-                }
-                for (var j = 0; j < doc.data().books.length; j++) {
-                    if (doc.data().books[j].barcodeNumber == currentBook.barcode) {
-                        $("#checked-out-books-container")[0].appendChild(buildBookBox(doc.data().books[j], "admin"));
-                    }
-                }
-            });
-        }
-    });
+    var books = [{photoURL: "../img/favicon.ico", title: "The Martian", author: "Andy Weir"},
+                 {photoURL: "../img/favicon.ico", title: "A Tale of Two Cities", author: "Charles Dickens"},
+                 {photoURL: "../img/favicon.ico", title: "Aurora", author: "Kim Stanley Robinson"},
+                 {photoURL: "../img/favicon.ico", title: "Macbeth", author: "William Shakespeare"},
+                 {photoURL: "../img/favicon.ico", title: "Artemis Fowl", author: "Eoin Colfer"}];
+    for (var i = 0; i < books.length; i++) {
+        $("#checked-out-books-container")[0].appendChild(buildBookBox(books[i], "admin"));
+    }
 }
