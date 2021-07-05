@@ -843,9 +843,69 @@ function isValidDate(m, d, y) {
     return true;
 }
 
+
+function createEntry() {
+    if (!validateEntry()) {
+        return;
+    }
+    return new Promise(function (resolve, reject) {
+        // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
+        db.runTransaction((transaction) => {
+            var cloudVarsPath = db.collection("config").doc("cloud_vars");
+            // Get the variable stored in the cloud_vars area
+            return transaction.collection("books").orderBy("order", "desc").limit(1).get().then((doc) => {
+                if (!doc.exists) {
+                    throw "Document does not exist!";
+                }
+
+                var order = doc.data().order;
+
+                if (doc.data().books.length == 100) {
+                    // A new book doc has to be created...
+                    var newNumber = order + 1;
+                    if (order < 10) {
+                        newNumber = "00" + order;
+                    } else if (order < 100) {
+                        newNumber = "0" + order;
+                    }
+                    transaction.collection("books").doc(newNumber).set({
+                        books: [{}],
+                        order: order + 1
+                    }).then(() => {
+                        return "1711" + newNumber + "00";
+                    });
+                } else {
+                    if (order < 10) {
+                        order = "00" + order;
+                    } else if (order < 100) {
+                        order = "0" + order;
+                    }
+                    transaction.collection("books").doc(order).update({
+                        books: firebase.firestore.FieldValue.arrayUnion({})
+                    }).then(() => {
+                        return doc.data.books.length + 1;
+                    });
+                }
+            });
+        }).then((newBarcode) => {
+            // After both writes complete, send the user to the edit page and take it from there.
+            console.log("New Entry Created with barcode: ", newBarcode);
+            editEntry(newBarcode)
+            resolve(newBarcode);
+        }).catch((err) => {
+            console.error(err);
+            reject(err);
+        });
+    });
+    
+}
+
+
 function editEntry() {
     // Gets the values of all the input elements
-    var barcodeValue = $("#barcode").val();
+    if (barcodeValue == null) {
+        barcodeValue = $("#barcode").val();
+    }
     var titleValue = $("#book-title").val();
     var subtitleValue = $("#book-subtitle").val();
     var author1LastValue = $("#book-author-1-last").val();
@@ -901,14 +961,6 @@ function editEntry() {
 
     var batch = db.batch();
 
-    // Can change how this is done later if we like...
-    // Get the first (about) 100 characters for the brief description
-    var shortDescriptionValue;
-    if (descriptionValue.length < 100) {
-        shortDescriptionValue = descriptionValue;
-    } else {
-        shortDescriptionValue = descriptionValue.substr(0, descriptionValue.indexOf(" ", 100)) + "...";
-    }
     // Create a list of keywords from the description
     var keywordsValue = descriptionValue.split(" ");
 
