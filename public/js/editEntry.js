@@ -550,6 +550,18 @@ $("#book-medium")[0].addEventListener("input", (event) => {
     }
 });
 
+$("#book-unnumbered")[0].addEventListener("input", (event) => {
+    if (event.target.checked == true) {
+        $("#book-pages").val("");
+        $("#book-pages")[0].style.backgroundColor = "#eee";
+        $("#book-pages")[0].readOnly = true;
+    } else {
+        $("#book-pages").val("");
+        $("#book-pages")[0].style.backgroundColor = "white";
+        $("#book-pages")[0].readOnly = false;
+    }
+});
+
 function validateEntry() {
     // Gets the values of all the input elements
     var titleValue = $("#book-title").val();
@@ -870,6 +882,8 @@ function editEntry() {
     var numPagesValue = $("#book-pages").val();
     var unNumbered = $("#book-unnumbered")[0].checked;
     var ddcValue = $("#book-dewey").val();
+    var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
+    var isHiddenValue = !!$("#book-is-hidden")[0].value;
     var purchaseMonthValue = $("#book-purchase-month").val();
     var purchaseDayValue = $("#book-purchase-day").val();
     var purchaseYearValue = $("#book-purchase-year").val();
