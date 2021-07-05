@@ -901,7 +901,7 @@ function createEntry() {
 }
 
 
-function editEntry() {
+function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Gets the values of all the input elements
     if (barcodeValue == null) {
         barcodeValue = $("#barcode").val();
@@ -950,8 +950,8 @@ function editEntry() {
     var purchasePriceValue = $("#book-purchase-price").val();
     var vendorValue = $("#book-vendor").val();
 
-    // Validate inputs
-    if (!validateEntry()) {
+    // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
+    if (!isDeletedValue && !validateEntry()) {
         return;
     }
 
@@ -1040,7 +1040,7 @@ function editEntry() {
             vendor: vendorValue,
             keywords: keywordsValue,
             canBeCheckedOut: canBeCheckedOutValue,
-            isDeleted: false,
+            isDeleted: isDeletedValue,
             isHidden: isHiddenValue,
             lastUpdated: lastUpdatedValue
         }
@@ -1069,7 +1069,7 @@ function editEntry() {
         vendor: vendorValue,
         keywords: keywordsValue,
         canBeCheckedOut: canBeCheckedOutValue,
-        isDeleted: false,
+        isDeleted: isDeletedValue,
         isHidden: isHiddenValue,
         lastUpdated: lastUpdatedValue
     });
@@ -1084,15 +1084,27 @@ function editEntry() {
     $(window).off("beforeunload");
 }
 
-
-
-
 function cancelEditEntry() {
     $(window).off("beforeunload");
 
     window.history.back();
 }
 
+function deleteEntry() {
+    $("#delete-alert").css("transition", "0.5s");
+    $("#delete-alert-overlay").css("transition", "0.5s");
+    if ($("#delete-alert").css("opacity") == "0") {
+        $("#delete-alert").show();
+        $("#delete-alert-overlay").show();
+        $("#delete-alert").css("opacity", "100%");
+        $("#delete-alert-overlay").css("opacity", "50%");
+    } else {
+        $("#delete-alert").css("opacity", "0");
+        $("#delete-alert-overlay").css("opacity", "0");
+        $("#delete-alert").delay(500).hide(0);
+        $("#delete-alert-overlay").delay(500).hide(0);
+    }
+}
 
 // Returns true if there are unsaved changes on the Edit Entry page
 function unSavedChangesEditEntry() {
