@@ -31,7 +31,7 @@ function setupEditEntry(pageQuery) {
         if (!isNaN(barcodeNumber)) {
             var docRef = firebase.firestore().collection("books").doc("" + barcodeNumber);
             docRef.get().then((doc) => {
-                $('#barcode').val(barcodeNumber);
+                $('#barcode').html(barcodeNumber);
                 $("#book-title").val(doc.data().title);
                 $("#book-subtitle").val(doc.data().subtitle);
 
@@ -40,12 +40,26 @@ function setupEditEntry(pageQuery) {
                     $("#book-author-" + i + "first").val(doc.data().authors[i].first);
                 }
 
+                for (var i = 0; i < doc.data().illustrators; i++) {
+                    $("#book-illustrator-" + i + "last").val(doc.data().illustrators[i].last);
+                    $("#book-illustrator-" + i + "first").val(doc.data().illustrators[i].first);
+                }
+
+                $("#book-medium").val(doc.data().medium);
+
+                $("#book-cover-image").attr('src', coverImageLink);
+
                 for (var i = 0; i < doc.data().subjects; i++) {
                     addSubject();
                     $("#book-subject-" + (i + 1)).val(doc.data().subjects[i]);
                 }
 
                 $("#book-description").val(doc.data().description);
+
+                $("#book-audience-children").prop("checked", doc.data().audience[0]);
+                $("#book-audience-youth").prop("checked", doc.data().audience[1]);
+                $("#book-audience-adult").prop("checked", doc.data().audience[2]);
+                $("#book-audience-none").prop("checked", doc.data().audience[3]);
                 
                 $("#book-isbn-10").val(doc.data().isbn_10);
                 $("#book-isbn-13").val(doc.data().isbn_13);
@@ -53,25 +67,31 @@ function setupEditEntry(pageQuery) {
                 $("#book-publisher-1").val(doc.data().publishers[0]);
                 $("#book-publisher-2").val(doc.data().publishers[1]);
                 
-                $("#book-publish-day").val(doc.data().publish_date.getDay);
                 $("#book-publish-month").val(doc.data().publish_date.getMonth);
+                $("#book-publish-day").val(doc.data().publish_date.getDay);
                 $("#book-publish-year").val(doc.data().publish_date.getFullYear);
 
-                $("#book-pages").val(doc.data().number_of_pages);
-                $("#book-dewey").val(doc.data().dewey);
-                $("#book-copies").val(doc.data().copies);
+                if (doc.data().number_of_pages != -1) {
+                    $("#book-pages").val(doc.data().number_of_pages);
+                    $("#book-unnumbered").prop("checked", false);
+                } else {
+                    $("#book-unnumbered").prop("checked", true);
+                }
 
-                $("#book-purchase-day").val(doc.data().purchase_date.getDay);
+                $("#book-dewey").val(doc.data().dewey);
+
                 $("#book-purchase-month").val(doc.data().purchase_date.getMonth);
+                $("#book-purchase-day").val(doc.data().purchase_date.getDay);
                 $("#book-purchase-year").val(doc.data().purchase_date.getFullYear);
 
                 $("#book-purchase-price").val(doc.data().purchase_price);
                 $("#book-vendor").val(doc.data().vendor);
 
                 // TO DO: Fix...
-                $("#updated-time").val(doc.data().last_updated.toString());
+                $("#updated-time").val("This entry was last updated at: " + doc.data().last_updated.toString());
             });
 
+            /* This should all be obsolete now
             var coverImageLink;
             firebase.storage().ref().child("books").child("" + barcodeNumber).listAll().then((result) => {
                 result.items.forEach((itemRef) => {
@@ -81,7 +101,7 @@ function setupEditEntry(pageQuery) {
                 });
             }).catch((error) => {
                 console.error(error);
-            });
+            });*/
         }
         
     } else {
@@ -90,7 +110,7 @@ function setupEditEntry(pageQuery) {
         if (isbn.length >= 10) {
             gatherExternalInformation(isbn).then((noISBN = false) => {
                 // If this is a brand new entry...
-                $('#barcode').val(barcodeNumber);
+                $('#barcode').html(barcodeNumber);
 
                 if (noISBN) {
                     return;
@@ -127,32 +147,41 @@ function setupEditEntry(pageQuery) {
                     console.log(authorObject);
                 }
 
-                // Cover
-                // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
+                // Medium - Only looks at the first work (if there are multiple)
                 try {
-                    $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-                    uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+                    if (bookObject.physical_format == "paperback") {
+                        $("book-medium").val("Paperback");
+                    } else if (bookObject.physical_format == "hardcover") {
+                        $("book-medium").val("Hardcover");
+                    }
                 } catch {
+                    console.log("The book object did not have a medium. Falling back to the works object.");
                     try {
-                        $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                        uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                        if (worksObject[0].physical_format == "paperback") {
+                            $("book-medium").val("Paperback");
+                        } else if (worksObject[0].physical_format == "hardcover") {
+                            $("book-medium").val("Hardcover");
+                        }
                     } catch {
-                        console.warn("A cover could not be found for either the book or the work");
+                        console.warn("Neither source had a medium for this book.");
                         console.log(bookObject);
                         console.log(worksObject);
                     }
                 }
 
-
-                // Description - Only gets the description from the first work (if there are multiple)
+                // Cover
+                // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
+                // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
+                // Also at the save button, the image link should be stored in the database
                 try {
-                    $("book-description").val(worksObject[0].description.value);
+                    $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+                    // uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
                 } catch {
-                    console.log("The works object did not have a description. Falling back to the book object.");
                     try {
-                        $("book-description").val(bookObject.description.value);
+                        $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                        //uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
                     } catch {
-                        console.warn("Neither source had a description for this book.");
+                        console.warn("A cover could not be found for either the book or the work");
                         console.log(bookObject);
                         console.log(worksObject);
                     }
@@ -177,6 +206,22 @@ function setupEditEntry(pageQuery) {
                         console.log(worksObject);
                     }
                 }
+
+                // Description - Only gets the description from the first work (if there are multiple)
+                try {
+                    $("book-description").val(worksObject[0].description.value);
+                } catch {
+                    console.log("The works object did not have a description. Falling back to the book object.");
+                    try {
+                        $("book-description").val(bookObject.description.value);
+                    } catch {
+                        console.warn("Neither source had a description for this book.");
+                        console.log(bookObject);
+                        console.log(worksObject);
+                    }
+                }
+
+                // Audience???? I have yet to see this in an open library object, so I'm not including it
 
                 // ISBN 10 Number
                 if (isbn.length == 10) {
@@ -355,7 +400,7 @@ function setupEditEntry(pageQuery) {
                 // Dewey Decimal Class
                 // I don't see why there would be two, but in case there are, they will get put in the same input
                 try {
-                    var ddcAnswer;
+                    var ddcAnswer = "";
                     for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
                         if (i > 0) {
                             ddcAnswer += ", ";
@@ -823,6 +868,7 @@ function editEntry() {
     var publishDayValue = $("#book-publish-day").val();
     var publishYearValue = $("#book-publish-year").val();
     var numPagesValue = $("#book-pages").val();
+    var unNumbered = $("#book-unnumbered")[0].checked;
     var ddcValue = $("#book-dewey").val();
     var purchaseMonthValue = $("#book-purchase-month").val();
     var purchaseDayValue = $("#book-purchase-day").val();
@@ -854,23 +900,112 @@ function editEntry() {
 
     keywordsValue = cleanUpSearchTerm(keywordsValue);
 
+    var bookNumber = barcodeValue - 171100000;
+    var bookDocument = Math.floor((bookNumber - 1) / 100) + 1;
+    if (bookDocument >= 100) {
+        bookDocument = "" + bookDocument;
+    } else if (bookDocument >= 10) {
+        bookDocument = "0" + bookDocument;
+    } else {
+        bookDocument = "00" + bookDocument;
+    }
+    bookNumber = bookNumber % 100;
+
+    var authorsValue = [{last: author1LastValue, first: author1FirstValue}];
+    if (author2FirstValue != "" || author2LastValue != "") {
+        authorsValue.push({last: author2LastValue, first: author2FirstValue});
+    }
+
+    var illustratorsValue = [{last: illustrator1LastValue, first: illustrator1FirstValue}];
+    if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
+        illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
+    }
+
+    var publishersValue = [publisher1Value];
+    if (publisher2Value != "") {
+        publishersValue.push(publisher2Value);
+    }
+
+    if (unNumbered) {
+        numPagesValue = -1;
+    }
+
+    var publishDateValue;
+    if (publishMonthValue != "" && publishDayValue != "") {
+        publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
+    } else if (publishMonthValue != "") {
+        publishDateValue = new Date(publishYearValue, publishMonthValue-1);
+    } else {
+        publishDateValue = new Date(publishYearValue);
+    }
+
+    var purchaseDateValue;
+    if (purchaseMonthValue != "" && purchaseDayValue != "") {
+        purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
+    } else if (purchaseMonthValue != "") {
+        purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1);
+    } else {
+        purchaseDateValue = new Date(purchaseYearValue);
+    }
+
+    var lastUpdatedValue = new Date();
+
     // Updates the book with the information
-    batch.update(booksPath.doc(barcodeValue), {
-        title: titleValue,
-        author: authorValue,
-        subject: subjectValues,
-        description: descriptionValue,
-        isbn: isbnValue
+    batch.update(booksPath.doc(bookDocument), {
+        "books.[bookNumber]": {
+            barcodeNumber: barcodeValue,
+            title: titleValue,
+            subtitle: subtitleValue,
+            authors: authorsValue,
+            illustrators: illustratorsValue,
+            medium: mediumValue,
+            coverImageLink: coverLink,
+            subjects: subjectValues,
+            description: descriptionValue,
+            audience: [childrenValue, youthValue, adultValue, noneValue],
+            isbn10: isbn10Value,
+            isbn13: isbn13Value,
+            publishers: publishersValue,
+            publishDate: publishDateValue,
+            numberOfPages: numPagesValue,
+            ddc: ddcValue,
+            purchaseDate: purchaseDateValue,
+            purchasePrice: purchasePriceValue,
+            vendor: vendorValue,
+            keywords: keywordsValue,
+            canBeCheckedOut: canBeCheckedOutValue,
+            isDeleted: false,
+            isHidden: isHiddenValue,
+            lastUpdated: lastUpdatedValue
+        }
     });
 
     // Update the books index with the information.
     batch.update(indexBooksPath.doc(barcodeValue), {
+        barcodeNumber: barcodeValue,
         title: titleValue,
-        author: authorValue,
-        subject: subjectValues,
-        short_description: shortDescriptionValue,
-        isbn: isbnValue,
-        keywords: keywordsValue
+        subtitle: subtitleValue,
+        authors: authorsValue,
+        illustrators: illustratorsValue,
+        medium: mediumValue,
+        coverImageLink: coverLink,
+        subjects: subjectValues,
+        description: descriptionValue,
+        audience: [childrenValue, youthValue, adultValue, noneValue],
+        isbn10: isbn10Value,
+        isbn13: isbn13Value,
+        publishers: publishersValue,
+        publishDate: publishDateValue,
+        numberOfPages: numPagesValue,
+        ddc: ddcValue,
+        purchaseDate: purchaseDateValue,
+        purchasePrice: purchasePriceValue,
+        vendor: vendorValue,
+        keywords: keywordsValue,
+        canBeCheckedOut: canBeCheckedOutValue,
+        isDeleted: false,
+        isHidden: isHiddenValue,
+        lastUpdated: lastUpdatedValue
     });
 
     batch.commit().then(() => {

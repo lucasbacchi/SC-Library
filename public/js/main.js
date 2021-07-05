@@ -131,6 +131,13 @@ function initApp() {
                 if (user) {
                     // User is signed in.
                     console.log('User is now Signed In.');
+                    var date = new Date();
+                    db.collection("users").doc(user.uid).update({
+                        lastSignIn: date
+                    }).catch((error) => {
+                        console.error("The last sign in time could not be updated.");
+                        if (error) console.log(error);
+                    });
                 } else {
                     // User is signed out.
                     console.log('User is now Signed Out.');

@@ -219,6 +219,7 @@ function handleSignUp() {
                             }
                             // Save the max value and incriment it by one.
                             var newCardNumber = doc.data().maxCardNumber + 1;
+                            var dateCreated = new Date();
                             // Set the document to exist in the users path
                             transaction.set(usersPath.doc(user.uid), {
                                 firstName: firstName,
@@ -229,6 +230,10 @@ function handleSignUp() {
                                 cardNumber: newCardNumber,
                                 pfpLink: pfpLink,
                                 checkouts: [{}],
+                                notificationsOn: true,
+                                dateCreated: dateCreated,
+                                lastSignIn: dateCreated,
+                                lastCheckoutTime: null
                             });
                             // Update the cloud var to contain the next card number value
                             transaction.update(cloudVarsPath, {
