@@ -321,36 +321,39 @@ function findURLValue(string, key, mightReturnEmpty = false) {
 }
 
 function homeBookBoxes() {
-    db.collection("books").orderBy("order").limit(1).get().then((doc) => {
-        if (!doc.exists) {
-            console.error("cloud_vars does not exist");
-            return;
-        }
-        var docs = doc.data().order;
-        if (doc.data().books.length < 25) {
-            docs--;
-        }
-        var rand = Math.floor(Math.random() * docs);
-        rand = "0" + rand;
-        if (rand.length == 2) rand = "0" + rand;
-        db.collection("books").doc(rand).get().then((doc) => {
+    db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            console.log(doc);
             if (!doc.exists) {
-                console.error("books " + rand + " does not exist");
+                console.error("books document does not exist");
                 return;
             }
-            var values = [];
-            for (var i = 0; i < 9; i++) {
-                var random = Math.floor(Math.random() * doc.data().books.length);
-                if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted) {
-                    i--;
-                } else {
-                    values.push(random);
+            var docs = doc.data().order;/*
+            if (doc.data().books.length < 25) {
+                docs--;
+            }*/
+            var rand = Math.floor(Math.random() * docs);
+            rand = "0" + rand;
+            if (rand.length == 2) rand = "0" + rand;
+            db.collection("books").doc(rand).get().then((doc) => {
+                if (!doc.exists) {
+                    console.error("books " + rand + " does not exist");
+                    return;
                 }
-            }
-            for (var i = 0; i < 9; i++) {
-                var book = doc.data().books[values[i]];
-                $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
-            }
+                var values = [];
+                for (var i = 0; i < 9; i++) {
+                    var random = Math.floor(Math.random() * doc.data().books.length);
+                    if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted) {
+                        i--;
+                    } else {
+                        values.push(random);
+                    }
+                }
+                for (var i = 0; i < 9; i++) {
+                    var book = doc.data().books[values[i]];
+                    $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+                }
+            });
         });
     });
 }

@@ -850,54 +850,87 @@ function createEntry() {
     }
     return new Promise(function (resolve, reject) {
         // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
-        db.runTransaction((transaction) => {
-            var cloudVarsPath = db.collection("config").doc("cloud_vars");
-            // Get the variable stored in the cloud_vars area
-            return transaction.collection("books").orderBy("order", "desc").limit(1).get().then((doc) => {
+        var lastBookDocQuery = db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1);
+        lastBookDocQuery.get().then((querySnapshot) => {
+            var topDoc;
+            querySnapshot.forEach((doc) => {
                 if (!doc.exists) {
-                    throw "Document does not exist!";
+                    throw "The books document doesn't exist";
                 }
-
-                var order = doc.data().order;
-
-                if (doc.data().books.length == 100) {
-                    // A new book doc has to be created...
-                    var newNumber = order + 1;
-                    if (order < 10) {
-                        newNumber = "00" + order;
-                    } else if (order < 100) {
-                        newNumber = "0" + order;
-                    }
-                    transaction.collection("books").doc(newNumber).set({
-                        books: [{}],
-                        order: order + 1
-                    }).then(() => {
-                        return "1711" + newNumber + "00";
-                    });
-                } else {
-                    if (order < 10) {
-                        order = "00" + order;
-                    } else if (order < 100) {
-                        order = "0" + order;
-                    }
-                    transaction.collection("books").doc(order).update({
-                        books: firebase.firestore.FieldValue.arrayUnion({})
-                    }).then(() => {
-                        return doc.data.books.length + 1;
-                    });
-                }
+                topDoc = doc;
             });
-        }).then((newBarcode) => {
-            // After both writes complete, send the user to the edit page and take it from there.
-            console.log("New Entry Created with barcode: ", newBarcode);
-            editEntry(newBarcode)
-            resolve(newBarcode);
+
+            db.runTransaction((transaction) => {
+                return transaction.get(db.collection("books").doc(topDoc.id)).then((doc2) => {
+                    if (!doc2.exists) {
+                        throw "Document does not exist!";
+                    }
+
+                    var order = doc2.data().order;
+                    var numBooksInDoc = doc2.data().books.length;
+
+                    /* TODO: Uncomment this when the database doesn't have a second doc for no reason.
+                    try {
+                        var next = order + 1;
+                        if (next < 10) {
+                            next = "00" + (next);
+                        } else if (next < 100) {
+                            next = "0" + (next);
+                        }
+                        db.collection("books").doc(next).get().then((doc) => {
+                            debugger;
+                            if (doc.exists) {
+                                throw "A new book doc was created, it shouldn't have been, so abort!";
+                            }
+                        }).catch((err) => {
+                            console.log("The next document doesn't exist, which is a good thing.");
+                        });
+                    } catch {
+                        console.log("Something about the try catch failed....");
+                    }*/
+
+                    if (numBooksInDoc == 100) {
+                        // A new book doc has to be created...
+                        var newNumber = order + 1;
+                        if (order < 10) {
+                            newNumber = "00" + order;
+                        } else if (order < 100) {
+                            newNumber = "0" + order;
+                        }
+                        transaction.set(db.collection("books").doc2(newNumber), {
+                            books: [{}],
+                            order: order + 1
+                        });
+                        return "11711" + newNumber + "00";
+                    } else {
+                        if (order < 10) {
+                            order = "00" + order;
+                        } else if (order < 100) {
+                            order = "0" + order;
+                        }
+                        transaction.update(db.collection("books").doc(order), {
+                            books: firebase.firestore.FieldValue.arrayUnion({})
+                        });
+                        var barcode;
+                        if (numBooksInDoc + 1 < 10) {
+                            barcode = "11711" + order + "0" + (numBooksInDoc + 1);
+                        } else {
+                            barcode = "11711" + order + (numBooksInDoc + 1);
+                        }
+                        return barcode;
+                    }
+                });
+            }).then((newBarcode) => {
+                // After both writes complete, send the user to the edit page and take it from there.
+                console.log("New Entry Created with barcode: ", newBarcode);
+                editEntry(newBarcode)
+                resolve(newBarcode);
+            });
         }).catch((err) => {
             console.error(err);
             reject(err);
         });
     });
-    
 }
 
 
@@ -966,8 +999,8 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
     keywordsValue = cleanUpSearchTerm(keywordsValue);
 
-    var bookNumber = barcodeValue - 171100000;
-    var bookDocument = Math.floor((bookNumber - 1) / 100) + 1;
+    var bookNumber = barcodeValue - 1171100000;
+    var bookDocument = Math.floor((bookNumber - 1) / 100);
     if (bookDocument >= 100) {
         bookDocument = "" + bookDocument;
     } else if (bookDocument >= 10) {
@@ -1005,12 +1038,12 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         publishDateValue = new Date(publishYearValue);
     }
 
-    var purchaseDateValue;
+    var purchaseDateValue = null;
     if (purchaseMonthValue != "" && purchaseDayValue != "") {
         purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
     } else if (purchaseMonthValue != "") {
         purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1);
-    } else {
+    } else if (purchaseYearValue != "") {
         purchaseDateValue = new Date(purchaseYearValue);
     }
 
@@ -1018,7 +1051,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
     // Updates the book with the information
     batch.update(booksPath.doc(bookDocument), {
-        "books.[bookNumber]": {
+        books: firebase.firestore.FieldValue.arrayUnion({
             barcodeNumber: barcodeValue,
             title: titleValue,
             subtitle: subtitleValue,
@@ -1043,11 +1076,11 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
             isDeleted: isDeletedValue,
             isHidden: isHiddenValue,
             lastUpdated: lastUpdatedValue
-        }
+        })
     });
 
     // Update the books index with the information.
-    batch.update(indexBooksPath.doc(barcodeValue), {
+    batch.set(indexBooksPath.doc(barcodeValue), {
         barcodeNumber: barcodeValue,
         title: titleValue,
         subtitle: subtitleValue,
@@ -1072,7 +1105,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         isDeleted: isDeletedValue,
         isHidden: isHiddenValue,
         lastUpdated: lastUpdatedValue
-    });
+    }, {merge: true});
 
     batch.commit().then(() => {
         alert("Edits were made successfully");
