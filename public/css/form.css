@@ -103,3 +103,38 @@ select {
     text-align: center;
     cursor: pointer;
 }
+
+.delete-button {
+    background-color: rgb(255, 116, 139);
+    border: 1px solid rgb(59, 59, 59);
+    padding: 2px 7px;
+    border-radius: 2px;
+}
+
+#delete-alert {
+    opacity: 0;
+    background-color: white;
+    border: 10px solid var(--teal);
+    border-radius: 20px;
+    z-index: 99;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin: 0 auto;
+    padding: 30px 40px;
+    transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+}
+
+#delete-alert-overlay {
+    opacity: 0;
+    background-color: var(--mint);
+    z-index: 98;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
