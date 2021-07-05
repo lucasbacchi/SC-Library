@@ -321,14 +321,16 @@ function findURLValue(string, key, mightReturnEmpty = false) {
 }
 
 function homeBookBoxes() {
-    db.collection("config").doc("cloud_vars").get().then((doc) => {
+    db.collection("books").orderBy("order").limit(1).get().then((doc) => {
         if (!doc.exists) {
             console.error("cloud_vars does not exist");
             return;
         }
-        var numBooks = doc.data().maxBarcode - 1171100000;
-        var docs = Math.ceil((numBooks/* - 25*/) / 100);
-        var rand = Math.floor(Math.random() * docs) + 1;
+        var docs = doc.data().order;
+        if (doc.data().books.length < 25) {
+            docs--;
+        }
+        var rand = Math.floor(Math.random() * docs);
         rand = "0" + rand;
         if (rand.length == 2) rand = "0" + rand;
         db.collection("books").doc(rand).get().then((doc) => {
