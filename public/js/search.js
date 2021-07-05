@@ -54,23 +54,62 @@ function setupSearch(searchResultsArray, pageQuery) {
         alert("Add Functionality");
     });
 
+    var searchResultsPromise;
+
     if (searchResultsArray == null) {
         var queryFromURL = findURLValue(pageQuery, "query");
         if (queryFromURL == "") {
             browse();
             return;
         }
-        var searchResultsPromise = search(queryFromURL);
+        searchResultsPromise = search(queryFromURL);
         searchResultsPromise.then((resultsArray) => {
-            createSearchResultsPage(resultsArray);
+            searchResultsArray = resultsArray;
         });
-    } else {
-        createSearchResultsPage(searchResultsArray);
     }
+    Promise.all([searchResultsPromise]).then(() => {
+        for (var i = 0; i < searchResultsArray.length; i++) {
+            searchResultsArray[i] = searchResultsArray[i].data();
+        }
+        createSearchResultsPage(searchResultsArray);
+    });
 }
 
 function browse() {
-    return true;
+    var browseResultsArray = [];
+    db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            console.log(doc);
+            if (!doc.exists) {
+                console.error("books document does not exist");
+                return;
+            }
+            var docs = doc.data().order;/*
+            if (doc.data().books.length < 25) {
+                docs--;
+            }*/
+            var rand = Math.floor(Math.random() * docs);
+            rand = "0" + rand;
+            if (rand.length == 2) rand = "0" + rand;
+            db.collection("books").doc(rand).get().then((doc) => {
+                if (!doc.exists) {
+                    console.error("books " + rand + " does not exist");
+                    return;
+                }
+                var values = [];
+                for (var i = 0; i < 20; i++) {
+                    var random = Math.floor(Math.random() * doc.data().books.length);
+                    if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                        i--;
+                    } else {
+                        values.push(random);
+                        browseResultsArray.push(doc.data().books[random]);
+                    }
+                }
+                createSearchResultsPage(browseResultsArray);
+            });
+        });
+    });
 }
 
 function createSearchResultsPage(searchResultsArray) {
@@ -80,7 +119,7 @@ function createSearchResultsPage(searchResultsArray) {
         $('div#results-container')[0].appendChild(p);
     }
     for (var i = 0; i < searchResultsArray.length; i++) {
-        $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i].data(), "search", i + 1));
+        $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
 }
 
