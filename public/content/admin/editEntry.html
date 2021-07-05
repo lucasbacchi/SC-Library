@@ -142,5 +142,12 @@
     <p id="last-updated">This entry was last updated on: <span id="updated-date">DATE</span> at <span id="updated-time">TIME</span></p>
     <button id="edit-entry-save" onclick="javascript:editEntry();">Save</button>
     <button id="edit-entry-cancel" onclick="javascript:cancelEditEntry();">Cancel</button>
-    <button id="edit-entry-delete" onclick="javascript:deleteEditEntry();">Delete</button>
+    <button id="edit-entry-delete" class="delete-button" onclick="javascript:deleteEntry();">Delete</button>
+
+    <div id="delete-alert" style="display: none;">
+        <p>Are you sure you want to delete this item from the library forever?</p>
+        <button id="delete-cancel" onclick="javascript:deleteEntry();">No, take me back</button>
+        <button id="delete-entry" class="delete-button" onclick="javascript:editEntry(isDeletedValue = true);">Yes, delete forever</button>
+    </div>
+    <div id="delete-alert-overlay" style="display: none;"></div>
 </div>
