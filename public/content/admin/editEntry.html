@@ -107,6 +107,22 @@
         <input id="book-dewey" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
+        <h6 class="form-title">Can this book be checked out?</h6>
+        <p class="form-description">Some books, like reference books, cannot be checked out. If you're not sure, ask someone.</p>
+        <select id="book-can-be-checked-out" name="cbco">
+            <option value="y">Yes</option>
+            <option value="">No</option>
+        </select>
+    </div>
+    <div class="form-section">
+        <h6 class="form-title">Should this book be unlisted?</h6>
+        <p class="form-description">Some books should be hidden in search results. If you're not sure, ask someone.</p>
+        <select id="book-is-hidden" name="hidden">
+            <option value="">No</option>
+            <option value="y">Yes</option>
+        </select>
+    </div>
+    <div class="form-section">
         <h6 class="form-title">Date of Purchase</h6>
         <p class="form-description">The date the book was purchased for the library. Hopefully this is on the card from the card catalog.</p>
         <input id="book-purchase-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> / </span>
@@ -115,7 +131,7 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Purchase Price</h6>
-        <p class="form-description">The price the book when purchased for the library. Hopefully this is on the card from the card catalog.</p>
+        <p class="form-description">The price of the book when purchased for the library. Hopefully this is on the card from the card catalog.</p>
         <span>$ </span><input id="book-purchase-price" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
@@ -126,4 +142,5 @@
     <p id="last-updated">This entry was last updated on: <span id="updated-date">DATE</span> at <span id="updated-time">TIME</span></p>
     <button id="edit-entry-save" onclick="javascript:editEntry();">Save</button>
     <button id="edit-entry-cancel" onclick="javascript:cancelEditEntry();">Cancel</button>
+    <button id="edit-entry-delete" onclick="javascript:deleteEditEntry();">Delete</button>
 </div>

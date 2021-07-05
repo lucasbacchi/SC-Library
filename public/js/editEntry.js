@@ -836,6 +836,8 @@ function editEntry() {
     var publishYearValue = $("#book-publish-year").val();
     var numPagesValue = $("#book-pages").val();
     var ddcValue = $("#book-dewey").val();
+    var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
+    var isHiddenValue = !!$("#book-is-hidden")[0].value;
     var purchaseMonthValue = $("#book-purchase-month").val();
     var purchaseDayValue = $("#book-purchase-day").val();
     var purchaseYearValue = $("#book-purchase-year").val();
