@@ -273,9 +273,22 @@ p {
 
 p.title,
 p.author,
-p.due-date {
+p.due-date,
+p.audience,
+p.medium {
     text-align: right;
     margin: .25em;
+}
+
+p.subjects,
+p.description {
+    text-align: left;
+    margin: .25em;
+}
+
+div.basic-info {
+    min-width: 200px;
+    margin-right: 30px;
 }
 
 #hamburger-button {
