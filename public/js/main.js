@@ -404,6 +404,7 @@ function buildBookBox(obj, page, num = 0) {
     b.appendChild(title);
     div2.appendChild(b);
     div2.appendChild(author);
+    div2.classList.add("basic-info");
     if (page == "account") {
         var frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
@@ -451,10 +452,16 @@ function buildBookBox(obj, page, num = 0) {
         div3.appendChild(subjects);
         const description = document.createElement('p');
         description.classList.add('description');
-        description.appendChild(document.createTextNode(obj.description));
+        description.appendChild(document.createTextNode(shortenDescription(obj.description)));
         div3.appendChild(description);
     }
     return div;
+}
+
+function shortenDescription(desc) {
+    var cutoff = desc.indexOf(". ", 300);
+    if (desc.length <= cutoff) return desc;
+    else return desc.substring(0, cutoff) + ". ...";
 }
 
 console.log("main.js Loaded!");

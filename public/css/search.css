@@ -84,7 +84,8 @@ h4:hover {
     overflow: hidden;
     margin-bottom: 20px;
     border-bottom: 1px solid black;
-    height: 150px;
+    min-height: 180px;
+    max-height: 280px;
     color: var(--teal);
     display: flex;
     justify-content: space-between;
