@@ -372,28 +372,23 @@ function buildBookBox(obj, page, num = 0) {
             break;
         case "account":
             div.classList.add("book-layout");
-        case "main":
-        case "admin":
         default:
             div.classList.add("book");
-    }
-    if (page == "search" && num > 0) {
-        div.id = "result-number-" + num;
-        const number = document.createElement('div');
-        number.classList.add("result-number");
-        number.appendChild(document.createTextNode(num + "."));
-        div.appendChild(number);
     }
     if (page == "edit-entry") {
         let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcode + "');";
         div.setAttribute("onclick", string);
     } else {
-        div.setAttribute("onclick","javascript:goToPage('result');");
+        div.setAttribute("onclick","javascript:goToPage('result?id=" + obj.barcode + "');");
     }
+    const div1 = document.createElement('div');
+    const div2 = document.createElement('div');
+    div.appendChild(div1);
+    div.appendChild(div2);
     const img = document.createElement('img');
     img.classList.add('bookimage');
     img.src = obj.coverImageLink;
-    const subdiv = document.createElement('div');
+    div1.appendChild(img);
     const b = document.createElement('b');
     const title = document.createElement('p');
     title.classList.add('title');
@@ -407,8 +402,8 @@ function buildBookBox(obj, page, num = 0) {
     }
     author.appendChild(document.createTextNode(authorString));
     b.appendChild(title);
-    subdiv.appendChild(b);
-    subdiv.appendChild(author);
+    div2.appendChild(b);
+    div2.appendChild(author);
     if (page == "account") {
         var frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
@@ -432,10 +427,33 @@ function buildBookBox(obj, page, num = 0) {
         bold.appendChild(document.createTextNode(boldstr));
         due.appendChild(bold);
         due.appendChild(document.createTextNode(backstr));
-        subdiv.appendChild(due);
+        div2.appendChild(due);
     }
-    div.appendChild(img);
-    div.appendChild(subdiv);
+    if (page == "search" && num > 0) {
+        div.id = "result-number-" + num;
+        const number = document.createElement('div');
+        number.classList.add("result-number");
+        number.appendChild(document.createTextNode(num + "."));
+        div.appendChild(number);
+        const medium = document.createElement('p');
+        medium.classList.add('medium');
+        medium.appendChild(document.createTextNode(obj.medium));
+        div2.appendChild(medium);
+        const audience = document.createElement('p');
+        audience.classList.add('audience');
+        audience.appendChild(document.createTextNode(obj.audience));
+        div2.appendChild(audience);
+        const div3 = document.createElement('div');
+        div.appendChild(div3);
+        const subjects = document.createElement('p');
+        subjects.classList.add('subjects');
+        subjects.appendChild(document.createTextNode(obj.subjects));
+        div3.appendChild(subjects);
+        const description = document.createElement('p');
+        description.classList.add('description');
+        description.appendChild(document.createTextNode(obj.description));
+        div3.appendChild(description);
+    }
     return div;
 }
 

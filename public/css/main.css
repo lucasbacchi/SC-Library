@@ -242,7 +242,7 @@ p {
 }
 
 .book {
-    width: 30%;
+    width: 31%;
     height: 98%;
     margin: 1%;
     padding: 10px;
@@ -250,10 +250,13 @@ p {
     color: var(--teal);
     overflow: visible;
     float: left;
+    display: flex;
+    justify-content: space-between;
 }
 
 .bookimage {
     height: 100%;
+    max-height: 150px;
     float: left;
 }
 
