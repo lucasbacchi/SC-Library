@@ -242,7 +242,7 @@ p {
 }
 
 .book {
-    width: 30%;
+    width: 31%;
     height: 98%;
     margin: 1%;
     padding: 10px;
@@ -250,10 +250,13 @@ p {
     color: var(--teal);
     overflow: visible;
     float: left;
+    display: flex;
+    justify-content: space-between;
 }
 
 .bookimage {
     height: 100%;
+    max-height: 150px;
     float: left;
 }
 
@@ -270,9 +273,22 @@ p {
 
 p.title,
 p.author,
-p.due-date {
+p.due-date,
+p.audience,
+p.medium {
     text-align: right;
     margin: .25em;
+}
+
+p.subjects,
+p.description {
+    text-align: left;
+    margin: .25em;
+}
+
+div.basic-info {
+    min-width: 200px;
+    margin-right: 30px;
 }
 
 #hamburger-button {
