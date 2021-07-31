@@ -84,11 +84,17 @@ h4:hover {
     overflow: hidden;
     margin-bottom: 20px;
     border-bottom: 1px solid black;
+    min-height: 180px;
+    max-height: 280px;
+    color: var(--teal);
+    display: flex;
+    justify-content: space-between;
 }
 
 .result-number {
     float: left;
     margin-right: 16px;
+    order: -1;
 }
 
 .result-text {
