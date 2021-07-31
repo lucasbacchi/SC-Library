@@ -102,12 +102,11 @@ h4:hover {
 }
 
 #result-page-container {
-    margin: 0 auto;
-    margin-top: 10px;
+    margin: 10px auto;
     display: grid;
     width: 60%;
     grid-template-columns: 25% 25% 25% 25%;
-    grid-template-rows: 200px 200px 200px 200px;
+    /*grid-template-rows: 200px 200px 200px 200px;*/
     gap: 16px 16px;
     justify-items: stretch;
     align-items: stretch;
@@ -116,11 +115,17 @@ h4:hover {
 #result-page-info-bar {
     grid-row: 1 / 5;
     grid-column: 1 / 2;
+    /*text-align: center;*/
+    padding: 12px;
 }
 
 #result-page-details {
     grid-row: 1 / 5;
     grid-column: 2 / 5;
+}
+
+#result-page-details > p {
+    text-align: left;
 }
 
 #result-page-image {
@@ -133,7 +138,7 @@ div#result-page-info-bar > p {
 
 #checkout-button {
     padding: 16px;
-    margin: 8px auto;
+    margin: 8px 0px;
     width: 80%;
     background-color: var(--mint);
     border-radius: 8px;
@@ -148,6 +153,26 @@ div#result-page-info-bar > p {
     color: var(--teal);
 }
 
+#search-page-input {
+    width: calc(100% - 160px);
+    padding-left: 12px;
+    height: 36px;
+    border: 2px var(--mint) solid;
+    box-shadow: 0px 0px 8px 2px #cccccc;
+    font-size: 16px;
+    border-radius: 20px;
+}
+
+#search-page-input:focus {
+    outline: 0px;
+}
+
+h6 {
+    margin-top: 24px;
+    margin-bottom: 8px;
+    font-size: 18px;
+    text-align: left;
+}
 
 
 

@@ -218,72 +218,147 @@ function updateEmail(email) {
 function homePageSearch() {
     var searchQuery = $('#search-input').val();
 
-    var searchResultsPromise = search(searchQuery);
-    
-    searchResultsPromise.then(function(searchResultsArray) {
+    search(searchQuery).then((searchResultsArray) => {
         goToPage('search?query=' + searchQuery, false, searchResultsArray);
     });
 }
 
-function search(searchQuery) {
-    var index_books = db.collection("index_books");
-    var searchQueryArray = searchQuery.split(" ");
+var bookDatabase;
+var searchCache;
+var timeLastSearched;
 
-    searchQueryArray = cleanUpSearchTerm(searchQueryArray);
 
-    // Make sure each search is only 10 words long. Firebase can't handle more
-    // Currently we are only handling queries up to 30 words.
-    if (searchQueryArray.length > 10) {
-        var searchQueryArray2 = searchQueryArray.splice(10, searchQueryArray.length);
-        searchQueryArray = searchQueryArray.splice(0, 10);
-        if (searchQueryArray2.length > 10) {
-            var searchQueryArray3 = searchQueryArray2.splice(10, searchQueryArray2.length);
-            searchQueryArray2 = searchQueryArray2.splice(0, 10);
-            if (searchQueryArray3.length > 10) {
-                alert("Searches are only allowed up to 30 words. Words after 30 have been ommitted.");
-                searchQueryArray3 = searchQueryArray3.splice(0, 10);
-            }
-        }
-    }
-
-    var bookIndexNumber = 0;
-    var bookSearchResults = [];
-    // TO DO: Add other searches. Only searches by keywords at the moment
-    var keywordsSearch = new Promise(function(resolve, reject) {
-        index_books.where('keywords', 'array-contains-any', searchQueryArray).limit(10).get().then((querySnapshot) => { // We can change this limit later, just for testing
-            querySnapshot.forEach((doc) => {
-                console.log(bookIndexNumber + ": " + doc.id, ' => ', doc.data());
-                bookIndexNumber++;
-                if (!bookSearchResults.includes(doc)) {
-                    bookSearchResults.push(doc);
-                }
-            });
-            resolve();
-        }).catch((error) => {
-            alert("An error occured when accessing the database so your search could not be completed. Please try again later.");
-            console.error(error);
-            reject();
-        });
-    });
-
-    // Checks that all Promises have resolved.
+function search(searchQuery, start = 0, end = 20) {
     return new Promise(function(resolve, reject) {
-        var p =  Promise.all([keywordsSearch]).then(function() {
-            return bookSearchResults;
-        });
-        resolve(p);
+        if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
+            // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
+            timeLastSearched = new Date();
+            console.log("It's been 5 mins since last search (or it's the first one since page load).");
+            db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+                bookDatabase = [];
+                querySnapshot.forEach((doc) => {
+                    if (!doc.exists) {
+                        console.error("books document does not exist");
+                        return;
+                    }
+                    bookDatabase.push(doc.data());
+                });
+                if (end == 0) {
+                    resolve();
+                }
+                resolve(performSearch(searchQuery, start, end));
+            });
+        } else {
+            // The bookDatabase cache is recent enough, just use that
+            if (end == 0) {
+                resolve();
+            }
+            resolve(performSearch(searchQuery, start, end));
+        }
     });
 }
 
+
+const AUTHOR_WEIGHT = 5;
+const ILLUSTRATOR_WEIGHT = 1;
+const KEYWORDS_WEIGHT = 10;
+const PUBLISHER_WEIGHT = 1;
+const SUBJECT_WEIGHT = 5;
+const SUBTITLE_WEIGHT = 3;
+const TITLE_WEIGHT = 8;
+
+function performSearch(searchQuery, start, end) {
+    var searchQueryArray = searchQuery.replace(/-/g , " ").replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase().split(" ");
+
+    var bookIndexNumber = 0;
+
+    var scoresArray = [];
+
+    // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
+    bookDatabase.forEach((document) => {
+        // Iterate through each of the 10-ish docs
+        for (var i = 0; i < document.books.length; i++) {
+            // Iterate through each of the 100 books in each doc
+            var book = document.books[i];
+            var score = 0;
+            // Authors
+            for (var j = 0; j < book.authors.length; j++) {
+                var arr1 = book.authors[j].first.replace(/-/g , " ").split(" ");
+                var arr2 = book.authors[j].last.replace(/-/g , " ").split(" ");
+                var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                score += arr1Ratio * AUTHOR_WEIGHT;
+                var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                score += arr2Ratio * AUTHOR_WEIGHT;
+            }
+            // Barcode Number?
+            // DDC?
+            // Description or just keywords?
+            // Illustrators
+            for (var j = 0; j < book.illustrators.length; j++) {
+                var arr1 = book.illustrators[j].first.replace(/-/g , " ").split(" ");
+                var arr2 = book.illustrators[j].last.replace(/-/g , " ").split(" ");
+                var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                score += arr1Ratio * ILLUSTRATOR_WEIGHT;
+                var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                score += arr2Ratio * ILLUSTRATOR_WEIGHT;
+            }
+            // ISBN 10? ISBN 13?
+            // Keywords
+            var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords * 0.1);
+            score += keywordsRatio * KEYWORDS_WEIGHT;
+            // Publishers
+            for (var j = 0; j < book.publishers.length; j++) {
+                var arr = book.publishers[j].replace(/-/g , " ").split(" ");
+                score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
+            }
+            // Subjects
+            for (var k = 0; k < book.subjects.length; k++) {
+                var arr = book.subjects[k].replace(/-/g , " ").split(" ");
+                score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
+            }
+            // Subtitle
+            score += countInArray(book.subtitle.replace(/-/g , " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
+            // Title
+            score += countInArray(book.title.replace(/-/g , " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
+            scoresArray.push({book:book, score: score});
+        }
+    });
+    scoresArray.sort((a, b) => {
+        // Custom Sort
+        return a.score - b.score;
+    });
+    var returnCount = 0;
+    var returnArray = [];
+    scoresArray.forEach((item) => {
+        if (item.score < 1) return;
+        returnCount++;
+        if (returnCount <= end && returnCount > start) {
+            returnArray.push(item.book);
+        }
+    });
+    console.log(returnArray);
+    return returnArray;
+}
+
+function countInArray(arr, searchQueryArray) {
+    var count = 0;
+    for (var i = 0; i < arr.length; i++) {
+        if (searchQueryArray.includes(arr[i])) {
+            count++;
+        }
+    }
+    return count;
+}
 
 
 
 function cleanUpSearchTerm(searchArray) {
     // List of words to remove from the keywords list
-    var meaninglessWords = ["the", "is", "it"];
+    var meaninglessWords = ["the", "is", "it", "an", "to", "on", "a", "in", "than", "and", "as", "they'll", "also", "for", "more", "here", "with", "without", "within", "most", "about", "almost", "any", "at", "be", "but", "by", "can", "come", "could", "do", "else", "if", "few", "get", "go", "he", "she", "they", "them", "him", "her", "his", "hers", "theirs", "there", "i", "", "into", "it", "its", "itself", "let", "lots", "me", "much", "must", "my", "oh", "yes", "no", "none", "nor", "not", "now", "of", "ok", "or", "our", "out", "own", "per", "put", "say", "see", "set", "so", "some", "soon", "still", "stay", "such", "sure", "tell", "then", "that", "these", "thing", "this", "those", "too", "try", "us", "use", "we", "what", "where", "when", "why", "how", "who", "whom", "you", "your"];
     // Itterate through each word
     for (var i = 0; i < searchArray.length; i++) {
         // Remove all punctuation and make it lowercase
+        searchArray[i] = searchArray[i].replace(/-/g , " ");
         searchArray[i] = searchArray[i].replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
         searchArray[i] = searchArray[i].toLowerCase();
         // Remove it from the list if it's meaningless
@@ -323,15 +398,14 @@ function findURLValue(string, key, mightReturnEmpty = false) {
 function homeBookBoxes() {
     db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
-            console.log(doc);
             if (!doc.exists) {
                 console.error("books document does not exist");
                 return;
             }
-            var docs = doc.data().order;/*
-            if (doc.data().books.length < 25) {
+            var docs = doc.data().order;
+            if (doc.data().books.length < 25 && doc.data().order != 0) {
                 docs--;
-            }*/
+            }
             var rand = Math.floor(Math.random() * docs);
             rand = "0" + rand;
             if (rand.length == 2) rand = "0" + rand;
@@ -341,6 +415,7 @@ function homeBookBoxes() {
                     return;
                 }
                 var values = [];
+                let count = 0;
                 for (var i = 0; i < 9; i++) {
                     var random = Math.floor(Math.random() * doc.data().books.length);
                     if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
@@ -348,9 +423,15 @@ function homeBookBoxes() {
                     } else {
                         values.push(random);
                     }
+                    count++;
+                    if (count > 10000) {
+                        console.error("The book randomizer is very broken. Giving up for now.");
+                        return;
+                    }
                 }
                 for (var i = 0; i < 9; i++) {
                     var book = doc.data().books[values[i]];
+                    debugger;
                     $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
                 }
             });
@@ -360,7 +441,7 @@ function homeBookBoxes() {
 
 function adminBookBoxes(objects) {
     for (var i = 0; i < objects.length; i++) {
-        $('div#edit-entry-search-results')[0].appendChild(buildBookBox(objects[i].data(), "edit-entry"));
+        $('div#edit-entry-search-results')[0].appendChild(buildBookBox(objects[i], "edit-entry"));
     }
 }
 
@@ -385,10 +466,10 @@ function buildBookBox(obj, page, num = 0) {
         div.appendChild(number);
     }
     if (page == "edit-entry") {
-        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcode + "');";
+        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
         div.setAttribute("onclick", string);
     } else {
-        div.setAttribute("onclick","javascript:goToPage('result');");
+        div.setAttribute("onclick","javascript:goToPage('result?id=" + obj.barcodeNumber + "');");
     }
     const img = document.createElement('img');
     img.classList.add('bookimage');
@@ -401,6 +482,7 @@ function buildBookBox(obj, page, num = 0) {
     const author = document.createElement('p');
     author.classList.add('author');
     var authorString = "";
+    debugger;
     for (var i = 0; i < obj.authors.length; i++) {
         if (i == 1) authorString += " & ";
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;
@@ -437,6 +519,26 @@ function buildBookBox(obj, page, num = 0) {
     div.appendChild(img);
     div.appendChild(subdiv);
     return div;
+}
+
+function getBookFromBarcode(barcodeNumber) {
+    return new Promise(function (resolve, reject) {
+        if (!bookDatabase) {
+            search("", 0, 0).then(() => {
+                var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
+                var bookNumber = barcodeNumber % 100;
+                resolve(bookDatabase[documentNumber].books[bookNumber]);
+            })
+        } else {
+            var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
+            var bookNumber = barcodeNumber % 100;
+            resolve (bookDatabase[documentNumber].books[bookNumber]);
+        }
+    });
+}
+
+function checkout() {
+    alert("TODO: Add functionality");
 }
 
 console.log("main.js Loaded!");

@@ -54,25 +54,22 @@ function setupSearch(searchResultsArray, pageQuery) {
         alert("Add Functionality");
     });
 
-    var searchResultsPromise;
+    var queryFromURL = findURLValue(pageQuery, "query");
+
+    $("#search-page-input").val(queryFromURL);
 
     if (searchResultsArray == null) {
-        var queryFromURL = findURLValue(pageQuery, "query");
+        // If you are entering the page without a search completed
         if (queryFromURL == "") {
             browse();
             return;
         }
-        searchResultsPromise = search(queryFromURL);
-        searchResultsPromise.then((resultsArray) => {
-            searchResultsArray = resultsArray;
+        search(queryFromURL).then((resultsArray) => {
+            createSearchResultsPage(resultsArray);
         });
-    }
-    Promise.all([searchResultsPromise]).then(() => {
-        for (var i = 0; i < searchResultsArray.length; i++) {
-            searchResultsArray[i] = searchResultsArray[i].data();
-        }
+    } else {
         createSearchResultsPage(searchResultsArray);
-    });
+    }
 }
 
 function browse() {
@@ -121,6 +118,104 @@ function createSearchResultsPage(searchResultsArray) {
     for (var i = 0; i < searchResultsArray.length; i++) {
         $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
+}
+
+function setupResults(pageQuery) {
+    var barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
+    if (!barcodeNumber) {
+        alert("Error: A valid barcode was not provided.");
+        goToPage("");
+        return;
+    }
+    
+    getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        if (!bookObject) {
+            alert("Error: No information could be found for that book.");
+            goToPage("");
+        }
+    
+        $("#result-page-barcode-number").html(barcodeNumber);
+        $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
+        $("#result-page-call-number").html(bookObject.ddc);
+        $("#result-page-medium").html(bookObject.medium);
+        var audienceAnswer = "";
+        for (i = 0; i < 4; i++) {
+            var temp = bookObject.audience[i];
+            if (temp) {
+                if (i == 0) {
+                    audienceAnswer += "Children, ";
+                } else if (i == 1) {
+                    audienceAnswer += "Youth, ";
+                } else if (i == 2) {
+                    audienceAnswer += "Adult, ";
+                } else if (i == 3) {
+                    audienceAnswer += "None, ";
+                }
+            }
+        }
+        audienceAnswer = audienceAnswer.substring(0, audienceAnswer.lastIndexOf(","));
+        $("#result-page-audience").html(audienceAnswer);
+        var publishersAnswer = "";
+        bookObject.publishers.forEach((item) => {
+            publishersAnswer += (item + ", ");
+        });
+        publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
+        $("#result-page-publisher").html(publishersAnswer);
+        var d = bookObject.publishDate.toDate();
+        $("#result-page-publish-date").html(d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear());
+        if (bookObject.numberOfPages > 0) {
+            $("#result-page-pages").html(bookObject.numberOfPages);
+        } else {
+            $("#result-page-pages").html("Unnumbered");
+        }
+    
+    
+        $("#result-page-title").html(bookObject.title);
+        $("#result-page-subtitle").html(bookObject.subtitle);
+        if (bookObject.subtitle == null || bookObject.subtitle.length < 1) {
+            $("#result-page-subtitle-header").hide();
+            $("#result-page-subtitle").hide();
+        }
+        debugger;
+        if (bookObject.authors.length > 1) {
+            $("#result-page-author-header").html("Authors");
+            var authorAnswer = "";
+            bookObject.authors.forEach((item) => {
+                authorAnswer += item.last + ", " + item.first;
+            });
+            $("#result-page-author").html(authorAnswer);
+        } else {
+            $("#result-page-author").html(bookObject.authors[0].last + ", " + bookObject.authors[0].first);
+        }
+        if (bookObject.illustrators.length > 0) {
+            var illustratorAnswer = "";
+            bookObject.illustrators.forEach((item) => {
+                illustratorAnswer += item.last + ", " + item.first;
+            });
+            $("#result-page-illustrator").html(illustratorAnswer);
+            if (bookObject.illustrators.length > 1) {
+                $("#result-page-illustrator-header").html("Illustrators");
+            }
+        } else {
+            $("#result-page-illustrator-header").hide();
+            $("#result-page-illustrator").hide();
+        }
+        if (bookObject.subjects.length == 0) {
+            $("#result-page-subjects").hide();
+            $("#result-page-subjects-header").hide();
+        } else if (bookObject.subjects.length == 1) {
+            $("#result-page-subjects-header").html("Subject");
+        }
+        var subjectsAnswer = "";
+        for (var i = 0; i < bookObject.subjects.length; i++) {
+            subjectsAnswer += bookObject.subjects[i];
+            if (i != bookObject.subjects.length - 1) {
+                subjectsAnswer += "<br>";
+            }
+        }
+        $("#result-page-subjects").html(subjectsAnswer);
+        $("#result-page-description").html(bookObject.description);
+    });
 }
 
 console.log("search.js Loaded!");

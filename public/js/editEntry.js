@@ -29,66 +29,88 @@ function setupEditEntry(pageQuery) {
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
-            var docRef = firebase.firestore().collection("books").doc("" + barcodeNumber);
+            debugger;
+            var document = Math.floor(barcodeNumber / 100) % 1000;
+            if (document >= 100) {
+                document = "" + document;
+            } else if (document >= 10) {
+                document = "0" + document;
+            } else {
+                document = "00" + document;
+            }
+            var docRef = firebase.firestore().collection("books").doc(document);
             docRef.get().then((doc) => {
+                var data = doc.data().books[barcodeNumber % 100];
                 $('#barcode').html(barcodeNumber);
-                $("#book-title").val(doc.data().title);
-                $("#book-subtitle").val(doc.data().subtitle);
+                debugger;
+                $("#book-title").val(data.title);
+                $("#book-subtitle").val(data.subtitle);
 
-                for (var i = 0; i < doc.data().authors; i++) {
-                    $("#book-author-" + i + "last").val(doc.data().authors[i].last);
-                    $("#book-author-" + i + "first").val(doc.data().authors[i].first);
+                for (var i = 0; i < data.authors; i++) {
+                    $("#book-author-" + i + "last").val(data.authors[i].last);
+                    $("#book-author-" + i + "first").val(data.authors[i].first);
                 }
 
-                for (var i = 0; i < doc.data().illustrators; i++) {
-                    $("#book-illustrator-" + i + "last").val(doc.data().illustrators[i].last);
-                    $("#book-illustrator-" + i + "first").val(doc.data().illustrators[i].first);
+                for (var i = 0; i < data.illustrators; i++) {
+                    $("#book-illustrator-" + i + "last").val(data.illustrators[i].last);
+                    $("#book-illustrator-" + i + "first").val(data.illustrators[i].first);
                 }
 
-                $("#book-medium").val(doc.data().medium);
+                $("#book-medium").val(data.medium);
 
-                $("#book-cover-image").attr('src', coverImageLink);
+                $("#book-cover-image").attr('src', data.coverImageLink);
 
-                for (var i = 0; i < doc.data().subjects; i++) {
+                for (var i = 0; i < data.subjects.length; i++) {
                     addSubject();
-                    $("#book-subject-" + (i + 1)).val(doc.data().subjects[i]);
+                    $("#book-subject-" + (i + 1)).val(data.subjects[i]);
                 }
 
-                $("#book-description").val(doc.data().description);
+                $("#book-description").val(data.description);
 
-                $("#book-audience-children").prop("checked", doc.data().audience[0]);
-                $("#book-audience-youth").prop("checked", doc.data().audience[1]);
-                $("#book-audience-adult").prop("checked", doc.data().audience[2]);
-                $("#book-audience-none").prop("checked", doc.data().audience[3]);
+                $("#book-audience-children").prop("checked", data.audience[0]);
+                $("#book-audience-youth").prop("checked", data.audience[1]);
+                $("#book-audience-adult").prop("checked", data.audience[2]);
+                $("#book-audience-none").prop("checked", data.audience[3]);
                 
-                $("#book-isbn-10").val(doc.data().isbn_10);
-                $("#book-isbn-13").val(doc.data().isbn_13);
+                $("#book-isbn-10").val(data.isbn10);
+                $("#book-isbn-13").val(data.isbn13);
 
-                $("#book-publisher-1").val(doc.data().publishers[0]);
-                $("#book-publisher-2").val(doc.data().publishers[1]);
-                
-                $("#book-publish-month").val(doc.data().publish_date.getMonth);
-                $("#book-publish-day").val(doc.data().publish_date.getDay);
-                $("#book-publish-year").val(doc.data().publish_date.getFullYear);
+                $("#book-publisher-1").val(data.publishers[0]);
+                $("#book-publisher-2").val(data.publishers[1]);
 
-                if (doc.data().number_of_pages != -1) {
-                    $("#book-pages").val(doc.data().number_of_pages);
+                if (data.publishDate != null) {
+                    $("#book-publish-month").val(data.publishDate.getMonth);
+                    $("#book-publish-day").val(data.publishDate.getDay);
+                    $("#book-publish-year").val(data.publishDate.getFullYear);
+                }
+
+                if (data.numberOfPages != -1) {
+                    $("#book-pages").val(data.numberOfPages);
                     $("#book-unnumbered").prop("checked", false);
-                } else {
+                } else if (data.numberOfPages == -1) {
                     $("#book-unnumbered").prop("checked", true);
                 }
 
-                $("#book-dewey").val(doc.data().dewey);
+                $("#book-dewey").val(data.ddc);
 
-                $("#book-purchase-month").val(doc.data().purchase_date.getMonth);
-                $("#book-purchase-day").val(doc.data().purchase_date.getDay);
-                $("#book-purchase-year").val(doc.data().purchase_date.getFullYear);
+                var temp = (data.canBeCheckedOut) ? "y":"";
+                $("#book-can-be-checked-out").val(temp);
+                var temp = (data.isHidden) ? "y":"";
+                $("#book-is-hidden").val(temp);
 
-                $("#book-purchase-price").val(doc.data().purchase_price);
-                $("#book-vendor").val(doc.data().vendor);
+                if (data.purchaseDate != null) {
+                    $("#book-purchase-month").val(data.purchaseDate.getMonth);
+                    $("#book-purchase-day").val(data.purchaseDate.getDay);
+                    $("#book-purchase-year").val(data.purchaseDate.getFullYear);
+                }
+
+                $("#book-purchase-price").val(data.purchasePrice);
+                $("#book-vendor").val(data.vendor);
 
                 // TO DO: Fix...
-                $("#updated-time").val("This entry was last updated at: " + doc.data().last_updated.toString());
+                if (data.lastUpdated != null) {
+                    $("#last-updated").val("This entry was last updated at: " + data.lastUpdated.toString());
+                }
             });
 
             /* This should all be obsolete now
@@ -573,7 +595,11 @@ function validateEntry() {
     var maxSubject = false;
     for (var i = 1; !maxSubject; i++) {
         if ($("#book-subject-" + i)[0]) {
-            subjectValues.push($("#book-subject-" + i).val());
+            if ($("#book-subject-" + i).val() != "") {
+                subjectValues.push($("#book-subject-" + i).val());
+            } else {
+                maxSubject = true;
+            }
         } else {
             maxSubject = true;
         }
@@ -589,7 +615,7 @@ function validateEntry() {
     var publishMonthValue = $("#book-publish-month").val();
     var publishDayValue = $("#book-publish-day").val();
     var publishYearValue = $("#book-publish-year").val();
-    var numPagesValue = $("#book-pages").val();
+    var numPagesValue = parseInt($("#book-pages").val());
     var unNumbered = $("#book-unnumbered")[0].checked;
     var ddcValue = $("#book-dewey").val();
     var purchaseMonthValue = $("#book-purchase-month").val();
@@ -869,7 +895,6 @@ function createEntry() {
                     var order = doc2.data().order;
                     var numBooksInDoc = doc2.data().books.length;
 
-                    /* TODO: Uncomment this when the database doesn't have a second doc for no reason.
                     try {
                         var next = order + 1;
                         if (next < 10) {
@@ -878,16 +903,17 @@ function createEntry() {
                             next = "0" + (next);
                         }
                         db.collection("books").doc(next).get().then((doc) => {
-                            debugger;
                             if (doc.exists) {
-                                throw "A new book doc was created, it shouldn't have been, so abort!";
+                                console.error("A new book doc was created, it shouldn't have been, so abort!");
+                                alert("A database error has occurred.");
+                                throw "Something went wrong."
                             }
                         }).catch((err) => {
-                            console.log("The next document doesn't exist, which is a good thing.");
+                            console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
                         });
                     } catch {
                         console.log("Something about the try catch failed....");
-                    }*/
+                    }
 
                     if (numBooksInDoc == 100) {
                         // A new book doc has to be created...
@@ -897,8 +923,33 @@ function createEntry() {
                         } else if (order < 100) {
                             newNumber = "0" + order;
                         }
-                        transaction.set(db.collection("books").doc2(newNumber), {
-                            books: [{}],
+                        transaction.set(db.collection("books").doc(newNumber), {
+                            books: [{
+                                barcodeNumber: barcode,
+                                title: "",
+                                subtitle: "",
+                                authors: [{first: "", last: ""}],
+                                illustrators: [],
+                                medium: "",
+                                coverImageLink: "",
+                                subjects: [],
+                                description: "",
+                                audience: [false, false, false, false],
+                                isbn10: "",
+                                isbn13: "",
+                                publishers: [],
+                                publishDate: null,
+                                numberOfPages: 0,
+                                ddc: "",
+                                purchaseDate: null,
+                                purchasePrice: "",
+                                vendor: "",
+                                keywords: [],
+                                canBeCheckedOut: true,
+                                isDeleted: false,
+                                isHidden: true,
+                                lastUpdated: null
+                            }],
                             order: order + 1
                         });
                         return "11711" + newNumber + "00";
@@ -908,15 +959,41 @@ function createEntry() {
                         } else if (order < 100) {
                             order = "0" + order;
                         }
-                        transaction.update(db.collection("books").doc(order), {
-                            books: firebase.firestore.FieldValue.arrayUnion({})
-                        });
+                        
                         var barcode;
                         if (numBooksInDoc + 1 < 10) {
                             barcode = "11711" + order + "0" + (numBooksInDoc + 1);
                         } else {
                             barcode = "11711" + order + (numBooksInDoc + 1);
                         }
+                        transaction.update(db.collection("books").doc(order), {
+                            books: firebase.firestore.FieldValue.arrayUnion({
+                                barcodeNumber: barcode,
+                                title: "",
+                                subtitle: "",
+                                authors: [{first: "", last: ""}],
+                                illustrators: [],
+                                medium: "",
+                                coverImageLink: "",
+                                subjects: [],
+                                description: "",
+                                audience: [false, false, false, false],
+                                isbn10: "",
+                                isbn13: "",
+                                publishers: [],
+                                publishDate: null,
+                                numberOfPages: 0,
+                                ddc: "",
+                                purchaseDate: null,
+                                purchasePrice: "",
+                                vendor: "",
+                                keywords: [],
+                                canBeCheckedOut: true,
+                                isDeleted: false,
+                                isHidden: true,
+                                lastUpdated: null
+                            })
+                        });
                         return barcode;
                     }
                 });
@@ -955,7 +1032,11 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var maxSubject = false;
     for (var i = 1; !maxSubject; i++) {
         if ($("#book-subject-" + i)[0]) {
-            subjectValues.push($("#book-subject-" + i).val());
+            if ($("#book-subject-" + i).val() != "") {
+                subjectValues.push($("#book-subject-" + i).val());
+            } else {
+                maxSubject = true;
+            }
         } else {
             maxSubject = true;
         }
@@ -972,7 +1053,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var publishMonthValue = $("#book-publish-month").val();
     var publishDayValue = $("#book-publish-day").val();
     var publishYearValue = $("#book-publish-year").val();
-    var numPagesValue = $("#book-pages").val();
+    var numPagesValue = parseInt($("#book-pages").val());
     var unNumbered = $("#book-unnumbered")[0].checked;
     var ddcValue = $("#book-dewey").val();
     var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
@@ -988,14 +1069,13 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         return;
     }
 
-    // Defines the paths of the the two database collections
-    var indexBooksPath = db.collection("index_books");
+    // Defines the paths of the the database collection
     var booksPath = db.collection("books");
 
     var batch = db.batch();
 
     // Create a list of keywords from the description
-    var keywordsValue = descriptionValue.split(" ");
+    var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
 
     keywordsValue = cleanUpSearchTerm(keywordsValue);
 
@@ -1015,12 +1095,18 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         authorsValue.push({last: author2LastValue, first: author2FirstValue});
     }
 
-    var illustratorsValue = [{last: illustrator1LastValue, first: illustrator1FirstValue}];
+    var illustratorsValue = [];
+    if (illustrator1FirstValue != "" || illustrator1LastValue != "") {
+        illustratorsValue.push({last: illustrator1LastValue, first: illustrator1FirstValue});
+    }
     if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
         illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
     }
 
-    var publishersValue = [publisher1Value];
+    var publishersValue = [];
+    if (publisher1Value != "") {
+        publishersValue.push(publisher1Value);
+    }
     if (publisher2Value != "") {
         publishersValue.push(publisher2Value);
     }
@@ -1078,34 +1164,6 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
             lastUpdated: lastUpdatedValue
         })
     });
-
-    // Update the books index with the information.
-    batch.set(indexBooksPath.doc(barcodeValue), {
-        barcodeNumber: barcodeValue,
-        title: titleValue,
-        subtitle: subtitleValue,
-        authors: authorsValue,
-        illustrators: illustratorsValue,
-        medium: mediumValue,
-        coverImageLink: coverLink,
-        subjects: subjectValues,
-        description: descriptionValue,
-        audience: [childrenValue, youthValue, adultValue, noneValue],
-        isbn10: isbn10Value,
-        isbn13: isbn13Value,
-        publishers: publishersValue,
-        publishDate: publishDateValue,
-        numberOfPages: numPagesValue,
-        ddc: ddcValue,
-        purchaseDate: purchaseDateValue,
-        purchasePrice: purchasePriceValue,
-        vendor: vendorValue,
-        keywords: keywordsValue,
-        canBeCheckedOut: canBeCheckedOutValue,
-        isDeleted: isDeletedValue,
-        isHidden: isHiddenValue,
-        lastUpdated: lastUpdatedValue
-    }, {merge: true});
 
     batch.commit().then(() => {
         alert("Edits were made successfully");
