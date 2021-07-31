@@ -11,6 +11,7 @@ var directory = [
     "/account/notifications",
     "/account/checkouts",
     "/account/security",
+    "/admin/barcode",
     "/admin/editEntry",
     "/admin/main",
     "/admin/report",
@@ -123,6 +124,12 @@ var currentExtension;
                 pageName = "main";
             }
 
+            if (pageName == "admin") {
+                goToPage("admin/main");
+                pageName = "admin/main";
+                return;
+            }
+
             pageName = "/" + pageName;
 
             // Prevent users from going to the same page (just don't reload the content if you do)
@@ -199,6 +206,7 @@ var currentExtension;
                             "/admin/editEntry": "Edit an Entry",
                             "/admin/main": "Admin Console",
                             "/admin/report": "Run a Report",
+                            "/admin/barcode": "Generate Barcodes",
                             "/404": "404 | File Not Found",
                             "/about": "About Us",
                             "/account": "Your Account",
@@ -207,7 +215,7 @@ var currentExtension;
                             "/help": "Help",
                             "/login": "Login",
                             "/main": "Home",
-                            "result": "Result", // This will get changed on the page to be specific to the title.
+                            "/result": "Result", // This will get changed on the page to be specific to the title.
                             "/search": "Search Results",
                             "/signup": "Signup",
                             "/sitemap": "Sitemap"
@@ -229,6 +237,7 @@ var currentExtension;
                             "/admin/editEntry": ["form.css", "editEntry.js", "admin.js", "admin.css"],
                             "/admin/main": ["admin.js", "admin.css"],
                             "/admin/report": ["admin.js", "admin.css"],
+                            "/admin/barcode": ["admin.js", "admin.css"],
                             "/404": [],
                             "/about": [],
                             "/account": ["account.js", "account.css"],
@@ -271,20 +280,24 @@ var currentExtension;
                             sourcesForPage = sourcesRequired["/main"];
                         }
                         // Itterate through each of the scources needed
-                        for (var i = 0; i < sourcesForPage.length; i++) {
-                            // If the source hasn't already been loaded.
-                            if (!loadedSources.includes(sourcesForPage[i])) {
-                                // If the source is a js file:
-                                if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
-                                    $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
-                                }  
-                                // If the source is a css file
-                                else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
-                                    $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
-                                } else {
-                                    console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
+                        try {
+                            for (var i = 0; i < sourcesForPage.length; i++) {
+                                // If the source hasn't already been loaded.
+                                if (!loadedSources.includes(sourcesForPage[i])) {
+                                    // If the source is a js file:
+                                    if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
+                                        $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
+                                    }  
+                                    // If the source is a css file
+                                    else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
+                                        $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
+                                    } else {
+                                        console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
+                                    }
                                 }
                             }
+                        } catch {
+                            console.warn("This page name does not exist in the source list.");
                         }
 
                         // Page Content has now Loaded
@@ -317,6 +330,10 @@ var currentExtension;
                             }
                         }
 
+                        if (pageName == "/result") {
+                            setupResults(pageQuery);
+                        }
+
                         if (pageName == "/account") {
                             accountPageSetup(pageQuery, goingBack);
                         } else {
@@ -329,6 +346,10 @@ var currentExtension;
 
                         if (pageName == "/admin/editEntry") {
                             setupEditEntry(pageQuery);
+                        }
+
+                        if (pageName == "/admin/barcode") {
+                            setupBarcodePage();
                         }
 
                         if (pageName == "/sitemap") {

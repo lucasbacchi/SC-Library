@@ -1,25 +1,36 @@
 <div id="result-page-container">
     <div id="result-page-info-bar">
         <img id="result-page-image" src="../img/favicon.ico">
-        <div id="checkout-button">Borrow</div>
+        <div id="checkout-button" onclick="javascript:checkout();">Borrow</div>
         <h6>Barcode Number</h6>
-        <p>1171100000000</p>
+        <p id="result-page-barcode-number"></p>
         <h6>ISBN Number</h6>
-        <p>9785425632532</p>
+        <p id="result-page-isbn-number"></p>
         <h6>Call Number</h6>
-        <p>FIC JON</p>
-        <h6>Copies Availible</h6>
-        <p>0</p>
-        <h6>Subject</h6>
-        <p>The Civil War</p>
+        <p id="result-page-call-number"></p>
+        <h6>Medium</h6>
+        <p id="result-page-medium"></p>
+        <h6>Audience</h6>
+        <p id="result-page-audience"></p>
+        <h6>Publisher</h6>
+        <p id="result-page-publisher"></p>
+        <h6>Publish Date</h6>
+        <p id="result-page-publish-date"></p>
+        <h6 id="result-page-pages-header">Number of Pages</h6>
+        <p id="result-page-pages"></p>
     </div>
     <div id="result-page-details">
         <h6>Title</h6>
-        <p>A Title of a Book</p>
-        <h6>Author</h6>
-        <p>An Author's Name</p>
+        <p id="result-page-title"></p>
+        <h6 id="result-page-subtitle-header">Subtitle</h6>
+        <p id="result-page-subtitle"></p>
+        <h6 id="result-page-author-header">Author</h6>
+        <p id="result-page-author"></p>
+        <h6 id="result-page-illustrator-header">Illustrator</h6>
+        <p id="result-page-illustrator"></p>
+        <h6 id="result-page-subjects-header">Subjects</h6>
+        <p id="result-page-subjects"></p>
         <h6>Description</h6>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-        
+        <p id="result-page-description"></p>
     </div>
 </div>

@@ -1,5 +1,5 @@
 function setupAdminMain() {
-    $("#edit-entry-barcode").keydown(function(event) {
+    $("#edit-entry-input").keydown(function(event) {
         if (event.keyCode === 13) {
             adminSearch();
         }
@@ -20,7 +20,6 @@ var worksObject;
 {
 
     let booksPath = db.collection("books");
-    let indexBooksPath = db.collection("index_books");
     let usersPath = db.collection("users");
 
 
@@ -154,6 +153,7 @@ function addSubject() {
 
 function adminSearch() {
     var searchQuery = $("#edit-entry-input").val();
+    $("#edit-entry-search-results").show();
 
     if (searchQuery) {
         $("#edit-entry-search-results").empty();
@@ -165,8 +165,64 @@ function adminSearch() {
     }
 }
 
+var input;
+var canvas;
+var ctx;
+var imageObjArray = [];
+var imageObjLoadedArray = [];
+function setupBarcodePage() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+}
 
+function mergeBarcodes() {
+    for (var i = 0; i < 12; i++) {
+        imageObjLoadedArray[i] = false;
+    }
+    input = document.getElementById("input").value;
+    for (var i = 0; i < 12; i++) {
+        imageObjArray.push(new Image());
+        loadBarcodeImage(i);
+    }
+    imageObjArray[0].src = '/img/barcode-parts/A.png';
+    imageObjArray[11].src = '/img/barcode-parts/B.png';
+    for (var i = 1; i < 11; i++) {
+        var temp = input.substring(i-1, i);
+        imageObjArray[i].src = '/img/barcode-parts/' + temp + '.png';
+    }
+}
 
+function loadBarcodeImage(num) {
+    imageObjArray[num].onload = function() {
+        console.log("Image #" + num + " has loaded");
+        ctx.globalAlpha = 1;
+        var position = 110 * num;
+        if (num != 0) {
+            position += 10;
+        }
+        ctx.drawImage(imageObjArray[num], position, 0);
+        imageObjLoadedArray[num] = true;
+        var allLoaded = true;
+        for (var i = 0; i < 12; i++) {
+            if (imageObjLoadedArray[i]) {
+                continue;
+            } else {
+                allLoaded = false;
+            }
+        }
+        if (allLoaded) {
+            canvas.toBlob((blob) => {
+                var url = window.URL.createObjectURL(blob);
+                var a = document.getElementById("link");
+                a.href = url;
+                a.download = input + ".png";
+                a.click();
+                window.URL.revokeObjectURL(url);
+            });
+        }
+    }
+    
+}
 
 
 function calculateISBNCheckDigit(number) {
@@ -251,6 +307,7 @@ function recentlyCheckedOut() {
             var currentBook = bookTimes[i];
             currentBook.book.get().then((doc) => {
                 if (!doc.exists) {
+                    // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
                     console.error("doc does not exist");
                     return;
                 }
