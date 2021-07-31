@@ -448,7 +448,7 @@ function buildBookBox(obj, page, num = 0) {
         div.appendChild(div3);
         const subjects = document.createElement('p');
         subjects.classList.add('subjects');
-        subjects.appendChild(document.createTextNode(obj.subjects));
+        subjects.appendChild(document.createTextNode(listSubjects(obj.subjects)));
         div3.appendChild(subjects);
         const description = document.createElement('p');
         description.classList.add('description');
@@ -456,6 +456,14 @@ function buildBookBox(obj, page, num = 0) {
         div3.appendChild(description);
     }
     return div;
+}
+
+function listSubjects(subj) {
+    var str = "";
+    for (var i = 0; i < subj.length; i++) {
+        str += subj[i] + "; ";
+    }
+    return str.substring(0, str.length - 2);
 }
 
 function shortenDescription(desc) {
