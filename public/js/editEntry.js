@@ -1012,7 +1012,7 @@ function createEntry() {
 function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Gets the values of all the input elements
     if (barcodeValue == null) {
-        barcodeValue = $("#barcode").val();
+        barcodeValue = parseInt($("#barcode").html());
     }
     var titleValue = $("#book-title").val();
     var subtitleValue = $("#book-subtitle").val();
@@ -1076,7 +1076,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     keywordsValue = cleanUpSearchTerm(keywordsValue);
 
     var bookNumber = barcodeValue - 1171100000;
-    var bookDocument = Math.floor((bookNumber - 1) / 100);
+    var bookDocument = Math.floor(bookNumber / 100);
     if (bookDocument >= 100) {
         bookDocument = "" + bookDocument;
     } else if (bookDocument >= 10) {
@@ -1133,7 +1133,10 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
     // Updates the book with the information
     db.runTransaction((transaction) => {
-        return transaction.get(booksPath.doc(bookDocument)).then((doc) => {
+        let path = booksPath.doc(bookDocument);
+        debugger;
+        return transaction.get(path).then((doc) => {
+            debugger;
             if (!doc.exists) {
                 console.error("There was a large problem because the books doc doesn't exist anymore...");
             }
@@ -1173,7 +1176,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         goToPage('admin/main');
     }).catch((err) => {
         console.log(err);
-        alert(error);
+        alert(err);
     });
 
     $(window).off("beforeunload");
