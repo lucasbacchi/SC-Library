@@ -477,7 +477,6 @@ function buildBookBox(obj, page, num = 0) {
     const author = document.createElement('p');
     author.classList.add('author');
     var authorString = "";
-    debugger;
     for (var i = 0; i < obj.authors.length; i++) {
         if (i == 1) authorString += " & ";
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;
