@@ -81,10 +81,10 @@ function browse() {
                 console.error("books document does not exist");
                 return;
             }
-            var docs = doc.data().order;/*
-            if (doc.data().books.length < 25) {
+            var docs = doc.data().order;
+            if (doc.data().books.length < 25 && docs != 0) {
                 docs--;
-            }*/
+            }
             var rand = Math.floor(Math.random() * docs);
             rand = "0" + rand;
             if (rand.length == 2) rand = "0" + rand;
@@ -93,14 +93,26 @@ function browse() {
                     console.error("books " + rand + " does not exist");
                     return;
                 }
-                var values = [];
+                var values = [], count = 0;
                 for (var i = 0; i < 20; i++) {
                     var random = Math.floor(Math.random() * doc.data().books.length);
-                    if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                    if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
                         i--;
                     } else {
                         values.push(random);
                         browseResultsArray.push(doc.data().books[random]);
+                    }
+                    count++;
+                    if (count > 10000) {
+                        if (i > 0) {
+                            console.error("no books available");
+                            const p = document.createElement('p');
+                            p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
+                            $('div#results-container')[0].appendChild(p);
+
+                        }
+                        createSearchResultsPage(browseResultsArray);
+                        return;
                     }
                 }
                 createSearchResultsPage(browseResultsArray);
