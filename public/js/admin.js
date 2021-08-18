@@ -12,6 +12,7 @@ function setupAdminMain() {
     });
 
     recentlyCheckedOut();
+    addStats();
 }
 
 var bookObject;
@@ -319,5 +320,23 @@ function recentlyCheckedOut() {
                 }
             });
         }
+    });
+}
+
+function addStats() {
+    let count = 0;
+    search("", 0, 0).then(() => {
+        bookDatabase.forEach((document) => {
+            // Iterate through each of the 10-ish docs
+            for (var i = 0; i < document.books.length; i++) {
+                // Iterate through each of the 100 books in each doc
+                var book = document.books[i];
+                if (book.isDeleted) {
+                    continue;
+                }
+                count++;
+            }
+        });
+        $("#number-of-books").html(count);
     });
 }
