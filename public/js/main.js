@@ -280,7 +280,6 @@ function performSearch(searchQuery, start, end) {
         for (var i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
             var book = document.books[i];
-            debugger;
             if (book.isDeleted) {
                 continue;
             }
