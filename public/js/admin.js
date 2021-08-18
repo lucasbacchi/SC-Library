@@ -154,9 +154,9 @@ function addSubject() {
 
 function adminSearch() {
     var searchQuery = $("#edit-entry-input").val();
-    $("#edit-entry-search-results").show();
 
     if (searchQuery) {
+        $("#edit-entry-search-results").show();
         $("#edit-entry-search-results").empty();
         search(searchQuery).then((results) => {
             if (results.length == 0) {
