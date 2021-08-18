@@ -29,7 +29,6 @@ function setupEditEntry(pageQuery) {
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
-            debugger;
             var document = Math.floor(barcodeNumber / 100) % 1000;
             if (document >= 100) {
                 document = "" + document;
@@ -42,7 +41,6 @@ function setupEditEntry(pageQuery) {
             docRef.get().then((doc) => {
                 var data = doc.data().books[barcodeNumber % 100];
                 $('#barcode').html(barcodeNumber);
-                debugger;
                 $("#book-title").val(data.title);
                 $("#book-subtitle").val(data.subtitle);
 
@@ -1115,12 +1113,12 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         numPagesValue = -1;
     }
 
-    var publishDateValue;
+    var publishDateValue = null;
     if (publishMonthValue != "" && publishDayValue != "") {
         publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
     } else if (publishMonthValue != "") {
         publishDateValue = new Date(publishYearValue, publishMonthValue-1);
-    } else {
+    } else if (publishYearValue != "") {
         publishDateValue = new Date(publishYearValue);
     }
 
