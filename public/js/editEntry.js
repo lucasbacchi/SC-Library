@@ -961,10 +961,10 @@ function createEntry() {
                         }
                         
                         var barcode;
-                        if (numBooksInDoc + 1 < 10) {
-                            barcode = "11711" + order + "0" + (numBooksInDoc + 1);
+                        if (numBooksInDoc < 10) {
+                            barcode = "11711" + order + "0" + numBooksInDoc;
                         } else {
-                            barcode = "11711" + order + (numBooksInDoc + 1);
+                            barcode = "11711" + order + numBooksInDoc;
                         }
                         transaction.update(db.collection("books").doc(order), {
                             books: firebase.firestore.FieldValue.arrayUnion({
@@ -1072,8 +1072,6 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Defines the paths of the the database collection
     var booksPath = db.collection("books");
 
-    var batch = db.batch();
-
     // Create a list of keywords from the description
     var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
 
@@ -1136,39 +1134,47 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var lastUpdatedValue = new Date();
 
     // Updates the book with the information
-    batch.update(booksPath.doc(bookDocument), {
-        books: firebase.firestore.FieldValue.arrayUnion({
-            barcodeNumber: barcodeValue,
-            title: titleValue,
-            subtitle: subtitleValue,
-            authors: authorsValue,
-            illustrators: illustratorsValue,
-            medium: mediumValue,
-            coverImageLink: coverLink,
-            subjects: subjectValues,
-            description: descriptionValue,
-            audience: [childrenValue, youthValue, adultValue, noneValue],
-            isbn10: isbn10Value,
-            isbn13: isbn13Value,
-            publishers: publishersValue,
-            publishDate: publishDateValue,
-            numberOfPages: numPagesValue,
-            ddc: ddcValue,
-            purchaseDate: purchaseDateValue,
-            purchasePrice: purchasePriceValue,
-            vendor: vendorValue,
-            keywords: keywordsValue,
-            canBeCheckedOut: canBeCheckedOutValue,
-            isDeleted: isDeletedValue,
-            isHidden: isHiddenValue,
-            lastUpdated: lastUpdatedValue
-        })
-    });
-
-    batch.commit().then(() => {
+    db.runTransaction((transaction) => {
+        return transaction.get(booksPath.doc(bookDocument)).then((doc) => {
+            if (!doc.exists) {
+                console.error("There was a large problem because the books doc doesn't exist anymore...");
+            }
+            var existingBooks = doc.data().books;
+            existingBooks[bookNumber] = {
+                barcodeNumber: barcodeValue,
+                title: titleValue,
+                subtitle: subtitleValue,
+                authors: authorsValue,
+                illustrators: illustratorsValue,
+                medium: mediumValue,
+                coverImageLink: coverLink,
+                subjects: subjectValues,
+                description: descriptionValue,
+                audience: [childrenValue, youthValue, adultValue, noneValue],
+                isbn10: isbn10Value,
+                isbn13: isbn13Value,
+                publishers: publishersValue,
+                publishDate: publishDateValue,
+                numberOfPages: numPagesValue,
+                ddc: ddcValue,
+                purchaseDate: purchaseDateValue,
+                purchasePrice: purchasePriceValue,
+                vendor: vendorValue,
+                keywords: keywordsValue,
+                canBeCheckedOut: canBeCheckedOutValue,
+                isDeleted: isDeletedValue,
+                isHidden: isHiddenValue,
+                lastUpdated: lastUpdatedValue
+            };
+            transaction.update(booksPath.doc(bookDocument), {
+                books: existingBooks
+            });
+        });
+    }).then(() => {
         alert("Edits were made successfully");
         goToPage('admin/main');
-    }).catch((error) => {
+    }).catch((err) => {
+        console.log(err);
         alert(error);
     });
 

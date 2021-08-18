@@ -176,6 +176,7 @@ function setupBarcodePage() {
 }
 
 function mergeBarcodes() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (var i = 0; i < 12; i++) {
         imageObjLoadedArray[i] = false;
     }
@@ -196,7 +197,7 @@ function loadBarcodeImage(num) {
     imageObjArray[num].onload = function() {
         console.log("Image #" + num + " has loaded");
         ctx.globalAlpha = 1;
-        var position = 110 * num;
+        var position = 110 * num + 60;
         if (num != 0) {
             position += 10;
         }

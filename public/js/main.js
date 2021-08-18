@@ -431,7 +431,6 @@ function homeBookBoxes() {
                 }
                 for (var i = 0; i < 9; i++) {
                     var book = doc.data().books[values[i]];
-                    debugger;
                     $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
                 }
             });
@@ -477,7 +476,6 @@ function buildBookBox(obj, page, num = 0) {
     const author = document.createElement('p');
     author.classList.add('author');
     var authorString = "";
-    debugger;
     for (var i = 0; i < obj.authors.length; i++) {
         if (i == 1) authorString += " & ";
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;

@@ -176,7 +176,6 @@ function setupResults(pageQuery) {
             $("#result-page-subtitle-header").hide();
             $("#result-page-subtitle").hide();
         }
-        debugger;
         if (bookObject.authors.length > 1) {
             $("#result-page-author-header").html("Authors");
             var authorAnswer = "";
