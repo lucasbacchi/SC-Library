@@ -159,7 +159,11 @@ function adminSearch() {
     if (searchQuery) {
         $("#edit-entry-search-results").empty();
         search(searchQuery).then((results) => {
-            adminBookBoxes(results);
+            if (results.length == 0) {
+                $("#edit-entry-search-results").html("Your search returned no results. Please try again.");
+            } else {
+                adminBookBoxes(results);
+            }
         });
     } else {
         alert("Please enter a search query");

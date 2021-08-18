@@ -274,6 +274,8 @@ function performSearch(searchQuery, start, end) {
 
     var scoresArray = [];
 
+    debugger;
+
     // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
@@ -307,7 +309,7 @@ function performSearch(searchQuery, start, end) {
             }
             // ISBN 10? ISBN 13?
             // Keywords
-            var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords * 0.1);
+            var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
             score += keywordsRatio * KEYWORDS_WEIGHT;
             // Publishers
             for (var j = 0; j < book.publishers.length; j++) {
