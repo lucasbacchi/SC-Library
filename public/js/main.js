@@ -274,8 +274,6 @@ function performSearch(searchQuery, start, end) {
 
     var scoresArray = [];
 
-    debugger;
-
     // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
@@ -348,14 +346,59 @@ function performSearch(searchQuery, start, end) {
 function countInArray(arr, searchQueryArray) {
     var count = 0;
     for (var i = 0; i < arr.length; i++) {
-        if (searchQueryArray.includes(arr[i])) {
-            count++;
+        for (var j = 0; j < searchQueryArray.length; j++) {
+            count += searchCompare(arr[i], searchQueryArray[j]);
         }
     }
     return count;
 }
 
+function searchCompare(a, b) {
+    var max = Math.max(a.length, b.length);
+    return (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+}
 
+/**
+ * Calculates the Damerau-Levenshtein distance between two strings.
+ * author: Isaac Sukin
+ * source: https://gist.github.com/IceCreamYou/8396172
+ */
+function distance(source, target) {
+    if (!source) return target ? target.length : 0;
+    else if (!target) return source.length;
+
+    var m = source.length, n = target.length, INF = m+n, score = new Array(m+2), sd = {};
+    for (var i = 0; i < m+2; i++) score[i] = new Array(n+2);
+    score[0][0] = INF;
+    for (var i = 0; i <= m; i++) {
+        score[i+1][1] = i;
+        score[i+1][0] = INF;
+        sd[source[i]] = 0;
+    }
+    for (var j = 0; j <= n; j++) {
+        score[1][j+1] = j;
+        score[0][j+1] = INF;
+        sd[target[j]] = 0;
+    }
+
+    for (var i = 1; i <= m; i++) {
+        var DB = 0;
+        for (var j = 1; j <= n; j++) {
+            var i1 = sd[target[j-1]],
+                j1 = DB;
+            if (source[i-1] === target[j-1]) {
+                score[i+1][j+1] = score[i][j];
+                DB = j;
+            }
+            else {
+                score[i+1][j+1] = Math.min(score[i][j], Math.min(score[i+1][j], score[i][j+1])) + 1;
+            }
+            score[i+1][j+1] = Math.min(score[i+1][j+1], score[i1] ? score[i1][j1] + (i-i1-1) + 1 + (j-j1-1) : Infinity);
+        }
+        sd[source[i-1]] = i;
+    }
+    return score[m+1][n+1];
+}
 
 function cleanUpSearchTerm(searchArray) {
     // List of words to remove from the keywords list

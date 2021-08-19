@@ -44,14 +44,14 @@ function setupEditEntry(pageQuery) {
                 $("#book-title").val(data.title);
                 $("#book-subtitle").val(data.subtitle);
 
-                for (var i = 0; i < data.authors; i++) {
-                    $("#book-author-" + i + "last").val(data.authors[i].last);
-                    $("#book-author-" + i + "first").val(data.authors[i].first);
+                for (var i = 0; i < data.authors.length; i++) {
+                    $("#book-author-" + (i + 1) + "-last").val(data.authors[i].last);
+                    $("#book-author-" + (i + 1) + "-first").val(data.authors[i].first);
                 }
 
-                for (var i = 0; i < data.illustrators; i++) {
-                    $("#book-illustrator-" + i + "last").val(data.illustrators[i].last);
-                    $("#book-illustrator-" + i + "first").val(data.illustrators[i].first);
+                for (var i = 0; i < data.illustrators.length; i++) {
+                    $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].last);
+                    $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].first);
                 }
 
                 $("#book-medium").val(data.medium);
@@ -77,9 +77,9 @@ function setupEditEntry(pageQuery) {
                 $("#book-publisher-2").val(data.publishers[1]);
 
                 if (data.publishDate != null) {
-                    $("#book-publish-month").val(data.publishDate.getMonth);
-                    $("#book-publish-day").val(data.publishDate.getDay);
-                    $("#book-publish-year").val(data.publishDate.getFullYear);
+                    $("#book-publish-month").val(data.publishDate.toDate().getMonth() + 1);
+                    $("#book-publish-day").val(data.publishDate.toDate().getDate());
+                    $("#book-publish-year").val(data.publishDate.toDate().getFullYear());
                 }
 
                 if (data.numberOfPages != -1) {
@@ -97,9 +97,9 @@ function setupEditEntry(pageQuery) {
                 $("#book-is-hidden").val(temp);
 
                 if (data.purchaseDate != null) {
-                    $("#book-purchase-month").val(data.purchaseDate.getMonth);
-                    $("#book-purchase-day").val(data.purchaseDate.getDay);
-                    $("#book-purchase-year").val(data.purchaseDate.getFullYear);
+                    $("#book-purchase-month").val(data.purchaseDate.toDate().getMonth() + 1);
+                    $("#book-purchase-day").val(data.purchaseDate.toDate().getDate());
+                    $("#book-purchase-year").val(data.purchaseDate.toDate().getFullYear());
                 }
 
                 $("#book-purchase-price").val(data.purchasePrice);
@@ -107,7 +107,7 @@ function setupEditEntry(pageQuery) {
 
                 // TO DO: Fix...
                 if (data.lastUpdated != null) {
-                    $("#last-updated").val("This entry was last updated at: " + data.lastUpdated.toString());
+                    $("#last-updated").val("This entry was last updated at: " + data.lastUpdated.toDate().toString());
                 }
             });
 
@@ -478,9 +478,6 @@ function setupEditEntry(pageQuery) {
         }
     }
 
-    
-
-
     // Create Event Listeners to handle book cover image changes
     // All are required to handle leaving the element and coming back again
     $("#book-cover-image").mouseover(function() {
@@ -502,43 +499,12 @@ function setupEditEntry(pageQuery) {
         }, 5);
     }
 
-
-
     // If a user clicks the button to change the book cover image, click the input button
     $("#book-cover-image-overlay").click(function(event) {
         if ($("#file-input")) {
             $("#file-input").click();
         }
     });
-
-    // When there is a change to the input, upload the file
-    $("#file-input").on("change", function() {
-        if (!$("#file-input")[0].files) {
-            return;
-        }
-        const file = $("#file-input")[0].files[0];
-        var bookSpecificRef = firebase.storage().ref().child("books");
-        var meta;
-        if (file.type == "image/jpg") {
-            bookSpecificRef = bookSpecificRef.child(barcodeNumber + "/cover.jpg");
-            meta = {contentType: 'image/jpeg'};
-        } else if (file.type == "image/png") {
-            bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.png");
-            meta = {contentType: 'image/png'};
-        } else {
-            alert("That file type is not supported. Please upload a JPG or PNG file.");
-            return;
-        }
-        bookSpecificRef.put(file, meta).then((snapshot) => {
-            console.log('Uploaded the file!');
-            bookSpecificRef.getDownloadURL().then((url) => {
-                $('#book-cover-image').attr('src', url);
-            }).catch(function(error) {
-            console.error(error);
-            });
-        });
-    });
-
 
     // If the user attempts to leave, let them know if they have unsaved changes
     // TO DO: Remove when the user leaves the page.
@@ -548,6 +514,61 @@ function setupEditEntry(pageQuery) {
     });
 }
 
+function saveImage() {
+    return new Promise(function (resolve, reject) {
+        if (file) {
+            resolve(storeImage(file));
+        } else {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', $("#book-cover-image").src, true);
+            xhr.responseType = 'file';
+            xhr.onload = function(e) {
+                if (this.status == 200) {
+                    file = this.response;
+                    resolve(storeImage(file));
+                }
+            };
+            xhr.send();
+        }
+    });
+}
+
+function storeImage(file) {
+    var barcodeValue = parseInt($("#barcode").html());
+    var bookSpecificRef = firebase.storage().ref().child("books");
+    var meta;
+    debugger;
+    if (file.type == "image/jpg" || file.type == "image/jpeg") {
+        bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.jpg");
+        meta = {contentType: 'image/jpeg'};
+    } else if (file.type == "image/png") {
+        bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.png");
+        meta = {contentType: 'image/png'};
+    } else {
+        alert("That file type is not supported. Please upload a JPG or PNG file.");
+        resolve(false);
+    }
+    return bookSpecificRef.put(file, meta).then((snapshot) => {
+        console.log('Uploaded the file!');
+        return bookSpecificRef.getDownloadURL().then((url) => {
+            $('#book-cover-image').attr('src', url);
+            return url;
+        }).catch(function(error) {
+            console.error(error);
+        });
+    });
+}
+
+var file;
+
+var loadFile = function(event) {
+    file = event.target.files[0];
+    var output = document.getElementById('book-cover-image');
+    output.src = URL.createObjectURL(file);
+    output.onload = function() {
+        URL.revokeObjectURL(output.src) // free memory
+    }
+};
 
 function uploadCoverImageFromExternal(link) {
     var ref = firebase.storage().ref();
@@ -583,268 +604,272 @@ $("#book-unnumbered")[0].addEventListener("input", (event) => {
 });
 
 function validateEntry() {
-    // Gets the values of all the input elements
-    var titleValue = $("#book-title").val();
-    var author1LastValue = $("#book-author-1-last").val();
-    var author1FirstValue = $("#book-author-1-first").val();
-    var mediumValue = $("#book-medium")[0].value;
-    var coverLink = $("#book-cover-image").attr('src');
-    var subjectValues = [];
-    var maxSubject = false;
-    for (var i = 1; !maxSubject; i++) {
-        if ($("#book-subject-" + i)[0]) {
-            if ($("#book-subject-" + i).val() != "") {
-                subjectValues.push($("#book-subject-" + i).val());
+    return new Promise((resolve, reject) => {
+        // Gets the values of all the input elements
+        var titleValue = $("#book-title").val();
+        var author1LastValue = $("#book-author-1-last").val();
+        var author1FirstValue = $("#book-author-1-first").val();
+        var mediumValue = $("#book-medium")[0].value;
+        var coverLink = $("#book-cover-image").attr('src');
+        var subjectValues = [];
+        var maxSubject = false;
+        for (var i = 1; !maxSubject; i++) {
+            if ($("#book-subject-" + i)[0]) {
+                if ($("#book-subject-" + i).val() != "") {
+                    subjectValues.push($("#book-subject-" + i).val());
+                } else {
+                    maxSubject = true;
+                }
             } else {
                 maxSubject = true;
             }
-        } else {
-            maxSubject = true;
         }
-    }
-    var descriptionValue = $("#book-description").val();
-    var childrenValue = $("#book-audience-children")[0].checked;
-    var youthValue = $("#book-audience-youth")[0].checked;
-    var adultValue = $("#book-audience-adult")[0].checked;
-    var noneValue = $("#book-audience-none")[0].checked;
-    var isbn10Value = $("#book-isbn-10").val();
-    var isbn13Value = $("#book-isbn-13").val();
-    var publisher1Value = $("#book-publisher-1").val();
-    var publishMonthValue = $("#book-publish-month").val();
-    var publishDayValue = $("#book-publish-day").val();
-    var publishYearValue = $("#book-publish-year").val();
-    var numPagesValue = parseInt($("#book-pages").val());
-    var unNumbered = $("#book-unnumbered")[0].checked;
-    var ddcValue = $("#book-dewey").val();
-    var purchaseMonthValue = $("#book-purchase-month").val();
-    var purchaseDayValue = $("#book-purchase-day").val();
-    var purchaseYearValue = $("#book-purchase-year").val();
-    var purchasePriceValue = $("#book-purchase-price").val();
-    
-    // Validate inputs
-    if (titleValue == "") {
-        alert("Title is required!");
-        var rect = $("#book-title")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-title")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-title")[0].focus();}, 600);
-        $("#book-title")[0].onkeydown = function(e) {
-            $("#book-title")[0].style.borderColor = "";
+        var descriptionValue = $("#book-description").val();
+        var childrenValue = $("#book-audience-children")[0].checked;
+        var youthValue = $("#book-audience-youth")[0].checked;
+        var adultValue = $("#book-audience-adult")[0].checked;
+        var noneValue = $("#book-audience-none")[0].checked;
+        var isbn10Value = $("#book-isbn-10").val();
+        var isbn13Value = $("#book-isbn-13").val();
+        var publisher1Value = $("#book-publisher-1").val();
+        var publishMonthValue = $("#book-publish-month").val();
+        var publishDayValue = $("#book-publish-day").val();
+        var publishYearValue = $("#book-publish-year").val();
+        var numPagesValue = parseInt($("#book-pages").val());
+        var unNumbered = $("#book-unnumbered")[0].checked;
+        var ddcValue = $("#book-dewey").val();
+        var purchaseMonthValue = $("#book-purchase-month").val();
+        var purchaseDayValue = $("#book-purchase-day").val();
+        var purchaseYearValue = $("#book-purchase-year").val();
+        var purchasePriceValue = $("#book-purchase-price").val();
+        
+        // Validate inputs
+        if (titleValue == "") {
+            alert("Title is required!");
+            var rect = $("#book-title")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-title")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-title")[0].focus();}, 600);
+            $("#book-title")[0].onkeydown = function(e) {
+                $("#book-title")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (author1LastValue == "" && author1FirstValue == "") {
-        alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
-        var rect = $("#book-author-1-last")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-author-1-last")[0].style.borderColor = "red";
-        $("#book-author-1-first")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-author-1-last")[0].focus();}, 600);
-        $("#book-author-1-last")[0].onkeydown = function(e) {
-            $("#book-author-1-last")[0].style.borderColor = "";
-            $("#book-author-1-first")[0].style.borderColor = "";
+        if (author1LastValue == "" && author1FirstValue == "") {
+            alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
+            var rect = $("#book-author-1-last")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-author-1-last")[0].style.borderColor = "red";
+            $("#book-author-1-first")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-author-1-last")[0].focus();}, 600);
+            $("#book-author-1-last")[0].onkeydown = function(e) {
+                $("#book-author-1-last")[0].style.borderColor = "";
+                $("#book-author-1-first")[0].style.borderColor = "";
+            }
+            $("#book-author-1-first")[0].onkeydown = function(e) {
+                $("#book-author-1-last")[0].style.borderColor = "";
+                $("#book-author-1-first")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        $("#book-author-1-first")[0].onkeydown = function(e) {
-            $("#book-author-1-last")[0].style.borderColor = "";
-            $("#book-author-1-first")[0].style.borderColor = "";
+        if (mediumValue == "") {
+            alert("Medium is required!");
+            var rect = $("#book-medium")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-medium")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-medium")[0].focus();}, 600);
+            $("#book-medium")[0].onclick = function(e) {
+                $("#book-medium")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (mediumValue == "") {
-        alert("Medium is required!");
-        var rect = $("#book-medium")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-medium")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-medium")[0].focus();}, 600);
-        $("#book-medium")[0].onclick = function(e) {
-            $("#book-medium")[0].style.borderColor = "";
+        if (coverLink == "../img/favicon.ico") {
+            alert("Cover image is required!");
+            var rect = $("#book-cover-image")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
+            setTimeout(function() {$("#book-cover-image")[0].focus();}, 600);
+            $("#book-cover-image")[0].onkeydown = function(e) {
+                $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (coverLink == "../img/favicon.ico") {
-        alert("Cover image is required!");
-        var rect = $("#book-cover-image")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
-        setTimeout(function() {$("#book-cover-image")[0].focus();}, 600);
-        $("#book-cover-image")[0].onkeydown = function(e) {
-            $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
+        if (subjectValues[0] == "") {
+            alert("Please enter at least one subject!");
+            var rect = $("#book-subject-1")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-subject-1")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-subject-1")[0].focus();}, 600);
+            $("#book-subject-1")[0].onkeydown = function(e) {
+                $("#book-subject-1")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (subjectValues[0] == "") {
-        alert("Please enter at least one subject!");
-        var rect = $("#book-subject-1")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-subject-1")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-subject-1")[0].focus();}, 600);
-        $("#book-subject-1")[0].onkeydown = function(e) {
-            $("#book-subject-1")[0].style.borderColor = "";
+        if (descriptionValue == "") {
+            alert("Description is required!");
+            var rect = $("#book-description")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-description")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-description")[0].focus();}, 600);
+            $("#book-description")[0].onkeydown = function(e) {
+                $("#book-description")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (descriptionValue == "") {
-        alert("Description is required!");
-        var rect = $("#book-description")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-description")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-description")[0].focus();}, 600);
-        $("#book-description")[0].onkeydown = function(e) {
-            $("#book-description")[0].style.borderColor = "";
+        if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
+            alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
+            var rect = $("#book-audience-children")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-audience-children")[0].style.outline = "2px solid red";
+            $("#book-audience-youth")[0].style.outline = "2px solid red";
+            $("#book-audience-adult")[0].style.outline = "2px solid red";
+            $("#book-audience-none")[0].style.outline = "2px solid red";
+            setTimeout(function() {$("#book-audience-children")[0].focus();}, 600);
+            $("#book-audience-children")[0].onkeydown = function(e) {
+                $("#book-audience-children")[0].style.outline = "";
+                $("#book-audience-youth")[0].style.outline = "";
+                $("#book-audience-adult")[0].style.outline = "";
+                $("#book-audience-none")[0].style.outline = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
-        alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
-        var rect = $("#book-audience-children")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-audience-children")[0].style.outline = "2px solid red";
-        $("#book-audience-youth")[0].style.outline = "2px solid red";
-        $("#book-audience-adult")[0].style.outline = "2px solid red";
-        $("#book-audience-none")[0].style.outline = "2px solid red";
-        setTimeout(function() {$("#book-audience-children")[0].focus();}, 600);
-        $("#book-audience-children")[0].onkeydown = function(e) {
-            $("#book-audience-children")[0].style.outline = "";
-            $("#book-audience-youth")[0].style.outline = "";
-            $("#book-audience-adult")[0].style.outline = "";
-            $("#book-audience-none")[0].style.outline = "";
+        if (mediumValue != "dvd" && isbn10Value == "" && isbn13Value == "") {
+            alert("Please enter at least one ISBN number!");
+            var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-isbn-10")[0].style.borderColor = "red";
+            $("#book-isbn-13")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
+            $("#book-isbn-10")[0].onkeydown = function(e) {
+                $("#book-isbn-10")[0].style.borderColor = "";
+                $("#book-isbn-13")[0].style.borderColor = "";
+            }
+            $("#book-isbn-13")[0].onkeydown = function(e) {
+                $("#book-isbn-10")[0].style.borderColor = "";
+                $("#book-isbn-13")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (mediumValue != "dvd" && isbn10Value == "" && isbn13Value == "") {
-        alert("Please enter at least one ISBN number!");
-        var rect = $("#book-isbn-10")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-isbn-10")[0].style.borderColor = "red";
-        $("#book-isbn-13")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
-        $("#book-isbn-10")[0].onkeydown = function(e) {
-            $("#book-isbn-10")[0].style.borderColor = "";
-            $("#book-isbn-13")[0].style.borderColor = "";
+        if (!verifyISBN(isbn10Value) && isbn10Value != "") {
+            alert("The ISBN number you entered was not valid! Please double check it.");
+            var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-isbn-10")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
+            $("#book-isbn-10")[0].onkeydown = function(e) {
+                $("#book-isbn-10")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        $("#book-isbn-13")[0].onkeydown = function(e) {
-            $("#book-isbn-10")[0].style.borderColor = "";
-            $("#book-isbn-13")[0].style.borderColor = "";
+        if (!verifyISBN(isbn13Value) && isbn13Value != "") {
+            alert("The ISBN number you entered was not valid! Please double check it.");
+            var rect = $("#book-isbn-13")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-isbn-13")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-isbn-13")[0].focus();}, 600);
+            $("#book-isbn-13")[0].onkeydown = function(e) {
+                $("#book-isbn-13")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (!verifyISBN(isbn10Value) && isbn10Value != "") {
-        alert("The ISBN number you entered was not valid! Please double check it.");
-        var rect = $("#book-isbn-10")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-isbn-10")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
-        $("#book-isbn-10")[0].onkeydown = function(e) {
-            $("#book-isbn-10")[0].style.borderColor = "";
+        if (publisher1Value == "") {
+            alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
+            var rect = $("#book-publisher-1")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-publisher-1")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-publisher-1")[0].focus();}, 600);
+            $("#book-publisher-1")[0].onkeydown = function(e) {
+                $("#book-publisher-1")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (!verifyISBN(isbn13Value) && isbn13Value != "") {
-        alert("The ISBN number you entered was not valid! Please double check it.");
-        var rect = $("#book-isbn-13")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-isbn-13")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-isbn-13")[0].focus();}, 600);
-        $("#book-isbn-13")[0].onkeydown = function(e) {
-            $("#book-isbn-13")[0].style.borderColor = "";
+        if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue)) {
+            alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+            var rect = $("#book-publish-month")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-publish-month")[0].style.borderColor = "red";
+            $("#book-publish-day")[0].style.borderColor = "red";
+            $("#book-publish-year")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-publish-month")[0].focus();}, 600);
+            $("#book-publish-month")[0].onkeydown = function(e) {
+                $("#book-publish-month")[0].style.borderColor = "";
+                $("#book-publish-day")[0].style.borderColor = "";
+                $("#book-publish-year")[0].style.borderColor = "";
+            }
+            $("#book-publish-day")[0].onkeydown = function(e) {
+                $("#book-publish-month")[0].style.borderColor = "";
+                $("#book-publish-day")[0].style.borderColor = "";
+                $("#book-publish-year")[0].style.borderColor = "";
+            }
+            $("#book-publish-year")[0].onkeydown = function(e) {
+                $("#book-publish-month")[0].style.borderColor = "";
+                $("#book-publish-day")[0].style.borderColor = "";
+                $("#book-publish-year")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (publisher1Value == "") {
-        alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
-        var rect = $("#book-publisher-1")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-publisher-1")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-publisher-1")[0].focus();}, 600);
-        $("#book-publisher-1")[0].onkeydown = function(e) {
-            $("#book-publisher-1")[0].style.borderColor = "";
+        if (unNumbered == false && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
+            alert("Please enter a valid number of pages!");
+            var rect = $("#book-pages")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-pages")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-pages")[0].focus();}, 600);
+            $("#book-pages")[0].onkeydown = function(e) {
+                $("#book-pages")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue)) {
-        alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
-        var rect = $("#book-publish-month")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-publish-month")[0].style.borderColor = "red";
-        $("#book-publish-day")[0].style.borderColor = "red";
-        $("#book-publish-year")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-publish-month")[0].focus();}, 600);
-        $("#book-publish-month")[0].onkeydown = function(e) {
-            $("#book-publish-month")[0].style.borderColor = "";
-            $("#book-publish-day")[0].style.borderColor = "";
-            $("#book-publish-year")[0].style.borderColor = "";
+        if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
+            alert("Please enter a valid Dewey Decimal Classification!");
+            var rect = $("#book-dewey")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-dewey")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-dewey")[0].focus();}, 600);
+            $("#book-dewey")[0].onkeydown = function(e) {
+                $("#book-dewey")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        $("#book-publish-day")[0].onkeydown = function(e) {
-            $("#book-publish-month")[0].style.borderColor = "";
-            $("#book-publish-day")[0].style.borderColor = "";
-            $("#book-publish-year")[0].style.borderColor = "";
+        if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
+            alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+            var rect = $("#book-purchase-month")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-purchase-month")[0].style.borderColor = "red";
+            $("#book-purchase-day")[0].style.borderColor = "red";
+            $("#book-purchase-year")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-purchase-month")[0].focus();}, 600);
+            $("#book-purchase-month")[0].onkeydown = function(e) {
+                $("#book-purchase-month")[0].style.borderColor = "";
+                $("#book-purchase-day")[0].style.borderColor = "";
+                $("#book-purchase-year")[0].style.borderColor = "";
+            }
+            $("#book-purchase-day")[0].onkeydown = function(e) {
+                $("#book-purchase-month")[0].style.borderColor = "";
+                $("#book-purchase-day")[0].style.borderColor = "";
+                $("#book-purchase-year")[0].style.borderColor = "";
+            }
+            $("#book-purchase-year")[0].onkeydown = function(e) {
+                $("#book-purchase-month")[0].style.borderColor = "";
+                $("#book-purchase-day")[0].style.borderColor = "";
+                $("#book-purchase-year")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        $("#book-publish-year")[0].onkeydown = function(e) {
-            $("#book-publish-month")[0].style.borderColor = "";
-            $("#book-publish-day")[0].style.borderColor = "";
-            $("#book-publish-year")[0].style.borderColor = "";
+        if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
+            alert("Please enter a valid purchase price!");
+            var rect = $("#book-purchase-price")[0].getBoundingClientRect();
+            window.scrollBy(0, rect.top - 180);
+            $("#book-purchase-price")[0].style.borderColor = "red";
+            setTimeout(function() {$("#book-purchase-price")[0].focus();}, 600);
+            $("#book-purchase-price")[0].onkeydown = function(e) {
+                $("#book-purchase-price")[0].style.borderColor = "";
+            }
+            resolve(false);
         }
-        return false;
-    }
-    if (unNumbered == false && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
-        alert("Please enter a valid number of pages!");
-        var rect = $("#book-pages")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-pages")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-pages")[0].focus();}, 600);
-        $("#book-pages")[0].onkeydown = function(e) {
-            $("#book-pages")[0].style.borderColor = "";
-        }
-        return false;
-    }
-    if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
-        alert("Please enter a valid Dewey Decimal Classification!");
-        var rect = $("#book-dewey")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-dewey")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-dewey")[0].focus();}, 600);
-        $("#book-dewey")[0].onkeydown = function(e) {
-            $("#book-dewey")[0].style.borderColor = "";
-        }
-        return false;
-    }
-    if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
-        alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
-        var rect = $("#book-purchase-month")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-purchase-month")[0].style.borderColor = "red";
-        $("#book-purchase-day")[0].style.borderColor = "red";
-        $("#book-purchase-year")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-purchase-month")[0].focus();}, 600);
-        $("#book-purchase-month")[0].onkeydown = function(e) {
-            $("#book-purchase-month")[0].style.borderColor = "";
-            $("#book-purchase-day")[0].style.borderColor = "";
-            $("#book-purchase-year")[0].style.borderColor = "";
-        }
-        $("#book-purchase-day")[0].onkeydown = function(e) {
-            $("#book-purchase-month")[0].style.borderColor = "";
-            $("#book-purchase-day")[0].style.borderColor = "";
-            $("#book-purchase-year")[0].style.borderColor = "";
-        }
-        $("#book-purchase-year")[0].onkeydown = function(e) {
-            $("#book-purchase-month")[0].style.borderColor = "";
-            $("#book-purchase-day")[0].style.borderColor = "";
-            $("#book-purchase-year")[0].style.borderColor = "";
-        }
-        return false;
-    }
-    if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
-        alert("Please enter a valid purchase price!");
-        var rect = $("#book-purchase-price")[0].getBoundingClientRect();
-        window.scrollBy(0, rect.top - 180);
-        $("#book-purchase-price")[0].style.borderColor = "red";
-        setTimeout(function() {$("#book-purchase-price")[0].focus();}, 600);
-        $("#book-purchase-price")[0].onkeydown = function(e) {
-            $("#book-purchase-price")[0].style.borderColor = "";
-        }
-        return false;
-    }
-    return true;
+        saveImage().then((res) => {
+            resolve(res);
+        });
+    });
 }
 
 function isValidDate(m, d, y) {
@@ -867,11 +892,7 @@ function isValidDate(m, d, y) {
     return true;
 }
 
-
 function createEntry() {
-    if (!validateEntry()) {
-        return;
-    }
     return new Promise(function (resolve, reject) {
         // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
         var lastBookDocQuery = db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1);
@@ -1008,7 +1029,6 @@ function createEntry() {
     });
 }
 
-
 function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Gets the values of all the input elements
     if (barcodeValue == null) {
@@ -1063,123 +1083,122 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var vendorValue = $("#book-vendor").val();
 
     // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
-    if (!isDeletedValue && !validateEntry()) {
-        return;
-    }
+    validateEntry().then((valid) => {
+        if (!isDeletedValue && valid == false) return;
+        coverLink = valid;
 
-    // Defines the paths of the the database collection
-    var booksPath = db.collection("books");
-
-    // Create a list of keywords from the description
-    var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
-
-    keywordsValue = cleanUpSearchTerm(keywordsValue);
-
-    var bookNumber = barcodeValue - 1171100000;
-    var bookDocument = Math.floor(bookNumber / 100);
-    if (bookDocument >= 100) {
-        bookDocument = "" + bookDocument;
-    } else if (bookDocument >= 10) {
-        bookDocument = "0" + bookDocument;
-    } else {
-        bookDocument = "00" + bookDocument;
-    }
-    bookNumber = bookNumber % 100;
-
-    var authorsValue = [{last: author1LastValue, first: author1FirstValue}];
-    if (author2FirstValue != "" || author2LastValue != "") {
-        authorsValue.push({last: author2LastValue, first: author2FirstValue});
-    }
-
-    var illustratorsValue = [];
-    if (illustrator1FirstValue != "" || illustrator1LastValue != "") {
-        illustratorsValue.push({last: illustrator1LastValue, first: illustrator1FirstValue});
-    }
-    if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
-        illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
-    }
-
-    var publishersValue = [];
-    if (publisher1Value != "") {
-        publishersValue.push(publisher1Value);
-    }
-    if (publisher2Value != "") {
-        publishersValue.push(publisher2Value);
-    }
-
-    if (unNumbered) {
-        numPagesValue = -1;
-    }
-
-    var publishDateValue = null;
-    if (publishMonthValue != "" && publishDayValue != "") {
-        publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
-    } else if (publishMonthValue != "") {
-        publishDateValue = new Date(publishYearValue, publishMonthValue-1);
-    } else if (publishYearValue != "") {
-        publishDateValue = new Date(publishYearValue);
-    }
-
-    var purchaseDateValue = null;
-    if (purchaseMonthValue != "" && purchaseDayValue != "") {
-        purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
-    } else if (purchaseMonthValue != "") {
-        purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1);
-    } else if (purchaseYearValue != "") {
-        purchaseDateValue = new Date(purchaseYearValue);
-    }
-
-    var lastUpdatedValue = new Date();
-
-    // Updates the book with the information
-    db.runTransaction((transaction) => {
-        let path = booksPath.doc(bookDocument);
-        debugger;
-        return transaction.get(path).then((doc) => {
-            debugger;
-            if (!doc.exists) {
-                console.error("There was a large problem because the books doc doesn't exist anymore...");
-            }
-            var existingBooks = doc.data().books;
-            existingBooks[bookNumber] = {
-                barcodeNumber: barcodeValue,
-                title: titleValue,
-                subtitle: subtitleValue,
-                authors: authorsValue,
-                illustrators: illustratorsValue,
-                medium: mediumValue,
-                coverImageLink: coverLink,
-                subjects: subjectValues,
-                description: descriptionValue,
-                audience: [childrenValue, youthValue, adultValue, noneValue],
-                isbn10: isbn10Value,
-                isbn13: isbn13Value,
-                publishers: publishersValue,
-                publishDate: publishDateValue,
-                numberOfPages: numPagesValue,
-                ddc: ddcValue,
-                purchaseDate: purchaseDateValue,
-                purchasePrice: purchasePriceValue,
-                vendor: vendorValue,
-                keywords: keywordsValue,
-                canBeCheckedOut: canBeCheckedOutValue,
-                isDeleted: isDeletedValue,
-                isHidden: isHiddenValue,
-                lastUpdated: lastUpdatedValue
-            };
-            transaction.update(booksPath.doc(bookDocument), {
-                books: existingBooks
+        // Defines the paths of the the database collection
+        var booksPath = db.collection("books");
+    
+        // Create a list of keywords from the description
+        var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
+    
+        keywordsValue = cleanUpSearchTerm(keywordsValue);
+    
+        var bookNumber = barcodeValue - 1171100000;
+        var bookDocument = Math.floor(bookNumber / 100);
+        if (bookDocument >= 100) {
+            bookDocument = "" + bookDocument;
+        } else if (bookDocument >= 10) {
+            bookDocument = "0" + bookDocument;
+        } else {
+            bookDocument = "00" + bookDocument;
+        }
+        bookNumber = bookNumber % 100;
+    
+        var authorsValue = [{last: author1LastValue, first: author1FirstValue}];
+        if (author2FirstValue != "" || author2LastValue != "") {
+            authorsValue.push({last: author2LastValue, first: author2FirstValue});
+        }
+    
+        var illustratorsValue = [];
+        if (illustrator1FirstValue != "" || illustrator1LastValue != "") {
+            illustratorsValue.push({last: illustrator1LastValue, first: illustrator1FirstValue});
+        }
+        if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
+            illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
+        }
+    
+        var publishersValue = [];
+        if (publisher1Value != "") {
+            publishersValue.push(publisher1Value);
+        }
+        if (publisher2Value != "") {
+            publishersValue.push(publisher2Value);
+        }
+    
+        if (unNumbered) {
+            numPagesValue = -1;
+        }
+    
+        var publishDateValue = null;
+        if (publishMonthValue != "" && publishDayValue != "") {
+            publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
+        } else if (publishMonthValue != "") {
+            publishDateValue = new Date(publishYearValue, publishMonthValue-1);
+        } else if (publishYearValue != "") {
+            publishDateValue = new Date(publishYearValue);
+        }
+    
+        var purchaseDateValue = null;
+        if (purchaseMonthValue != "" && purchaseDayValue != "") {
+            purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
+        } else if (purchaseMonthValue != "") {
+            purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1);
+        } else if (purchaseYearValue != "") {
+            purchaseDateValue = new Date(purchaseYearValue);
+        }
+    
+        var lastUpdatedValue = new Date();
+    
+        // Updates the book with the information
+        db.runTransaction((transaction) => {
+            let path = booksPath.doc(bookDocument);
+            return transaction.get(path).then((doc) => {
+                if (!doc.exists) {
+                    console.error("There was a large problem because the books doc doesn't exist anymore...");
+                }
+                var existingBooks = doc.data().books;
+                existingBooks[bookNumber] = {
+                    barcodeNumber: barcodeValue,
+                    title: titleValue,
+                    subtitle: subtitleValue,
+                    authors: authorsValue,
+                    illustrators: illustratorsValue,
+                    medium: mediumValue,
+                    coverImageLink: coverLink,
+                    subjects: subjectValues,
+                    description: descriptionValue,
+                    audience: [childrenValue, youthValue, adultValue, noneValue],
+                    isbn10: isbn10Value,
+                    isbn13: isbn13Value,
+                    publishers: publishersValue,
+                    publishDate: publishDateValue,
+                    numberOfPages: numPagesValue,
+                    ddc: ddcValue,
+                    purchaseDate: purchaseDateValue,
+                    purchasePrice: purchasePriceValue,
+                    vendor: vendorValue,
+                    keywords: keywordsValue,
+                    canBeCheckedOut: canBeCheckedOutValue,
+                    isDeleted: isDeletedValue,
+                    isHidden: isHiddenValue,
+                    lastUpdated: lastUpdatedValue
+                };
+                transaction.update(booksPath.doc(bookDocument), {
+                    books: existingBooks
+                });
             });
+        }).then(() => {
+            alert("Edits were made successfully");
+            goToPage('admin/main');
+        }).catch((err) => {
+            console.log(err);
+            alert(err);
         });
-    }).then(() => {
-        alert("Edits were made successfully");
-        goToPage('admin/main');
-    }).catch((err) => {
-        console.log(err);
-        alert(err);
+    
+        $(window).off("beforeunload");
     });
-
-    $(window).off("beforeunload");
 }
 
 function cancelEditEntry() {
