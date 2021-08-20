@@ -537,7 +537,6 @@ function storeImage(file) {
     var barcodeValue = parseInt($("#barcode").html());
     var bookSpecificRef = firebase.storage().ref().child("books");
     var meta;
-    debugger;
     if (file.type == "image/jpg" || file.type == "image/jpeg") {
         bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.jpg");
         meta = {contentType: 'image/jpeg'};

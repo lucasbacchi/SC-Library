@@ -122,6 +122,7 @@ function browse() {
 }
 
 function createSearchResultsPage(searchResultsArray) {
+    $('div#results-container').empty();
     if (searchResultsArray.length == 0) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
@@ -227,6 +228,44 @@ function setupResults(pageQuery) {
         $("#result-page-subjects").html(subjectsAnswer);
         $("#result-page-description").html(bookObject.description);
     });
+}
+
+function applySearchFilters() {
+    var filters = [], items = [], results = [];
+    for (var i = 0; i < $(".sort-section").length; i++) {
+        filters.push($(".sort-section")[i].children[0].innerHTML);
+        items.push([]);
+        for (var j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
+            if ($(".sort-section")[i].children[1].children[j].tagName == "LI") {
+                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
+            }
+        }
+        if (items[items.length - 1].every( (val, q, arr) => val === arr[0] )) {
+            filters.pop();
+            items.pop();
+        }
+    }
+    for (var i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
+        for (var j = 0; j < filters.length; j++) {
+            var passesFilter = false;
+            for (var k = 0; k < items[j].length; k++) {
+                if (filters[j] == "Audience") {
+                    if (items[j][k] && searchCache[i].audience[k]) {
+                        passesFilter = true;
+                    }
+                } else if (filters[j] == "Medium") {
+                    if (searchCache[i].medium == items[j][k])
+                }
+            }
+            if (!passesFilter)
+                passesFilters = false;
+        }
+        if (passesFilters) {
+            results.push(searchCache[i]);
+        }
+    }
+    debugger;
+    createSearchResultsPage(results);
 }
 
 console.log("search.js Loaded!");
