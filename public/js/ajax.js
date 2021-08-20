@@ -135,6 +135,7 @@ var currentExtension;
             // Prevent users from going to the same page (just don't reload the content if you do)
             if (currentPage && ((pageName == currentPage && pageName != "/search") || (pageName == "/search" && findURLValue(currentQuery, "query", true) == findURLValue(pageQuery, "query", true) && findURLValue(pageQuery, "query", true) != ""))) {
                 // TODO: Remove when I know it's not going to break everything
+                debugger;
                 console.log("The user attempted to view the current page, and it was blocked.");
                 return;
             }
@@ -326,7 +327,7 @@ var currentExtension;
                             if (searchResultsArray == null) {
                                 setupSearch(null, pageQuery);
                             } else {
-                                setupSearch(searchResultsArray);
+                                setupSearch(searchResultsArray, pageQuery);
                             }
                         }
 

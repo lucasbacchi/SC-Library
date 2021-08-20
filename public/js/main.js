@@ -339,7 +339,7 @@ function performSearch(searchQuery, start, end) {
             returnArray.push(item.book);
         }
     });
-    console.log(returnArray);
+    searchCache = returnArray;
     return returnArray;
 }
 
@@ -421,20 +421,16 @@ function cleanUpSearchTerm(searchArray) {
 
 function findURLValue(string, key, mightReturnEmpty = false) {
     var value;
-    var keyNameIsNotComplete = (!string.includes("?" + key + "=") && !string.includes("&" + key + "="));
-    if (!string.includes(key) || keyNameIsNotComplete || key == "") {
+    var keyNameIsNotComplete = (string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0);
+    if (string.indexOf(key) < 0 || keyNameIsNotComplete || key == "") {
         if (!mightReturnEmpty) {
             console.warn("The key (\"" + key + "\") could not be found in the URL.");
         }
         return "";
     }
 
-    if (string.includes("?")) {
-        string = string.substring(string.indexOf("?"));
-    }
-
     var position = string.indexOf(key);
-    if (string.substring(position).includes("&")) {
+    if (string.substring(position).indexOf("&") > -1) {
         value = string.substring(string.indexOf("=", position) + 1, string.indexOf("&", position));
     } else {
         value = string.substring(string.indexOf("=", position) + 1);
@@ -570,13 +566,13 @@ function buildBookBox(obj, page, num = 0) {
         div2.appendChild(medium);
         const audience = document.createElement('p');
         audience.classList.add('audience');
-        audience.appendChild(document.createTextNode(obj.audience));
+        audience.appendChild(document.createTextNode(buildAudienceString(obj.audience)));
         div2.appendChild(audience);
         const div3 = document.createElement('div');
         div.appendChild(div3);
         const subjects = document.createElement('p');
         subjects.classList.add('subjects');
-        subjects.appendChild(document.createTextNode(listSubjects(obj.subjects)));
+        subjects.appendChild(document.createTextNode("Subjects: " + listSubjects(obj.subjects)));
         div3.appendChild(subjects);
         const description = document.createElement('p');
         description.classList.add('description');
@@ -584,6 +580,19 @@ function buildBookBox(obj, page, num = 0) {
         div3.appendChild(description);
     }
     return div;
+}
+
+function buildAudienceString(audience) {
+    var str = "", values = ["Children", "Youth", "Adult"];
+    for (var i = 0; i < 3; i++) {
+        if (audience[i]) {
+            if (str != "") {
+                str += ", ";
+            }
+            str += values[i];
+        }
+    }
+    return str;
 }
 
 function getBookFromBarcode(barcodeNumber) {
