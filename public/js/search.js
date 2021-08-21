@@ -254,7 +254,9 @@ function applySearchFilters() {
                         passesFilter = true;
                     }
                 } else if (filters[j] == "Medium") {
-                    if (searchCache[i].medium == items[j][k])
+                    if (searchCache[i].medium == items[j][k]) {
+                        
+                    }
                 }
             }
             if (!passesFilter)
