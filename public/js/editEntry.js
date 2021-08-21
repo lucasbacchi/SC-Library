@@ -26,8 +26,6 @@ function setupEditEntry(pageQuery) {
         return;
     }
 
-    createEntry();
-
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
@@ -128,337 +126,10 @@ function setupEditEntry(pageQuery) {
         
     } else {
         // If this is a new entry (and they are creating it for the first time) go get info from open library
-        $("button#edit-entry-save").attr("onclick", "javascript:createEntry();");
         if (isbn.length >= 10) {
             gatherExternalInformation(isbn).then((noISBN = false) => {
                 // If this is a brand new entry...
-                $('#barcode').html(barcodeNumber);
-
-                if (noISBN) {
-                    return;
-                }
-                
-                // Title
-                try {
-                    $('#book-title').val(bookObject.title);
-                } catch {
-                    console.error("The book doesn't have a title????? Something is wrong.");
-                    console.log(bookObject);
-                }
-
-                // Subtitle
-                try {
-                    $('#book-subtitle').val(bookObject.subtitle);
-                } catch {
-                    console.log("No subtitle found");
-                    console.log(bookObject);
-                }
-
-                // Author
-                try {
-                    for (var i = 0; i < authorObject.length; i++) {
-                        var fullName = authorObject[i].name;
-                        var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
-                        var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
-                        $('#book-author-' + (i + 1) + '-last').val(lastName);
-                        $('#book-author-' + (i + 1) + '-first').val(firstName);
-                    }
-                } catch {
-                    console.error("The book doesn't have an author?");
-                    console.log(bookObject);
-                    console.log(authorObject);
-                }
-
-                // Medium - Only looks at the first work (if there are multiple)
-                try {
-                    if (bookObject.physical_format == "paperback") {
-                        $("book-medium").val("Paperback");
-                    } else if (bookObject.physical_format == "hardcover") {
-                        $("book-medium").val("Hardcover");
-                    }
-                } catch {
-                    console.log("The book object did not have a medium. Falling back to the works object.");
-                    try {
-                        if (worksObject[0].physical_format == "paperback") {
-                            $("book-medium").val("Paperback");
-                        } else if (worksObject[0].physical_format == "hardcover") {
-                            $("book-medium").val("Hardcover");
-                        }
-                    } catch {
-                        console.warn("Neither source had a medium for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Cover
-                // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
-                // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
-                // Also at the save button, the image link should be stored in the database
-                try {
-                    $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-                    // uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-                } catch {
-                    try {
-                        $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                        //uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                    } catch {
-                        console.warn("A cover could not be found for either the book or the work");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Subject
-                try {
-                    for (var i = 0; i < bookObject.subjects.length; i++) {
-                        addSubject();
-                        $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
-                    }
-                } catch {
-                    console.log("The books object did not have any subjects. Falling back to the works object")
-                    try {
-                        for (var i = 0; i < worksObject[0].subjects.length; i++) {
-                            addSubject();
-                            $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
-                        }
-                    } catch {
-                        console.warn("Neither source had subjects for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Description - Only gets the description from the first work (if there are multiple)
-                try {
-                    $("book-description").val(worksObject[0].description.value);
-                } catch {
-                    console.log("The works object did not have a description. Falling back to the book object.");
-                    try {
-                        $("book-description").val(bookObject.description.value);
-                    } catch {
-                        console.warn("Neither source had a description for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Audience???? I have yet to see this in an open library object, so I'm not including it
-
-                // ISBN 10 Number
-                if (isbn.length == 10) {
-                    $("#book-isbn-10").val(isbn);
-                } else {
-                    $("#book-isbn-10").val(switchISBNformats(isbn));
-                }
-
-                // ISBN 13 Number
-                if (isbn.length == 13) {
-                    $("#book-isbn-13").val(isbn);
-                } else {
-                    $("#book-isbn-13").val(switchISBNformats(isbn));
-                }
-
-                // Publisher
-                try {
-                    for (var i = 0; i < bookObject.publishers.length; i++) {
-                        if (i > 1) {
-                            console.warn("A publisher was cut off because there was only two input boxes.");
-                            return;
-                        }
-                        $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
-                    }
-                } catch {
-                    console.log("The books object did not have any publishers. Falling back to the works object")
-                    try {
-                        for (var i = 0; i < worksObject[0].publishers.length; i++) {
-                            if (i > 1) {
-                                console.warn("A publisher was cut off because there was only two input boxes.");
-                                return;
-                            }
-                            $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
-                        }
-                    } catch {
-                        console.warn("Neither source had publishers for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Publish Date:
-                try {
-                    var publish_date = bookObject.publish_date;
-                    if (publish_date.length == 4) {
-                        // We can assume that this is only a year.
-                        $("#book-publish-year").val(publish_date);
-                    } else {
-                        debugger;
-                        var month = publish_date.substring(0, publish_date.indexOf(" "));
-                        var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                        var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
-                        switch (month) {
-                            case "Jan":
-                            case "January":
-                                month = 1;
-                                break;
-                            case "Feb":
-                            case "February":
-                                month = 2;
-                                break;
-                            case "Mar":
-                            case "March":
-                                month = 3;
-                                break;
-                            case "Apr":
-                            case "April":
-                                month = 4;
-                                break;
-                            case "May":
-                                month = 5;
-                                break;
-                            case "Jun":
-                            case "June":
-                                month = 6;
-                                break;
-                            case "Jul":
-                            case "July":
-                                month = 7;
-                                break;
-                            case "Aug":
-                            case "August":
-                                month = 8;
-                                break;
-                            case "Sep":
-                            case "September":
-                                month = 9;
-                                break;
-                            case "Oct":
-                            case "October":
-                                month = 10;
-                                break;
-                            case "Nov":
-                            case "November":
-                                month = 11;
-                                break;
-                            case "Dec":
-                            case "December":
-                                month = 12;
-                                break;
-                        
-                            default:
-                                console.error("The month could not be detected");
-                                month = -1;
-                                break;
-                        }
-                        $("#book-publish-year").val(year);
-                        $("#book-publish-month").val(month);
-                        $("#book-publish-day").val(day);
-                    }
-                } catch {
-                    var publish_date = worksObject[0].publish_date;
-                    try {
-                        if (publish_date.length == 4) {
-                            // We can assume that this is only a year.
-                            $("#book-publish-year").val(publish_date);
-                        } else {
-                            var month = publish_date.substring(0, publish_date.indexOf(" "));
-                            var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                            var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
-                            switch (month) {
-                                case "Jan":
-                                    month = 1;
-                                    break;
-                                case "Feb":
-                                    month = 2;
-                                    break;
-                                case "Mar":
-                                    month = 3;
-                                    break;
-                                case "Apr":
-                                    month = 4;
-                                    break;
-                                case "May":
-                                    month = 5;
-                                    break;
-                                case "Jun":
-                                    month = 6;
-                                    break;
-                                case "Jul":
-                                    month = 7;
-                                    break;
-                                case "Aug":
-                                    month = 8;
-                                    break;
-                                case "Sep":
-                                    month = 9;
-                                    break;
-                                case "Oct":
-                                    month = 10;
-                                    break;
-                                case "Nov":
-                                    month = 11;
-                                    break;
-                                case "Dec":
-                                    month = 12;
-                                    break;
-                            
-                                default:
-                                    console.error("The month could not be detected");
-                                    month = -1;
-                                    break;
-                            }
-                            $("#book-publish-year").val(year);
-                            $("#book-publish-month").val(month);
-                            $("#book-publish-day").val(day);
-                        }
-                    } catch {
-                        console.warn("Neither source had publish dates for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Number of Pages
-                try {
-                    $("#book-pages").val(bookObject.number_of_pages);
-                } catch {
-                    try {
-                        $("#book-pages").val(worksObject[0].number_of_pages);
-                    } catch {
-                        console.warn("Neither source had a number of pages for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-
-                // Dewey Decimal Class
-                // I don't see why there would be two, but in case there are, they will get put in the same input
-                try {
-                    var ddcAnswer = "";
-                    for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
-                        if (i > 0) {
-                            ddcAnswer += ", ";
-                        }
-                        ddcAnswer += bookObject.dewey_decimal_class[i];
-                    }
-                    $("#book-dewey").val(ddcAnswer);
-                } catch {
-                    try {
-                        var ddcAnswer;
-                        for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
-                            if (i > 0) {
-                                ddcAnswer += " ";
-                            }
-                            ddcAnswer += bookObject.dewey_decimal_class[i];
-                        }
-                        $("#book-dewey").val(ddcAnswer);
-                    } catch {
-                        console.warn("Neither source had a DDC for this book.");
-                        console.log(bookObject);
-                        console.log(worksObject);
-                    }
-                }
-                $("#last-updated").hide();
+                loadDataOnToEditEntryPage(noISBN);
             }).catch((error) => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
                 alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
@@ -489,7 +160,339 @@ function setupEditEntry(pageQuery) {
                     reject(err);
                 });*/
             });
+        } else {
+            var noISBN = true;
+            loadDataOnToEditEntryPage(noISBN);
         }
+    }
+
+    function loadDataOnToEditEntryPage(noISBN) {
+        $('#barcode').html(barcodeNumber);
+        if (noISBN) {
+            return;
+        }
+        
+        // Title
+        try {
+            $('#book-title').val(bookObject.title);
+        } catch {
+            console.error("The book doesn't have a title????? Something is wrong.");
+            console.log(bookObject);
+        }
+
+        // Subtitle
+        try {
+            $('#book-subtitle').val(bookObject.subtitle);
+        } catch {
+            console.log("No subtitle found");
+            console.log(bookObject);
+        }
+
+        // Author
+        try {
+            for (var i = 0; i < authorObject.length; i++) {
+                var fullName = authorObject[i].name;
+                var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
+                var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
+                $('#book-author-' + (i + 1) + '-last').val(lastName);
+                $('#book-author-' + (i + 1) + '-first').val(firstName);
+            }
+        } catch {
+            console.error("The book doesn't have an author?");
+            console.log(bookObject);
+            console.log(authorObject);
+        }
+
+        // Medium - Only looks at the first work (if there are multiple)
+        try {
+            if (bookObject.physical_format == "paperback") {
+                $("book-medium").val("Paperback");
+            } else if (bookObject.physical_format == "hardcover") {
+                $("book-medium").val("Hardcover");
+            }
+        } catch {
+            console.log("The book object did not have a medium. Falling back to the works object.");
+            try {
+                if (worksObject[0].physical_format == "paperback") {
+                    $("book-medium").val("Paperback");
+                } else if (worksObject[0].physical_format == "hardcover") {
+                    $("book-medium").val("Hardcover");
+                }
+            } catch {
+                console.warn("Neither source had a medium for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Cover
+        // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
+        // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
+        // Also at the save button, the image link should be stored in the database
+        try {
+            $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+            // uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+        } catch {
+            try {
+                $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                //uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+            } catch {
+                console.warn("A cover could not be found for either the book or the work");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Subject
+        try {
+            for (var i = 0; i < bookObject.subjects.length; i++) {
+                addSubject();
+                $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
+            }
+        } catch {
+            console.log("The books object did not have any subjects. Falling back to the works object")
+            try {
+                for (var i = 0; i < worksObject[0].subjects.length; i++) {
+                    addSubject();
+                    $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
+                }
+            } catch {
+                console.warn("Neither source had subjects for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Description - Only gets the description from the first work (if there are multiple)
+        try {
+            $("book-description").val(worksObject[0].description.value);
+        } catch {
+            console.log("The works object did not have a description. Falling back to the book object.");
+            try {
+                $("book-description").val(bookObject.description.value);
+            } catch {
+                console.warn("Neither source had a description for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Audience???? I have yet to see this in an open library object, so I'm not including it
+
+        // ISBN 10 Number
+        if (isbn.length == 10) {
+            $("#book-isbn-10").val(isbn);
+        } else {
+            $("#book-isbn-10").val(switchISBNformats(isbn));
+        }
+
+        // ISBN 13 Number
+        if (isbn.length == 13) {
+            $("#book-isbn-13").val(isbn);
+        } else {
+            $("#book-isbn-13").val(switchISBNformats(isbn));
+        }
+
+        // Publisher
+        try {
+            for (var i = 0; i < bookObject.publishers.length; i++) {
+                if (i > 1) {
+                    console.warn("A publisher was cut off because there was only two input boxes.");
+                    return;
+                }
+                $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
+            }
+        } catch {
+            console.log("The books object did not have any publishers. Falling back to the works object")
+            try {
+                for (var i = 0; i < worksObject[0].publishers.length; i++) {
+                    if (i > 1) {
+                        console.warn("A publisher was cut off because there was only two input boxes.");
+                        return;
+                    }
+                    $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
+                }
+            } catch {
+                console.warn("Neither source had publishers for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Publish Date:
+        try {
+            var publish_date = bookObject.publish_date;
+            if (publish_date.length == 4) {
+                // We can assume that this is only a year.
+                $("#book-publish-year").val(publish_date);
+            } else {
+                debugger;
+                var month = publish_date.substring(0, publish_date.indexOf(" "));
+                var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+                var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+                switch (month) {
+                    case "Jan":
+                    case "January":
+                        month = 1;
+                        break;
+                    case "Feb":
+                    case "February":
+                        month = 2;
+                        break;
+                    case "Mar":
+                    case "March":
+                        month = 3;
+                        break;
+                    case "Apr":
+                    case "April":
+                        month = 4;
+                        break;
+                    case "May":
+                        month = 5;
+                        break;
+                    case "Jun":
+                    case "June":
+                        month = 6;
+                        break;
+                    case "Jul":
+                    case "July":
+                        month = 7;
+                        break;
+                    case "Aug":
+                    case "August":
+                        month = 8;
+                        break;
+                    case "Sep":
+                    case "September":
+                        month = 9;
+                        break;
+                    case "Oct":
+                    case "October":
+                        month = 10;
+                        break;
+                    case "Nov":
+                    case "November":
+                        month = 11;
+                        break;
+                    case "Dec":
+                    case "December":
+                        month = 12;
+                        break;
+                
+                    default:
+                        console.error("The month could not be detected");
+                        month = -1;
+                        break;
+                }
+                $("#book-publish-year").val(year);
+                $("#book-publish-month").val(month);
+                $("#book-publish-day").val(day);
+            }
+        } catch {
+            var publish_date = worksObject[0].publish_date;
+            try {
+                if (publish_date.length == 4) {
+                    // We can assume that this is only a year.
+                    $("#book-publish-year").val(publish_date);
+                } else {
+                    var month = publish_date.substring(0, publish_date.indexOf(" "));
+                    var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+                    var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+                    switch (month) {
+                        case "Jan":
+                            month = 1;
+                            break;
+                        case "Feb":
+                            month = 2;
+                            break;
+                        case "Mar":
+                            month = 3;
+                            break;
+                        case "Apr":
+                            month = 4;
+                            break;
+                        case "May":
+                            month = 5;
+                            break;
+                        case "Jun":
+                            month = 6;
+                            break;
+                        case "Jul":
+                            month = 7;
+                            break;
+                        case "Aug":
+                            month = 8;
+                            break;
+                        case "Sep":
+                            month = 9;
+                            break;
+                        case "Oct":
+                            month = 10;
+                            break;
+                        case "Nov":
+                            month = 11;
+                            break;
+                        case "Dec":
+                            month = 12;
+                            break;
+                    
+                        default:
+                            console.error("The month could not be detected");
+                            month = -1;
+                            break;
+                    }
+                    $("#book-publish-year").val(year);
+                    $("#book-publish-month").val(month);
+                    $("#book-publish-day").val(day);
+                }
+            } catch {
+                console.warn("Neither source had publish dates for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Number of Pages
+        try {
+            $("#book-pages").val(bookObject.number_of_pages);
+        } catch {
+            try {
+                $("#book-pages").val(worksObject[0].number_of_pages);
+            } catch {
+                console.warn("Neither source had a number of pages for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+
+        // Dewey Decimal Class
+        // I don't see why there would be two, but in case there are, they will get put in the same input
+        try {
+            var ddcAnswer = "";
+            for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
+                if (i > 0) {
+                    ddcAnswer += ", ";
+                }
+                ddcAnswer += bookObject.dewey_decimal_class[i];
+            }
+            $("#book-dewey").val(ddcAnswer);
+        } catch {
+            try {
+                var ddcAnswer;
+                for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
+                    if (i > 0) {
+                        ddcAnswer += " ";
+                    }
+                    ddcAnswer += bookObject.dewey_decimal_class[i];
+                }
+                $("#book-dewey").val(ddcAnswer);
+            } catch {
+                console.warn("Neither source had a DDC for this book.");
+                console.log(bookObject);
+                console.log(worksObject);
+            }
+        }
+        $("#last-updated").hide();
     }
 
     // Create Event Listeners to handle book cover image changes
@@ -909,13 +912,13 @@ function validateEntry() {
 function isValidDate(m, d, y) {
     var year = parseInt(y);
     if (isNaN(year)) return false;
-    var month = parseInt(m);
+    var month = parseInt(m) - 1;
     if (isNaN(month) && m != "") return false;
     var day = parseInt(d);
     if (isNaN(day) && d != "") return false;
     if (m == "" && d != "") return false;
-    if (month > 11 || month < 0) return false;
-    if (day > 31 || day < 1) return false;
+    if ((month > 11 || month < 0) && m != "") return false;
+    if ((day > 31 || day < 1) && d != "") return false;
     if (day == 31 & (month == 4 || month == 6 || month == 9 || month == 11)) return false;
     if (month == 2 && day > 29) return false;
     if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 2 && day == 29) return false;
@@ -1039,6 +1042,9 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         } else if (publishYearValue != "") {
             publishDateValue = new Date(publishYearValue);
         }
+        if (publishDateValue) {
+            publishDateValue = convertToUTC(publishDateValue);
+        }
     
         var purchaseDateValue = null;
         if (purchaseMonthValue != "" && purchaseDayValue != "") {
@@ -1048,8 +1054,12 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         } else if (purchaseYearValue != "") {
             purchaseDateValue = new Date(purchaseYearValue);
         }
+        if (purchaseDateValue) {
+            purchaseDateValue = convertToUTC(purchaseDateValue);
+        }
     
         var lastUpdatedValue = new Date();
+        debugger;
     
         // Updates the book with the information
         db.runTransaction((transaction) => {
@@ -1121,6 +1131,13 @@ function deleteEntry() {
         $("#delete-alert").delay(500).hide(0);
         $("#delete-alert-overlay").delay(500).hide(0);
     }
+}
+
+function convertToUTC(date) {
+    // TODO: Acutally account for time shifts with Daylight Savings
+    debugger;
+    console.log("The date that was just saved was: " + new Date(date.valueOf() - 1000 * 60 * 60 * 5));
+    return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
 }
 
 // Returns true if there are unsaved changes on the Edit Entry page

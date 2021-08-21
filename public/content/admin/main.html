@@ -12,7 +12,10 @@
         <p>If you'd like to add a new book, enter the ISBN below:</p>
         <input id="add-entry-isbn">
         <button onclick="javascript:addEntry();">Add Entry</button>
-        <a onclick="javascript:addEntryWithoutISBN();" style="display: block;">I don't have an ISBN number</a>
+        <a onclick="javascript:addEntryWithoutISBN();" style="display: block;">I don't have an ISBN number. Create a blank entry for me.</a>
+        <p>Enter an ISBN number above and also enter a barcode below to overrite that barcode. Please enter both of these <b>manually</b>.</p>
+        <input id="add-entry-with-specific-barcode-number">
+        <button onclick="javascript:addEntryWithSpecificBarcodeNumber();">Change this Barcode</button>
     </div>
     <div class="mgmt" id="edit-entry">
         <h3>Search for an entry to edit below:</h3>
