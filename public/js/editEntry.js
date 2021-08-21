@@ -592,7 +592,7 @@ function uploadCoverImageFromExternal(link) {
     });
 }
 
-$("#book-medium")[0].addEventListener("input", (event) => {
+/*$("#book-medium")[0].addEventListener("input", (event) => {
     if (event.target.value == "dvd") {
         var goAway = $(".no-dvd");
         for (var i = 0; i < goAway.length; i++)
@@ -614,7 +614,7 @@ $("#book-unnumbered")[0].addEventListener("input", (event) => {
         $("#book-pages")[0].style.backgroundColor = "white";
         $("#book-pages")[0].readOnly = false;
     }
-});
+});*/
 
 function validateEntry() {
     return new Promise((resolve, reject) => {
@@ -924,144 +924,6 @@ function isValidDate(m, d, y) {
     var founded = new Date(1711, 9, 17);
     if (date.getTime() < founded.getTime()) return false;
     return true;
-}
-
-function createEntry() {
-    return new Promise(function (resolve, reject) {
-        // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
-        var lastBookDocQuery = db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1);
-        lastBookDocQuery.get().then((querySnapshot) => {
-            var topDoc;
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
-                    throw "The books document doesn't exist";
-                }
-                topDoc = doc;
-            });
-
-            db.runTransaction((transaction) => {
-                return transaction.get(db.collection("books").doc(topDoc.id)).then((doc2) => {
-                    if (!doc2.exists) {
-                        throw "Document does not exist!";
-                    }
-
-                    var order = doc2.data().order;
-                    var numBooksInDoc = doc2.data().books.length;
-
-                    try {
-                        var next = order + 1;
-                        if (next < 10) {
-                            next = "00" + (next);
-                        } else if (next < 100) {
-                            next = "0" + (next);
-                        }
-                        db.collection("books").doc(next).get().then((doc) => {
-                            if (doc.exists) {
-                                console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                alert("A database error has occurred.");
-                                throw "Something went wrong."
-                            }
-                        }).catch((err) => {
-                            console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
-                        });
-                    } catch {
-                        console.log("Something about the try catch failed....");
-                    }
-
-                    if (numBooksInDoc == 100) {
-                        // A new book doc has to be created...
-                        var newNumber = order + 1;
-                        if (order < 10) {
-                            newNumber = "00" + order;
-                        } else if (order < 100) {
-                            newNumber = "0" + order;
-                        }
-                        var barcode = "11711" + newNumber + "00";
-                        transaction.set(db.collection("books").doc(newNumber), {
-                            books: [{
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{first: "", last: ""}],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            }],
-                            order: order + 1
-                        });
-                        return barcode;
-                    } else {
-                        if (order < 10) {
-                            order = "00" + order;
-                        } else if (order < 100) {
-                            order = "0" + order;
-                        }
-                        
-                        var barcode;
-                        if (numBooksInDoc < 10) {
-                            barcode = "11711" + order + "0" + numBooksInDoc;
-                        } else {
-                            barcode = "11711" + order + numBooksInDoc;
-                        }
-                        transaction.update(db.collection("books").doc(order), {
-                            books: firebase.firestore.FieldValue.arrayUnion({
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{first: "", last: ""}],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            })
-                        });
-                        return barcode;
-                    }
-                });
-            }).then((newBarcode) => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: ", newBarcode);
-                editEntry(newBarcode)
-                resolve(newBarcode);
-            });
-        }).catch((err) => {
-            console.error(err);
-            reject(err);
-        });
-    });
 }
 
 function editEntry(barcodeValue = null, isDeletedValue = false) {

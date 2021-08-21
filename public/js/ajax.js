@@ -236,7 +236,7 @@ var currentExtension;
                         // These will always be loaded no matter what page.
                         var sourcesRequired = {
                             "/admin/editEntry": ["form.css", "editEntry.js", "admin.js", "admin.css"],
-                            "/admin/main": ["admin.js", "admin.css"],
+                            "/admin/main": ["admin.js", "admin.css", "editEntry.js"],
                             "/admin/report": ["admin.js", "admin.css"],
                             "/admin/barcode": ["admin.js", "admin.css"],
                             "/404": [],
