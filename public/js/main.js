@@ -135,8 +135,8 @@ function initApp() {
                     db.collection("users").doc(user.uid).update({
                         lastSignIn: date
                     }).catch((error) => {
-                        console.error("The last sign in time could not be updated.");
-                        if (error) console.log(error);
+                        console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
+                        if (error) console.warn(error);
                     });
                 } else {
                     // User is signed out.
@@ -266,6 +266,8 @@ const PUBLISHER_WEIGHT = 1;
 const SUBJECT_WEIGHT = 5;
 const SUBTITLE_WEIGHT = 3;
 const TITLE_WEIGHT = 8;
+const BARCODE_WEIGHT = 50;
+const ISBN_WEIGHT = 50;
 
 function performSearch(searchQuery, start, end) {
     var searchQueryArray = searchQuery.replace(/-/g , " ").replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase().split(" ");
@@ -293,9 +295,13 @@ function performSearch(searchQuery, start, end) {
                 var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                 score += arr2Ratio * AUTHOR_WEIGHT;
             }
-            // Barcode Number?
+            // Barcode Number
+            var barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+            score += barcodeRatio * BARCODE_WEIGHT;
             // DDC?
-            // Description or just keywords?
+            // Number of Pages?
+            // Publish Date?
+            // Description? (as opposed to just keywords)
             // Illustrators
             for (var j = 0; j < book.illustrators.length; j++) {
                 var arr1 = book.illustrators[j].first.replace(/-/g , " ").split(" ");
@@ -305,7 +311,9 @@ function performSearch(searchQuery, start, end) {
                 var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                 score += arr2Ratio * ILLUSTRATOR_WEIGHT;
             }
-            // ISBN 10? ISBN 13?
+            // ISBN 10 and ISBN 13
+            var ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
+            score += ISBNRatio * ISBN_WEIGHT;
             // Keywords
             var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
             score += keywordsRatio * KEYWORDS_WEIGHT;
@@ -323,6 +331,7 @@ function performSearch(searchQuery, start, end) {
             score += countInArray(book.subtitle.replace(/-/g , " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
             // Title
             score += countInArray(book.title.replace(/-/g , " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
+
             scoresArray.push({book:book, score: score});
         }
     });
@@ -343,19 +352,34 @@ function performSearch(searchQuery, start, end) {
     return returnArray;
 }
 
-function countInArray(arr, searchQueryArray) {
+function countInArray(arr, searchQueryArray, strict = false) {
     var count = 0;
     for (var i = 0; i < arr.length; i++) {
-        for (var j = 0; j < searchQueryArray.length; j++) {
-            count += searchCompare(arr[i], searchQueryArray[j]);
+        if (strict) {
+            if (searchQueryArray.includes(arr[i])) {
+                count++;
+            }
+        } else {
+            for (var j = 0; j < searchQueryArray.length; j++) {
+                count += searchCompare(arr[i], searchQueryArray[j]);
+            }
         }
     }
     return count;
 }
 
 function searchCompare(a, b) {
+    a = a.toString();
+    b = b.toString();
     var max = Math.max(a.length, b.length);
-    return (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+    var similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+    // This threshold seems pretty good, it prevents things from showing up if they share one or two letters.
+    if (similarity < 0.7) {
+        return 0;
+    } else {
+        console.log(b + " was very similar to... " + a);
+        return similarity;
+    }
 }
 
 /**
@@ -569,6 +593,7 @@ function buildBookBox(obj, page, num = 0) {
         audience.appendChild(document.createTextNode(buildAudienceString(obj.audience)));
         div2.appendChild(audience);
         const div3 = document.createElement('div');
+        div3.classList.add("advanced-info");
         div.appendChild(div3);
         const subjects = document.createElement('p');
         subjects.classList.add('subjects');

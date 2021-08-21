@@ -198,25 +198,27 @@ function accountSecuritySetup() {
     return true;
 }
 
+// The following two comments are there because they are in the wrong format and were causing errors
 function getCheckouts() {
-    return [{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}];
+    return [/*{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}*/];
 }
 
 function getHolds() {
-    return [{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}];
+    return [/*{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}*/];
 }
 
+// Justin: Holds are gone, right? Can we get rid of the commented parts below and change the name of the function?
 function createCheckoutsAndHolds(books, str) {
     if (books.length == 0) {
         if (str == "checkouts") {
             const p = document.createElement('p');
             p.appendChild(document.createTextNode("You have no books checked out."));
             $("#checkouts")[0].appendChild(p);
-        } else if (str == "holds") {
+        } /*else if (str == "holds") {
             const p = document.createElement('p');
             p.appendChild(document.createTextNode("You have no books on hold."));
             $("#holds")[0].appendChild(p);
-        }
+        }*/
     }
     for (var i = 0; i < books.length; i++) {
         if (str == "checkouts")

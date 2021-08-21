@@ -324,11 +324,7 @@ var currentExtension;
                         }
 
                         if (pageName == "/search") {
-                            if (searchResultsArray == null) {
-                                setupSearch(null, pageQuery);
-                            } else {
-                                setupSearch(searchResultsArray, pageQuery);
-                            }
+                            setupSearch(searchResultsArray, pageQuery);
                         }
 
                         if (pageName == "/result") {
