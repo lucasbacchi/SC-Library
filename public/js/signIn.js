@@ -229,7 +229,7 @@ function handleSignUp() {
                                 email: email,
                                 cardNumber: newCardNumber,
                                 pfpLink: pfpLink,
-                                checkouts: [{}],
+                                checkouts: [],
                                 notificationsOn: true,
                                 dateCreated: dateCreated,
                                 lastSignIn: dateCreated,

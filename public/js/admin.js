@@ -43,6 +43,32 @@ var worksObject;
             goToPage('admin/editEntry?new=true&id=' + newBarcode);
         });
     }
+
+    function addEntryWithSpecificBarcodeNumber() {
+        debugger;
+        var isbn = $("#add-entry-isbn").val();
+        var check = verifyISBN(isbn);
+        if (isbn == "") {
+            alert("You must enter an ISBN number above.");
+            return;
+        }
+        if (!check) {
+            alert("The number you entered is not a valid ISBN Number.");
+            return;
+        }
+        var specificBarcode = $("#add-entry-with-specific-barcode-number").val();
+        getBookFromBarcode(specificBarcode).then((book) => {
+            if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
+                const a = document.createElement("a");
+                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
+                a.innerHTML = "Click here to overwrite the barcode above."
+                $("#add-entry")[0].appendChild(a);
+            } else {
+                alert("You may not create a new book with this barcode.");
+                return;
+            }
+        });
+    }
     
     function gatherExternalInformation(isbn) {
         return new Promise(function (resolve, reject) {
@@ -63,17 +89,20 @@ var worksObject;
                     }).catch((error) => {
                         alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
                         console.error(error);
-                        reject();
+                        resolve(true);
+                        return;
                     });
                 }).catch((error) => {
                     alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
                     console.error(error);
-                    reject();
+                    resolve(true);
+                    return;
                 });
             }).catch((error) => {
                 alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
                 console.error(error);
-                reject();
+                resolve(true);
+                return;
             });
         });
     }
@@ -90,6 +119,7 @@ function lookupBook(isbn) {
                 reject();
             }
             if (this.readyState == 4 && this.status == 200) {
+                debugger;
                 resolve(JSON.parse(xhttp.responseText));
             }
         }
@@ -97,27 +127,35 @@ function lookupBook(isbn) {
 }
 
 function lookupAuthor(bookObject) {
+    console.log(bookObject);
     return new Promise(function (resolve, reject) {
+        debugger;
         var total = 0;
-        for (let i = 0; i < bookObject.authors.length; i++) {
-            let xhttp = new XMLHttpRequest();
-            var authorLink = bookObject.authors[i].key;
+        if (bookObject.authors) {
+            for (let i = 0; i < bookObject.authors.length; i++) {
+                let xhttp = new XMLHttpRequest();
+                debugger;
+                var authorLink = bookObject.authors[i].key;
 
-            xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
-            xhttp.send();
-            total++;
-            xhttp.onreadystatechange = function() {
-                if (this.status == 404 || this.status == 403 || this.status == 400) {
-                    reject();
-                }
-                if (this.readyState == 4 && this.status == 200) {
-                    var authorObject = [];
-                    authorObject[i] = JSON.parse(xhttp.responseText);
-                    if (i == total - 1) {
-                        resolve(authorObject);
+                xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
+                xhttp.send();
+                total++;
+                xhttp.onreadystatechange = function() {
+                    if (this.status == 404 || this.status == 403 || this.status == 400) {
+                        reject();
+                    }
+                    if (this.readyState == 4 && this.status == 200) {
+                        debugger;
+                        var authorObject = [];
+                        authorObject[i] = JSON.parse(xhttp.responseText);
+                        if (i == total - 1) {
+                            resolve(authorObject);
+                        }
                     }
                 }
             }
+        } else {
+            resolve(true);
         }
     });
 }
@@ -137,6 +175,7 @@ function lookupWorks(bookObject) {
                     reject();
                 }
                 if (this.readyState == 4 && this.status == 200) {
+                    debugger;
                     var worksObject = [];
                     worksObject[i] = JSON.parse(xhttp.responseText);
                     if (i == total - 1) {
@@ -452,21 +491,35 @@ function calculateISBNCheckDigit(number) {
         console.warn("The ISBN number already has a check digit");
         return;
     }
-    
-    var digits = [];
-    for (i = 0; i < length; i++) {
-        digits[i] = parseInt(number.substring(0 + i, 1 + i));
-    }
 
-    var total = 0;
-    for (i = 0; i < digits.length; i++) {
-        if (i % 2 == 0) {
-            total += digits[i];
-        } else {
-            total += digits[i] * 3;
+    if (length == 12) {
+        var digits = [];
+        for (i = 0; i < length; i++) {
+            digits[i] = parseInt(number.substring(0 + i, 1 + i));
         }
+
+        var total = 0;
+        for (i = 0; i < digits.length; i++) {
+            if (i % 2 == 0) {
+                total += digits[i];
+            } else {
+                total += digits[i] * 3;
+            }
+        }
+        return 10 - (total % 10);
+    } else if (length == 9) {
+        var digits = [];
+        var total = 0;
+        for (i = 0; i < length; i++) {
+            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+        }
+
+        
+        for (i = 0; i < digits.length; i++) {
+            total += digits[i] * (10 - i);
+        }
+        return 11 - (total % 11);
     }
-    return 10 - (total % 10);
 }
 
 function switchISBNformats(number) {
@@ -478,7 +531,7 @@ function switchISBNformats(number) {
         number = number.substring(0, number.length - 1)
     }
     number = number + calculateISBNCheckDigit(number);
-    number = parseInt(number);
+    // number = parseInt(number);
     return number;
 }
 
@@ -518,7 +571,7 @@ function verifyISBN(number) {
             }
         }
         
-        if (10 - (total % 10) == digits[digits.length - 1]) {
+        if ((10 - (total % 10)) % 10 == digits[digits.length - 1]) {
             return true;
         } else {
             return false;

@@ -282,7 +282,7 @@ function performSearch(searchQuery, start, end) {
         for (var i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
             var book = document.books[i];
-            if (book.isDeleted) {
+            if (book.isDeleted || book.isHidden || (book.title == "" && !book.lastUpdated)) {
                 continue;
             }
             var score = 0;
@@ -341,6 +341,7 @@ function performSearch(searchQuery, start, end) {
     });
     var returnCount = 0;
     var returnArray = [];
+    console.log("Scores: ", scoresArray);
     scoresArray.forEach((item) => {
         if (item.score < 1) return;
         returnCount++;
@@ -377,7 +378,7 @@ function searchCompare(a, b) {
     if (similarity < 0.7) {
         return 0;
     } else {
-        console.log(b + " was very similar to... " + a);
+        // console.log(b + " was very similar to... " + a);
         return similarity;
     }
 }
