@@ -545,7 +545,7 @@ function storeImage(file) {
         meta = {contentType: 'image/png'};
     } else {
         alert("That file type is not supported. Please upload a JPG or PNG file.");
-        resolve(false);
+        return false;
     }
     return bookSpecificRef.put(file, meta).then((snapshot) => {
         console.log('Uploaded the file!');
@@ -653,6 +653,7 @@ function validateEntry() {
                 $("#book-title")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (author1LastValue == "" && author1FirstValue == "") {
             alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
@@ -670,6 +671,7 @@ function validateEntry() {
                 $("#book-author-1-first")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (mediumValue == "") {
             alert("Medium is required!");
@@ -681,6 +683,7 @@ function validateEntry() {
                 $("#book-medium")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (coverLink == "../img/favicon.ico") {
             alert("Cover image is required!");
@@ -692,6 +695,7 @@ function validateEntry() {
                 $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
             }
             resolve(false);
+            return;
         }
         if (subjectValues[0] == "") {
             alert("Please enter at least one subject!");
@@ -703,6 +707,7 @@ function validateEntry() {
                 $("#book-subject-1")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (descriptionValue == "") {
             alert("Description is required!");
@@ -714,6 +719,7 @@ function validateEntry() {
                 $("#book-description")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
             alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
@@ -731,6 +737,7 @@ function validateEntry() {
                 $("#book-audience-none")[0].style.outline = "";
             }
             resolve(false);
+            return;
         }
         if (mediumValue != "dvd" && isbn10Value == "" && isbn13Value == "") {
             alert("Please enter at least one ISBN number!");
@@ -748,6 +755,7 @@ function validateEntry() {
                 $("#book-isbn-13")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (!verifyISBN(isbn10Value) && isbn10Value != "") {
             alert("The ISBN number you entered was not valid! Please double check it.");
@@ -759,6 +767,7 @@ function validateEntry() {
                 $("#book-isbn-10")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (!verifyISBN(isbn13Value) && isbn13Value != "") {
             alert("The ISBN number you entered was not valid! Please double check it.");
@@ -770,6 +779,7 @@ function validateEntry() {
                 $("#book-isbn-13")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (publisher1Value == "") {
             alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
@@ -781,6 +791,7 @@ function validateEntry() {
                 $("#book-publisher-1")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue)) {
             alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
@@ -806,6 +817,7 @@ function validateEntry() {
                 $("#book-publish-year")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (unNumbered == false && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
             alert("Please enter a valid number of pages!");
@@ -817,6 +829,7 @@ function validateEntry() {
                 $("#book-pages")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
             alert("Please enter a valid Dewey Decimal Classification!");
@@ -828,6 +841,7 @@ function validateEntry() {
                 $("#book-dewey")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
             alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
@@ -853,6 +867,7 @@ function validateEntry() {
                 $("#book-purchase-year")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
         if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
             alert("Please enter a valid purchase price!");
@@ -864,10 +879,16 @@ function validateEntry() {
                 $("#book-purchase-price")[0].style.borderColor = "";
             }
             resolve(false);
+            return;
         }
-        saveImage().then((res) => {
-            resolve(res);
-        });
+        let input = $("#file-input")[0];
+        if (input.files.length > 0) {
+            saveImage().then((res) => {
+                resolve(res);
+            });
+        } else {
+            resolve(true);
+        }
     });
 }
 
@@ -1084,7 +1105,10 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
     validateEntry().then((valid) => {
         if (!isDeletedValue && valid == false) return;
-        coverLink = valid;
+        if (valid != true) {
+            // There wasn't a new image, but everything is still valid.
+            coverLink = valid;
+        }
 
         // Defines the paths of the the database collection
         var booksPath = db.collection("books");

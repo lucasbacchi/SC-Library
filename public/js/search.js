@@ -1,16 +1,16 @@
 // Make content Responsive
 // Doesn't have to be setup because the window element doesn't change.
 $(window).resize(function () {
-    if ($(window).width() > 500) {
+    if ($(window).width() > 786) {
         $('#sort-container').width('fit-content');
         $('.sort-section').show();
         $('.sort-section').css('opacity', '1');
         $('#close-button').hide();
-        $('#sort-sidebar').css('overflow-y', 'visible');
+        // $('#sort-sidebar').css('overflow-y', 'visible'); Was causing problems, if needed, reimplement
         $('#sort-sidebar').css('max-height', '');
 
     }
-    if ($(window).width() <= 500 && $('#close-button').css('display') == 'none') {
+    if ($(window).width() <= 786 && $('#close-button').css('display') == 'none') {
         $('#sort-container').width('0');
         $('.sort-section').hide();
         $('.sort-section').css('opacity', '0');
@@ -19,11 +19,11 @@ $(window).resize(function () {
 });
 
 // Set Initial window layout.
-if ($(window).width() > 500) {
+if ($(window).width() > 786) {
     $('.sort-section').show();
 
 }
-if ($(window).width() <= 500) {
+if ($(window).width() <= 786) {
     $('.sort-section').hide();
 
 }
@@ -31,7 +31,7 @@ if ($(window).width() <= 500) {
 function setupSearch(searchResultsArray, pageQuery) {
     // Create Sort Dropdown Event Listener
     $('#sort-main-title').click(function() {
-        if (window.innerWidth < 501) {
+        if (window.innerWidth < 787) {
             if ($('.sort-section').css('display') == 'none') {
                 $('.sort-section').show(0).delay(10);
                 $('#sort-sidebar').css('max-height', '500px');
@@ -54,7 +54,13 @@ function setupSearch(searchResultsArray, pageQuery) {
         alert("Add Functionality");
     });
 
-    var queryFromURL = findURLValue(pageQuery, "query");
+    $("#search-page-input").keydown(function(event) {
+        if (event.keyCode === 13) {
+            searchPageSearch();
+        }
+    });
+
+    var queryFromURL = findURLValue(pageQuery, "query", true);
 
     $("#search-page-input").val(queryFromURL);
 
@@ -72,53 +78,97 @@ function setupSearch(searchResultsArray, pageQuery) {
     }
 }
 
+function searchPageSearch() {
+    var searchQuery = $('#search-page-input').val();
+
+    search(searchQuery).then((searchResultsArray) => {
+        createSearchResultsPage(searchResultsArray);
+    });
+}
+
 function browse() {
     var browseResultsArray = [];
-    db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-            console.log(doc);
-            if (!doc.exists) {
-                console.error("books document does not exist");
-                return;
+    if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
+        // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
+        var docs = bookDatabase.length - 1;
+        if (bookDatabase[bookDatabase.length - 1].books.length < 25 && docs != 0) {
+            docs--;
+        }
+        var rand = Math.floor(Math.random() * docs);
+        if (!bookDatabase[rand]) {
+            console.error("books " + rand + " does not exist in the local book database");
+            return;
+        }
+        var values = [], count = 0;
+        for (var i = 0; i < 20; i++) {
+            var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
+            if (values.indexOf(random) > -1 || bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
+                i--;
+            } else {
+                values.push(random);
+                browseResultsArray.push(bookDatabase[rand].books[random]);
             }
-            var docs = doc.data().order;
-            if (doc.data().books.length < 25 && docs != 0) {
-                docs--;
-            }
-            var rand = Math.floor(Math.random() * docs);
-            rand = "0" + rand;
-            if (rand.length == 2) rand = "0" + rand;
-            db.collection("books").doc(rand).get().then((doc) => {
-                if (!doc.exists) {
-                    console.error("books " + rand + " does not exist");
-                    return;
-                }
-                var values = [], count = 0;
-                for (var i = 0; i < 20; i++) {
-                    var random = Math.floor(Math.random() * doc.data().books.length);
-                    if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
-                        i--;
-                    } else {
-                        values.push(random);
-                        browseResultsArray.push(doc.data().books[random]);
-                    }
-                    count++;
-                    if (count > 10000) {
-                        if (i > 0) {
-                            console.error("no books available");
-                            const p = document.createElement('p');
-                            p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                            $('div#results-container')[0].appendChild(p);
+            count++;
+            if (count > 10000) {
+                if (i > 0) {
+                    console.error("no books available");
+                    const p = document.createElement('p');
+                    p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
+                    $('div#results-container')[0].appendChild(p);
 
-                        }
-                        createSearchResultsPage(browseResultsArray);
-                        return;
-                    }
                 }
                 createSearchResultsPage(browseResultsArray);
+                return;
+            }
+        }
+        createSearchResultsPage(browseResultsArray);
+    } else {
+        // No search has been performed on the page yet, so get it from the database.
+        db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                if (!doc.exists) {
+                    console.error("books document does not exist");
+                    return;
+                }
+                var docs = doc.data().order;
+                if (doc.data().books.length < 25 && docs != 0) {
+                    docs--;
+                }
+                var rand = Math.floor(Math.random() * docs);
+                rand = "0" + rand;
+                if (rand.length == 2) rand = "0" + rand;
+                db.collection("books").doc(rand).get().then((doc) => {
+                    if (!doc.exists) {
+                        console.error("books " + rand + " does not exist");
+                        return;
+                    }
+                    var values = [], count = 0;
+                    for (var i = 0; i < 20; i++) {
+                        var random = Math.floor(Math.random() * doc.data().books.length);
+                        if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                            i--;
+                        } else {
+                            values.push(random);
+                            browseResultsArray.push(doc.data().books[random]);
+                        }
+                        count++;
+                        if (count > 10000) {
+                            if (i > 0) {
+                                console.error("no books available");
+                                const p = document.createElement('p');
+                                p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
+                                $('div#results-container')[0].appendChild(p);
+    
+                            }
+                            createSearchResultsPage(browseResultsArray);
+                            return;
+                        }
+                    }
+                    createSearchResultsPage(browseResultsArray);
+                });
             });
         });
-    });
+    }
 }
 
 function createSearchResultsPage(searchResultsArray) {
@@ -131,6 +181,84 @@ function createSearchResultsPage(searchResultsArray) {
     for (var i = 0; i < searchResultsArray.length; i++) {
         $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
+    createFilterList(searchResultsArray);
+}
+
+var searchResultsAuthorsArray = [];
+var searchResultsSubjectsArray = [];
+function createFilterList(searchResultsArray) {
+    // TODO: This function should also order each of the lists by occurances.
+    searchResultsAuthorsArray = [];
+    searchResultsSubjectsArray = [];
+    $("#sort-author-list").empty();
+    $("#sort-subject-list").empty();
+    
+    // Authors
+    for (var i = 0; i < searchResultsArray.length; i++) {
+        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
+            searchResultsAuthorsArray.push(searchResultsArray[i].authors[0]);
+        }
+        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[1]) && searchResultsArray[i].authors[1]) {
+            searchResultsAuthorsArray.push(searchResultsArray[i].authors[1]);
+        }
+    }
+    for (var i = 0; i < searchResultsAuthorsArray.length; i++) {
+        let authorArray = searchResultsAuthorsArray[i];
+        const li = document.createElement("li");
+        li.classList.add("sort-item");
+        li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
+        if (i < 6) {
+            $("#sort-author-list")[0].appendChild(li);
+        } else if (i == 6) {
+            const span = document.createElement("span");
+            span.id = "author-show-more";
+            span.innerHTML = "Show More..."
+            $("#sort-author-list")[0].appendChild(span);
+            $("#author-show-more").on("click", () => {
+                $("#author-show-more").css("display", "none");
+                for (var j = 6; j < searchResultsAuthorsArray.length; j++) {
+                    let authorArray = searchResultsAuthorsArray[j];
+                    const li = document.createElement("li");
+                    li.classList.add("sort-item");
+                    li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
+                    $("#sort-author-list")[0].appendChild(li);
+                }
+            });
+        }
+    }
+
+    // Subjects
+    for (var i = 0; i < searchResultsArray.length; i++) {
+        for (var j = 0; j < searchResultsArray[i].subjects.length; j++) {
+            if (!searchResultsSubjectsArray.includes(searchResultsArray[i].subjects[j]) && searchResultsArray[i].subjects[j]) {
+                searchResultsSubjectsArray.push(searchResultsArray[i].subjects[j]);
+            }
+        }
+    }
+    for (var i = 0; i < searchResultsSubjectsArray.length; i++) {
+        let subject = searchResultsSubjectsArray[i];
+        const li = document.createElement("li");
+        li.classList.add("sort-item");
+        li.innerHTML = "<input type=\"checkbox\">" + subject;
+        if (i < 6) {
+            $("#sort-subject-list")[0].appendChild(li);
+        } else if (i == 6) {
+            const span = document.createElement("span");
+            span.id = "subject-show-more";
+            span.innerHTML = "Show More..."
+            $("#sort-subject-list")[0].appendChild(span);
+            $("#subject-show-more").on("click", () => {
+                $("#subject-show-more").css("display", "none");
+                for (var j = 6; j < searchResultsSubjectsArray.length; j++) {
+                    let subject = searchResultsSubjectsArray[j];
+                    const li = document.createElement("li");
+                    li.classList.add("sort-item");
+                    li.innerHTML = "<input type=\"checkbox\">" + subject;
+                    $("#sort-subject-list")[0].appendChild(li);
+                }
+            });
+        }
+    }
 }
 
 function setupResults(pageQuery) {
@@ -142,12 +270,19 @@ function setupResults(pageQuery) {
     }
     
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
-        if (!bookObject) {
+        if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             alert("Error: No information could be found for that book.");
             goToPage("");
+            return;
         }
+
+        $("#result-page-image").attr("src", bookObject.coverImageLink);
     
         $("#result-page-barcode-number").html(barcodeNumber);
+        if (!bookObject.canBeCheckedOut) {
+            $("#checkout-button").hide();
+            $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
+        }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         $("#result-page-call-number").html(bookObject.ddc);
         $("#result-page-medium").html(bookObject.medium);
@@ -175,7 +310,7 @@ function setupResults(pageQuery) {
         publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
         $("#result-page-publisher").html(publishersAnswer);
         var d = bookObject.publishDate.toDate();
-        $("#result-page-publish-date").html(d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear());
+        $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
         if (bookObject.numberOfPages > 0) {
             $("#result-page-pages").html(bookObject.numberOfPages);
         } else {
@@ -254,7 +389,9 @@ function applySearchFilters() {
                         passesFilter = true;
                     }
                 } else if (filters[j] == "Medium") {
-                    if (searchCache[i].medium == items[j][k])
+                    if (searchCache[i].medium == items[j][k]) {
+                        // Justin, finish this
+                    }
                 }
             }
             if (!passesFilter)

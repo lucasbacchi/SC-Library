@@ -171,42 +171,111 @@ function adminSearch() {
 }
 
 var input;
+var input1;
+var input2;
 var canvas;
 var ctx;
-var imageObjArray = [];
-var imageObjLoadedArray = [];
 function setupBarcodePage() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
 }
 
-function mergeBarcodes() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (var i = 0; i < 12; i++) {
-        imageObjLoadedArray[i] = false;
+function mergeBarcodes(multiple = false) {
+    var numberOfBarcodes;
+    var currentBarcode;
+    if (!multiple) {
+        numberOfBarcodes = 1;
+        input = document.getElementById("barcode-single-input").value;
+        input = "11711" + input;
+        currentBarcode = parseInt(input);
+        if (input.length != 10 || input.indexOf("11711") == -1) {
+            alert("That barcode is not valid");
+            return;
+        }
     }
-    input = document.getElementById("input").value;
-    for (var i = 0; i < 12; i++) {
-        imageObjArray.push(new Image());
-        loadBarcodeImage(i);
+    if (multiple) {
+        input1 = document.getElementById("barcode-multiple-input-start").value;
+        input1 = "11711" + input1;
+        input2 = document.getElementById("barcode-multiple-input-end").value;
+        input2 = "11711" + input2;
+        if (input1.length != 10 || input1.indexOf("11711") == -1) {
+            alert("The starting barcode is not valid");
+            return;
+        }
+        if (input2.length != 10 || input2.indexOf("11711") == -1) {
+            alert("The ending barcode is not valid");
+            return;
+        }
+        if (parseInt(input1) >= parseInt(input2)) {
+            alert("The ending barcode must be larger than the starting barcode");
+            return;
+        }
+        numberOfBarcodes = parseInt(input2) - parseInt(input1) + 1;
+        currentBarcode = parseInt(input1);
     }
-    imageObjArray[0].src = '/img/barcode-parts/A.png';
-    imageObjArray[11].src = '/img/barcode-parts/B.png';
-    for (var i = 1; i < 11; i++) {
-        var temp = input.substring(i-1, i);
-        imageObjArray[i].src = '/img/barcode-parts/' + temp + '.png';
+    for (var i = 0; i < numberOfBarcodes; i++) {
+        if (i != 0) {
+            currentBarcode++;
+        }
+        var imageObjArray = [];
+        var imageObjLoadedArray = [];
+        var delay = i * 1500 + (Math.floor(i/5) * 2000);
+        setTimeout((currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
+            if (i == numberOfBarcodes - 1) {
+                setTimeout(() => {
+                    alert("Download Complete");
+                }, 2000);
+            }
+            let currentBarcodeString = currentBarcode.toString();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "bold 60px Poppins";
+            ctx.textAlign = "center";
+            var textWidth = ctx.measureText("South Church Library");
+            ctx.fillText("South Church Library", (canvas.width/2), 60);
+            var barcodeStyled = currentBarcodeString.substring(0,1) + "  " + currentBarcodeString.substring (1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
+            ctx.font = "bold 78px Poppins";
+            textWidth = ctx.measureText(barcodeStyled);
+            ctx.fillText(barcodeStyled, (canvas.width/2), 350);
+            ctx.font = "45px Poppins";
+            textWidth = ctx.measureText("Andover, MA");
+            ctx.translate(70, (canvas.height/2)-5);
+            ctx.rotate(270 * (Math.PI / 180));
+            ctx.fillText("Andover, MA", 0, 0);
+            ctx.rotate(-270 * (Math.PI / 180));
+            ctx.translate(-70, -(canvas.height/2)+5);
+            ctx.font = "45px Poppins";
+            ctx.translate(1055, (canvas.height/2)-5);
+            ctx.rotate(90 * (Math.PI / 180));
+            ctx.fillText("Andover, MA", 0, 0);
+            ctx.rotate(-90 * (Math.PI / 180));
+            ctx.translate(-1055, -(canvas.height/2)+5);
+
+            for (var i = 0; i < 12; i++) {
+                imageObjLoadedArray[i] = false;
+            }
+            for (var i = 0; i < 12; i++) {
+                imageObjArray.push(new Image());
+                loadBarcodeImage(i, imageObjArray, imageObjLoadedArray, currentBarcodeString);
+            }
+            imageObjArray[0].src = '/img/barcode-parts/A.png';
+            imageObjArray[11].src = '/img/barcode-parts/B.png';
+            for (var i = 1; i < 11; i++) {
+                var temp = currentBarcodeString.substring(i-1, i);
+                imageObjArray[i].src = '/img/barcode-parts/' + temp + '.png';
+            }
+        }, delay, currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes);
     }
 }
 
-function loadBarcodeImage(num) {
+function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
     imageObjArray[num].onload = function() {
-        console.log("Image #" + num + " has loaded");
+        // console.log("Image #" + num + " has loaded");
         ctx.globalAlpha = 1;
-        var position = 110 * num + 60;
+        var position = 110 * 0.6 * num + 160;
         if (num != 0) {
             position += 10;
         }
-        ctx.drawImage(imageObjArray[num], position, 0);
+        ctx.drawImage(imageObjArray[num], position, 95, imageObjArray[num].width * 0.6, imageObjArray[num].height * 0.6);
         imageObjLoadedArray[num] = true;
         var allLoaded = true;
         for (var i = 0; i < 12; i++) {
@@ -221,7 +290,7 @@ function loadBarcodeImage(num) {
                 var url = window.URL.createObjectURL(blob);
                 var a = document.getElementById("link");
                 a.href = url;
-                a.download = input + ".png";
+                a.download = currentBarcodeString + ".png";
                 a.click();
                 window.URL.revokeObjectURL(url);
             });
@@ -269,28 +338,48 @@ function switchISBNformats(number) {
 }
 
 function verifyISBN(number) {
-    if (number.toString().substring(0, 3) != "978") {
-        number = switchISBNformats(number);
-    }
-    number = number.toString();
-    
-    var digits = [];
-    for (i = 0; i < number.length; i++) {
-        digits[i] = parseInt(number.substring(0 + i, 1 + i));
-    }
-
-    var total = 0;
-    for (i = 0; i < digits.length - 1; i++) {
-        if (i % 2 == 0) {
-            total += digits[i];
-        } else {
-            total += digits[i] * 3;
+    if (number.toString().length == 10) {
+        number = number.toString();
+        
+        var digits = [];
+        for (i = 0; i < number.length; i++) {
+            digits[i] = parseInt(number.substring(0 + i, 1 + i));
         }
-    }
-    
-    if (10 - (total % 10) == digits[digits.length - 1]) {
-        return true;
+
+        var total = 0;
+        for (i = 0; i < digits.length; i++) {
+            total += digits[i] * (10 - i);
+        }
+        
+        if (total % 11 == 0) {
+            return true;
+        } else {
+            return false;
+        }
+    } else if (number.toString().length == 13) {
+        number = number.toString();
+        
+        var digits = [];
+        for (i = 0; i < number.length; i++) {
+            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+        }
+
+        var total = 0;
+        for (i = 0; i < digits.length - 1; i++) {
+            if (i % 2 == 0) {
+                total += digits[i];
+            } else {
+                total += digits[i] * 3;
+            }
+        }
+        
+        if (10 - (total % 10) == digits[digits.length - 1]) {
+            return true;
+        } else {
+            return false;
+        }
     } else {
+        console.warn("That is not a valid ISBN number");
         return false;
     }
 }

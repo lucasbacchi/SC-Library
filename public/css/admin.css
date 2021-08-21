@@ -34,14 +34,15 @@ div#checked-out-books-container > .book {
 }
 
 #edit-entry-search-results {
-    margin-top: 8px;
+    margin: 0px;
     overflow-y: scroll;
-    position: absolute;
-    border: 3px solid var(--teal);
-    width: calc(0.8 * 25% - 19px);
+    position: relative;
+    /*border: 3px solid var(--teal);*/
+    width: calc(100% + 16px);
     display: none;
+    left: -8px;
     max-height: 730px;
-    padding: 8px 12px;
+    padding: 4px 6px;
 }
 
 div#edit-entry-search-results > .book {
@@ -71,6 +72,7 @@ div#edit-entry-search-results > .book {
 #edit-entry {
     grid-column: 3 / 4;
     grid-row: 1 / 5;
+    position: relative;
 }
 
 #checked-out {
@@ -85,4 +87,73 @@ div#edit-entry-search-results > .book {
 
 .book {
     height: 150px;
+}
+
+/* Content if screen is large */
+@media screen and (min-width: 1440px) {
+
+}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {
+    #management-grid {
+        width: calc(100% - 16px*4);
+        margin-left: 8px;
+    }    
+
+    div#edit-entry-search-results > .book {
+        height: auto;
+        flex-wrap: wrap;
+    }
+
+    div#edit-entry-search-results > .book > .bookimage {
+        max-height: 100px;
+    }
+
+    div#edit-entry-search-results > .book > .basic-info > p, div#edit-entry-search-results > .book > .basic-info > b > p {
+        text-align: center;
+    }
+
+
+}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    #management-grid {
+        width: calc(100% - 16px*2);
+        grid-template-columns: 50% 50%;
+        grid-template-rows: 200px 200px 200px 200px 200px 200px 200px 200px;
+    }
+
+    #add-entry {
+        grid-column: 2;
+        grid-row: 5 / 7;
+    }
+    
+    #edit-entry {
+        grid-column: 1 / 2;
+        grid-row: 5 / 9;
+    }
+    
+    #checked-out {
+        grid-column: 1 / 3;
+        grid-row: 1 / 5;
+    }
+    
+    #report {
+        grid-column: 2;
+        grid-row: 7 / 9;
+    }
+
+}
+
+/* Content if screen is really small */
+@media screen and (max-width:570px) {
+
+}
+
+    
+/* Content if screen is super small */
+@media screen and (max-width:500px) {
+    
 }
