@@ -962,6 +962,7 @@ function createEntry() {
                         } else if (order < 100) {
                             newNumber = "0" + order;
                         }
+                        var barcode = "11711" + newNumber + "00";
                         transaction.set(db.collection("books").doc(newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
@@ -991,7 +992,7 @@ function createEntry() {
                             }],
                             order: order + 1
                         });
-                        return "11711" + newNumber + "00";
+                        return barcode;
                     } else {
                         if (order < 10) {
                             order = "00" + order;
