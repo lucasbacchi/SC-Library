@@ -26,6 +26,8 @@ function setupEditEntry(pageQuery) {
         return;
     }
 
+    createEntry();
+
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
@@ -290,44 +292,56 @@ function setupEditEntry(pageQuery) {
                         // We can assume that this is only a year.
                         $("#book-publish-year").val(publish_date);
                     } else {
+                        debugger;
                         var month = publish_date.substring(0, publish_date.indexOf(" "));
                         var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
                         var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
                         switch (month) {
                             case "Jan":
+                            case "January":
                                 month = 1;
                                 break;
                             case "Feb":
+                            case "February":
                                 month = 2;
                                 break;
                             case "Mar":
+                            case "March":
                                 month = 3;
                                 break;
                             case "Apr":
+                            case "April":
                                 month = 4;
                                 break;
                             case "May":
                                 month = 5;
                                 break;
                             case "Jun":
+                            case "June":
                                 month = 6;
                                 break;
                             case "Jul":
+                            case "July":
                                 month = 7;
                                 break;
                             case "Aug":
+                            case "August":
                                 month = 8;
                                 break;
                             case "Sep":
+                            case "September":
                                 month = 9;
                                 break;
                             case "Oct":
+                            case "October":
                                 month = 10;
                                 break;
                             case "Nov":
+                            case "November":
                                 month = 11;
                                 break;
                             case "Dec":
+                            case "December":
                                 month = 12;
                                 break;
                         
