@@ -518,7 +518,12 @@ function calculateISBNCheckDigit(number) {
         for (i = 0; i < digits.length; i++) {
             total += digits[i] * (10 - i);
         }
-        return 11 - (total % 11);
+        
+        var answer = (11 - (total % 11)) % 11;
+        if (answer == 10) {
+            answer = "X";
+        }
+        return answer;
     }
 }
 
@@ -541,7 +546,11 @@ function verifyISBN(number) {
         
         var digits = [];
         for (i = 0; i < number.length; i++) {
-            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+            if (number.substring(0 + i, 1 + i) == "X") {
+                digits[i] = 11;
+            } else {
+                digits[i] = parseInt(number.substring(0 + i, 1 + i));
+            }
         }
 
         var total = 0;

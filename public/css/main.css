@@ -255,7 +255,6 @@ p {
 }
 
 .bookimage {
-    height: 100%;
     max-height: 150px;
     float: left;
     user-select: none;
