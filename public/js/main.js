@@ -461,50 +461,76 @@ function findURLValue(string, key, mightReturnEmpty = false) {
         value = string.substring(string.indexOf("=", position) + 1);
     }
 
-    return value;
+    return decodeURI(value);
 }
 
 function homeBookBoxes() {
-    db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-            if (!doc.exists) {
-                console.error("books document does not exist");
+    if (bookDatabase) {
+        // Don't wait for the database and save ourselves a read request
+        var values = [];
+        let count = 0;
+        for (var i = 0; i < 9; i++) {
+            var rand1 = Math.floor(Math.random() * bookDatabase.length);
+            var rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length) + rand1 * 100;
+            // TODO: Prevent duplicate books (with different barcode numbers)
+            if (values.indexOf(rand2) > -1 || bookDatabase[rand1].books[rand2].isDeleted || bookDatabase[rand1].books[rand2].isHidden) {
+                i--;
+            } else {
+                values.push(rand2);
+            }
+            count++;
+            if (count > 10000) {
+                console.error("The book randomizer is very broken. Giving up for now.");
                 return;
             }
-            var docs = doc.data().order;
-            if (doc.data().books.length < 25 && doc.data().order != 0) {
-                docs--;
-            }
-            var rand = Math.floor(Math.random() * docs);
-            rand = "0" + rand;
-            if (rand.length == 2) rand = "0" + rand;
-            db.collection("books").doc(rand).get().then((doc) => {
+        }
+        for (var i = 0; i < 9; i++) {
+            var book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
+            $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+        }
+    } else {
+        db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
                 if (!doc.exists) {
-                    console.error("books " + rand + " does not exist");
+                    console.error("books document does not exist");
                     return;
                 }
-                var values = [];
-                let count = 0;
-                for (var i = 0; i < 9; i++) {
-                    var random = Math.floor(Math.random() * doc.data().books.length);
-                    if (/*values.indexOf(random) > -1 || */doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
-                        i--;
-                    } else {
-                        values.push(random);
-                    }
-                    count++;
-                    if (count > 10000) {
-                        console.error("The book randomizer is very broken. Giving up for now.");
+                var docs = doc.data().order;
+                if (doc.data().books.length < 25 && doc.data().order != 0) {
+                    docs--;
+                }
+                var rand = Math.floor(Math.random() * docs);
+                rand = "0" + rand;
+                if (rand.length == 2) rand = "0" + rand;
+                db.collection("books").doc(rand).get().then((doc) => {
+                    if (!doc.exists) {
+                        console.error("books " + rand + " does not exist");
                         return;
                     }
-                }
-                for (var i = 0; i < 9; i++) {
-                    var book = doc.data().books[values[i]];
-                    $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
-                }
+                    var values = [];
+                    let count = 0;
+                    for (var i = 0; i < 9; i++) {
+                        var random = Math.floor(Math.random() * doc.data().books.length);
+                        // TODO: Prevent duplicate books (with different barcode numbers)
+                        if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                            i--;
+                        } else {
+                            values.push(random);
+                        }
+                        count++;
+                        if (count > 10000) {
+                            console.error("The book randomizer is very broken. Giving up for now.");
+                            return;
+                        }
+                    }
+                    for (var i = 0; i < 9; i++) {
+                        var book = doc.data().books[values[i]];
+                        $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+                    }
+                });
             });
         });
-    });
+    }
 }
 
 function adminBookBoxes(objects) {
