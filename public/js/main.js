@@ -234,7 +234,7 @@ function search(searchQuery, start = 0, end = 20, viewHidden = false) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             timeLastSearched = new Date();
             console.log("It's been 5 mins since last search (or it's the first one since page load).");
-            db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
+            db.collection("books").where("order", ">=", 0).orderBy("order", "asc").get().then((querySnapshot) => {
                 bookDatabase = [];
                 querySnapshot.forEach((doc) => {
                     if (!doc.exists) {

@@ -32,7 +32,6 @@ var worksObject;
             return;
         }
         createEntry().then((newBarcode) => {
-            debugger;
             // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
             goToPage('admin/editEntry?new=true&isbn=' + isbn + "&id=" + newBarcode);
         });
@@ -45,7 +44,6 @@ var worksObject;
     }
 
     function addEntryWithSpecificBarcodeNumber() {
-        debugger;
         var isbn = $("#add-entry-isbn").val();
         var check = verifyISBN(isbn);
         if (isbn == "") {
@@ -119,7 +117,6 @@ function lookupBook(isbn) {
                 reject();
             }
             if (this.readyState == 4 && this.status == 200) {
-                debugger;
                 resolve(JSON.parse(xhttp.responseText));
             }
         }
@@ -129,12 +126,10 @@ function lookupBook(isbn) {
 function lookupAuthor(bookObject) {
     console.log(bookObject);
     return new Promise(function (resolve, reject) {
-        debugger;
         var total = 0;
         if (bookObject.authors) {
             for (let i = 0; i < bookObject.authors.length; i++) {
                 let xhttp = new XMLHttpRequest();
-                debugger;
                 var authorLink = bookObject.authors[i].key;
 
                 xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
@@ -145,7 +140,6 @@ function lookupAuthor(bookObject) {
                         reject();
                     }
                     if (this.readyState == 4 && this.status == 200) {
-                        debugger;
                         var authorObject = [];
                         authorObject[i] = JSON.parse(xhttp.responseText);
                         if (i == total - 1) {
@@ -175,7 +169,6 @@ function lookupWorks(bookObject) {
                     reject();
                 }
                 if (this.readyState == 4 && this.status == 200) {
-                    debugger;
                     var worksObject = [];
                     worksObject[i] = JSON.parse(xhttp.responseText);
                     if (i == total - 1) {
@@ -262,9 +255,9 @@ function createEntry() {
                         // A new book doc has to be created...
                         var newNumber = order + 1;
                         if (order < 10) {
-                            newNumber = "00" + order;
+                            newNumber = "00" + newNumber;
                         } else if (order < 100) {
-                            newNumber = "0" + order;
+                            newNumber = "0" + newNumber;
                         }
                         var barcode = "11711" + newNumber + "00";
                         transaction.set(db.collection("books").doc(newNumber), {

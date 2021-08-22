@@ -337,7 +337,6 @@ function setupResults(pageQuery) {
         if (bookObject.authors.length > 1) {
             $("#result-page-author-header").html("Authors");
             var authorAnswer = "";
-            debugger;
             bookObject.authors.forEach((item) => {
                 authorAnswer += item.last + ", " + item.first + "<br>";
             });
@@ -412,7 +411,6 @@ function applySearchFilters() {
             results.push(searchCache[i]);
         }
     }
-    debugger;
     createSearchResultsPage(results);
 }
 
