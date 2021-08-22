@@ -234,6 +234,10 @@ p {
 #books {
     width: 70%;
     margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: stretch;
 }
 
 .row {
@@ -244,7 +248,7 @@ p {
 .book {
     width: 31%;
     height: 98%;
-    margin: 1%;
+    margin: 8px;
     padding: 10px;
     border: 1px solid var(--mint);
     color: var(--teal);
@@ -252,6 +256,13 @@ p {
     float: left;
     display: flex;
     justify-content: space-between;
+}
+
+#books > .book {
+    height: initial;
+    flex-basis: 30%;
+    width: auto;
+    flex-grow: 2;
 }
 
 .bookimage {
@@ -277,7 +288,7 @@ p.due-date,
 p.audience,
 p.medium {
     text-align: right;
-    margin: .25em;
+    margin: .25em 0;
 }
 
 p.subjects,
@@ -489,7 +500,6 @@ button.save-button {
 }
 
 .book, .result-listing {
-    box-shadow: 0;
     transition: box-shadow 0.25s;
 }
 
@@ -497,7 +507,10 @@ button.save-button {
 
 
 /* Content if screen is large */
-@media screen and (min-width: 1440px) {
+@media screen and (max-width: 1440px) {
+    #books {
+        width: 98%;
+    }
 
 }
 
@@ -511,13 +524,14 @@ button.save-button {
         padding: 0;
     }
 
-    #books {
-        width: 98%;
-    }
-
     .book {
         width: 31%;
     }
+    
+    #books > .book {
+        flex-basis: 47%;
+    }
+
 
     #small-account-container {
         margin-top: -5px;
@@ -530,6 +544,10 @@ button.save-button {
     
     .book {
         width: 48%;
+    }
+
+    #books > .book {
+        flex-basis: 100%;
     }
 
     nav > li {

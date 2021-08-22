@@ -486,7 +486,7 @@ function homeBookBoxes() {
         }
         for (var i = 0; i < 9; i++) {
             var book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
-            $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+            $('div#books')[0].appendChild(buildBookBox(book, "main"));
         }
     } else {
         db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
@@ -525,7 +525,7 @@ function homeBookBoxes() {
                     }
                     for (var i = 0; i < 9; i++) {
                         var book = doc.data().books[values[i]];
-                        $('div.row')[Math.floor(i / 3)].appendChild(buildBookBox(book, "main"));
+                        $('div#books')[0].appendChild(buildBookBox(book, "main"));
                     }
                 });
             });
