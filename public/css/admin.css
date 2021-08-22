@@ -62,6 +62,8 @@ div#edit-entry-search-results > .book {
     gap: 16px 16px;
     justify-items: stretch;
     align-items: stretch;
+    position: relative;
+    left: -32px;
 }
 
 #add-entry {
