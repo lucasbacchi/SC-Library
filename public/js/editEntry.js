@@ -16,6 +16,7 @@ db.runTransaction((transaction) => {
 */
 
 function setupEditEntry(pageQuery) {
+    file = null;
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
