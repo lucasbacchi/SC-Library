@@ -16,6 +16,7 @@ db.runTransaction((transaction) => {
 */
 
 function setupEditEntry(pageQuery) {
+    file = null;
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
@@ -537,8 +538,8 @@ function saveImage() {
             resolve(storeImage(file));
         } else {
             var xhr = new XMLHttpRequest();
-            xhr.open('GET', $("#book-cover-image").src, true);
-            xhr.responseType = 'file';
+            xhr.open('GET', $("#book-cover-image").attr("src"), true);
+            xhr.responseType = 'blob';
             xhr.onload = function(e) {
                 if (this.status == 200) {
                     file = this.response;
@@ -552,6 +553,10 @@ function saveImage() {
 
 function storeImage(file) {
     var barcodeValue = parseInt($("#barcode").html());
+    if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
+        alert("There was a problem saving that image.");
+        return false;
+    }
     var bookSpecificRef = firebase.storage().ref().child("books");
     var meta;
     if (file.type == "image/jpg" || file.type == "image/jpeg") {
@@ -578,6 +583,7 @@ function storeImage(file) {
 var file;
 
 var loadFile = function(event) {
+    debugger;
     file = event.target.files[0];
     var output = document.getElementById('book-cover-image');
     output.src = URL.createObjectURL(file);
@@ -899,7 +905,7 @@ function validateEntry() {
             return;
         }
         let input = $("#file-input")[0];
-        if (input.files.length > 0) {
+        if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
             saveImage().then((res) => {
                 resolve(res);
             });
@@ -991,6 +997,8 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
             coverLink = valid;
         }
 
+        debugger;
+
         // Defines the paths of the the database collection
         var booksPath = db.collection("books");
     
@@ -1060,7 +1068,6 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         }
     
         var lastUpdatedValue = new Date();
-        debugger;
     
         // Updates the book with the information
         db.runTransaction((transaction) => {
