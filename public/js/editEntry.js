@@ -530,6 +530,44 @@ function setupEditEntry(pageQuery) {
         event.preventDefault();
         return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
     });
+
+    $("#book-medium")[0].addEventListener("input", (event) => {
+        if (event.target.value == "dvd") {
+            var goAway = $(".no-dvd");
+            for (var i = 0; i < goAway.length; i++)
+                goAway[i].style.display = "none";
+        } else {
+            var goAway = $(".no-dvd");
+            for (var i = 0; i < goAway.length; i++)
+                goAway[i].style.display = "";
+        }
+    });
+    
+    $("#book-unnumbered")[0].addEventListener("input", (event) => {
+        if (event.target.checked == true) {
+            $("#book-pages").val("");
+            $("#book-pages")[0].disabled = true;
+        } else {
+            $("#book-pages").val("");
+            $("#book-pages")[0].disabled = false;
+        }
+    });
+    
+    $("#book-no-isbn")[0].addEventListener("input", (event) => {
+        if (event.target.checked == true) {
+            $("#book-isbn-10").val("");
+            $("#book-isbn-10")[0].disabled = true;
+            $("#book-isbn-13").val("");
+            $("#book-isbn-13")[0].disabled = true;
+        } else {
+            $("#book-isbn-10").val("");
+            $("#book-isbn-10")[0].disabled = false;
+            $("#book-isbn-13").val("");
+            $("#book-isbn-13")[0].disabled = false;
+        }
+    });
+
+    
 }
 
 function saveImage() {
@@ -603,42 +641,6 @@ function uploadCoverImageFromExternal(link) {
         console.log("Image has been uploaded from the external source.");
     });
 }
-
-/*$("#book-medium")[0].addEventListener("input", (event) => {
-    if (event.target.value == "dvd") {
-        var goAway = $(".no-dvd");
-        for (var i = 0; i < goAway.length; i++)
-            goAway[i].style.display = "none";
-    } else {
-        var goAway = $(".no-dvd");
-        for (var i = 0; i < goAway.length; i++)
-            goAway[i].style.display = "";
-    }
-});*/
-
-$("#book-unnumbered")[0].addEventListener("input", (event) => {
-    if (event.target.checked == true) {
-        $("#book-pages").val("");
-        $("#book-pages")[0].disabled = true;
-    } else {
-        $("#book-pages").val("");
-        $("#book-pages")[0].disabled = false;
-    }
-});
-
-$("#book-no-isbn")[0].addEventListener("input", (event) => {
-    if (event.target.checked == true) {
-        $("#book-isbn-10").val("");
-        $("#book-isbn-10")[0].disabled = true;
-        $("#book-isbn-13").val("");
-        $("#book-isbn-13")[0].disabled = true;
-    } else {
-        $("#book-isbn-10").val("");
-        $("#book-isbn-10")[0].disabled = false;
-        $("#book-isbn-13").val("");
-        $("#book-isbn-13")[0].disabled = false;
-    }
-});
 
 function validateEntry() {
     return new Promise((resolve, reject) => {
