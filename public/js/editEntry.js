@@ -231,12 +231,12 @@ function setupEditEntry(pageQuery) {
         // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
         // Also at the save button, the image link should be stored in the database
         try {
-            $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-            // uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+            $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+            // uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
         } catch {
             try {
-                $('#book-cover-image').attr('src', "http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                //uploadCoverImageFromExternal("http://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+                //uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
             } catch {
                 console.warn("A cover could not be found for either the book or the work");
                 console.log(bookObject);
@@ -542,6 +542,10 @@ function saveImage() {
             xhr.responseType = 'blob';
             xhr.onload = function(e) {
                 if (this.status == 200) {
+                    if (this.responseURL.substring(0, 5) != "https") {
+                        alert("This image was not able to be saved securely. Please download it and try again.");
+                        resolve(false);
+                    }
                     file = this.response;
                     resolve(storeImage(file));
                 }
