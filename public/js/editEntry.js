@@ -16,7 +16,6 @@ db.runTransaction((transaction) => {
 */
 
 function setupEditEntry(pageQuery) {
-    file = null;
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
@@ -327,7 +326,6 @@ function setupEditEntry(pageQuery) {
                 // We can assume that this is only a year.
                 $("#book-publish-year").val(publish_date);
             } else {
-                debugger;
                 var month = publish_date.substring(0, publish_date.indexOf(" "));
                 var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
                 var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
@@ -587,7 +585,6 @@ function storeImage(file) {
 var file;
 
 var loadFile = function(event) {
-    debugger;
     file = event.target.files[0];
     var output = document.getElementById('book-cover-image');
     output.src = URL.createObjectURL(file);
@@ -1001,8 +998,6 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
             coverLink = valid;
         }
 
-        debugger;
-
         // Defines the paths of the the database collection
         var booksPath = db.collection("books");
     
@@ -1147,7 +1142,6 @@ function deleteEntry() {
 
 function convertToUTC(date) {
     // TODO: Acutally account for time shifts with Daylight Savings
-    debugger;
     console.log("The date that was just saved was: " + new Date(date.valueOf() - 1000 * 60 * 60 * 5));
     return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
 }

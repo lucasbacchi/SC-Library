@@ -135,7 +135,7 @@ var currentExtension;
             // Prevent users from going to the same page (just don't reload the content if you do)
             if (currentPage && ((pageName == currentPage && pageName != "/search") || (pageName == "/search" && findURLValue(currentQuery, "query", true) == findURLValue(pageQuery, "query", true) && findURLValue(pageQuery, "query", true) != ""))) {
                 // TODO: Remove when I know it's not going to break everything
-                debugger;
+
                 console.log("The user attempted to view the current page, and it was blocked.");
                 return;
             }
@@ -172,6 +172,7 @@ var currentExtension;
             });
 
             function getPage(pageName) {
+
                 const xhttp = new XMLHttpRequest();
                 if (directory.includes(pageName)) {
                     xhttp.open("GET", "/content" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
@@ -182,6 +183,7 @@ var currentExtension;
 
                 // Set the content of the page
                 xhttp.onreadystatechange = function () {
+    
                     if (this.readyState == 4 && this.status == 200) {
                         if (currentPage != pageName) {
                             $('#content').addClass("fade");
