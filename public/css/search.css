@@ -206,7 +206,6 @@ div.search-page-search-container {
 
 .advanced-info {
     flex-basis: 70%;
-    flex-grow: 5;
     margin-left: 8px;
 }
 
@@ -232,6 +231,10 @@ div.search-page-search-container {
         width: calc(80% - 72px);
     }
 
+    .advanced-info {
+        flex-basis: 60%;
+    }
+
 }
 
 /* Content if screen is small */
@@ -249,6 +252,10 @@ div.search-page-search-container {
     #result-page-container {
         width: calc(100% - 128px);
         margin: 32px;
+    }
+
+    .advanced-info {
+        flex-basis: 50%;
     }
 
 
