@@ -105,9 +105,9 @@ function setupEditEntry(pageQuery) {
                 $("#book-purchase-price").val(data.purchasePrice);
                 $("#book-vendor").val(data.vendor);
 
-                // TO DO: Fix...
                 if (data.lastUpdated != null) {
-                    $("#last-updated").val("This entry was last updated at: " + data.lastUpdated.toDate().toString());
+                    var lastUpdated = data.lastUpdated.toDate();
+                    $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
                 }
             });
 

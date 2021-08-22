@@ -286,7 +286,8 @@ p.title,
 p.author,
 p.due-date,
 p.audience,
-p.medium {
+p.medium,
+p.barcode {
     text-align: right;
     margin: .25em 0;
 }
@@ -509,7 +510,7 @@ button.save-button {
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {
     #books {
-        width: 98%;
+        width: 90%;
     }
 
 }
@@ -522,6 +523,10 @@ button.save-button {
 
     nav {
         padding: 0;
+    }
+
+    #books {
+        width: 98%;
     }
 
     .book {
@@ -544,6 +549,10 @@ button.save-button {
     
     .book {
         width: 48%;
+    }
+
+    #books {
+        width: 90%;
     }
 
     #books > .book {

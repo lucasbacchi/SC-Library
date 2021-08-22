@@ -285,7 +285,17 @@ function setupResults(pageQuery) {
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         $("#result-page-call-number").html(bookObject.ddc);
-        $("#result-page-medium").html(bookObject.medium);
+        var mediumAnswer = "";
+        if (bookObject.medium == "paperback") {
+            mediumAnswer = "Paperback";
+        } else if (bookObject.medium == "hardcover") {
+            mediumAnswer = "Hardcover";
+        } else if (bookObject.medium == "dvd") {
+            mediumAnswer = "DVD";
+        } else {
+            console.warn("There is a case that is not covered for: " + bookObject.medium);
+        }
+        $("#result-page-medium").html(mediumAnswer);
         var audienceAnswer = "";
         for (i = 0; i < 4; i++) {
             var temp = bookObject.audience[i];
@@ -327,8 +337,9 @@ function setupResults(pageQuery) {
         if (bookObject.authors.length > 1) {
             $("#result-page-author-header").html("Authors");
             var authorAnswer = "";
+            debugger;
             bookObject.authors.forEach((item) => {
-                authorAnswer += item.last + ", " + item.first;
+                authorAnswer += item.last + ", " + item.first + "<br>";
             });
             $("#result-page-author").html(authorAnswer);
         } else {
@@ -337,7 +348,7 @@ function setupResults(pageQuery) {
         if (bookObject.illustrators.length > 0) {
             var illustratorAnswer = "";
             bookObject.illustrators.forEach((item) => {
-                illustratorAnswer += item.last + ", " + item.first;
+                illustratorAnswer += item.last + ", " + item.first + "<br>";
             });
             $("#result-page-illustrator").html(illustratorAnswer);
             if (bookObject.illustrators.length > 1) {

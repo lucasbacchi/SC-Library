@@ -202,7 +202,7 @@ function adminSearch() {
     if (searchQuery) {
         $("#edit-entry-search-results").show();
         $("#edit-entry-search-results").empty();
-        search(searchQuery).then((results) => {
+        search(searchQuery, undefined, undefined, true).then((results) => {
             if (results.length == 0) {
                 $("#edit-entry-search-results").html("Your search returned no results. Please try again.");
             } else {
@@ -639,4 +639,24 @@ function addStats() {
         });
         $("#number-of-books").html(count);
     });
+}
+
+function viewMissingBarcodes() {
+    var missingArray = [];
+    bookDatabase.forEach((document) => {
+        // Iterate through each of the 10-ish docs
+        for (var i = 0; i < document.books.length; i++) {
+            // Iterate through each of the 100 books in each doc
+            var book = document.books[i];
+            if (book.lastUpdated) {
+                continue;
+            }
+            missingArray.push(book)
+        }
+    });
+    var message = "The following Barcodes have been created, but they have never been updated:\n";
+    missingArray.forEach((book) => {
+        message += book.barcodeNumber + "\n";
+    });
+    alert(message);
 }
