@@ -19,6 +19,7 @@ function setupEditEntry(pageQuery) {
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
+    debugger;
     
     if (barcodeNumber == "" && newEntry == false) {
         alert("The barcode that you are trying to edit is not valid.");
@@ -29,7 +30,7 @@ function setupEditEntry(pageQuery) {
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
         if (!isNaN(barcodeNumber)) {
-            var document = Math.floor(barcodeNumber / 100) % 1000;
+            var document = Math.floor(barcodeNumber / 100) % 100;
             if (document >= 100) {
                 document = "" + document;
             } else if (document >= 10) {
