@@ -500,7 +500,7 @@ function calculateISBNCheckDigit(number) {
                 total += digits[i] * 3;
             }
         }
-        return (10 - (total % 10)).toString();
+        return ((10 - total) % 10).toString();
     } else if (length == 9) {
         var digits = [];
         var total = 0;

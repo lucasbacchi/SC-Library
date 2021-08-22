@@ -604,7 +604,7 @@ function uploadCoverImageFromExternal(link) {
     });
 }
 
-/*$("#book-medium")[0].addEventListener("input", (event) => {
+$("#book-medium")[0].addEventListener("input", (event) => {
     if (event.target.value == "dvd") {
         var goAway = $(".no-dvd");
         for (var i = 0; i < goAway.length; i++)
@@ -619,14 +619,26 @@ function uploadCoverImageFromExternal(link) {
 $("#book-unnumbered")[0].addEventListener("input", (event) => {
     if (event.target.checked == true) {
         $("#book-pages").val("");
-        $("#book-pages")[0].style.backgroundColor = "#eee";
-        $("#book-pages")[0].readOnly = true;
+        $("#book-pages")[0].disabled = true;
     } else {
         $("#book-pages").val("");
-        $("#book-pages")[0].style.backgroundColor = "white";
-        $("#book-pages")[0].readOnly = false;
+        $("#book-pages")[0].disabled = false;
     }
-});*/
+});
+
+$("#book-no-isbn")[0].addEventListener("input", (event) => {
+    if (event.target.checked == true) {
+        $("#book-isbn-10").val("");
+        $("#book-isbn-10")[0].disabled = true;
+        $("#book-isbn-13").val("");
+        $("#book-isbn-13")[0].disabled = true;
+    } else {
+        $("#book-isbn-10").val("");
+        $("#book-isbn-10")[0].disabled = false;
+        $("#book-isbn-13").val("");
+        $("#book-isbn-13")[0].disabled = false;
+    }
+});
 
 function validateEntry() {
     return new Promise((resolve, reject) => {
@@ -656,6 +668,7 @@ function validateEntry() {
         var noneValue = $("#book-audience-none")[0].checked;
         var isbn10Value = $("#book-isbn-10").val();
         var isbn13Value = $("#book-isbn-13").val();
+        var noISBN = $("#book-no-isbn")[0].checked;
         var publisher1Value = $("#book-publisher-1").val();
         var publishMonthValue = $("#book-publish-month").val();
         var publishDayValue = $("#book-publish-day").val();
@@ -765,7 +778,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (mediumValue != "dvd" && isbn10Value == "" && isbn13Value == "") {
+        if (mediumValue != "dvd" && !noISBN && isbn10Value == "" && isbn13Value == "") {
             alert("Please enter at least one ISBN number!");
             var rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -783,7 +796,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!verifyISBN(isbn10Value) && isbn10Value != "") {
+        if (!noISBN && !verifyISBN(isbn10Value) && isbn10Value != "") {
             alert("The ISBN number you entered was not valid! Please double check it.");
             var rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -795,7 +808,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!verifyISBN(isbn13Value) && isbn13Value != "") {
+        if (!noISBN && !verifyISBN(isbn13Value) && isbn13Value != "") {
             alert("The ISBN number you entered was not valid! Please double check it.");
             var rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -845,7 +858,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (unNumbered == false && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
+        if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
             alert("Please enter a valid number of pages!");
             var rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -976,6 +989,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var noneValue = $("#book-audience-none")[0].checked;
     var isbn10Value = $("#book-isbn-10").val();
     var isbn13Value = $("#book-isbn-13").val();
+    var noISBN = $("#book-no-isbn")[0].checked;
     var publisher1Value = $("#book-publisher-1").val();
     var publisher2Value = $("#book-publisher-2").val();
     var publishMonthValue = $("#book-publish-month").val();
@@ -1038,6 +1052,11 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         }
         if (publisher2Value != "") {
             publishersValue.push(publisher2Value);
+        }
+    
+        if (noISBN) {
+            isbn10Value = "";
+            isbn13Value = "";
         }
     
         if (unNumbered) {
