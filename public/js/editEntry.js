@@ -604,7 +604,7 @@ function uploadCoverImageFromExternal(link) {
     });
 }
 
-$("#book-medium")[0].addEventListener("input", (event) => {
+/*$("#book-medium")[0].addEventListener("input", (event) => {
     if (event.target.value == "dvd") {
         var goAway = $(".no-dvd");
         for (var i = 0; i < goAway.length; i++)
@@ -614,7 +614,7 @@ $("#book-medium")[0].addEventListener("input", (event) => {
         for (var i = 0; i < goAway.length; i++)
             goAway[i].style.display = "";
     }
-});
+});*/
 
 $("#book-unnumbered")[0].addEventListener("input", (event) => {
     if (event.target.checked == true) {
