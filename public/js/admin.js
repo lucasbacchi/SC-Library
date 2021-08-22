@@ -306,7 +306,7 @@ function createEntry() {
                         
                         var barcode;
                         if (numBooksInDoc < 10) {
-                            barcode = "11711" + order + "0" + numBooksInDoc;
+                            barcode = "11711" + "0" + order + numBooksInDoc;
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
@@ -659,4 +659,35 @@ function viewMissingBarcodes() {
         message += book.barcodeNumber + "\n";
     });
     alert(message);
+}
+
+function downloadDatabase() {
+    search("", 0, 0, true).then(() =>{
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.id = "download-database-link";
+        a.download = "database.json";
+        a.href = dataStr;
+        $("#content")[0].appendChild(a);
+        $("#download-database-link").click();
+    });
+}
+
+function uploadDatabase() {
+    $("#import-input").click();
+}
+
+function importFile(event) {
+    return new Promise(function (resolve, reject) {
+        resolve(event.target.files[0]);
+    });
+}
+
+function setUploadDatabase() {
+    importFile.then((file) => {
+        var dataToUpload = JSON.parse(JSON.stringify(file));
+        console.log(dataToUpload);
+        alert("The database wasn't uploaded, because this function didn't get finished.");
+    })
 }
