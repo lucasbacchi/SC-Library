@@ -62,7 +62,7 @@ var worksObject;
                 a.innerHTML = "Click here to overwrite the barcode above."
                 $("#add-entry")[0].appendChild(a);
             } else {
-                alert("You may not create a new book with this barcode.");
+                alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
                 return;
             }
         });
