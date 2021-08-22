@@ -228,7 +228,7 @@ var searchCache;
 var timeLastSearched;
 
 
-function search(searchQuery, start = 0, end = 20) {
+function search(searchQuery, start = 0, end = 20, viewHidden = false) {
     return new Promise(function(resolve, reject) {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
@@ -246,14 +246,18 @@ function search(searchQuery, start = 0, end = 20) {
                 if (end == 0) {
                     resolve();
                 }
-                resolve(performSearch(searchQuery, start, end));
+                performSearch(searchQuery, start, end, viewHidden).then((output) => {
+                    resolve(output);
+                });
             });
         } else {
             // The bookDatabase cache is recent enough, just use that
             if (end == 0) {
                 resolve();
             }
-            resolve(performSearch(searchQuery, start, end));
+            performSearch(searchQuery, start, end, viewHidden).then((output) => {
+                resolve(output);
+            });
         }
     });
 }
@@ -269,88 +273,95 @@ const TITLE_WEIGHT = 8;
 const BARCODE_WEIGHT = 50;
 const ISBN_WEIGHT = 50;
 
-function performSearch(searchQuery, start, end) {
+function performSearch(searchQuery, start, end, viewHidden = false) {
     var searchQueryArray = searchQuery.replace(/-/g , " ").replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").toLowerCase().split(" ");
 
     var bookIndexNumber = 0;
 
     var scoresArray = [];
 
-    // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
-    bookDatabase.forEach((document) => {
-        // Iterate through each of the 10-ish docs
-        for (var i = 0; i < document.books.length; i++) {
-            // Iterate through each of the 100 books in each doc
-            var book = document.books[i];
-            if (book.isDeleted || book.isHidden || (book.title == "" && !book.lastUpdated)) {
-                continue;
+    return isAdminCheck().then((isAdmin) => {
+        // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
+        bookDatabase.forEach((document) => {
+            // Iterate through each of the 10-ish docs
+            for (var i = 0; i < document.books.length; i++) {
+                // Iterate through each of the 100 books in each doc
+                var book = document.books[i];
+                if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
+                    continue;
+                }
+                var score = 0;
+                // Authors
+                for (var j = 0; j < book.authors.length; j++) {
+                    var arr1 = book.authors[j].first.replace(/-/g , " ").split(" ");
+                    var arr2 = book.authors[j].last.replace(/-/g , " ").split(" ");
+                    var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                    score += arr1Ratio * AUTHOR_WEIGHT;
+                    var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                    score += arr2Ratio * AUTHOR_WEIGHT;
+                }
+                // Barcode Number
+                var barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+                score += barcodeRatio * BARCODE_WEIGHT;
+                // DDC?
+                // Number of Pages?
+                // Publish Date?
+                // Description? (as opposed to just keywords)
+                // Illustrators
+                for (var j = 0; j < book.illustrators.length; j++) {
+                    var arr1 = book.illustrators[j].first.replace(/-/g , " ").split(" ");
+                    var arr2 = book.illustrators[j].last.replace(/-/g , " ").split(" ");
+                    var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                    score += arr1Ratio * ILLUSTRATOR_WEIGHT;
+                    var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                    score += arr2Ratio * ILLUSTRATOR_WEIGHT;
+                }
+                // ISBN 10 and ISBN 13
+                var ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
+                score += ISBNRatio * ISBN_WEIGHT;
+                // Keywords
+                if (book.keywords.length != 0) {
+                    var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
+                    score += keywordsRatio * KEYWORDS_WEIGHT;
+                }
+                // Publishers
+                for (var j = 0; j < book.publishers.length; j++) {
+                    var arr = book.publishers[j].replace(/-/g , " ").split(" ");
+                    score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
+                }
+                // Subjects
+                for (var k = 0; k < book.subjects.length; k++) {
+                    var arr = book.subjects[k].replace(/-/g , " ").split(" ");
+                    score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
+                }
+                // Subtitle
+                score += countInArray(book.subtitle.replace(/-/g , " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
+                // Title
+                score += countInArray(book.title.replace(/-/g , " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
+                scoresArray.push({book:book, score: score});
             }
-            var score = 0;
-            // Authors
-            for (var j = 0; j < book.authors.length; j++) {
-                var arr1 = book.authors[j].first.replace(/-/g , " ").split(" ");
-                var arr2 = book.authors[j].last.replace(/-/g , " ").split(" ");
-                var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
-                score += arr1Ratio * AUTHOR_WEIGHT;
-                var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
-                score += arr2Ratio * AUTHOR_WEIGHT;
+        });
+        scoresArray.sort((a, b) => {
+            // Custom Sort
+            return b.score - a.score;
+        });
+        var returnCount = 0;
+        var returnArray = [];
+        console.log("Scores for \"" + searchQuery + "\": ", scoresArray);
+        scoresArray.forEach((item) => {
+            if (item.score < 1) return;
+            if (isNaN(item.score)) {
+                console.error("A score for one of the books is NaN. Look into that.");
+                return;
             }
-            // Barcode Number
-            var barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
-            score += barcodeRatio * BARCODE_WEIGHT;
-            // DDC?
-            // Number of Pages?
-            // Publish Date?
-            // Description? (as opposed to just keywords)
-            // Illustrators
-            for (var j = 0; j < book.illustrators.length; j++) {
-                var arr1 = book.illustrators[j].first.replace(/-/g , " ").split(" ");
-                var arr2 = book.illustrators[j].last.replace(/-/g , " ").split(" ");
-                var arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
-                score += arr1Ratio * ILLUSTRATOR_WEIGHT;
-                var arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
-                score += arr2Ratio * ILLUSTRATOR_WEIGHT;
+            returnCount++;
+            if (returnCount <= end && returnCount > start) {
+                returnArray.push(item.book);
             }
-            // ISBN 10 and ISBN 13
-            var ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
-            score += ISBNRatio * ISBN_WEIGHT;
-            // Keywords
-            var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
-            score += keywordsRatio * KEYWORDS_WEIGHT;
-            // Publishers
-            for (var j = 0; j < book.publishers.length; j++) {
-                var arr = book.publishers[j].replace(/-/g , " ").split(" ");
-                score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
-            }
-            // Subjects
-            for (var k = 0; k < book.subjects.length; k++) {
-                var arr = book.subjects[k].replace(/-/g , " ").split(" ");
-                score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
-            }
-            // Subtitle
-            score += countInArray(book.subtitle.replace(/-/g , " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
-            // Title
-            score += countInArray(book.title.replace(/-/g , " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
-
-            scoresArray.push({book:book, score: score});
-        }
+        });
+        searchCache = returnArray;
+        return returnArray;
     });
-    scoresArray.sort((a, b) => {
-        // Custom Sort
-        return a.score - b.score;
-    });
-    var returnCount = 0;
-    var returnArray = [];
-    console.log("Scores: ", scoresArray);
-    scoresArray.forEach((item) => {
-        if (item.score < 1) return;
-        returnCount++;
-        if (returnCount <= end && returnCount > start) {
-            returnArray.push(item.book);
-        }
-    });
-    searchCache = returnArray;
-    return returnArray;
 }
 
 function countInArray(arr, searchQueryArray, strict = false) {
@@ -373,6 +384,9 @@ function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
     var max = Math.max(a.length, b.length);
+    if (max == 0) {
+        return 0;
+    }
     var similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
     // This threshold seems pretty good, it prevents things from showing up if they share one or two letters.
     if (similarity < 0.7) {
@@ -550,12 +564,6 @@ function buildBookBox(obj, page, num = 0) {
         default:
             div.classList.add("book");
     }
-    if (page == "edit-entry") {
-        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
-        div.setAttribute("onclick", string);
-    } else {
-        div.setAttribute("onclick","javascript:goToPage('result?id=" + obj.barcodeNumber + "');");
-    }
     const div1 = document.createElement('div');
     const div2 = document.createElement('div');
     div.appendChild(div1);
@@ -580,6 +588,16 @@ function buildBookBox(obj, page, num = 0) {
     div2.appendChild(b);
     div2.appendChild(author);
     div2.classList.add("basic-info");
+    if (page == "edit-entry") {
+        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
+        div.setAttribute("onclick", string);
+        const barcode = document.createElement("p");
+        barcode.classList.add("barcode")
+        barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
+        div2.appendChild(barcode);
+    } else {
+        div.setAttribute("onclick","javascript:goToPage('result?id=" + obj.barcodeNumber + "');");
+    }
     if (page == "account") {
         var frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
