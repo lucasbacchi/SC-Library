@@ -13,7 +13,15 @@
     "rewrites": [{
       "source": "**",
       "destination": "/index.html"
-    }]
+    }],
+    "headers": [{
+      "source":"*",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "no-cache"
+        }]
+      }
+    ]
   },
   "storage": {
     "rules": "storage.rules"

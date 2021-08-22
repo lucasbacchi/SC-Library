@@ -655,15 +655,18 @@ function viewMissingBarcodes() {
 }
 
 function downloadDatabase() {
-    search("", 0, 0, true).then(() =>{
+    search("", 0, 0, true).then(() => {
         var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
         a.id = "download-database-link";
         a.download = "database.json";
         a.href = dataStr;
+        a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
-        $("#download-database-link").click();
+        window.setTimeout(() => {
+            $("#download-database-link")[0].click();
+        }, 500);
     });
 }
 
