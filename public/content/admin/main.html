@@ -36,5 +36,9 @@
         <p><a onclick="javascript:viewMissingBarcodes();">View Missing Barcodes</a></p>
         <h3>Generate New Barcodes:</h3>
         <p><a onclick="javascript:goToPage('admin/barcode')">Generate</a></p>
+        <h3>Download a Backup of the Database (do this often)</h3>
+        <p><a onclick="javascript:uploadDatabase();">Import</a></p>
+        <input id="import-input" type="file" style="display: none;" onchange="javascript:setUploadDatabase(event);">
+        <p><a onclick="javascript:downloadDatabase();">Export</a></p>
     </div>
 </div>
