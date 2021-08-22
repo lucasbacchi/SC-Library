@@ -495,7 +495,7 @@ function calculateISBNCheckDigit(number) {
     if (length == 12) {
         var digits = [];
         for (i = 0; i < length; i++) {
-            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+            digits[i] = parseInt(number.substring(i, i + 1));
         }
 
         var total = 0;
@@ -506,12 +506,12 @@ function calculateISBNCheckDigit(number) {
                 total += digits[i] * 3;
             }
         }
-        return 10 - (total % 10);
+        return (10 - (total % 10)).toString();
     } else if (length == 9) {
         var digits = [];
         var total = 0;
         for (i = 0; i < length; i++) {
-            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+            digits[i] = parseInt(number.substring(i, i + 1));
         }
 
         
@@ -523,7 +523,7 @@ function calculateISBNCheckDigit(number) {
         if (answer == 10) {
             answer = "X";
         }
-        return answer;
+        return answer.toString();
     }
 }
 
@@ -546,10 +546,10 @@ function verifyISBN(number) {
         
         var digits = [];
         for (i = 0; i < number.length; i++) {
-            if (number.substring(0 + i, 1 + i) == "X") {
-                digits[i] = 11;
+            if (number.substring(i, i + 1) == "X") {
+                digits[i] = 10;
             } else {
-                digits[i] = parseInt(number.substring(0 + i, 1 + i));
+                digits[i] = parseInt(number.substring(i, i + 1));
             }
         }
 
@@ -568,7 +568,7 @@ function verifyISBN(number) {
         
         var digits = [];
         for (i = 0; i < number.length; i++) {
-            digits[i] = parseInt(number.substring(0 + i, 1 + i));
+            digits[i] = parseInt(number.substring(i, i + 1));
         }
 
         var total = 0;
