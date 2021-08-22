@@ -695,7 +695,8 @@ function listSubjects(subj) {
 
 function shortenDescription(desc) {
     var cutoff = desc.indexOf(". ", 300);
-    if (desc.length <= cutoff) return desc;
+    desc.replace(/\n/g , "<br>");
+    if (desc.length <= cutoff || cutoff == -1) return desc;
     else return desc.substring(0, cutoff) + ". ...";
 }
 
