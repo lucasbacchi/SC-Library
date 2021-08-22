@@ -912,6 +912,7 @@ function validateEntry() {
 function isValidDate(m, d, y) {
     var year = parseInt(y);
     if (isNaN(year)) return false;
+    if (year < 100) return false;
     var month = parseInt(m) - 1;
     if (isNaN(month) && m != "") return false;
     var day = parseInt(d);
@@ -919,10 +920,10 @@ function isValidDate(m, d, y) {
     if (m == "" && d != "") return false;
     if ((month > 11 || month < 0) && m != "") return false;
     if ((day > 31 || day < 1) && d != "") return false;
-    if (day == 31 & (month == 4 || month == 6 || month == 9 || month == 11)) return false;
-    if (month == 2 && day > 29) return false;
-    if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 2 && day == 29) return false;
-    var date = new Date(year, month - 1, day);
+    if (day == 31 & (month == 3 || month == 5 || month == 8 || month == 10)) return false;
+    if (month == 1 && day > 29) return false;
+    if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 1 && day == 29) return false;
+    var date = new Date(year, month, day);
     if (date.getTime() > Date.now()) return false;
     var founded = new Date(1711, 9, 17);
     if (date.getTime() < founded.getTime()) return false;
