@@ -291,6 +291,7 @@ function createEntry() {
                         });
                         return barcode;
                     } else {
+                        debugger;
                         if (order < 10) {
                             order = "00" + order;
                         } else if (order < 100) {
@@ -299,7 +300,7 @@ function createEntry() {
                         
                         var barcode;
                         if (numBooksInDoc < 10) {
-                            barcode = "11711" + "0" + order + numBooksInDoc;
+                            barcode = "11711" + order + "0" + numBooksInDoc;
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
