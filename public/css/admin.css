@@ -35,6 +35,7 @@ div#checked-out-books-container > .book {
 
 #edit-entry-search-results {
     margin: 0px;
+    margin-top: 8px;
     overflow-y: scroll;
     position: relative;
     /*border: 3px solid var(--teal);*/
@@ -43,6 +44,10 @@ div#checked-out-books-container > .book {
     left: -8px;
     max-height: 730px;
     padding: 4px 6px;
+}
+
+#thumbnail-canvas {
+    display: none;
 }
 
 div#edit-entry-search-results > .book {
