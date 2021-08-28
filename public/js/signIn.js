@@ -212,7 +212,7 @@ function handleSignUp() {
                     // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
                     db.runTransaction((transaction) => {
                         var cloudVarsPath = db.collection("config").doc("writable_vars");
-                        // Get the variable stored in the cloud_vars area
+                        // Get the variable stored in the writable_vars area
                         return transaction.get(cloudVarsPath).then((doc) => {
                             if (!doc.exists) {
                                 throw "Document does not exist!";

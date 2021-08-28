@@ -2,7 +2,6 @@
 db.runTransaction((transaction) => {
     // This code may run multiple times if there are confilcts
     var bookPath = db.collection("books").doc(barcodeNumber);
-    // Get the variable stored in the cloud_vars area
     return transaction.get(bookPath).then((doc) => {
         if (!doc.exists) {
             throw "Document does not exist!";
@@ -135,32 +134,6 @@ function setupEditEntry(pageQuery) {
             }).catch((error) => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
                 alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
-                
-                // Used to delete the entry and make them start over... that's just a bad idea...
-                /*goToPage('admin/main');
-                // This can happen async so the user is not interupted.
-                db.runTransaction((transaction) => {
-                    var cloudVarsPath = db.collection("config").doc("cloud_vars");
-                    var booksPath = db.collection("books");
-                    // Get the variable stored in the cloud_vars area
-                    return transaction.get(cloudVarsPath).then((doc) => {
-                        if (!doc.exists) {
-                            throw "Document does not exist!";
-                        }
-                        transaction.update(cloudVarsPath, {
-                            missed_barcodes: firebase.firestore.FieldValue.arrayUnion(barcodeNumber)
-                        });
-
-                        transaction.delete(booksPath.doc(barcodeNumber.toString()))
-                    });
-                }).then((barcodeNumber) => {
-                    // After both writes complete, send the user to the edit page and take it from there.
-                    console.log("New Entry Created with barcode: ", barcodeNumber);
-                    resolve(barcodeNumber);
-                }).catch((err) => {
-                    console.error(err);
-                    reject(err);
-                });*/
             });
         } else {
             var noISBN = true;
@@ -617,6 +590,7 @@ function storeImage(file) {
             $('#book-cover-image').attr('src', url);
             return url;
         }).catch(function(error) {
+            alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
             console.error(error);
         });
     });
