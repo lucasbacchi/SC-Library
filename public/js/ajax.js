@@ -59,7 +59,7 @@ var currentExtension;
     function isAdminCheck(recheck = false) {
         return new Promise(function (resolve, reject) {
             if (isAdmin == null || recheck) {
-                firebase.firestore().collection("config").doc("private_vars").get().then((doc) => {
+                firebase.firestore().collection("admin").doc("private_vars").get().then((doc) => {
                     isAdmin = true;
                     resolve(true);
                 }).catch((error) => {
@@ -218,7 +218,7 @@ var currentExtension;
                             "/help": "Help",
                             "/login": "Login",
                             "/main": "Home",
-                            "/result": "Result", // This will get changed on the page to be specific to the title.
+                            "/result": "Search Result", // This will get changed on the page to be specific to the title.
                             "/search": "Search Results",
                             "/signup": "Signup",
                             "/sitemap": "Sitemap"
@@ -226,9 +226,9 @@ var currentExtension;
 
                         // Add Titles baseed on page Name
                         if (titleList[pageName] != undefined) {
-                            document.title = titleList[pageName] + " | South Church Library Catalog";
+                            changePageTitle(titleList[pageName], false);
                         } else if (pageUrl == "./") {
-                            document.title = "Home | South Church Library Catalog";
+                            changePageTitle("Home", false);
                         } else {
                             document.title = "South Church Library Catalog";
                         }
@@ -394,6 +394,19 @@ function handleHistoryPages() {
     let search = document.location.search;
     let hash = document.location.hash;
     goToPage(path + search + hash, true);
+}
+
+function changePageTitle (newTitle, append = true) {
+    if (newTitle == "") {
+        document.title = "South Church Library Catalog";
+    } else {
+        if (append) {
+            var currentTitle = document.title;
+            document.title = newTitle + " | " + currentTitle;
+        } else {
+            document.title = newTitle + " | South Church Library Catalog";
+        }
+    }
 }
 
 

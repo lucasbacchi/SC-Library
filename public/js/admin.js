@@ -291,7 +291,6 @@ function createEntry() {
                         });
                         return barcode;
                     } else {
-                        debugger;
                         if (order < 10) {
                             order = "00" + order;
                         } else if (order < 100) {

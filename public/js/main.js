@@ -478,6 +478,38 @@ function findURLValue(string, key, mightReturnEmpty = false) {
     return decodeURI(value);
 }
 
+function setURLValue(param, value, append = true) {
+    var string = window.location.href;
+    // may also be able to use currentQuery for above
+    var answer = "";
+    // does param already exist?
+    if (append && string.indexOf("?") != -1) {
+        var paramAlreadyExists = (string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0);
+        if (paramAlreadyExists) {
+            // Edit it and return it.
+            if (string.indexOf("?" + param + "=") >= 0) {
+                answer = string.substring(0, string.indexOf("=") + 1);
+                answer = answer + value;
+                if (answer.indexOf("&") >= 0) {
+                    answer += string.substring(answer.indexOf("&"), string.length);
+                }
+            } else if (string.indexOf("&" + param + "=") > 0) {
+                answer = string.substring(0, string.indexOf("=", string.indexOf("&" + param + "=") + 1));
+                answer = answer + value;
+                if (string.indexOf("&", string.indexOf(param + "=")) >= 0) {
+                    answer += string.substring(string.indexOf("&"), string.length);
+                }
+            }
+        } else {
+            answer = string + "&" + param + "=" + value;
+        }
+    } else {
+        answer = "?" + param + "=" + value;
+    }
+
+    window.history.pushState({}, "", encodeURI(answer));
+}
+
 function homeBookBoxes() {
     if (bookDatabase) {
         // Don't wait for the database and save ourselves a read request
@@ -485,12 +517,13 @@ function homeBookBoxes() {
         let count = 0;
         for (var i = 0; i < 9; i++) {
             var rand1 = Math.floor(Math.random() * bookDatabase.length);
-            var rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length) + rand1 * 100;
+            var rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
+            var bookNumber = rand2 + rand1 * 100;
             // TODO: Prevent duplicate books (with different barcode numbers)
             if (values.indexOf(rand2) > -1 || bookDatabase[rand1].books[rand2].isDeleted || bookDatabase[rand1].books[rand2].isHidden) {
                 i--;
             } else {
-                values.push(rand2);
+                values.push(bookNumber);
             }
             count++;
             if (count > 10000) {

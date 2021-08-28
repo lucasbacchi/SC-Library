@@ -7,9 +7,6 @@ service cloud.firestore {
     match /books/{barcode} {
       allow read: if true;
     }
-    match /index_books/{barcode} {
-      allow read: if true;
-    }
     match /config/cloud_vars {
       allow read: if true;
     }
@@ -18,11 +15,10 @@ service cloud.firestore {
       allow write: if request.auth != null && request.resource.data.maxCardNumber > get(/databases/$(database)/documents/config/writable_vars).data.maxCardNumber;
     }
     match /users/{userId} {
-        allow read, write: if request.auth.uid == userId;
+      allow read, write: if request.auth.uid == userId;
     }
-    match /config/checkouts {
-    	allow read: if true;
-      allow write: if false;
+    match /admin/{doc} {
+      allow read, write: if false;
     }
   }
 }

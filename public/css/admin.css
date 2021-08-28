@@ -165,7 +165,7 @@ div#edit-entry-search-results > .book {
     #management-grid {
         width: calc(100% - 16px*1);
         grid-template-columns: 100%;
-        grid-template-rows: 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px;
+        grid-template-rows: 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px 200px;
         left: 0;
     }
 
@@ -176,17 +176,17 @@ div#edit-entry-search-results > .book {
     
     #edit-entry {
         grid-column: 1;
-        grid-row: 3 / 7;
+        grid-row: 3 / 6;
     }
     
     #checked-out {
         grid-column: 1;
-        grid-row: 9 / 16;
+        grid-row: 9 / 15;
     }
     
     #report {
         grid-column: 1;
-        grid-row: 7 / 9;
+        grid-row: 6 / 9;
     }
 }
 
