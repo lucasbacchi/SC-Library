@@ -269,6 +269,7 @@ function createEntry() {
                                 illustrators: [],
                                 medium: "",
                                 coverImageLink: "",
+                                thumbnailImageLink: null,
                                 subjects: [],
                                 description: "",
                                 audience: [false, false, false, false],

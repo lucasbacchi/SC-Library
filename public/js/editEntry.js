@@ -13,13 +13,14 @@ db.runTransaction((transaction) => {
     // Will run after transaction failure.
 });
 */
+var editEntryData = null;
 
 function setupEditEntry(pageQuery) {
+    editEntryData = null;
     file = null;
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
-    debugger;
     
     if (barcodeNumber == "" && newEntry == false) {
         alert("The barcode that you are trying to edit is not valid.");
@@ -41,6 +42,7 @@ function setupEditEntry(pageQuery) {
             var docRef = firebase.firestore().collection("books").doc(document);
             docRef.get().then((doc) => {
                 var data = doc.data().books[barcodeNumber % 100];
+                editEntryData = data;
                 $('#barcode').html(barcodeNumber);
                 $("#book-title").val(data.title);
                 $("#book-subtitle").val(data.subtitle);
@@ -897,13 +899,80 @@ function validateEntry() {
             return;
         }
         let input = $("#file-input")[0];
+        debugger;
         if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
+            // If there's an image to upload...
             saveImage().then((res) => {
-                resolve(res);
+                createAndUploadThumbnail().then((thumbnailLink) => {
+                    resolve([res, thumbnailLink]);
+                }).catch((error) => {
+                    alert("The Thumbnail Image could not be generated.");
+                    console.error(error);
+                    resolve([res, undefined]);
+                });
+            });
+        } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && editEntryData.thumbnailImageLink == null && $("#book-cover-image")[0].naturalHeight > 300) {
+            // If the link has firebase but doesn't have 300x300 we can assume that only one image exists
+            // and we need to upload the smaller version
+            createAndUploadThumbnail().then((thumbnailLink) => {
+                resolve([undefined, thumbnailLink]);
+            }).catch((error) => {
+                alert("The Thumbnail Image could not be generated.");
+                console.error(error);
+                resolve([res, undefined]);
             });
         } else {
             resolve(true);
         }
+    });
+}
+
+function createAndUploadThumbnail() {
+    return new Promise(function (resolve, reject) {
+        const canvas = document.createElement("canvas");
+        canvas.id = "thumbnail-canvas";
+        $(".book-cover-image-container")[0].appendChild(canvas);
+        var height = $("#book-cover-image").height();
+        var width = $("#book-cover-image").width();
+        var ratio = height / width;
+        $("#thumbnail-canvas")[0].height = 300;
+        $("#thumbnail-canvas")[0].width = Math.round(300 / ratio);
+        var ctx = $("#thumbnail-canvas")[0].getContext('2d');
+        var image = new Image($("#book-cover-image")[0].naturalWidth, $("#book-cover-image")[0].naturalHeight);
+        image.setAttribute("crossorigin", "anonymous");
+        image.onload = function (event) {
+            ctx.drawImage(image, 0, 0, 300 / ratio, 300);
+            $("#thumbnail-canvas")[0].toBlob((blob) => {
+                var file = new File([blob], "thumbnail", {type: blob.type});
+                var barcodeValue = parseInt($("#barcode").html());
+                if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
+                    alert("There was a problem saving that image.");
+                    reject(false);
+                }
+                var bookSpecificRef = firebase.storage().ref().child("books");
+                var meta;
+                if (file.type == "image/jpg" || file.type == "image/jpeg") {
+                    bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover-300px.jpg");
+                    meta = {contentType: 'image/jpeg'};
+                } else if (file.type == "image/png") {
+                    bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover-300px.png");
+                    meta = {contentType: 'image/png'};
+                } else {
+                    alert("That file type is not supported. Please upload a JPG or PNG file.");
+                    reject(false);
+                }
+                bookSpecificRef.put(file, meta).then((snapshot) => {
+                    console.log('Uploaded the file!');
+                    bookSpecificRef.getDownloadURL().then((url) => {
+                        resolve(url);
+                    }).catch(function(error) {
+                        alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
+                        console.error(error);
+                    });
+                });
+            }, "image/jpeg");
+        }
+        image.src = $("#book-cover-image")[0].src;
     });
 }
 
@@ -983,11 +1052,26 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var vendorValue = $("#book-vendor").val();
 
     // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
+    var thumbnailLink = null;
     validateEntry().then((valid) => {
+        debugger;
         if (!isDeletedValue && valid == false) return;
         if (valid != true) {
-            // There wasn't a new image, but everything is still valid.
-            coverLink = valid;
+            // There is information to be stored.
+            if (Array.isArray(valid)) {
+                if (valid.length == 1 && valid[0] != undefined) {
+                    coverLink = valid[0];
+                } else if (valid.length == 2) {
+                    if (valid[0] != undefined) {
+                        coverLink = valid[0];
+                    }
+                    if (valid[1] != undefined) {
+                        thumbnailLink = valid[1];
+                    }
+                }
+            } else {
+                coverLink = valid;
+            }
         }
 
         // Defines the paths of the the database collection
@@ -1081,6 +1165,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                     illustrators: illustratorsValue,
                     medium: mediumValue,
                     coverImageLink: coverLink,
+                    thumbnailImageLink: thumbnailLink,
                     subjects: subjectValues,
                     description: descriptionValue,
                     audience: [childrenValue, youthValue, adultValue, noneValue],

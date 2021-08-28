@@ -603,7 +603,11 @@ function buildBookBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement('img');
     img.classList.add('bookimage');
-    img.src = obj.coverImageLink;
+    if (obj.thumbnailImageLink) {
+        img.src = obj.thumbnailImageLink;
+    } else {
+        img.src = obj.coverImageLink;
+    }
     div1.appendChild(img);
     const b = document.createElement('b');
     const title = document.createElement('p');
