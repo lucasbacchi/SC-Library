@@ -86,8 +86,8 @@ h1 {
 }
 
 h2 {
-    width: fit-content;
-    margin: 20px auto 10px;
+    text-align: center;
+    margin: 20px auto 16px;
 }
 
 p.question, p.answer {
@@ -256,6 +256,7 @@ p {
     float: left;
     display: flex;
     justify-content: space-between;
+    border-radius: 8px;
 }
 
 #books > .book {
@@ -263,12 +264,17 @@ p {
     flex-basis: 30%;
     width: auto;
     flex-grow: 2;
+    min-height: 150px;
 }
 
 .bookimage {
     max-height: 150px;
     float: left;
     user-select: none;
+    border-radius: 2px;
+    box-shadow: 0px 0px 14px -4px var(--teal);
+    /*padding: 4px;*/
+    height: 100%;
 }
 
 #search-input {
