@@ -269,6 +269,7 @@ function createEntry() {
                                 illustrators: [],
                                 medium: "",
                                 coverImageLink: "",
+                                thumbnailImageLink: null,
                                 subjects: [],
                                 description: "",
                                 audience: [false, false, false, false],
@@ -291,7 +292,6 @@ function createEntry() {
                         });
                         return barcode;
                     } else {
-                        debugger;
                         if (order < 10) {
                             order = "00" + order;
                         } else if (order < 100) {

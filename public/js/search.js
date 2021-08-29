@@ -80,6 +80,7 @@ function setupSearch(searchResultsArray, pageQuery) {
 
 function searchPageSearch() {
     var searchQuery = $('#search-page-input').val();
+    setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
         createSearchResultsPage(searchResultsArray);
@@ -87,6 +88,7 @@ function searchPageSearch() {
 }
 
 function browse() {
+    changePageTitle("Browse", false);
     var browseResultsArray = [];
     if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
         // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
@@ -275,6 +277,7 @@ function setupResults(pageQuery) {
             goToPage("");
             return;
         }
+        changePageTitle(bookObject.title);
 
         $("#result-page-image").attr("src", bookObject.coverImageLink);
     
