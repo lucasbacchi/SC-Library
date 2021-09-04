@@ -76,6 +76,13 @@ function setupEditEntry(pageQuery) {
                 $("#book-isbn-10").val(data.isbn10);
                 $("#book-isbn-13").val(data.isbn13);
 
+                if (data.isbn10 == "" && data.isbn13 == "") {
+                    debugger;
+                    $("#book-no-isbn").prop("checked", true);
+                    $("#book-isbn-10")[0].disabled = true;
+                    $("#book-isbn-13")[0].disabled = true;
+                }
+
                 $("#book-publisher-1").val(data.publishers[0]);
                 $("#book-publisher-2").val(data.publishers[1]);
 
@@ -89,6 +96,7 @@ function setupEditEntry(pageQuery) {
                     $("#book-pages").val(data.numberOfPages);
                     $("#book-unnumbered").prop("checked", false);
                 } else if (data.numberOfPages == -1) {
+                    $("#book-pages")[0].disabled = true;
                     $("#book-unnumbered").prop("checked", true);
                 }
 
