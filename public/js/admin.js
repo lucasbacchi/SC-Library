@@ -85,19 +85,19 @@ var worksObject;
                         worksObject = worksObjectReturn;
                         resolve();
                     }).catch((error) => {
-                        alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
+                        alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
                         console.error(error);
                         resolve(true);
                         return;
                     });
                 }).catch((error) => {
-                    alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
+                    alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
                     console.error(error);
                     resolve(true);
                     return;
                 });
             }).catch((error) => {
-                alert("There was an issue loading that info from the external database. Please ensure you input the isbn number correctly.");
+                alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
                 console.error(error);
                 resolve(true);
                 return;
@@ -644,7 +644,7 @@ function viewMissingBarcodes() {
         for (var i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
             var book = document.books[i];
-            if (book.lastUpdated) {
+            if (book.barcodeNumber == 1171100000 || (book.lastUpdated && !book.isDeleted)) {
                 continue;
             }
             missingArray.push(book)
