@@ -14,10 +14,12 @@ db.runTransaction((transaction) => {
 });
 */
 var editEntryData = null;
+var newEntry = null;
 
 function setupEditEntry(pageQuery) {
     editEntryData = null;
     file = null;
+    newEntry = null;
     var newEntry = (findURLValue(pageQuery, "new") == "true");
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     var isbn = findURLValue(pageQuery, "isbn", true);
@@ -609,14 +611,16 @@ function storeImage(file) {
 var file;
 
 var loadFile = function(event) {
-    file = event.target.files[0];
-    var output = document.getElementById('book-cover-image');
-    output.src = URL.createObjectURL(file);
-    output.onload = function() {
-        URL.revokeObjectURL(output.src) // free memory
+    if (event.target.files[0]) {
+        file = event.target.files[0];
+        var output = document.getElementById('book-cover-image');
+        output.src = URL.createObjectURL(file);
+        output.onload = function() {
+            URL.revokeObjectURL(output.src) // free memory
+        }
     }
 };
-
+/* No Longer needed (I think)
 function uploadCoverImageFromExternal(link) {
     var ref = firebase.storage().ref();
     ref = ref.child(barcodeNumber  + "/cover.jpg");
@@ -624,7 +628,7 @@ function uploadCoverImageFromExternal(link) {
     ref.put(link, {contentType: 'image/jpeg'}).then((snapshot) => {
         console.log("Image has been uploaded from the external source.");
     });
-}
+}*/
 
 function validateEntry() {
     return new Promise((resolve, reject) => {
@@ -919,7 +923,7 @@ function validateEntry() {
                     resolve([res, undefined]);
                 });
             });
-        } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && editEntryData.thumbnailImageLink == null && $("#book-cover-image")[0].naturalHeight > 300) {
+        } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && (newEntry || editEntryData.thumbnailImageLink == null) && $("#book-cover-image")[0].naturalHeight > 300) {
             // If the link has firebase but doesn't have 300x300 we can assume that only one image exists
             // and we need to upload the smaller version
             createAndUploadThumbnail().then((thumbnailLink) => {

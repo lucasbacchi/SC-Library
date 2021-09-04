@@ -287,7 +287,18 @@ function setupResults(pageQuery) {
             $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
-        $("#result-page-call-number").html(bookObject.ddc);
+        if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
+            $("#result-page-isbn-number").html("None");
+        }
+        var callNumberAnswer = "";
+        if (bookObject.audience[1] == true) {
+            callNumberAnswer += "Y<br>";
+        } else if (bookObject.canBeCheckedOut == false) {
+            callNumberAnswer += "REF<br>"
+        }
+        callNumberAnswer += bookObject.ddc;
+        callNumberAnswer += "<br>" + bookObject.authors[0].last.toUpperCase().substring(0, 3);
+        $("#result-page-call-number").html(callNumberAnswer);
         var mediumAnswer = "";
         if (bookObject.medium == "paperback") {
             mediumAnswer = "Paperback";
@@ -323,7 +334,57 @@ function setupResults(pageQuery) {
         publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
         $("#result-page-publisher").html(publishersAnswer);
         var d = bookObject.publishDate.toDate();
-        $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
+        if (d.getMonth() != 0 && d.getDate() != 1) {
+            $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
+        } else if (d.getMonth() != 0) {
+            var month;
+            switch (d.getMonth()) {
+                case 0:
+                    month = "Jan";
+                    break;
+                case 1:
+                    month = "Feb";
+                    break;
+                case 2:
+                    month = "Mar";
+                    break;
+                case 3:
+                    month = "Apr";
+                    break;
+                case 4:
+                    month = "May";
+                    break;
+                case 5:
+                    month = "Jun";
+                    break;
+                case 6:
+                    month = "Jul";
+                    break;
+                case 7:
+                    month = "Aug";
+                    break;
+                case 8:
+                    month = "Sep";
+                    break;
+                case 9:
+                    month = "Oct";
+                    break;
+                case 10:
+                    month = "Nov";
+                    break;
+                case 11:
+                    month = "Dec";
+                    break;
+            
+                default:
+                    console.error("The month could not be detected");
+                    month = "";
+                    break;
+            }
+            $("#result-page-publish-date").html(d.getMonth() + 1 + ", " + d.getFullYear());
+        } else {
+            $("#result-page-publish-date").html(d.getFullYear());
+        }
         if (bookObject.numberOfPages > 0) {
             $("#result-page-pages").html(bookObject.numberOfPages);
         } else {
