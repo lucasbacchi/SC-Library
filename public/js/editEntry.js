@@ -923,30 +923,32 @@ function validateEntry() {
             $("#loading-overlay").hide();
         }, 10000);
 
-        let input = $("#file-input")[0];
-        if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
-            // If there's an image to upload...
-            saveImage().then((res) => {
+        if (mediumValue == "av") {
+            let input = $("#file-input")[0];
+            if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
+                // If there's an image to upload...
+                saveImage().then((res) => {
+                    createAndUploadThumbnail().then((thumbnailLink) => {
+                        resolve([res, thumbnailLink]);
+                    }).catch((error) => {
+                        alert("The Thumbnail Image could not be generated.");
+                        console.error(error);
+                        resolve([res, undefined]);
+                    });
+                });
+            } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && (newEntry || editEntryData.thumbnailImageLink == null) && $("#book-cover-image")[0].naturalHeight > 300) {
+                // If the link has firebase but doesn't have 300x300 we can assume that only one image exists
+                // and we need to upload the smaller version
                 createAndUploadThumbnail().then((thumbnailLink) => {
-                    resolve([res, thumbnailLink]);
+                    resolve([undefined, thumbnailLink]);
                 }).catch((error) => {
                     alert("The Thumbnail Image could not be generated.");
                     console.error(error);
                     resolve([res, undefined]);
                 });
-            });
-        } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && (newEntry || editEntryData.thumbnailImageLink == null) && $("#book-cover-image")[0].naturalHeight > 300) {
-            // If the link has firebase but doesn't have 300x300 we can assume that only one image exists
-            // and we need to upload the smaller version
-            createAndUploadThumbnail().then((thumbnailLink) => {
-                resolve([undefined, thumbnailLink]);
-            }).catch((error) => {
-                alert("The Thumbnail Image could not be generated.");
-                console.error(error);
-                resolve([res, undefined]);
-            });
-        } else {
-            resolve(true);
+            } else {
+                resolve(true);
+            }
         }
     });
 }
