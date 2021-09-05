@@ -738,7 +738,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (descriptionValue == "") {
+        if (descriptionValue == "" && mediumValue != "av") {
             alert("Description is required!");
             var rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -810,7 +810,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (publisher1Value == "") {
+        if (publisher1Value == "" && mediumValue != "av") {
             alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
             var rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -822,7 +822,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue)) {
+        if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue) && mediumValue != "av") {
             alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             var rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
