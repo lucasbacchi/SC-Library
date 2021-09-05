@@ -34,3 +34,12 @@
         <p id="result-page-audience"></p>
     </div>
 </div>
+<div id="checkout-popup">
+    <div id="checkout-popup-box">
+        <div id="checkout-inner-popup-box"></div>
+        <button id="checkout-cancel-button" style="position: absolute; bottom: 8px; left: 8px;" onclick="javascript:cancelCheckout();">Cancel</button>
+        <button id="checkout-next-button" style="position: absolute; bottom: 8px; right: 8px;" onclick="javascript:scanCheckout()">Next</button>
+    </div>
+    <input class="hidden-input" id="checkout-book-barcode">
+    <input class="hidden-input" id="checkout-security-barcode">
+</div>

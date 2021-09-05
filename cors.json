@@ -1,7 +1,7 @@
 [
   {
     "origin": ["http://localhost:5000", "https://south-church-library.web.app"],
-    "method": ["GET"],
-    "maxAgeSeconds": 3600
+    "method": ["GET", "POST"],
+    "maxAgeSeconds": 60
   }
 ]

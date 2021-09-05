@@ -65,6 +65,8 @@ var worksObject;
                 alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
                 return;
             }
+        }).catch((barcodeNumber) => {
+            alert("Could not find a valid book at: " + barcodeNumber);
         });
     }
     

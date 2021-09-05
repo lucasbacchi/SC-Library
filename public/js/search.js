@@ -285,14 +285,19 @@ function setupResults(pageQuery) {
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
             $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
+        } else {
+            $("#checkout-button").show();
+            $("#checkout-button").attr("onclick", "javascript:checkout(" + barcodeNumber + ");");
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
             $("#result-page-isbn-number").html("None");
         }
         var callNumberAnswer = "";
-        if (bookObject.audience[1] == true) {
-            callNumberAnswer += "Y<br>";
+        if (bookObject.audience[0] == true) {
+            callNumberAnswer += "J"
+        } else if (bookObject.audience[1] == true) {
+            callNumberAnswer += "Y";
         } else if (bookObject.canBeCheckedOut == false) {
             callNumberAnswer += "REF<br>"
         }
@@ -304,8 +309,8 @@ function setupResults(pageQuery) {
             mediumAnswer = "Paperback";
         } else if (bookObject.medium == "hardcover") {
             mediumAnswer = "Hardcover";
-        } else if (bookObject.medium == "dvd") {
-            mediumAnswer = "DVD";
+        } else if (bookObject.medium == "av") {
+            mediumAnswer = "AV";
         } else {
             console.warn("There is a case that is not covered for: " + bookObject.medium);
         }
@@ -381,7 +386,7 @@ function setupResults(pageQuery) {
                     month = "";
                     break;
             }
-            $("#result-page-publish-date").html(d.getMonth() + 1 + ", " + d.getFullYear());
+            $("#result-page-publish-date").html(month + ", " + d.getFullYear());
         } else {
             $("#result-page-publish-date").html(d.getFullYear());
         }
@@ -436,6 +441,111 @@ function setupResults(pageQuery) {
         }
         $("#result-page-subjects").html(subjectsAnswer);
         $("#result-page-description").html(bookObject.description);
+    }).catch((barcodeNumber) => {
+        alert("Error: No information could be found for that book.");
+        alert(barcodeNumber + " is not a valid barcode number.");
+        goToPage("");
+        return;
+    });
+}
+
+function checkout(barcodeNumber) {
+    if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
+        alert("There was an error checking out this book.");
+        console.log("The barcode number could not be identified.");
+        return;
+    }
+    $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
+    $("#checkout-popup").show();
+    var user = firebase.auth().currentUser;
+    $("#checkout-name").html(user.email);
+    $("#checkout-next-button").show();
+}
+
+function cancelCheckout() {
+    $("#checkout-popup").hide();
+}
+
+function scanCheckout() {
+    var user = firebase.auth().currentUser;
+    $("#checkout-next-button").hide();
+    $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
+    $("#checkout-book-barcode").blur(() => {$('#checkout-book-barcode').focus()});
+    $("#checkout-book-barcode").focus();
+    var barcodeNumber = $("#result-page-barcode-number").html();
+    $("#checkout-book-barcode").off("keydown");
+    $("#checkout-book-barcode").keydown(function(event) {
+        if (event.keyCode === 13) {
+            $("#checkout-book-barcode").off("blur");
+            if ($("#checkout-book-barcode").val() == barcodeNumber) {
+                $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
+                $("#checkout-security-barcode").blur(() => {$('#checkout-security-barcode').focus()});
+                $("#checkout-security-barcode").focus();
+                $("#checkout-security-barcode").off("keydown");
+                $("#checkout-security-barcode").keydown(function(event) {
+                    if (event.keyCode === 13) {
+                        $("#checkout-security-barcode").off("blur");
+                        // TODO: Change to something else
+                        if ($("#checkout-security-barcode").val() != "") {
+                            // At this point, they must have scanned both, so we check it out to them.
+                            var bookPath = db.collection("books");
+                            var bookNumber = barcodeNumber - 1171100000;
+                            var bookDocument = Math.floor(bookNumber / 100);
+                            if (bookDocument >= 100) {
+                                bookDocument = "" + bookDocument;
+                            } else if (bookDocument >= 10) {
+                                bookDocument = "0" + bookDocument;
+                            } else {
+                                bookDocument = "00" + bookDocument;
+                            }
+                            bookNumber = bookNumber % 100;
+
+                            var d = new Date(2020);
+                            db.collection("users").where("lastCheckoutTime", ">", d).where("checkouts", "array-contains", barcodeNumber).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
+                                querySnapshot.forEach((doc) => {
+                                    doc.data().checkouts.forEach((checkoutObject) => {
+                                        if (checkoutObject.returnTime != null) {
+                                            alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
+                                            return;
+                                        }
+                                    });
+                                });
+                            });
+                            db.runTransaction((transaction) => {
+                                return transaction.get(bookPath.doc(bookDocument)).then((doc) => {
+                                    if (!doc.exists) {
+                                        alert("There was a problem with checking out that book.");
+                                        return;
+                                    }
+
+                                    var bookObject = doc.data().books[bookNumber];
+                                    if (bookObject.canBeCheckedOut == false) {
+                                        alert("We're sorry, but this is a reference book, and it may not be checked out.");
+                                        return;
+                                    }
+                                    var currentTime = Date.now();
+                                    // TODO: Rethink how this is all stored. Sub collection? Root collection?
+                                    transaction.update(db.collection("users").doc(user.id), {
+                                        checkouts: firebase.firestore.FieldValue.arrayUnion({
+                                            barcodeNumber: barcodeNumber,
+                                            outTime: currentTime,
+                                            inTime: null,
+                                            title: bookObject.title
+                                        })
+                                    });
+                                });
+                            }).then(() => {
+                                alert("This book has been checked out to you successfully.");
+                                goToPage("");
+                            });
+                        }
+                    }
+                });
+            } else {
+                alert("This is not the right book. Please view the correct book's page before checking it out.");
+                cancelCheckout();
+            }
+        }
     });
 }
 

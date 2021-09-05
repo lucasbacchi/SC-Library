@@ -704,22 +704,29 @@ function buildAudienceString(audience) {
 
 function getBookFromBarcode(barcodeNumber) {
     return new Promise(function (resolve, reject) {
+        if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
+            reject(barcodeNumber);
+        }
         if (!bookDatabase) {
             search("", 0, 0).then(() => {
                 var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
                 var bookNumber = barcodeNumber % 100;
-                resolve(bookDatabase[documentNumber].books[bookNumber]);
+                if (bookDatabase[documentNumber].books[bookNumber]) {
+                    resolve(bookDatabase[documentNumber].books[bookNumber]);
+                } else {
+                    reject(barcodeNumber);
+                }
             })
         } else {
             var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
             var bookNumber = barcodeNumber % 100;
-            resolve (bookDatabase[documentNumber].books[bookNumber]);
+            if (bookDatabase[documentNumber].books[bookNumber]) {
+                resolve(bookDatabase[documentNumber].books[bookNumber]);
+            } else {
+                reject(barcodeNumber);
+            }
         }
     });
-}
-
-function checkout() {
-    alert("TODO: Add functionality");
 }
 
 function listSubjects(subj) {
