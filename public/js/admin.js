@@ -46,11 +46,7 @@ var worksObject;
     function addEntryWithSpecificBarcodeNumber() {
         var isbn = $("#add-entry-isbn").val();
         var check = verifyISBN(isbn);
-        if (isbn == "") {
-            alert("You must enter an ISBN number above.");
-            return;
-        }
-        if (!check) {
+        if (!check && isbn != "") {
             alert("The number you entered is not a valid ISBN Number.");
             return;
         }
@@ -58,7 +54,11 @@ var worksObject;
         getBookFromBarcode(specificBarcode).then((book) => {
             if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
                 const a = document.createElement("a");
-                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
+                if (isbn == "") {
+                    a.href = "/admin/editEntry?new=true&id=" + specificBarcode;
+                } else {
+                    a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
+                }
                 a.innerHTML = "Click here to overwrite the barcode above."
                 $("#add-entry")[0].appendChild(a);
             } else {
@@ -256,9 +256,9 @@ function createEntry() {
                     if (numBooksInDoc == 100) {
                         // A new book doc has to be created...
                         var newNumber = order + 1;
-                        if (order < 10) {
+                        if (newNumber < 10) {
                             newNumber = "00" + newNumber;
-                        } else if (order < 100) {
+                        } else if (newNumber < 100) {
                             newNumber = "0" + newNumber;
                         }
                         var barcode = "11711" + newNumber + "00";
@@ -629,7 +629,7 @@ function addStats() {
             for (var i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
                 var book = document.books[i];
-                if (book.isDeleted) {
+                if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
                 count++;
