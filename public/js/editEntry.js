@@ -685,7 +685,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (author1LastValue == "" && author1FirstValue == "") {
+        if (author1LastValue == "" && author1FirstValue == "" && mediumValue != "av") {
             alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
             var rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -715,7 +715,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (coverLink == "../img/favicon.ico") {
+        if (coverLink == "../img/favicon.ico" && mediumValue != "av") {
             alert("Cover image is required!");
             var rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -727,7 +727,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (subjectValues[0] == "") {
+        if (subjectValues[0] == "" && mediumValue != "av") {
             alert("Please enter at least one subject!");
             var rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -787,7 +787,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!noISBN && !verifyISBN(isbn10Value) && isbn10Value != "") {
+        if (!noISBN && !verifyISBN(isbn10Value) && isbn10Value != "" && mediumValue != "av") {
             alert("The ISBN number you entered was not valid! Please double check it.");
             var rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -799,7 +799,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!noISBN && !verifyISBN(isbn13Value) && isbn13Value != "") {
+        if (!noISBN && !verifyISBN(isbn13Value) && isbn13Value != "" && mediumValue != "av") {
             alert("The ISBN number you entered was not valid! Please double check it.");
             var rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -849,7 +849,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1))) {
+        if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1)) && mediumValue != "av") {
             alert("Please enter a valid number of pages!");
             var rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
