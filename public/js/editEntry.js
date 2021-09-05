@@ -557,6 +557,7 @@ function setupEditEntry(pageQuery) {
 
 function saveImage() {
     return new Promise(function (resolve, reject) {
+        if ($("#book-medium")[0].value == "av") resolve(true);
         if (file) {
             resolve(storeImage(file));
         } else {
@@ -579,6 +580,7 @@ function saveImage() {
 }
 
 function storeImage(file) {
+    if ($("#book-medium")[0].value == "av") return true;
     var barcodeValue = parseInt($("#barcode").html());
     if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
         alert("There was a problem saving that image.");
@@ -951,6 +953,7 @@ function validateEntry() {
 
 function createAndUploadThumbnail() {
     return new Promise(function (resolve, reject) {
+        if ($("#book-medium")[0].value == "av") resolve(true);
         const canvas = document.createElement("canvas");
         canvas.id = "thumbnail-canvas";
         $(".book-cover-image-container")[0].appendChild(canvas);
