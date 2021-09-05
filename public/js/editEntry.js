@@ -630,6 +630,7 @@ function uploadCoverImageFromExternal(link) {
     });
 }*/
 
+var loadingTimer;
 function validateEntry() {
     return new Promise((resolve, reject) => {
         // Gets the values of all the input elements
@@ -910,8 +911,17 @@ function validateEntry() {
             resolve(false);
             return;
         }
+
+        
+        $("#edit-entry-save")[0].disabled = true;
+        $("#loading-overlay").show();
+        loadingTimer = window.setTimeout(() => {
+            $("#edit-entry-save")[0].disabled = false;
+            alert("An error has likely occurred, but we couldn't identify the problem. Your changes have not been saved.");
+            $("#loading-overlay").hide();
+        }, 10000);
+
         let input = $("#file-input")[0];
-        debugger;
         if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
             // If there's an image to upload...
             saveImage().then((res) => {
@@ -1009,15 +1019,7 @@ function isValidDate(m, d, y) {
     return true;
 }
 
-var loadingTimer;
 function editEntry(barcodeValue = null, isDeletedValue = false) {
-    $("#edit-entry-save")[0].disabled = true;
-    $("#loading-overlay").show();
-    loadingTimer = window.setTimeout(() => {
-        $("#edit-entry-save")[0].disabled = false;
-        alert("An error has likely occurred, but we couldn't identify the problem. Your changes have not been saved.");
-        $("#loading-overlay").hide();
-    }, 10000);
     // Gets the values of all the input elements
     if (barcodeValue == null) {
         barcodeValue = parseInt($("#barcode").html());
@@ -1075,7 +1077,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var thumbnailLink = null;
     validateEntry().then((valid) => {
         debugger;
-        if (!isDeletedValue && valid == false) return;
+        if ((!isDeletedValue && valid == false) || valid == null) return;
         if (valid != true) {
             // There is information to be stored.
             if (Array.isArray(valid)) {
