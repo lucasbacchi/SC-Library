@@ -22,7 +22,7 @@
         <span>, </span>
         <input id="book-author-2-first" placeholder="First Name" class="short-form-input">
     </div>
-    <div class="form-section no-dvd">
+    <div class="form-section no-av">
         <h6 class="form-title">Illustrator</h6>
         <p class="form-description">Currently only allows for 2 illustrators to be added. If there are more than 2 illustrators, include it in the description.</p>
         <input id="book-illustrator-1-last" placeholder="Last Name" class="short-form-input">
@@ -40,7 +40,7 @@
             <option value="">Select One …</option>
             <option value="hardcover">Hardcover</option>
             <option value="paperback">Paperback</option>
-            <option value="dvd">DVD</option>
+            <option value="av">AV</option>
         </select>
     </div>
     <div class="form-section">
@@ -71,12 +71,12 @@
         <input type="checkbox" id="book-audience-adult" name="audience" value="adult">Adult
         <input type="checkbox" id="book-audience-none" name="audience" value="none">None
     </div>
-    <div class="form-section no-dvd">
+    <div class="form-section no-av">
         <h6 class="form-title">ISBN 10 Number</h6>
         <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10 digits long. Do not include any dashes.</p>
         <input id="book-isbn-10" placeholder="" class="short-form-input">
     </div>
-    <div class="form-section no-dvd">
+    <div class="form-section no-av">
         <h6 class="form-title">ISBN 13 Number</h6>
         <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13 digits long and starts with "978". Do not include any dashes.</p>
         <input id="book-isbn-13" placeholder="" class="short-form-input">
@@ -96,7 +96,7 @@
         <input id="book-publish-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-publish-year" placeholder="Year" class="short-form-input" style="width: 120px;">
     </div>
-    <div class="form-section no-dvd">
+    <div class="form-section no-av">
         <h6 class="form-title">Number of Pages</h6>
         <p class="form-description">Enter the number of pages in the book. If the book has no page numbers, check the box below instead.</p>
         <input id="book-pages" placeholder="" class="short-form-input">
@@ -152,4 +152,9 @@
         <button id="delete-entry" class="delete-button" onclick="javascript:editEntry(null, true);">Yes, delete forever</button>
     </div>
     <div id="delete-alert-overlay" style="display: none;"></div>
+    <div id="loading-overlay" style="display: none;">
+        <div id="loading-overlay-box">
+            <h3>Loading...</h3>
+        </div>
+    </div>
 </div>

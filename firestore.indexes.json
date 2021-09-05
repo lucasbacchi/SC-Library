@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    { 
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "checkouts", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "lastCheckoutTime", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

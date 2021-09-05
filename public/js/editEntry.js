@@ -517,12 +517,12 @@ function setupEditEntry(pageQuery) {
     });
 
     $("#book-medium")[0].addEventListener("input", (event) => {
-        if (event.target.value == "dvd") {
-            var goAway = $(".no-dvd");
+        if (event.target.value == "av") {
+            var goAway = $(".no-av");
             for (var i = 0; i < goAway.length; i++)
                 goAway[i].style.display = "none";
         } else {
-            var goAway = $(".no-dvd");
+            var goAway = $(".no-av");
             for (var i = 0; i < goAway.length; i++)
                 goAway[i].style.display = "";
         }
@@ -768,7 +768,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (mediumValue != "dvd" && !noISBN && isbn10Value == "" && isbn13Value == "") {
+        if (mediumValue != "av" && !noISBN && isbn10Value == "" && isbn13Value == "") {
             alert("Please enter at least one ISBN number!");
             var rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1009,7 +1009,15 @@ function isValidDate(m, d, y) {
     return true;
 }
 
+var loadingTimer;
 function editEntry(barcodeValue = null, isDeletedValue = false) {
+    $("#edit-entry-save")[0].disabled = true;
+    $("#loading-overlay").show();
+    loadingTimer = window.setTimeout(() => {
+        $("#edit-entry-save")[0].disabled = false;
+        alert("An error has likely occurred, but we couldn't identify the problem. Your changes have not been saved.");
+        $("#loading-overlay").hide();
+    }, 10000);
     // Gets the values of all the input elements
     if (barcodeValue == null) {
         barcodeValue = parseInt($("#barcode").html());
@@ -1201,14 +1209,15 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                 });
             });
         }).then(() => {
+            $("#loading-overlay").hide();
             alert("Edits were made successfully");
+            clearTimeout(loadingTimer);
+            $(window).off("beforeunload");
             goToPage('admin/main');
         }).catch((err) => {
             console.log(err);
-            alert(err);
+            alert("Your edits could not be saved. An error has occurred.");
         });
-    
-        $(window).off("beforeunload");
     });
 }
 
@@ -1236,7 +1245,7 @@ function deleteEntry() {
 
 function convertToUTC(date) {
     // TODO: Acutally account for time shifts with Daylight Savings
-    console.log("The date that was just saved was: " + new Date(date.valueOf() - 1000 * 60 * 60 * 5));
+    console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
     return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
 }
 
