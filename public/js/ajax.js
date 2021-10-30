@@ -13,8 +13,11 @@ var directory = [
     "/account/security",
     "/admin/barcode",
     "/admin/editEntry",
+    "/admin/editUser",
+    "/admin/inventory",
     "/admin/main",
     "/admin/report",
+    "/admin/view",
     "/404",
     "/about",
     "/account",
@@ -210,6 +213,9 @@ var currentExtension;
                             "/admin/main": "Admin Console",
                             "/admin/report": "Run a Report",
                             "/admin/barcode": "Generate Barcodes",
+                            "/admin/view": "View Database",
+                            "/admin/editUser": "Edit a User",
+                            "/admin/inventory": "Conduct Inventory",
                             "/404": "404 | File Not Found",
                             "/about": "About Us",
                             "/account": "Your Account",
@@ -241,6 +247,9 @@ var currentExtension;
                             "/admin/main": ["admin.js", "admin.css", "editEntry.js"],
                             "/admin/report": ["admin.js", "admin.css"],
                             "/admin/barcode": ["admin.js", "admin.css"],
+                            "/admin/view": ["admin.js", "admin.css", "search.css"],
+                            "/admin/editUser": ["admin.js", "admin.css"],
+                            "/admin/inventory": ["admin.js", "admin.css"],
                             "/404": [],
                             "/about": [],
                             "/account": ["account.js", "account.css"],
@@ -345,6 +354,18 @@ var currentExtension;
 
                         if (pageName == "/admin/editEntry") {
                             setupEditEntry(pageQuery);
+                        }
+
+                        if (pageName == "/admin/editUser") {
+                            setupEditUser(pageQuery);
+                        }
+
+                        if (pageName == "/admin/view") {
+                            setupView(pageQuery);
+                        }
+
+                        if (pageName == "/admin/inventory") {
+                            setupInventory(pageQuery);
                         }
 
                         if (pageName == "/admin/barcode") {
