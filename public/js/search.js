@@ -343,7 +343,6 @@ function setupResults(pageQuery) {
         publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
         if (publishersAnswer == "") publishersAnswer = "None";
         $("#result-page-publisher").html(publishersAnswer);
-        debugger;
         if (bookObject.publishDate) {
             var d = bookObject.publishDate.toDate();
             if (d.getMonth() != 0 && d.getDate() != 1) {
