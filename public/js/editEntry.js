@@ -79,7 +79,6 @@ function setupEditEntry(pageQuery) {
                 $("#book-isbn-13").val(data.isbn13);
 
                 if (data.isbn10 == "" && data.isbn13 == "") {
-                    debugger;
                     $("#book-no-isbn").prop("checked", true);
                     $("#book-isbn-10")[0].disabled = true;
                     $("#book-isbn-13")[0].disabled = true;
@@ -1081,7 +1080,6 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
     var thumbnailLink = null;
     validateEntry().then((valid) => {
-        debugger;
         if ((!isDeletedValue && valid == false) || valid == null) return;
         if (valid != true) {
             // There is information to be stored.

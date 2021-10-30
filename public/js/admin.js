@@ -489,7 +489,6 @@ function calculateISBNCheckDigit(number) {
     }
 
     if (length == 12) {
-        debugger;
         var digits = [];
         for (i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
@@ -503,7 +502,6 @@ function calculateISBNCheckDigit(number) {
                 total += digits[i] * 3;
             }
         }
-        debugger;
         return (10 - (total % 10)).toString();
     } else if (length == 9) {
         var digits = [];
