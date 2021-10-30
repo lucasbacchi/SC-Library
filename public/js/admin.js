@@ -692,3 +692,112 @@ function setUploadDatabase() {
         alert("The database wasn't uploaded, because this function didn't get finished.");
     })
 }
+
+
+
+
+function setupView(pageQuery) {
+    var type = findURLValue(pageQuery, "type");
+    if (type == "books") {
+        search("", 0, 0, true).then(() => {
+            bookDatabase.forEach((doc) => {
+                doc.books.forEach((book) => {
+                    $('div#view-container')[0].appendChild(buildBookBox(book, "view"));
+                });
+            });
+        });
+    } else if (type == "users") {
+        getAllUsers().then(() => {
+            userDatabase.forEach((user) => {
+                $('div#view-container')[0].appendChild(buildUserBox(user, "view"));
+            });
+        });
+    } else {
+        console.warn("There was no valid type to view.");
+        goToPage('admin/main');
+    }
+}
+
+var userDatabase = [];
+function getAllUsers() {
+    return new Promise(function(resolve, reject) {
+        db.collection("users").where("cardNumber", ">=", 0).orderBy("cardNumber", "asc").get().then((querySnapshot) => {
+            userDatabase = [];
+            querySnapshot.forEach((doc) => {
+                if (!doc.exists) {
+                    console.error("user document does not exist");
+                    return;
+                }
+                userDatabase.push(doc.data());
+            });
+            resolve();
+        });
+    });
+}
+
+
+var inventoryCheck = false;
+function restartInventory() {
+    if (!inventoryCheck) {
+        alert("Are you sure you want to restart? This will delete your current progress. If you do, you must click the restart button again to confirm.");
+        inventoryCheck = true;
+        window.setTimeout(() => {
+            inventoryCheck = false;
+        }, 5000)
+        return;
+    }
+    db.collection("admin").doc("inventory").set({
+        books: []
+    });
+    alert("The Inventory Progress has been reset.");
+    window.location.reload();
+}
+
+function setupInventory() {
+    loadInventory().then(() => {
+        cachedInventory.forEach((barcode) => {
+            var current = $("#recent-scans").html();
+            $("#recent-scans").html(current + "<br>" + barcode);
+        })
+    });
+}
+
+var cachedInventory = [];
+function loadInventory() {
+    return new Promise(function(resolve, reject) {
+        db.collection("admin").doc("inventory").get().then((doc) => {
+            if (!doc.exists) {
+                console.error("inventory document does not exist");
+                return;
+            }
+            cachedInventory = doc.data().books;
+            resolve();
+        });
+    });
+}
+
+function cancelInventory() {
+    $("#inventory-book-barcode").off("blur");
+    $("#inventory-popup").hide();
+}
+
+function continueScanning() {
+    search("", 0, 0, true);
+    $("#inventory-popup").show();
+    $("#inventory-next-button").hide();
+    $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
+    $("#inventory-book-barcode").blur(() => {$('#inventory-book-barcode').focus()});
+    $("#inventory-book-barcode").focus();
+    $("#inventory-book-barcode").off("keydown");
+    $("#inventory-book-barcode").keydown(function(event) {
+        if (event.keyCode === 13) {
+            $("#inventory-book-barcode").off("blur");
+            if ($("#inventory-book-barcode").val()) {
+                // Some checks should be done to ensure the barcode is valid, the book hasn't been scanned, etc.
+                db.collection("admin").doc("inventory").update({
+                    books: firebase.firestore.FieldValue.arrayUnion($("#inventory-book-barcode").val())
+                });
+            }
+        }
+    });
+}

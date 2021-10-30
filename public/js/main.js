@@ -347,7 +347,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
         });
         var returnCount = 0;
         var returnArray = [];
-        console.log("Scores for \"" + searchQuery + "\": ", scoresArray);
+        console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
         scoresArray.forEach((item) => {
             if (item.score < 1) return;
             if (isNaN(item.score)) {
@@ -589,6 +589,7 @@ function adminBookBoxes(objects) {
 function buildBookBox(obj, page, num = 0) {
     const div = document.createElement('div');
     switch (page) {
+        case "view":
         case "search":
             div.classList.add("result-listing");
             break;
@@ -603,10 +604,14 @@ function buildBookBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement('img');
     img.classList.add('bookimage');
-    if (obj.thumbnailImageLink) {
-        img.src = obj.thumbnailImageLink;
+    if (obj.medium == "av") {
+        img.src = "../img/av-image.jpg"
     } else {
-        img.src = obj.coverImageLink;
+        if (obj.thumbnailImageLink) {
+            img.src = obj.thumbnailImageLink;
+        } else {
+            img.src = obj.coverImageLink;
+        }
     }
     div1.appendChild(img);
     const b = document.createElement('b');
@@ -620,12 +625,13 @@ function buildBookBox(obj, page, num = 0) {
         if (i == 1) authorString += " & ";
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;
     }
+    if (authorString == ", ") authorString = "";
     author.appendChild(document.createTextNode(authorString));
     b.appendChild(title);
     div2.appendChild(b);
     div2.appendChild(author);
     div2.classList.add("basic-info");
-    if (page == "edit-entry") {
+    if (page == "edit-entry" || page == "view") {
         let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
         div.setAttribute("onclick", string);
         const barcode = document.createElement("p");
@@ -660,11 +666,15 @@ function buildBookBox(obj, page, num = 0) {
         due.appendChild(document.createTextNode(backstr));
         div2.appendChild(due);
     }
-    if (page == "search" && num > 0) {
+    if ((page == "search" && num > 0) || page == "view") {
         div.id = "result-number-" + num;
         const number = document.createElement('div');
         number.classList.add("result-number");
-        number.appendChild(document.createTextNode(num + "."));
+        if (page == "search") {
+            number.appendChild(document.createTextNode(num + "."));
+        } else if (page == "view") {
+            number.appendChild(document.createTextNode(obj.barcodeNumber % 1171100000 + "."));
+        }
         div.appendChild(number);
         const medium = document.createElement('p');
         medium.classList.add('medium');
@@ -685,6 +695,79 @@ function buildBookBox(obj, page, num = 0) {
         description.classList.add('description');
         description.appendChild(document.createTextNode(shortenDescription(obj.description)));
         div3.appendChild(description);
+    }
+    return div;
+}
+
+function buildUserBox(obj, page, num = 0) {
+    const div = document.createElement('div');
+    switch (page) {
+        case "view":
+            div.classList.add("result-listing");
+            break;
+        default:
+            div.classList.add("user");
+    }
+    const div1 = document.createElement('div');
+    const div2 = document.createElement('div');
+    div.appendChild(div1);
+    div.appendChild(div2);
+    const img = document.createElement('img');
+    img.classList.add('bookimage');
+    img.src = obj.pfpLink;
+    div1.appendChild(img);
+    const b = document.createElement('b');
+    const name = document.createElement('p');
+    name.classList.add('title');
+    name.appendChild(document.createTextNode(obj.firstName + " " + obj.lastName));
+    const email = document.createElement('p');
+    email.classList.add('author');
+    email.appendChild(document.createTextNode(obj.email));
+    b.appendChild(name);
+    div2.appendChild(b);
+    div2.appendChild(email);
+    div2.classList.add("basic-info");
+    if (page == "edit-entry" || page == "view") {
+        let string = "javascript:goToPage('admin/editUser?id=" + obj.cardNumber + "');";
+        div.setAttribute("onclick", string);
+        const barcode = document.createElement("p");
+        barcode.classList.add("barcode")
+        barcode.innerHTML = "Card Number: " + obj.cardNumber;
+        div2.appendChild(barcode);
+    }
+    if ((page == "search" && num > 0) || page == "view") {
+        div.id = "result-number-" + num;
+        const number = document.createElement('div');
+        number.classList.add("result-number");
+        number.appendChild(document.createTextNode(obj.cardNumber % 2171100000 + "."));
+        div.appendChild(number);
+        const phone = document.createElement('p');
+        phone.classList.add('medium');
+        phone.appendChild(document.createTextNode(obj.phone));
+        div2.appendChild(phone);
+        const div3 = document.createElement('div');
+        div3.classList.add("advanced-info");
+        div.appendChild(div3);
+        const address = document.createElement('p');
+        address.classList.add('subjects');
+        address.appendChild(document.createTextNode("Address: " + obj.address));
+        div3.appendChild(address);
+        const dateCreated = document.createElement('p');
+        dateCreated.classList.add('subjects');
+        dateCreated.appendChild(document.createTextNode("Date Created: " + obj.dateCreated));
+        div3.appendChild(dateCreated);
+        const lastSignIn = document.createElement('p');
+        lastSignIn.classList.add('subjects');
+        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + obj.lastSignIn));
+        div3.appendChild(lastSignIn);
+        const lastCheckoutTime = document.createElement('p');
+        lastCheckoutTime.classList.add('subjects');
+        lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + obj.lastCheckoutTime));
+        div3.appendChild(lastCheckoutTime);
+        const checkouts = document.createElement('p');
+        checkouts.classList.add('description');
+        checkouts.appendChild(document.createTextNode(obj.checkouts));
+        div3.appendChild(checkouts);
     }
     return div;
 }

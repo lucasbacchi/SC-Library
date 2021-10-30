@@ -279,7 +279,11 @@ function setupResults(pageQuery) {
         }
         changePageTitle(bookObject.title);
 
-        $("#result-page-image").attr("src", bookObject.coverImageLink);
+        if (bookObject.medium == "av") {
+            $("#result-page-image").attr("src", "../img/av-image.jpg");
+        } else {
+            $("#result-page-image").attr("src", bookObject.coverImageLink);
+        }
     
         $("#result-page-barcode-number").html(barcodeNumber);
         if (!bookObject.canBeCheckedOut) {
@@ -337,58 +341,64 @@ function setupResults(pageQuery) {
             publishersAnswer += (item + ", ");
         });
         publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
+        if (publishersAnswer == "") publishersAnswer = "None";
         $("#result-page-publisher").html(publishersAnswer);
-        var d = bookObject.publishDate.toDate();
-        if (d.getMonth() != 0 && d.getDate() != 1) {
-            $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
-        } else if (d.getMonth() != 0) {
-            var month;
-            switch (d.getMonth()) {
-                case 0:
-                    month = "Jan";
-                    break;
-                case 1:
-                    month = "Feb";
-                    break;
-                case 2:
-                    month = "Mar";
-                    break;
-                case 3:
-                    month = "Apr";
-                    break;
-                case 4:
-                    month = "May";
-                    break;
-                case 5:
-                    month = "Jun";
-                    break;
-                case 6:
-                    month = "Jul";
-                    break;
-                case 7:
-                    month = "Aug";
-                    break;
-                case 8:
-                    month = "Sep";
-                    break;
-                case 9:
-                    month = "Oct";
-                    break;
-                case 10:
-                    month = "Nov";
-                    break;
-                case 11:
-                    month = "Dec";
-                    break;
-            
-                default:
-                    console.error("The month could not be detected");
-                    month = "";
-                    break;
+        debugger;
+        if (bookObject.publishDate) {
+            var d = bookObject.publishDate.toDate();
+            if (d.getMonth() != 0 && d.getDate() != 1) {
+                $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
+            } else if (d.getMonth() != 0) {
+                var month;
+                switch (d.getMonth()) {
+                    case 0:
+                        month = "Jan";
+                        break;
+                    case 1:
+                        month = "Feb";
+                        break;
+                    case 2:
+                        month = "Mar";
+                        break;
+                    case 3:
+                        month = "Apr";
+                        break;
+                    case 4:
+                        month = "May";
+                        break;
+                    case 5:
+                        month = "Jun";
+                        break;
+                    case 6:
+                        month = "Jul";
+                        break;
+                    case 7:
+                        month = "Aug";
+                        break;
+                    case 8:
+                        month = "Sep";
+                        break;
+                    case 9:
+                        month = "Oct";
+                        break;
+                    case 10:
+                        month = "Nov";
+                        break;
+                    case 11:
+                        month = "Dec";
+                        break;
+                
+                    default:
+                        console.error("The month could not be detected");
+                        month = "";
+                        break;
+                }
+                $("#result-page-publish-date").html(month + ", " + d.getFullYear());
+            } else {
+                $("#result-page-publish-date").html(d.getFullYear());
             }
-            $("#result-page-publish-date").html(month + ", " + d.getFullYear());
         } else {
-            $("#result-page-publish-date").html(d.getFullYear());
+            $("#result-page-publish-date").html("None");
         }
         if (bookObject.numberOfPages > 0) {
             $("#result-page-pages").html(bookObject.numberOfPages);
@@ -411,7 +421,11 @@ function setupResults(pageQuery) {
             });
             $("#result-page-author").html(authorAnswer);
         } else {
-            $("#result-page-author").html(bookObject.authors[0].last + ", " + bookObject.authors[0].first);
+            if (bookObject.authors[0].first == "" && bookObject.authors[0].last == "") {
+                $("#result-page-author").html("None");
+            } else {
+                $("#result-page-author").html(bookObject.authors[0].last + ", " + bookObject.authors[0].first);
+            }
         }
         if (bookObject.illustrators.length > 0) {
             var illustratorAnswer = "";
