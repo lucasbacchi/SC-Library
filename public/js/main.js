@@ -754,15 +754,15 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(address);
         const dateCreated = document.createElement('p');
         dateCreated.classList.add('subjects');
-        dateCreated.appendChild(document.createTextNode("Date Created: " + obj.dateCreated));
+        dateCreated.appendChild(document.createTextNode("Date Created: " + formatDate(obj.dateCreated)));
         div3.appendChild(dateCreated);
         const lastSignIn = document.createElement('p');
         lastSignIn.classList.add('subjects');
-        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + obj.lastSignIn));
+        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignIn)));
         div3.appendChild(lastSignIn);
         const lastCheckoutTime = document.createElement('p');
         lastCheckoutTime.classList.add('subjects');
-        lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + obj.lastCheckoutTime));
+        lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + formatDate(obj.lastCheckoutTime)));
         div3.appendChild(lastCheckoutTime);
         const checkouts = document.createElement('p');
         checkouts.classList.add('description');
@@ -770,6 +770,11 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(checkouts);
     }
     return div;
+}
+
+function formatDate(date) {
+    if (!date) return "N/A";
+    return date.toDate().toLocaleString("en-US");
 }
 
 function buildAudienceString(audience) {
