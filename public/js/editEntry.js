@@ -922,7 +922,7 @@ function validateEntry() {
             $("#loading-overlay").hide();
         }, 10000);
 
-        if (mediumValue == "av") {
+        if (mediumValue != "av") {
             let input = $("#file-input")[0];
             if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
                 // If there's an image to upload...
@@ -948,6 +948,8 @@ function validateEntry() {
             } else {
                 resolve(true);
             }
+        } else {
+            resolve(true);
         }
     });
 }
