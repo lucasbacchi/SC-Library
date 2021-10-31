@@ -497,6 +497,7 @@ function scanCheckout() {
                 $("#checkout-security-barcode").off("keydown");
                 $("#checkout-security-barcode").keydown(function(event) {
                     if (event.keyCode === 13) {
+                        debugger;
                         $("#checkout-security-barcode").off("blur");
                         // TODO: Change to something else
                         if ($("#checkout-security-barcode").val() != "") {
@@ -538,7 +539,7 @@ function scanCheckout() {
                                     }
                                     var currentTime = Date.now();
                                     // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(db.collection("users").doc(user.id), {
+                                    transaction.update(db.collection("users").doc(user.uid), {
                                         checkouts: firebase.firestore.FieldValue.arrayUnion({
                                             barcodeNumber: barcodeNumber,
                                             outTime: currentTime,
