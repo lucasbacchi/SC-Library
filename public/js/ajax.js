@@ -245,7 +245,7 @@ var currentExtension;
                         var sourcesRequired = {
                             "/admin/editEntry": ["form.css", "editEntry.js", "admin.js", "admin.css"],
                             "/admin/main": ["admin.js", "admin.css", "editEntry.js"],
-                            "/admin/report": ["admin.js", "admin.css"],
+                            "/admin/report": ["admin.js", "admin.css", "report.js"],
                             "/admin/barcode": ["admin.js", "admin.css"],
                             "/admin/view": ["admin.js", "admin.css", "search.css"],
                             "/admin/editUser": ["admin.js", "admin.css"],
@@ -362,6 +362,10 @@ var currentExtension;
 
                         if (pageName == "/admin/view") {
                             setupView(pageQuery);
+                        }
+
+                        if (pageName == "/admin/report") {
+                            setupReport(pageQuery);
                         }
 
                         if (pageName == "/admin/inventory") {
