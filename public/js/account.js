@@ -185,9 +185,8 @@ function accountOverviewSetup(firstName, lastName, email) {
 }
 
 function accountCheckoutsSetup() {
-    var checkouts = getCheckouts(), holds = getHolds();
-    createCheckoutsAndHolds(checkouts, "checkouts");
-    createCheckoutsAndHolds(holds, "holds");
+    var checkouts = getCheckouts();
+    createCheckouts(checkouts, "checkouts");
 }
 
 function accountNotificationsSetup() {
@@ -203,11 +202,6 @@ function getCheckouts() {
     return [/*{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}*/];
 }
 
-function getHolds() {
-    return [/*{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}*/];
-}
-
-// Justin: Holds are gone, right? Can we get rid of the commented parts below and change the name of the function?
 function createCheckouts(books, str) {
     if (books.length == 0) {
         if (str == "checkouts") {
@@ -219,8 +213,6 @@ function createCheckouts(books, str) {
     for (var i = 0; i < books.length; i++) {
         if (str == "checkouts")
             $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
-        else if (str == "holds")
-            $("#holds")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
     }
 }
 
