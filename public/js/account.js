@@ -208,17 +208,13 @@ function getHolds() {
 }
 
 // Justin: Holds are gone, right? Can we get rid of the commented parts below and change the name of the function?
-function createCheckoutsAndHolds(books, str) {
+function createCheckouts(books, str) {
     if (books.length == 0) {
         if (str == "checkouts") {
             const p = document.createElement('p');
             p.appendChild(document.createTextNode("You have no books checked out."));
             $("#checkouts")[0].appendChild(p);
-        } /*else if (str == "holds") {
-            const p = document.createElement('p');
-            p.appendChild(document.createTextNode("You have no books on hold."));
-            $("#holds")[0].appendChild(p);
-        }*/
+        }
     }
     for (var i = 0; i < books.length; i++) {
         if (str == "checkouts")
