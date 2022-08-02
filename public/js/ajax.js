@@ -168,7 +168,9 @@ var currentExtension;
 
             
             
-            isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {}).then((result) => {
+            isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
+                console.error(error);
+            }).then((result) => {
                 if (result && !$("#admin-link").length) {                
                     $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
                 }
