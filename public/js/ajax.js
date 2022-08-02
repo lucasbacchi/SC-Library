@@ -1,3 +1,17 @@
+// Importing version 9 compat libraries
+import firebase from "firebase/compat/app";
+import "firebase/compat/analytics";
+import "firebase/compat/app-check";
+import "firebase/compat/auth";
+import "firebase/compat/firestore";
+import "firebase/compat/storage";
+import "firebase/compat/performance";
+
+
+
+import { initApp, closeLargeAccount, setupMain } from "./main";
+
+
 var url = window.location.href;
 var path = window.location.pathname;
 var query = window.location.search;
@@ -57,6 +71,8 @@ var currentPanel;
 var currentHash;
 var currentQuery = "";
 var currentExtension;
+
+export let goToPage;
 {
     let isAdmin;
     function isAdminCheck(recheck = false) {
@@ -67,19 +83,19 @@ var currentExtension;
                     resolve(true);
                 }).catch((error) => {
                     isAdmin = false;
-                    reject(false);
+                    resolve(false);
                 });
             } else {
                 if (isAdmin) {
                     resolve(true);
                 } else {
-                    reject(false);
+                    resolve(false);
                 }
             }
         });
     }
     
-    function goToPage(pageName, goingBack = false, searchResultsArray = null) {
+    goToPage = (pageName, goingBack = false, searchResultsArray = null) => {
         return new Promise (function (resolve, reject) {
             // If there is any reason for the user to not leave a page, then it will reject.
             // Currently, this handles unsaved changes on the edit entry page.

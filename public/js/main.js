@@ -1,4 +1,31 @@
-var db = firebase.firestore();
+// I'm not sure if we need to reimport everything on each file
+import firebase from "firebase/compat/app";
+import "firebase/compat/analytics";
+import "firebase/compat/app-check";
+import "firebase/compat/auth";
+import "firebase/compat/firestore";
+import "firebase/compat/storage";
+import "firebase/compat/performance";
+import { initializeApp } from 'firebase/app';
+import { getAnalytics } from "firebase/analytics";
+
+
+import {  } from "./ajax";
+
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAsQp9MoNHpx_082eyH4gi-K-M1v1YGzKU",
+  authDomain: "south-church-library.firebaseapp.com",
+  databaseURL: "https://south-church-library.firebaseio.com",
+  projectId: "south-church-library",
+  storageBucket: "south-church-library.appspot.com",
+  messagingSenderId: "695036619849",
+  appId: "1:695036619849:web:5e99fa7a4f64cec2daa398",
+  measurementId: "G-MRXNED32DZ"
+};
+
+
 
 // Manage Menu Button event listener
 $('#hamburger-button').click(function() {
@@ -48,7 +75,7 @@ $(window).resize(function () {
 });
 
 
-function setupMain() {
+export function setupMain() {
     homeBookBoxes();
     $("#search-input").keydown(function(event) {
         if (event.keyCode === 13) {
@@ -59,6 +86,7 @@ function setupMain() {
 
 
 // Manage Account Panel and animation
+export let closeLargeAccount;
 {
     let largeAccountOpen = false;
     $('#small-account-container').click(function() {
@@ -73,7 +101,7 @@ function setupMain() {
     });
 
 
-    function closeLargeAccount() {
+    closeLargeAccount = () => {
         largeAccountOpen = false;
         $('#large-account-container').delay(400).hide(0);
         $('#large-account-container').css('right', '-500%');
@@ -123,7 +151,14 @@ function signOut() {
  *  - firebase.auth().onAuthStateChanged: This listener is called when the user is signed in or
  *    out, and that is where we update the UI.
  */
-function initApp() {
+let db;
+export function initApp() {
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
+    console.log(app.name)
+    const analytics = getAnalytics(app);
+    db = firebase.firestore();
     // Listening for auth state changes.
     return new Promise(function(resolve, reject) {
         try {
