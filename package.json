@@ -18,7 +18,8 @@
     "dev": "webpack-dev-server --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js",
     "stats": "webpack --config webpack.dev.js --profile --json > stats.json",
-    "webpack": "webpack --entry ./public/js/ajax.js"
+    "webpack": "webpack --entry ./public/js/ajax.js",
+    "watch": "webpack --config webpack.dev.js --watch"
   },
   "repository": {
     "type": "git",

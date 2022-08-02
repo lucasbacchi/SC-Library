@@ -16,7 +16,9 @@
         <!-- Link to Hosted jQuery -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <!-- Load Ajax Script -->
-        <script src="/ajax.bundle.js"></script>
+        <!-- TODO: Will likely need to load other scripts... somehow... -->
+        <script src="/dist/runtime.bundle.js" type="module"></script>
+        <script src="/dist/ajax.bundle.js" type="module"></script>
         <meta charset="utf-8">
         <meta name="keywords" content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
         <meta name="description" content="Official Library Catalog of South Church in Andover!">
@@ -33,20 +35,20 @@
 
     <body style="overflow: hidden;">
         <header>
-            <h1><a onclick="javascript:goToPage('main');" class="no-select">South Church Library</a></h1>
+            <h1><a data-link-target='main' class="no-select">South Church Library</a></h1>
             <span id="hamburger-button" class="no-select">&#9776;</span>
             <nav class="no-select">
                 <span id="close-button">&#10006;</span>
-                <li class=navlink><a onclick="javascript:goToPage('main');">Home</a></li>
-                <li class=navlink><a onclick="javascript:goToPage('about');">About</a></li>
-                <li class=navlink><a onclick="javascript:goToPage('search');">Browse</a></li>
-                <!--<li class=navlink><a onclick="javascript:goToPage('advancedSearch');">Search</a></li>-->
-                <li class=navlink><a onclick="javascript:goToPage('help');">Help</a></li>
+                <li class=navlink><a data-link-target='main'>Home</a></li>
+                <li class=navlink><a data-link-target='about'>About</a></li>
+                <li class=navlink><a data-link-target='search'>Browse</a></li>
+                <!--<li class=navlink><a data-link-target='advancedSearch'>Search</a></li>-->
+                <li class=navlink><a data-link-target='help'>Help</a></li>
             </nav>
             <div id="account-container">
                 <div id="nav-login-signup" class="no-select">
-                    <div id="nav-login"><a onclick="javascript:goToPage('login');">Log In</a></div>
-                    <div id="nav-signup"><a onclick="javascript:goToPage('signup');">Sign Up</a></div>
+                    <div id="nav-login"><a data-link-target='login'>Log In</a></div>
+                    <div id="nav-signup"><a data-link-target='signup'>Sign Up</a></div>
                 </div>
                 <div id="small-account-container" class="no-select">
                     <img id="small-account-image" src="../img/default-user.jpg">
@@ -57,9 +59,10 @@
                     <div id="account-information-container">
                         <p id="account-name"></p>
                         <p id="account-email"></p>
+                        <a id="admin-link" data-link-target="admin/main"></a>
                     </div>
-                    <div id="log-out" class="account-bottom" onclick="javascript:signOut();"><a>Log Out</a></div>
-                    <div id="account-settings" class="account-bottom" onclick="javascript:goToPage('account');"><a>View Account</a></div>
+                    <div id="log-out" class="account-bottom"><a>Log Out</a></div>
+                    <div id="account-settings" class="account-bottom" data-link-target='account'><a>View Account</a></div>
                 </div>
             </div>
         </header>
@@ -92,9 +95,9 @@
             <div class="footer-div">
                 <h2 class="footer-title no-select">Help</h2>
                 <ul class="footer-list">
-                    <li><a onclick="javascript:goToPage('help');">Help Page</a></li>
-                    <li><a onclick="javascript:goToPage('help#FAQ');">FAQs</a></li>
-                    <li><a onclick="javascript:goToPage('sitemap');">Sitemap</a></li>
+                    <li><a data-link-target='help'>Help Page</a></li>
+                    <li><a data-link-target='help#FAQ'>FAQs</a></li>
+                    <li><a data-link-target='sitemap'>Sitemap</a></li>
                 </ul>
             </div>
             <div class="footer-bottom">&#169; 2020 South Church in Andover</div>
