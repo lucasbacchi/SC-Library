@@ -18,7 +18,7 @@ module.exports = {
     },*/
     output: {
         filename: "[name].bundle.js",
-        path: path.resolve(__dirname, "./public")/*,
+        path: path.resolve(__dirname, "./public/dist")/*,
         We should try to use this feature, but as it stands, that would delete the whole project
         clean: true*/
     },

@@ -136,7 +136,7 @@ $(window).on("scroll", function() {
 /* AUTHENTICATION START */
 
 
-function signOut() {
+export function signOut() {
     if (firebase.auth().currentUser) {
         firebase.auth().signOut();
         /* could change 'replace' to 'href' if we wanted to keep the page in the history */

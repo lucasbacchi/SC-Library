@@ -8,8 +8,7 @@ import "firebase/compat/storage";
 import "firebase/compat/performance";
 
 
-
-import { initApp, closeLargeAccount, setupMain } from "./main";
+import { initApp, closeLargeAccount, setupMain, signOut } from "./main";
 
 
 var url = window.location.href;
@@ -55,6 +54,7 @@ $(document).ready(function () {
         // Pass your reCAPTCHA v3 site key (public key) to activate(). Make sure this
         // key is the counterpart to the secret key you set in the Firebase console.
         appCheck.activate('6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu');
+        setupIndex();
         goToPage(fullExtension.substr(1), true);
     }, function(error) {
         console.error(error);
@@ -62,6 +62,19 @@ $(document).ready(function () {
 });
 
 
+// Runs on the first load of all pages to handle nav links
+function setupIndex() {
+    $("div#log-out").click(() => {
+        signOut();
+    });
+    document.querySelectorAll("a").forEach(element => {
+        if(element.dataset.linkTarget) {
+            $(element).click(() => {
+                goToPage(element.dataset.linkTarget);
+            });
+        }
+    });
+}
 
 
 
@@ -175,9 +188,13 @@ export let goToPage;
                 }
             } else {
                 isAdminCheck(true).then((isAdmin) => {
-                    getPage(pageName);
+                    if (isAdmin) {
+                        getPage(pageName);
+                    } else {
+                        goToPage("");
+                    }
                 }).catch((error) => {
-                    goToPage("");
+                    console.error("error in admin check", error);
                     return;
                 })
             }
@@ -187,8 +204,8 @@ export let goToPage;
             isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
                 console.error(error);
             }).then((result) => {
-                if (result && !$("#admin-link").length) {                
-                    $("#account-information-container").append("<a id=\"admin-link\" onclick=\"javascript:goToPage(\'admin/main\');\">Admin Dashboard</a>");
+                if (result && $("#admin-link").html() == "") {
+                    $("#admin-link").html("Admin Dashboard");
                 }
             });
 
@@ -256,7 +273,7 @@ export let goToPage;
                         } else {
                             document.title = "South Church Library Catalog";
                         }
-
+/*
                         // Define what sources are required on each page
                         // (excluding favicon.ico, ajax.js, main.js, and main.css)
                         // These will always be loaded no matter what page.
@@ -328,7 +345,7 @@ export let goToPage;
                             }
                         } catch {
                             console.warn("This page name does not exist in the source list.");
-                        }
+                        }*/
 
                         // Page Content has now Loaded
 

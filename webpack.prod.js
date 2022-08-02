@@ -7,7 +7,5 @@ const common = require("./webpack.common");
 
 // This is just a javascript module that exports the config to webpack
 module.exports = merge(common, {
-    mode: "production",
-    //TEMP
-    devtool: "source-map"
+    mode: "production"
 });

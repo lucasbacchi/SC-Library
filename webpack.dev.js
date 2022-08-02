@@ -10,14 +10,13 @@ module.exports = merge(common, {
     mode: "development",
     devServer: {
         static: {
-            directory: path.join(__dirname, "./public")/*,
-            publicPath: "/"*/
-        }
-    },
+          directory: path.join(__dirname, 'public'),
+        },
+        compress: true,
+        port: 8080,
+      },
     optimization: {
-        /* THIS WAS CAUSING SOOOOOOOO MANY PROBLEMS
-        runtimeChunk: "single"
-        */
+        runtimeChunk: "single",
         minimize: false
     },
     devtool: "source-map"
