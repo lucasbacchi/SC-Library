@@ -1,7 +1,25 @@
-import firebase from "firebase/compat/app";
-import { goToPage, updateEmail } from "./ajax";
-import { buildBookBox } from "./common";
-import { currentPage, currentPanel, db, directory, setCurrentPanel } from "./globals";
+"use strict";
+(self["webpackChunksc_library"] = self["webpackChunksc_library"] || []).push([["public_js_account_js"],{
+
+/***/ "./public/js/account.js":
+/*!******************************!*\
+  !*** ./public/js/account.js ***!
+  \******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "setupAccountPage": () => (/* binding */ setupAccountPage)
+/* harmony export */ });
+/* harmony import */ var firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/compat/app */ "./node_modules/firebase/compat/app/dist/index.esm.js");
+/* harmony import */ var _ajax__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ajax */ "./public/js/ajax.js");
+/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
+/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+/* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
+
+
+
+
 
 // TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
 var settingsDirectory = [
@@ -72,15 +90,15 @@ function alignMenuColumn() {
 var firstName;
 var lastName;
 // Load correct info for account
-export function setupAccountPage(pageQuery, goingBack = false) {
-    var user = firebase.auth().currentUser;
+function setupAccountPage(pageQuery, goingBack = false) {
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     if (user) {
 
         var email = user.email;
         email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
         $("#account-page-email").text(email);
         // Get the stored first and last name from the database
-        db.collection("users").doc(user.uid).get().then((doc) => {
+        _globals__WEBPACK_IMPORTED_MODULE_3__.db.collection("users").doc(user.uid).get().then((doc) => {
             if (!doc.exists) {
                 console.error("The user document could not be found.");
                 return;
@@ -97,7 +115,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         $("#settings-column").html("No user is signed in. To sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>.");
     }
 
-    if (pageQuery.substring(1) != "" && directory.includes("/account/" + pageQuery.substring(1))) {
+    if (pageQuery.substring(1) != "" && _globals__WEBPACK_IMPORTED_MODULE_3__.directory.includes("/account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1), goingBack);
     } else {
         goToSettingsPanel("overview", goingBack);
@@ -145,7 +163,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         }
         // @ts-ignore
         const file = fileInput.files[0];
-        var userSpecificRef = firebase.storage().ref().child("users");
+        var userSpecificRef = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].storage().ref().child("users");
         var meta;
         if (file.type == "image/jpg") {
             userSpecificRef = userSpecificRef.child(user.uid + "/pfp.jpg");
@@ -177,7 +195,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
 }
 
 function accountOverviewSetup(firstName, lastName, email) {
-    var user = firebase.auth().currentUser;
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
     }
@@ -228,20 +246,20 @@ function createCheckouts(books, str) {
     }
     for (let i = 0; i < books.length; i++) {
         if (str == "checkouts")
-            $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
+            $("#checkouts")[0].appendChild((0,_common__WEBPACK_IMPORTED_MODULE_2__.buildBookBox)(books[i], "account", books[i].due));
     }
 }
 
 // Runs when the user clicks the Save button on the account page
 function updateAccount() {
-    var user = firebase.auth().currentUser;
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     if (!checkForChangedFields()) {
         alert("There are no changes to save.");
     } else {
         var nameError = false;
         // If the names were changed, update them.
         if (($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined) || ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)) {
-            db.collection("users").doc(user.uid).update({
+            _globals__WEBPACK_IMPORTED_MODULE_3__.db.collection("users").doc(user.uid).update({
                 firstName: $("#setting-first-name").val(),
                 lastName: $("#setting-last-name").val()
             }).catch((error) => {
@@ -266,7 +284,7 @@ function updateAccount() {
                 if (error.code == "auth/requires-recent-login") {
                     alert("You must sign in again to complete this opperation.");
                     // Send them to the login page with a query
-                    goToPage("login?redirect=account&email=" + $("#setting-email").val());
+                    (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)("login?redirect=account&email=" + $("#setting-email").val());
                 } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
@@ -277,7 +295,7 @@ function updateAccount() {
                     if (!user.emailVerified) {
                         $("#email-verified").show();
                     }
-                    updateEmail(email);
+                    (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.updateEmail)(email);
                     alert("Your email was saved successfully.");
                 }
             });
@@ -290,12 +308,12 @@ function updateAccount() {
 
     const xhttp = new XMLHttpRequest();
     function goToSettingsPanel(newPanel, goingBack = false) {
-        var user = firebase.auth().currentUser;
+        var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
 
         $("#settings-column").removeClass("fade");
 
         newPanel = "/" + newPanel;
-        if (newPanel == currentPanel) {
+        if (newPanel == _globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel) {
             // TODO: Remove after I know it's not breaking anything...
             console.log("The user attempted to view the same account panel twice and it was prevented.");
             return;
@@ -303,7 +321,7 @@ function updateAccount() {
 
         if (settingsDirectory.includes(newPanel)){
             xhttp.open("GET", "/content/account" + newPanel + ".html", true);
-        } else if (directory.includes("/account" + newPanel)) {
+        } else if (_globals__WEBPACK_IMPORTED_MODULE_3__.directory.includes("/account" + newPanel)) {
             xhttp.open("GET", "/content/account" + newPanel, true);
         } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
             xhttp.open("GET", "/content/account" + newPanel, true);
@@ -315,7 +333,7 @@ function updateAccount() {
         // Set the content of the page
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
-                if (currentPanel != newPanel) {
+                if (_globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
                 }
 
@@ -339,7 +357,7 @@ function updateAccount() {
                     window.history.pushState({}, "", "/account?" + newPanel.substring(1));
                 }
 
-                setCurrentPanel(newPanel);
+                (0,_globals__WEBPACK_IMPORTED_MODULE_3__.setCurrentPanel)(newPanel);
             }
         };
     }
@@ -347,7 +365,7 @@ function updateAccount() {
 // Returns true if the user has unsaved changes, otherwise, returns false
 function checkForChangedFields() {
     var answer = false;
-    var user = firebase.auth().currentUser;
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
 
     if ($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined)
         answer = true;
@@ -363,7 +381,7 @@ function checkForChangedFields() {
  * Sends an email verification to the user.
  */
 function sendEmailVerification() {
-    var user = firebase.auth().currentUser;
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     user.sendEmailVerification().then(function() {
         alert("Email Verification Sent! Please check your email!");
     });
@@ -371,7 +389,7 @@ function sendEmailVerification() {
     // After a user sends a verification email, check ever 2 seconds to see if it went through.
     // Cancel it if it goes too long.
     var interval = setInterval(() => {
-        if (firebase.auth().currentUser.emailVerified) {
+        if (firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser.emailVerified) {
             $("#email-verified").hide();
             clearInterval(interval);
         }
@@ -394,14 +412,14 @@ function changePassword() {
         $("#new-password").val("");
         $("#confirm-new-password").val("");
     } else if (newPassword.length >= 4) {
-        var user = firebase.auth().currentUser;
-        const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+        var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
+        const credential = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth.EmailAuthProvider.credential(user.email, currentPassword);
         user.reauthenticateWithCredential(credential).then(function() {
             // User re-authenticated.
             user.updatePassword(newPassword).then(() => {
                 // Update successful
                 alert("Your password was succesfully changed");
-                goToPage("");
+                (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)("");
             }).catch((error) => {
                 console.error(error);
             });
@@ -438,7 +456,7 @@ $(window).on("beforeunload", function(event) {
 
 // Catch History Events such as forward and back and then go to those pages
 window.addEventListener("popstate", function() {
-    if (currentPage.includes("account") && document.location.pathname.includes("account")) {
+    if (_globals__WEBPACK_IMPORTED_MODULE_3__.currentPage.includes("account") && document.location.pathname.includes("account")) {
         goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), true);
     } /* Hopefully, this is no longer needed
     else {
@@ -447,3 +465,9 @@ window.addEventListener("popstate", function() {
 });
 
 console.log("account.js has Loaded!");
+
+
+/***/ })
+
+}]);
+//# sourceMappingURL=public_js_account_js.bundle.js.map

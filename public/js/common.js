@@ -1,4 +1,4 @@
-import { isAdminCheck } from "./ajax";
+import { goToPage, isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache } from "./globals";
 
 /************
@@ -352,7 +352,9 @@ export function buildBookBox(obj, page, num = 0) {
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
         div2.appendChild(barcode);
     } else {
-        div.setAttribute("onclick", "javascript:goToPage('result?id=" + obj.barcodeNumber + "');");
+        div.addEventListener("click", () => {
+            goToPage("result?id=" + obj.barcodeNumber);
+        });
     }
     if (page == "account") {
         var frontstr = "", boldstr = "" + num, backstr = "";

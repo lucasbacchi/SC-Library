@@ -23,7 +23,8 @@
   "scripts": {
     "dev": "webpack-dev-server --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js",
-    "stats": "webpack --config webpack.dev.js --profile --json > stats.json",
+    "stats-dev": "webpack --config webpack.dev.js --profile --json > stats.json",
+    "stats-prod": "webpack --config webpack.prod.js --profile --json > stats.json",
     "webpack": "webpack --entry ./public/js/ajax.js",
     "watch": "webpack --config webpack.dev.js --watch"
   },

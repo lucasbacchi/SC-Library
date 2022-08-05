@@ -3,8 +3,8 @@ const path = require('path');
 const webpack = require("webpack");
 
 // This is just a javascript module that exports the config to webpack
-module.exports = {
-    /*entry: {
+module.exports = {/*
+    entry: {
         ajax: { import: "/public/js/ajax.js", dependOn: "shared" },
         main: { import: "/public/js/main.js", dependOn: "shared" },
         shared: "firebase/compat/app"
@@ -19,9 +19,8 @@ module.exports = {
     },*/
     output: {
         filename: "[name].bundle.js",
-        path: path.resolve(__dirname, "./public/dist")/*,
-        We should try to use this feature, but as it stands, that would delete the whole project
-        clean: true*/
+        path: path.resolve(__dirname, "./public/dist"),
+        clean: true
     },
     target: "web",
     plugins: [

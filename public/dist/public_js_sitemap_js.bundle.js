@@ -1,12 +1,29 @@
-import firebase from "firebase/compat/app";
-import { isAdminCheck } from "./ajax";
-import { directory } from "./globals";
+"use strict";
+(self["webpackChunksc_library"] = self["webpackChunksc_library"] || []).push([["public_js_sitemap_js"],{
 
-export function setupSitemap() {
+/***/ "./public/js/sitemap.js":
+/*!******************************!*\
+  !*** ./public/js/sitemap.js ***!
+  \******************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "setupSitemap": () => (/* binding */ setupSitemap)
+/* harmony export */ });
+/* harmony import */ var firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/compat/app */ "./node_modules/firebase/compat/app/dist/index.esm.js");
+/* harmony import */ var _ajax__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ajax */ "./public/js/ajax.js");
+/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+/* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
+
+
+
+
+function setupSitemap() {
     var folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
-    if (firebase.auth().currentUser) blacklist.push('login', 'signup');
-    for (let i = 0; i < directory.length; i++) {
-        var page = directory[i].substring(1);
+    if (firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser) blacklist.push('login', 'signup');
+    for (let i = 0; i < _globals__WEBPACK_IMPORTED_MODULE_2__.directory.length; i++) {
+        var page = _globals__WEBPACK_IMPORTED_MODULE_2__.directory[i].substring(1);
         if (blacklist.indexOf(page) != -1) continue;
         var slash = page.indexOf('/');
         if (slash != -1) {
@@ -27,7 +44,7 @@ export function setupSitemap() {
             $('#sitemap').append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
         }
     }
-    isAdminCheck().then(() => {
+    (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.isAdminCheck)().then(() => {
         buildAdminSitemap();
     }).catch((error) => {
         console.error(error);
@@ -37,8 +54,8 @@ export function setupSitemap() {
 function buildAdminSitemap() {
     $('#sitemap').append("<li>Admin</li>");
     $('#sitemap').append("<ul id='admin'></ul>");
-    for (let i = 0; i < directory.length; i++) {
-        var page = directory[i].substring(1);
+    for (let i = 0; i < _globals__WEBPACK_IMPORTED_MODULE_2__.directory.length; i++) {
+        var page = _globals__WEBPACK_IMPORTED_MODULE_2__.directory[i].substring(1);
         var slash = page.indexOf('/');
         if (slash != -1) {
             var newFolder = page.substring(0, slash);
@@ -59,3 +76,9 @@ function formatPageString(page) {
     }
     return page;
 }
+
+
+/***/ })
+
+}]);
+//# sourceMappingURL=public_js_sitemap_js.bundle.js.map
