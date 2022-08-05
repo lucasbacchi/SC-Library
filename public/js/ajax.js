@@ -13,15 +13,15 @@ import { initializeApp } from "firebase/app";
 
 
 import { currentPage, db, directory, loadedSources, setApp, setCurrentPage, setCurrentPanel, setDb } from "./globals";
-import { setupMain } from "./main";
-import { setupEditEntry, unSavedChangesEditEntry } from "./editEntry"; // TODO: Figure out if this is a bad idea (don't load extra files? Will webpack deal with it for us?)
+// import { setupMain } from "./main";
+// import { setupEditEntry, unSavedChangesEditEntry } from "./editEntry"; // TODO: Figure out if this is a bad idea (don't load extra files? Will webpack deal with it for us?)
 import { findURLValue } from "./common";
-import { setupSignIn } from "./signIn";
-import { setupResults, setupSearch } from "./search";
-import { setupAdminMain, setupBarcodePage, setupEditUser, setupInventory, setupView } from "./admin";
-import { setupReport } from "./report";
-import { accountPageSetup } from "./account";
-import { sitemapSetup } from "./sitemap";
+// import { setupSignIn } from "./signIn";
+// import { setupResults, setupSearch } from "./search";
+// import { setupAdminMain, setupBarcodePage, setupEditUser, setupInventory, setupView } from "./admin";
+// import { setupReport } from "./report";
+// import { setupAccountPage } from "./account";
+// import { setupSitemap } from "./sitemap";
 
 
 // @ts-ignore
@@ -58,7 +58,7 @@ function setupIndex() {
         signOut();
     });
     // Iterate through all the links and set an onclick
-    document.querySelectorAll("a").forEach(element => {
+    document.querySelectorAll("a, div, button").forEach(element => {
         // The html tags each have a custom data tag telling where the link should go
         if (element.dataset.linkTarget) {
             $(element).on("click", () => {
@@ -195,10 +195,16 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null)
         // If there is any reason for the user to not leave a page, then it will reject.
         // Currently, this handles unsaved changes on the edit entry page.
         // TODO: Add more
-        if (currentPage == "/admin/editEntry" && unSavedChangesEditEntry()) {
-            // It's fine to call it regardless because it will only call if the first argument is true.
-            reject("The User attempted to leave the page without saving.");
-            return;
+        if (currentPage == "/admin/editEntry") {
+            import("./editEntry").then(({ unSavedChangesEditEntry }) => {
+                if (unSavedChangesEditEntry()) {
+                    // It's fine to call it regardless because it will only call if the first argument is true.
+                    reject("The User attempted to leave the page without saving.");
+                    return;
+                }
+            }).catch((error) => {
+                console.log(error);
+            });
         }
 
         $("#content").removeClass("fade");
@@ -480,57 +486,110 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         // Fire Additional Scripts based on Page
         if (pageName == "/main") {
-            setupMain();
+            import('./main').then(({ setupMain }) => {
+                setupMain();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/login" || pageName == "/signup") {
-            setupSignIn(pageQuery);
+            import('./signIn').then(({ setupSignIn }) => {
+                setupSignIn(pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+            
         }
 
         if (pageName == "/search") {
-            setupSearch(searchResultsArray, pageQuery);
+            import('./search').then(({ setupSearch }) => {
+                setupSearch(searchResultsArray, pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/result") {
-            setupResults(pageQuery);
+            import('./search').then(({ setupResults }) => {
+                setupResults(pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/account") {
-            accountPageSetup(pageQuery, goingBack);
+            import('./account').then(({ setupAccountPage }) => {
+                setupAccountPage(pageQuery, goingBack);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         } else {
             setCurrentPanel(null);
         }
 
         if (pageName == "/admin/main") {
-            setupAdminMain();
+            import('./admin').then(({ setupAdminMain }) => {
+                setupAdminMain();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/editEntry") {
-            setupEditEntry(pageQuery);
+            import('./editEntry').then(({ setupEditEntry }) => {
+                setupEditEntry(pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/editUser") {
-            setupEditUser();
+            import('./admin').then(({ setupEditUser }) => {
+                setupEditUser();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/view") {
-            setupView(pageQuery);
+            import('./admin').then(({ setupView }) => {
+                setupView(pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/report") {
-            setupReport(pageQuery);
+            import('./admin').then(({ setupReport }) => {
+                setupReport(pageQuery);
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/inventory") {
-            setupInventory();
+            import('./admin').then(({ setupInventory }) => {
+                setupInventory();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/admin/barcode") {
-            setupBarcodePage();
+            import('./admin').then(({ setupBarcodePage }) => {
+                setupBarcodePage();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         if (pageName == "/sitemap") {
-            sitemapSetup();
+            import('./sitemap').then(({ setupSitemap }) => {
+                setupSitemap();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
         }
 
         /* TRYING THIS IN A .THEN We'll see how that goes...
