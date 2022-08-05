@@ -1,5 +1,6 @@
 // Use Node.js for require function
 const path = require('path');
+const webpack = require("webpack");
 
 // This is just a javascript module that exports the config to webpack
 module.exports = {
@@ -22,5 +23,22 @@ module.exports = {
         We should try to use this feature, but as it stands, that would delete the whole project
         clean: true*/
     },
-    target: "web"
+    target: "web",
+    plugins: [
+        new webpack.ProvidePlugin({
+            $: "jquery",
+            jQuery: "jquery"
+        })
+    ],
+    module: {
+        rules: [
+            {
+                test: require.resolve("jquery"),
+                loader: "expose-loader",
+                options: {
+                    exposes: ["$", "jQuery"],
+                }
+            }
+        ]
+    }
 };

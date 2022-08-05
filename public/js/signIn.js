@@ -1,8 +1,16 @@
-function setupSignIn(pageQueryInput) {
+import firebase from "firebase/compat/app";
+import { goToPage, updateUserAccountInfo } from "./ajax";
+import { findURLValue } from "./common";
+import { currentPage, db } from "./globals";
+
+export function setupSignIn(pageQueryInput) {
     $("#submit, .login > input").keydown(function(event) {
         if (event.keyCode === 13) {
             signInSubmit(pageQueryInput);
         }
+    });
+    $("#password-reset").on("click", () => {
+        sendPasswordReset();
     });
 }
 
@@ -21,7 +29,7 @@ function authRedirect(pageQuery) {
             emailError = true;
             alert("There was an error updating your email. Please try again later.");
             console.error(error);
-        }).then(function(error) {
+        }).then(function() {
             if (!emailError) {
                 alert("Your email was saved successfully.");
             }
@@ -52,8 +60,8 @@ function signInSubmit(pageQuery = "") {
     } else if (currentPage == '/signup') {
         handleSignUp().then(function() {
             authRedirect(pageQuery);
-        }).catch((err) => {
-            console.warn("Signup failed (likely because the user failed validation)")
+        }).catch(() => {
+            console.warn("Signup failed (likely because the user failed validation)");
         });
     }
 }
@@ -63,7 +71,7 @@ function signInSubmit(pageQuery = "") {
 
 function signIn(reAuth = false) {
     return new Promise(function(resolve, reject) {
-        var user = firebase.auth().currentUser
+        var user = firebase.auth().currentUser;
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
         } else {
@@ -77,14 +85,12 @@ function signIn(reAuth = false) {
                 alert('Please enter a password.');
                 reject();
             }
-            var signInError = false;
             if (!reAuth) {
                 // Sign in with email and pass.
                 firebase.auth().signInWithEmailAndPassword(email, password).then(function() {
                     resolve(reAuth);
                 }).catch(function(error) {
                     // Handle Errors here.
-                    signInError = true;
                     var errorCode = error.code;
                     var errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
@@ -105,7 +111,6 @@ function signIn(reAuth = false) {
                     resolve();
                 }).catch(function(error) {
                     // An error happened.
-                    signInError = true;
                     var errorCode = error.code;
                     var errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {

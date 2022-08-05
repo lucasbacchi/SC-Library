@@ -6,6 +6,7 @@ const { merge } = require('webpack-merge');
 const common = require("./webpack.common");
 
 // This is just a javascript module that exports the config to webpack
+// @ts-ignore
 module.exports = merge(common, {
     mode: "development",
     devServer: {
@@ -14,7 +15,7 @@ module.exports = merge(common, {
         },
         compress: true,
         port: 8080,
-      },
+    },
     optimization: {
         runtimeChunk: "single",
         minimize: false
