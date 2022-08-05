@@ -22,13 +22,26 @@ __webpack_require__.r(__webpack_exports__);
 
 
 function setupSignIn(pageQueryInput) {
-    $("#submit, .login > input").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#submit, .login > input").on("keydown", (event) => {
+        if (event.key === "Enter") {
             signInSubmit(pageQueryInput);
         }
     });
+
+    $("#submit").on("click", () => {
+        signInSubmit();
+    });
+
     $("#password-reset").on("click", () => {
         sendPasswordReset();
+    });
+
+    $("#log-in-switch-link").on("click", () => {
+        (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)('login');
+    });
+
+    $("#sign-up-switch-link").on("click", () => {
+        (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)('signup');
     });
 }
 

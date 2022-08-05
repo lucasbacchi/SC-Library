@@ -9,22 +9,17 @@ import "firebase/compat/performance";
 
 // Imports for version 9 (TODO: Add more)
 import { initializeApp } from "firebase/app";
+import { getPerformance } from "firebase/performance";
+import { getAnalytics, logEvent } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 
-
-import { currentPage, db, directory, loadedSources, setApp, setCurrentPage, setCurrentPanel, setDb } from "./globals";
-// import { setupMain } from "./main";
-// import { setupEditEntry, unSavedChangesEditEntry } from "./editEntry"; // TODO: Figure out if this is a bad idea (don't load extra files? Will webpack deal with it for us?)
+import { currentPage, db, directory, loadedSources, app, setApp, setCurrentPage, setCurrentPanel, setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth } from "./globals";
 import { findURLValue } from "./common";
-// import { setupSignIn } from "./signIn";
-// import { setupResults, setupSearch } from "./search";
-// import { setupAdminMain, setupBarcodePage, setupEditUser, setupInventory, setupView } from "./admin";
-// import { setupReport } from "./report";
-// import { setupAccountPage } from "./account";
-// import { setupSitemap } from "./sitemap";
 
 
-// @ts-ignore
 // eslint-disable-next-line no-unused-vars
 var url = window.location.href;
 var path = window.location.pathname;
@@ -42,7 +37,7 @@ $(() => {
             // key is the counterpart to the secret key you set in the Firebase console.
             appCheck.activate("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu");
             setupIndex();
-            goToPage(fullExtension.substr(1), true);
+            goToPage(fullExtension.substring(1), true);
         }, function (error) {
             console.error(error);
         });
@@ -57,15 +52,8 @@ function setupIndex() {
     $("div#log-out").on("click", () => {
         signOut();
     });
-    // Iterate through all the links and set an onclick
-    document.querySelectorAll("a, div, button").forEach(element => {
-        // The html tags each have a custom data tag telling where the link should go
-        if (element.dataset.linkTarget) {
-            $(element).on("click", () => {
-                goToPage(element.dataset.linkTarget);
-            });
-        }
-    });
+
+    convertDataTagsToLinks();
 
     // Manage Menu Button event listener
     $("#hamburger-button").on("click", () => {
@@ -149,6 +137,19 @@ function setupIndex() {
     });
 }
 
+
+export function convertDataTagsToLinks() {
+    // Iterate through all the links and set an onclick
+    document.querySelectorAll("a, div, button").forEach(element => {
+        // The html tags each have a custom data tag telling where the link should go
+        if (element.dataset.linkTarget) {
+            $(element).on("click", () => {
+                goToPage(element.dataset.linkTarget);
+            });
+        }
+    });
+}
+
 function closeNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("0");
@@ -219,20 +220,20 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null)
 
         // This removes the hash if one was passed in and stores it to a separate variable.
         if (pageName.includes("#")) {
-            pageHash = pageName.substr(pageName.indexOf("#"), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("#"));
+            pageHash = pageName.substring(pageName.indexOf("#"), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("#"));
         }
 
         // This removes the query if one was passed in and stores it to a separate variable.
         if (pageName.includes("?")) {
-            pageQuery = pageName.substr(pageName.indexOf("?"), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("?"));
+            pageQuery = pageName.substring(pageName.indexOf("?"), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("?"));
         }
 
         // This removes the file extension if one was passed in.
         if (pageName.includes(".")) {
-            // Never Used: pageExtension = pageName.substr(pageName.indexOf("."), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("."));
+            // Never Used: pageExtension = pageName.substring(pageName.indexOf("."), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("."));
         }
 
         // This removes an ending slash if one was mistakenly included
@@ -418,21 +419,21 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
                 // Get an array of currently loaded Additional Resources like JS and CSS
                 // Iterate through the currently loaded css files
-                $('head > link.appended').each(() => {
+                $.each($('head > link.appended'), (index, value) => {
                     // Get the href attribute of the link tag
-                    var href = $(this)[0].attributes.href.value;
+                    var href = value.attributes.href.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!loadedSources.includes(href.substr(href.lastIndexOf('/') + 1, href.length))) {
-                        loadedSources.push(href.substr(href.lastIndexOf('/') + 1, href.length));
+                    if (!loadedSources.includes(href.substring(href.lastIndexOf('/') + 1, href.length))) {
+                        loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
                     }
                 });
                 // Iterate though the currently loaded js files
-                $('body > script.appended').each(() => {
+                $.each($('body > script.appended'), (index, value) => {
                     // Get the src attribute of the script tag.
-                    var src = $(this)[0].attributes.src.value;
+                    var src = value.attributes.src.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!loadedSources.includes(src.substr(src.lastIndexOf('/') + 1, src.length))) {
-                        loadedSources.push(src.substr(src.lastIndexOf('/') + 1, src.length));
+                    if (!loadedSources.includes(src.substring(src.lastIndexOf('/') + 1, src.length))) {
+                        loadedSources.push(src.substring(src.lastIndexOf('/') + 1, src.length));
                     }
                 });
 
@@ -449,11 +450,11 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                         // If the source hasn't already been loaded.
                         if (!loadedSources.includes(sourcesForPage[i])) {
                             // If the source is a js file:
-                            if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
+                            if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
                                 // $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
                             }
                             // If the source is a css file
-                            else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
+                            else if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
                                 $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
                             } else {
                                 console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
@@ -499,7 +500,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
-            
+
         }
 
         if (pageName == "/search") {
@@ -511,8 +512,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }
 
         if (pageName == "/result") {
-            import('./search').then(({ setupResults }) => {
-                setupResults(pageQuery);
+            import('./search').then(({ setupResultPage }) => {
+                setupResultPage(pageQuery);
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -653,10 +654,24 @@ const firebaseConfig = {
 function initApp() {
     // Initialize Firebase
     setApp(initializeApp(firebaseConfig));
+    // TODO: Remove v8
     firebase.initializeApp(firebaseConfig);
-    /* Remove this comment when compat version is gone (then actually setup analytics...)
-    const analytics = getAnalytics(app);*/
+
+    // Start firebase services and globalize them.
+    // TODO: Start using analytics and performance properly
+    setAnalytics(getAnalytics(app));
+    logEvent(analytics, 'app_open');
+
+    setPerformance(getPerformance(app)); // eslint-disable-line
+
     setDb(firebase.firestore());
+/* Uncomment when ready for v9
+    setDb(getFirestore(app));
+
+    setStorage(getStorage(app));
+
+    setAuth(getAuth(app));*/
+
     // Listening for auth state changes.
     return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
         try {
@@ -719,7 +734,9 @@ export function updateUserAccountInfo() {
         $("#large-account-image").show();
         $("#account-email").show();
         $("#account-settings").show();
-        $("#log-out").html("<a>Log Out</a>").css("width", "50%").attr("onclick", "javascript:signOut();");
+        $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
+            signOut();
+        });
     } else {
         // User is signed out.
 
@@ -736,7 +753,7 @@ export function updateUserAccountInfo() {
 }
 
 export function updateEmail(email) {
-    email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
+    email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
     $("#account-email").text(email);
     $("#account-page-email").text(email);
 }

@@ -13,7 +13,8 @@
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">Author</h6>
-        <p class="form-description">Currently only allows for 2 authors to be added. If there are more than 2 authors, include it in the description.</p>
+        <p class="form-description">Currently only allows for 2 authors to be added. If there are more than 2 authors,
+            include it in the description.</p>
         <input id="book-author-1-last" placeholder="Last Name" class="short-form-input">
         <span>, </span>
         <input id="book-author-1-first" placeholder="First Name" class="short-form-input">
@@ -24,7 +25,8 @@
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">Illustrator</h6>
-        <p class="form-description">Currently only allows for 2 illustrators to be added. If there are more than 2 illustrators, include it in the description.</p>
+        <p class="form-description">Currently only allows for 2 illustrators to be added. If there are more than 2
+            illustrators, include it in the description.</p>
         <input id="book-illustrator-1-last" placeholder="Last Name" class="short-form-input">
         <span>, </span>
         <input id="book-illustrator-1-first" placeholder="First Name" class="short-form-input">
@@ -45,27 +47,32 @@
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">Cover</h6>
-        <p class="form-description">An image of the cover of the book. If one does not automatically load, then try finding a picture of it online. Worst case scenario, you can always take a picture of it and upload it.</p>
+        <p class="form-description">An image of the cover of the book. If one does not automatically load, then try
+            finding a picture of it online. Worst case scenario, you can always take a picture of it and upload it.</p>
         <div class="book-cover-image-container no-select">
             <img id="book-cover-image" src="../img/favicon.ico">
             <div id="book-cover-image-overlay">Change Photo</div>
-            <input type="file" id="file-input" style="display: none;" accept="image/*" onchange="javascript:loadFile(event);">
+            <input type="file" id="file-input" style="display: none;" accept="image/*">
         </div>
     </div>
     <div class="form-section">
         <h6 class="form-title">Subject</h6>
-        <p class="form-description">List as many subjects as is appropriate for the book. If you don't know the book, perhaps a google search might help.</p>
+        <p class="form-description">List as many subjects as is appropriate for the book. If you don't know the book,
+            perhaps a google search might help.</p>
         <input id="book-subject-1" placeholder="" class="normal-form-input subject-field">
-        <button id="add-subject" onclick="javascript:addSubject();">Add a Subject Field</button>
+        <button id="add-subject">Add a Subject Field</button>
     </div>
     <div class="form-section">
         <h6 class="form-title">Description</h6>
-        <p class="form-description">If a description did not load automatically, please enter a brief description. These can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes keywords that someone might use to search for the book.</p>
+        <p class="form-description">If a description did not load automatically, please enter a brief description. These
+            can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes
+            keywords that someone might use to search for the book.</p>
         <textarea id="book-description" placeholder="Enter a description" class="long-form-input"></textarea>
     </div>
     <div class="form-section">
         <h6 class="form-title">Audience</h6>
-        <p class="form-description">This should be found on the card. If not, take your best guess, or just check "None".</p>
+        <p class="form-description">This should be found on the card. If not, take your best guess, or just check
+            "None".</p>
         <input type="checkbox" id="book-audience-children" name="audience" value="children">Children
         <input type="checkbox" id="book-audience-youth" name="audience" value="youth">Youth
         <input type="checkbox" id="book-audience-adult" name="audience" value="adult">Adult
@@ -73,44 +80,53 @@
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">ISBN 10 Number</h6>
-        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10 digits long. Do not include any dashes.</p>
+        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 10
+            digits long. Do not include any dashes.</p>
         <input id="book-isbn-10" placeholder="" class="short-form-input">
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">ISBN 13 Number</h6>
-        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13 digits long and starts with "978". Do not include any dashes.</p>
+        <p class="form-description">This number is usually found on the back side of the book near the barcode. It is 13
+            digits long and starts with "978". Do not include any dashes.</p>
         <input id="book-isbn-13" placeholder="" class="short-form-input">
         <br>
         <input id="book-no-isbn" type="checkbox"> This book does not have an ISBN number
     </div>
     <div class="form-section">
         <h6 class="form-title">Publisher</h6>
-        <p class="form-description">Currently, this only supports adding a maximum of two publishers. If there are more, please list them in the description.</p>
+        <p class="form-description">Currently, this only supports adding a maximum of two publishers. If there are more,
+            please list them in the description.</p>
         <input id="book-publisher-1" placeholder="" class="normal-form-input">
         <input id="book-publisher-2" placeholder="" class="normal-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Publish Date</h6>
-        <p class="form-description">Sometimes found on the first few pages of the book. If you can't find a publishing date, you can use the copyright date. If you can only find the year, or only the month and the year, just enter what you can find.</p>
-        <input id="book-publish-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> / </span>
+        <p class="form-description">Sometimes found on the first few pages of the book. If you can't find a publishing
+            date, you can use the copyright date. If you can only find the year, or only the month and the year, just
+            enter what you can find.</p>
+        <input id="book-publish-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> /
+        </span>
         <input id="book-publish-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-publish-year" placeholder="Year" class="short-form-input" style="width: 120px;">
     </div>
     <div class="form-section no-av">
         <h6 class="form-title">Number of Pages</h6>
-        <p class="form-description">Enter the number of pages in the book. If the book has no page numbers, check the box below instead.</p>
+        <p class="form-description">Enter the number of pages in the book. If the book has no page numbers, check the
+            box below instead.</p>
         <input id="book-pages" placeholder="" class="short-form-input">
         <br>
         <input id="book-unnumbered" type="checkbox"> This book does not have page numbers
     </div>
     <div class="form-section">
         <h6 class="form-title">Dewey Decimal Class</h6>
-        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, if it's not on the book or the card, you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
+        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, if it's not on the book or the card,
+            you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
         <input id="book-dewey" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Can this book be checked out?</h6>
-        <p class="form-description">Some books, like reference books, cannot be checked out. If you're not sure, ask someone.</p>
+        <p class="form-description">Some books, like reference books, cannot be checked out. If you're not sure, ask
+            someone.</p>
         <select id="book-can-be-checked-out" name="cbco">
             <option value="y">Yes</option>
             <option value="">No</option>
@@ -126,30 +142,34 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Date of Purchase</h6>
-        <p class="form-description">The date the book was purchased for the library. Hopefully this is on the card from the card catalog.</p>
-        <input id="book-purchase-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> / </span>
+        <p class="form-description">The date the book was purchased for the library. Hopefully this is on the card from
+            the card catalog.</p>
+        <input id="book-purchase-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> /
+        </span>
         <input id="book-purchase-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
         <input id="book-purchase-year" placeholder="Year" class="short-form-input" style="width: 120px;">
     </div>
     <div class="form-section">
         <h6 class="form-title">Purchase Price</h6>
-        <p class="form-description">The price of the book when purchased for the library. Hopefully this is on the card from the card catalog.</p>
+        <p class="form-description">The price of the book when purchased for the library. Hopefully this is on the card
+            from the card catalog.</p>
         <span>$ </span><input id="book-purchase-price" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Vendor</h6>
-        <p class="form-description">The name of the place where this book was bought. Hopefully this on the card from the card catalog.</p>
+        <p class="form-description">The name of the place where this book was bought. Hopefully this on the card from
+            the card catalog.</p>
         <input id="book-vendor" placeholder="" class="short-form-input">
     </div>
     <p id="last-updated"></p>
-    <button id="edit-entry-save" onclick="javascript:editEntry();">Save</button>
-    <button id="edit-entry-cancel" onclick="javascript:cancelEditEntry();">Cancel</button>
-    <button id="edit-entry-delete" class="delete-button" onclick="javascript:deleteEntry();">Delete</button>
+    <button id="edit-entry-save">Save</button>
+    <button id="edit-entry-cancel">Cancel</button>
+    <button id="edit-entry-delete" class="delete-button">Delete</button>
 
     <div id="delete-alert" style="display: none;">
         <p>Are you sure you want to delete this item from the library forever?</p>
-        <button id="delete-cancel" onclick="javascript:deleteEntry();">No, take me back</button>
-        <button id="delete-entry" class="delete-button" onclick="javascript:editEntry(null, true);">Yes, delete forever</button>
+        <button id="delete-cancel">No, take me back</button>
+        <button id="delete-entry" class="delete-button">Yes, delete forever</button>
     </div>
     <div id="delete-alert-overlay" style="display: none;"></div>
     <div id="loading-overlay" style="display: none;">

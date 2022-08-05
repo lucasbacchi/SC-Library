@@ -47,6 +47,10 @@ function setupMain() {
             homePageSearch();
         }
     });
+
+    $("#home-page-search").on("click", () => {
+        homePageSearch();
+    });
 }
 
 

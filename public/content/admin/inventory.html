@@ -1,18 +1,20 @@
 <div id="inventory-container" style="margin: 0px 48px;">
-    <p style="text-align: left;">Would you like to start a new inventory? This will restart the input process and you will lose progress.</p>
+    <p style="text-align: left;">Would you like to start a new inventory? This will restart the input process and you
+        will lose progress.</p>
     <br>
-    <button onclick="javascript:restartInventory()">Restart</button>
+    <button id="restart-inventory">Restart</button>
     <br>
-    <br><p style="text-align: left;">If you would like to continue your current inventory, please click below.</p>
     <br>
-    <button onclick="javascript:continueScanning()">Continue Scanning</button>
+    <p style="text-align: left;">If you would like to continue your current inventory, please click below.</p>
+    <br>
+    <button id="continue-scanning-button">Continue Scanning</button>
     <div id="recent-scans" style="height: 400px; width: 200px; overflow: scroll; margin: 0"></div>
 </div>
 <div id="inventory-popup">
     <div id="inventory-popup-box">
         <div id="inventory-inner-popup-box"></div>
-        <button id="inventory-cancel-button" style="position: absolute; bottom: 8px; left: 8px;" onclick="javascript:cancelInventory();">Cancel</button>
-        <button id="inventory-next-button" style="position: absolute; bottom: 8px; right: 8px;" onclick="javascript:scanInventory()">Next</button>
+        <button id="inventory-cancel-button" style="position: absolute; bottom: 8px; left: 8px;">Cancel</button>
+        <button id="inventory-next-button" style="position: absolute; bottom: 8px; right: 8px;">Next</button>
     </div>
     <input class="hidden-input" id="inventory-book-barcode">
 </div>

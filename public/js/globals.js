@@ -24,6 +24,34 @@ export function setDb(newDb) {
 }
 
 
+export let analytics = null;
+
+export function setAnalytics(newAnalytics) {
+    analytics = newAnalytics;
+}
+
+
+export let auth = null;
+
+export function setAuth(newAuth) {
+    auth = newAuth;
+}
+
+
+export let performance = null;
+
+export function setPerformance(newPerformance) {
+    performance = newPerformance;
+}
+
+
+export let storage = null;
+
+export function setStorage(newStorage) {
+    storage = newStorage;
+}
+
+
 export let bookDatabase = null;
 
 export function setBookDatabase(newBookDatabase) {

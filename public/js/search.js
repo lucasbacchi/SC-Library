@@ -4,7 +4,7 @@ import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } f
 import { bookDatabase, db, searchCache, timeLastSearched } from './globals';
 import firebase from 'firebase/compat/app';
 // Doesn't have to be setup because the window element doesn't change.
-$(window).resize(function () {
+$(window).on("resize", () => {
     if ($(window).width() > 786) {
         $('#sort-container').width('fit-content');
         $('.sort-section').show();
@@ -58,10 +58,14 @@ export function setupSearch(searchResultsArray, pageQuery) {
         alert("Add Functionality");
     });
 
-    $("#search-page-input").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#search-page-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
             searchPageSearch();
         }
+    });
+
+    $("#search-page-search-button").on("click", () => {
+        searchPageSearch();
     });
 
     var queryFromURL = findURLValue(pageQuery, "query", true);
@@ -168,7 +172,7 @@ function browse() {
                                 const p = document.createElement('p');
                                 p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
                                 $('div#results-container')[0].appendChild(p);
-    
+
                             }
                             createSearchResultsPage(browseResultsArray);
                             return;
@@ -202,7 +206,7 @@ function createFilterList(searchResultsArray) {
     searchResultsSubjectsArray = [];
     $("#sort-author-list").empty();
     $("#sort-subject-list").empty();
-    
+
     // Authors
     for (let i = 0; i < searchResultsArray.length; i++) {
         if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
@@ -271,14 +275,14 @@ function createFilterList(searchResultsArray) {
     }
 }
 
-export function setupResults(pageQuery) {
+export function setupResultPage(pageQuery) {
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
         alert("Error: A valid barcode was not provided.");
         goToPage("");
         return;
     }
-    
+
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             alert("Error: No information could be found for that book.");
@@ -292,14 +296,16 @@ export function setupResults(pageQuery) {
         } else {
             $("#result-page-image").attr("src", bookObject.coverImageLink);
         }
-    
+
         $("#result-page-barcode-number").html(barcodeNumber);
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
             $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
         } else {
             $("#checkout-button").show();
-            $("#checkout-button").attr("onclick", "javascript:checkout(" + barcodeNumber + ");");
+            $("#checkout-button").on("click", () => {
+                checkout(barcodeNumber);
+            });
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
@@ -394,7 +400,7 @@ export function setupResults(pageQuery) {
                     case 11:
                         month = "Dec";
                         break;
-                
+
                     default:
                         console.error("The month could not be detected");
                         month = "";
@@ -412,8 +418,8 @@ export function setupResults(pageQuery) {
         } else {
             $("#result-page-pages").html("Unnumbered");
         }
-    
-    
+
+
         $("#result-page-title").html(bookObject.title);
         $("#result-page-subtitle").html(bookObject.subtitle);
         if (bookObject.subtitle == null || bookObject.subtitle.length < 1) {
@@ -468,6 +474,20 @@ export function setupResults(pageQuery) {
         goToPage("");
         return;
     });
+
+    // Create Event Listeners
+
+    $("#checkout-button").on("click", () => {
+        checkout();
+    });
+
+    $("#checkout-next-button").on("click", () => {
+        scanCheckout();
+    });
+
+    $("#checkout-cancel-button").on("click", () => {
+        cancelCheckout();
+    });
 }
 
 function checkout(barcodeNumber) {
@@ -491,21 +511,20 @@ function scanCheckout() {
     var user = firebase.auth().currentUser;
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").blur(() => {$('#checkout-book-barcode').focus();});
+    $("#checkout-book-barcode").blur(() => { $('#checkout-book-barcode').focus(); });
     $("#checkout-book-barcode").focus();
     var barcodeNumber = $("#result-page-barcode-number").html();
     $("#checkout-book-barcode").off("keydown");
-    $("#checkout-book-barcode").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#checkout-book-barcode").on("keydown", (event) => {
+        if (event.key === "Enter") {
             $("#checkout-book-barcode").off("blur");
             if ($("#checkout-book-barcode").val() == barcodeNumber) {
                 $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-security-barcode").blur(() => {$('#checkout-security-barcode').focus();});
+                $("#checkout-security-barcode").blur(() => { $('#checkout-security-barcode').focus(); });
                 $("#checkout-security-barcode").focus();
                 $("#checkout-security-barcode").off("keydown");
-                $("#checkout-security-barcode").keydown(function(event) {
-                    if (event.keyCode === 13) {
-                        debugger;
+                $("#checkout-security-barcode").on("keydown", (event) => {
+                    if (event.key === "Enter") {
                         $("#checkout-security-barcode").off("blur");
                         // TODO: Change to something else
                         if ($("#checkout-security-barcode").val() != "") {
@@ -524,17 +543,17 @@ function scanCheckout() {
 
                             var d = new Date(2020);
                             db.collection("users").where("lastCheckoutTime", ">", d)
-                            .where("checkouts", "array-contains", barcodeNumber)
-                            .orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
-                                querySnapshot.forEach((doc) => {
-                                    doc.data().checkouts.forEach((checkoutObject) => {
-                                        if (checkoutObject.returnTime != null) {
-                                            alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
-                                            return;
-                                        }
+                                .where("checkouts", "array-contains", barcodeNumber)
+                                .orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
+                                    querySnapshot.forEach((doc) => {
+                                        doc.data().checkouts.forEach((checkoutObject) => {
+                                            if (checkoutObject.returnTime != null) {
+                                                alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
+                                                return;
+                                            }
+                                        });
                                     });
                                 });
-                            });
                             db.runTransaction((transaction) => {
                                 return transaction.get(bookPath.doc(bookDocument)).then((doc) => {
                                     if (!doc.exists) {
@@ -583,7 +602,7 @@ function applySearchFilters() {
                 items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
             }
         }
-        if (items[items.length - 1].every( (val, q, arr) => val === arr[0] )) {
+        if (items[items.length - 1].every((val, q, arr) => val === arr[0])) {
             filters.pop();
             items.pop();
         }
