@@ -1,3 +1,8 @@
+import firebase from "firebase/compat/app";
+import { goToPage, updateEmail } from "./ajax";
+import { buildBookBox } from "./common";
+import { currentPage, currentPanel, db, directory, setCurrentPanel } from "./globals";
+
 // TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
 var settingsDirectory = [
     "/overview",
@@ -12,9 +17,9 @@ $(window).on("resize", function() {
 
 
 // Set up a mutation observer to resize the menu column whenver content changes.
-const observer = new MutationObserver(function (mutationList, mutationObserver) {
-    mutationList.forEach(function (mutation) {
-        if (mutation.type != "attributes" || (!$('.menu-column')[0].contains(mutation.target) && mutation.target != $('.menu-column')[0])) {
+const observer = new MutationObserver(function(mutationList) {
+    mutationList.forEach(function(mutation) {
+        if (mutation.type != "attributes" || (!$(".menu-column")[0].contains(mutation.target) && mutation.target != $(".menu-column")[0])) {
             alignMenuColumn();
         }
     });
@@ -25,34 +30,34 @@ const observerOptions = {
 
     // Omit (or set to false) to observe only changes to the parent node
     subtree: true
-}
+};
 
 var heightCheck = 500;
 // Use the height of the main column to stretch the height of the menu column.
 function alignMenuColumn() {
     // Get the padding above and below the column.
-    var paddingStr = $('.menu-column').css('padding-top');
+    var paddingStr = $(".menu-column").css("padding-top");
     var padding = parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
-    paddingStr = $('.menu-column').css('padding-bottom');
+    paddingStr = $(".menu-column").css("padding-bottom");
     padding += parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
 
-    var mainColumnHeight = $('.main-column').height();
-    var menuColumnFullHeight = $('.menu-column').height() + padding;
-    
+    var mainColumnHeight = $(".main-column").height();
+    var menuColumnFullHeight = $(".menu-column").height() + padding;
+
     // Set the height of the column. If it is smaller than the content, then it can use default heights.
     if (mainColumnHeight <= menuColumnFullHeight) {
-        $('.menu-column').css("height", "");
+        $(".menu-column").css("height", "");
     }
-    menuColumnFullHeight = $('.menu-column').height() + padding;
-    mainColumnHeight = $('.main-column').height();
-    
+    menuColumnFullHeight = $(".menu-column").height() + padding;
+    mainColumnHeight = $(".main-column").height();
+
     if (mainColumnHeight > menuColumnFullHeight) {
-        $('.menu-column').height(mainColumnHeight - padding);
+        $(".menu-column").height(mainColumnHeight - padding);
     }
 
-    
+
     var interval = setInterval(() => {
-        if ($('.menu-column').height() > heightCheck) {
+        if ($(".menu-column").height() > heightCheck) {
             heightCheck += 10;
             alignMenuColumn();
         } else {
@@ -67,13 +72,13 @@ function alignMenuColumn() {
 var firstName;
 var lastName;
 // Load correct info for account
-function accountPageSetup(pageQuery, goingBack = false) {
+export function accountPageSetup(pageQuery, goingBack = false) {
     var user = firebase.auth().currentUser;
     if (user) {
-        
+
         var email = user.email;
         email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
-        $('#account-page-email').text(email);
+        $("#account-page-email").text(email);
         // Get the stored first and last name from the database
         db.collection("users").doc(user.uid).get().then((doc) => {
             if (!doc.exists) {
@@ -83,36 +88,36 @@ function accountPageSetup(pageQuery, goingBack = false) {
             firstName = doc.data().firstName;
             lastName = doc.data().lastName;
             accountOverviewSetup(doc.data().firstName, doc.data().lastName);
-            $('#account-page-name').text(firstName + " " + lastName);
+            $("#account-page-name").text(firstName + " " + lastName);
         });
         if (user.photoURL != null) {
-            $('#account-page-image').attr('src', user.photoURL);
+            $("#account-page-image").attr("src", user.photoURL);
         }
     } else {
         $("#settings-column").html("No user is signed in. To sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>.");
     }
 
-    if (pageQuery.substring(1) != "" && directory.includes('/account/' + pageQuery.substring(1))) {
+    if (pageQuery.substring(1) != "" && directory.includes("/account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1), goingBack);
     } else {
-        goToSettingsPanel('overview', goingBack);
+        goToSettingsPanel("overview", goingBack);
         // TODO: Figure out what was put in the URL bar to be processed here.... What page puts it there....
         accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
     }
 
     // Create an "Event Listener" for mutations to the settings column
-    observer.observe($('.main-column')[0], observerOptions);
+    observer.observe($(".main-column")[0], observerOptions);
 
     // Create Event Listeners to handle PFP changes
     // All are required to handle leaving the element and coming back again
-    $("#account-page-image").mouseover(function() {
+    $("#account-page-image").on("mouseover", () => {
         showAccountImageOverlay();
     });
-    $("#account-image-overlay").mouseleave(function() {
+    $("#account-image-overlay").on("mouseleave", () => {
         $("#account-image-overlay").css("opacity", "0");
         $("#account-image-overlay").delay(300).hide(0);
     });
-    $("#account-image-overlay").mouseover(function() {
+    $("#account-image-overlay").on("mouseover", () => {
         $("#account-image-overlay").clearQueue().stop();
         showAccountImageOverlay();
     });
@@ -123,49 +128,52 @@ function accountPageSetup(pageQuery, goingBack = false) {
             $("#account-image-overlay").css("opacity", "1");
         }, 5);
     }
-    
+
     // If a user clicks the button to change their pfp, click the input button
-    $("#account-image-overlay").click(function(event) {
+    $("#account-image-overlay").on("click", () => {
         if ($("#file-input")) {
-            $("#file-input").click();
+            $("#file-input").trigger("click");
         }
     });
 
     // When there is a change to the input, upload the file
     $("#file-input").on("change", function() {
-        if (!$("#file-input")[0].files) {
+        let fileInput = $("#file-input")[0];
+        // @ts-ignore
+        if (!fileInput.files) {
             return;
         }
-        const file = $("#file-input")[0].files[0];
+        // @ts-ignore
+        const file = fileInput.files[0];
         var userSpecificRef = firebase.storage().ref().child("users");
         var meta;
         if (file.type == "image/jpg") {
             userSpecificRef = userSpecificRef.child(user.uid + "/pfp.jpg");
-            meta = {contentType: 'image/jpeg'};
+            meta = {contentType: "image/jpeg"};
         } else if (file.type == "image/png") {
             userSpecificRef = userSpecificRef.child(user.uid + "/pfp.png");
-            meta = {contentType: 'image/png'};
+            meta = {contentType: "image/png"};
         } else {
             alert("That file type is not supported. Please upload a JPG or PNG file.");
             return;
         }
-        userSpecificRef.put(file, meta).then((snapshot) => {
-            console.log('Uploaded the file!');
+        userSpecificRef.put(file, meta).then(() => {
+            console.log("Uploaded the file!");
             userSpecificRef.getDownloadURL().then((url) => {
                 user.updateProfile({
                     photoURL: url
                   }).then(function() {
                     if (user.photoURL != null) {
-                        $('#account-page-image').attr('src', user.photoURL);
-                        $('#large-account-image').attr('src', user.photoURL);
-                        $('#small-account-image').attr('src', user.photoURL);
+                        $("#account-page-image").attr("src", user.photoURL);
+                        $("#large-account-image").attr("src", user.photoURL);
+                        $("#small-account-image").attr("src", user.photoURL);
                     }
                   }).catch(function(error) {
                     console.error(error);
                   });
             });
         });
-    })
+    });
 }
 
 function accountOverviewSetup(firstName, lastName, email) {
@@ -177,11 +185,15 @@ function accountOverviewSetup(firstName, lastName, email) {
         $("#setting-last-name").val(lastName);
     }
     if (email && email != "") {
-        $('#setting-email').val(email);
+        $("#setting-email").val(email);
     }
     if (!user.emailVerified) {
-        $('#email-verified').show();
+        $("#email-verified").show();
     }
+
+    $(".save-button").on("click", () => {
+        updateAccount();
+    });
 }
 
 function accountCheckoutsSetup() {
@@ -190,11 +202,15 @@ function accountCheckoutsSetup() {
 }
 
 function accountNotificationsSetup() {
-    return true;
+    $(".save-button").on("click", () => {
+        updateAccount();
+    });
 }
 
 function accountSecuritySetup() {
-    return true;
+    $("#change-password").on("click", () => {
+        changePassword();
+    });
 }
 
 // The following two comments are there because they are in the wrong format and were causing errors
@@ -205,12 +221,12 @@ function getCheckouts() {
 function createCheckouts(books, str) {
     if (books.length == 0) {
         if (str == "checkouts") {
-            const p = document.createElement('p');
+            const p = document.createElement("p");
             p.appendChild(document.createTextNode("You have no books checked out."));
             $("#checkouts")[0].appendChild(p);
         }
     }
-    for (var i = 0; i < books.length; i++) {
+    for (let i = 0; i < books.length; i++) {
         if (str == "checkouts")
             $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
     }
@@ -224,42 +240,42 @@ function updateAccount() {
     } else {
         var nameError = false;
         // If the names were changed, update them.
-        if (($('#setting-first-name').val() != firstName && $('#setting-first-name').val() != undefined) || ($('#setting-last-name').val() != lastName && $('#setting-last-name').val() != undefined)) {
+        if (($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined) || ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)) {
             db.collection("users").doc(user.uid).update({
-                firstName: $('#setting-first-name').val(),
-                lastName: $('#setting-last-name').val()
+                firstName: $("#setting-first-name").val(),
+                lastName: $("#setting-last-name").val()
             }).catch((error) => {
                 nameError = true;
                 alert("An error has occured. Please try again later.");
                 console.error(error);
-            }).then(function(error) {
+            }).then(function() {
                 if (!nameError) {
                     // Assuming there was no problem with the update, set the new values.
-                    firstName = $('#setting-first-name').val();
-                    lastName = $('#setting-last-name').val();
+                    firstName = $("#setting-first-name").val();
+                    lastName = $("#setting-last-name").val();
                     alert("Your name was saved successfully.");
                 }
             });
         }
         var emailError = false;
         // If the email was changed update it.
-        if ($('#setting-email').val() != user.email && $('#setting-email').val() != undefined) {
-            user.updateEmail($('#setting-email').val()).catch((error) => {
+        if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined) {
+            user.updateEmail($("#setting-email").val().toString()).catch((error) => {
                 emailError = true;
                 // If the user needs to reauthenticate:
                 if (error.code == "auth/requires-recent-login") {
                     alert("You must sign in again to complete this opperation.");
                     // Send them to the login page with a query
-                    goToPage("login?redirect=account&email=" + $('#setting-email').val())
+                    goToPage("login?redirect=account&email=" + $("#setting-email").val());
                 } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
                 }
-            }).then(function(error) {
+            }).then(function() {
                 if (!emailError) {
-                    email = user.email;
+                    let email = user.email;
                     if (!user.emailVerified) {
-                        $('#email-verified').show();
+                        $("#email-verified").show();
                     }
                     updateEmail(email);
                     alert("Your email was saved successfully.");
@@ -272,7 +288,6 @@ function updateAccount() {
 
 
 
-{
     const xhttp = new XMLHttpRequest();
     function goToSettingsPanel(newPanel, goingBack = false) {
         var user = firebase.auth().currentUser;
@@ -287,21 +302,21 @@ function updateAccount() {
         }
 
         if (settingsDirectory.includes(newPanel)){
-            xhttp.open("GET", "/content/account" + newPanel + ".html" + query + hash, true);
+            xhttp.open("GET", "/content/account" + newPanel + ".html", true);
         } else if (directory.includes("/account" + newPanel)) {
-            xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
+            xhttp.open("GET", "/content/account" + newPanel, true);
         } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
-            xhttp.open("GET", "/content/account" + newPanel + query + hash, true);
+            xhttp.open("GET", "/content/account" + newPanel, true);
         } else {
             xhttp.open("GET", "/content/404.html", true);
         }
         xhttp.send();
 
         // Set the content of the page
-        xhttp.onreadystatechange = function () {
+        xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 if (currentPanel != newPanel) {
-                    $('#settings-column').addClass("fade");
+                    $("#settings-column").addClass("fade");
                 }
 
                 document.getElementById("settings-column").innerHTML = xhttp.responseText;
@@ -324,22 +339,21 @@ function updateAccount() {
                     window.history.pushState({}, "", "/account?" + newPanel.substring(1));
                 }
 
-                currentPanel = newPanel;
+                setCurrentPanel(newPanel);
             }
-        }
+        };
     }
-}
 
 // Returns true if the user has unsaved changes, otherwise, returns false
 function checkForChangedFields() {
     var answer = false;
     var user = firebase.auth().currentUser;
-    
-    if ($('#setting-first-name').val() != firstName && $('#setting-first-name').val() != undefined)
+
+    if ($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined)
         answer = true;
-    if ($('#setting-last-name').val() != lastName && $('#setting-last-name').val() != undefined)
+    if ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)
         answer = true;
-    if ($('#setting-email').val() != user.email && $('#setting-email').val() != undefined)
+    if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined)
         answer = true;
     return answer;
 }
@@ -351,14 +365,14 @@ function checkForChangedFields() {
 function sendEmailVerification() {
     var user = firebase.auth().currentUser;
     user.sendEmailVerification().then(function() {
-        alert('Email Verification Sent! Please check your email!');
+        alert("Email Verification Sent! Please check your email!");
     });
     var count = 0;
     // After a user sends a verification email, check ever 2 seconds to see if it went through.
     // Cancel it if it goes too long.
     var interval = setInterval(() => {
         if (firebase.auth().currentUser.emailVerified) {
-            $('#email-verified').hide();
+            $("#email-verified").hide();
             clearInterval(interval);
         }
         count++;
@@ -372,13 +386,13 @@ function sendEmailVerification() {
 
 
 function changePassword() {
-    var currentPassword = $("#current-password").val();
-    var newPassword = $("#new-password").val();
+    let currentPassword = $("#current-password").val().toString();
+    let newPassword = $("#new-password").val().toString();
     if (newPassword != $("#confirm-new-password").val()){
         alert("The new passwords do not match!");
-        $("#current-password").val('');
-        $("#new-password").val('');
-        $("#confirm-new-password").val('');
+        $("#current-password").val("");
+        $("#new-password").val("");
+        $("#confirm-new-password").val("");
     } else if (newPassword.length >= 4) {
         var user = firebase.auth().currentUser;
         const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
@@ -387,7 +401,7 @@ function changePassword() {
             user.updatePassword(newPassword).then(() => {
                 // Update successful
                 alert("Your password was succesfully changed");
-                goToPage('');
+                goToPage("");
             }).catch((error) => {
                 console.error(error);
             });
@@ -395,27 +409,27 @@ function changePassword() {
             // An error happened.
             var errorCode = error.code;
             var errorMessage = error.message;
-            if (errorCode === 'auth/wrong-password') {
-                alert('The current password that you entered was incorrect.');
+            if (errorCode === "auth/wrong-password") {
+                alert("The current password that you entered was incorrect.");
             } else {
                 alert(errorMessage);
             }
             console.error(error);
-            $("#current-password").val('');
-            $("#new-password").val('');
-            $("#confirm-new-password").val('');
+            $("#current-password").val("");
+            $("#new-password").val("");
+            $("#confirm-new-password").val("");
         });
     } else {
         alert("You must enter a longer password");
-        $("#current-password").val('');
-        $("#new-password").val('');
-        $("#confirm-new-password").val('');
+        $("#current-password").val("");
+        $("#new-password").val("");
+        $("#confirm-new-password").val("");
     }
 }
 
 
 // If the user attempts to leave, let them know if they have unsaved changes
-$(window).on("beforeunload", function (event) {
+$(window).on("beforeunload", function(event) {
     if (checkForChangedFields()) {
         event.preventDefault();
         return "You have unsaved changes! Please save changes before leaving!";
@@ -423,12 +437,13 @@ $(window).on("beforeunload", function (event) {
 });
 
 // Catch History Events such as forward and back and then go to those pages
-window.onpopstate = function (event) {
+window.addEventListener("popstate", function() {
     if (currentPage.includes("account") && document.location.pathname.includes("account")) {
         goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), true);
-    } else {
+    } /* Hopefully, this is no longer needed
+    else {
         handleHistoryPages();
-    }
-};
+    }*/
+});
 
 console.log("account.js has Loaded!");
