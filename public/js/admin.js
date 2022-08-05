@@ -4,16 +4,76 @@ import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } fr
 import { bookDatabase, db } from "./globals";
 
 export function setupAdminMain() {
-    $("#edit-entry-input").keydown(function (event) {
-        if (event.keyCode === 13) {
+    $("#edit-entry-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
             adminSearch();
         }
     });
 
-    $("#add-entry-isbn").keydown(function (event) {
-        if (event.keyCode === 13) {
+    $("#add-entry-isbn").on("keydown", (event) => {
+        if (event.key === "Enter") {
             addEntry();
         }
+    });
+
+    $("#add-entry-without-isbn").on("click", () => {
+        addEntryWithoutISBN();
+    });
+
+    $("#add-entry-with-specific-barcode-number-button").on("click", () => {
+        addEntryWithSpecificBarcodeNumber();
+    });
+
+    $("#circulation-report-link").on("click", () => {
+        goToPage('admin/report?type=circulation');
+    });
+
+    $("#purchases-report-link").on("click", () => {
+        goToPage('admin/report?type=purchases');
+    });
+
+    $("#removed-report-link").on("click", () => {
+        goToPage('admin/report?type=removed');
+    });
+
+    $("#inventory-link").on("click", () => {
+        goToPage('admin/inventory');
+    });
+
+    $("#view-missing-barcodes").on("click", () => {
+        viewMissingBarcodes();
+    });
+
+    $("#view-all-books").on("click", () => {
+        goToPage('admin/view?type=books');
+    });
+
+    $("#view-all-users").on("click", () => {
+        goToPage('admin/view?type=users');
+    });
+
+    $("#barcode-link").on("click", () => {
+        goToPage('admin/barcode');
+    });
+
+    $("#import-link").on("click", () => {
+        uploadDatabase();
+    });
+
+    $("#import-input").on("change", (event) => {
+        setUploadDatabase(event);
+    });
+
+    $("#export-link").on("click", () => {
+        downloadDatabase();
+    });
+
+    $("#add-entry-button").on("click", () => {
+        addEntry();
+    });
+
+    $("#edit-entry-search").on("click", () => {
+        adminSearch();
     });
 
     recentlyCheckedOut();
@@ -23,10 +83,6 @@ export function setupAdminMain() {
 export function setupEditUser() {
     console.error("TODO: Write this function");
 }
-
-var bookObject;
-var authorObject;
-var worksObject;
 
 
 function addEntry() {
@@ -252,6 +308,14 @@ var ctx;
 export function setupBarcodePage() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
+
+    $("#merge-one-barcode").on("click", () => {
+        mergeBarcodes();
+    });
+
+    $("#merge-multiple-barcodes").on("click", () => {
+        mergeBarcodes(true);
+    });
 }
 
 function mergeBarcodes(multiple = false) {
@@ -304,14 +368,14 @@ function mergeBarcodes(multiple = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = "bold 60px Poppins";
             ctx.textAlign = "center";
-            var textWidth = ctx.measureText("South Church Library");
+            // var textWidth = ctx.measureText("South Church Library");
             ctx.fillText("South Church Library", (canvas.width / 2), 60);
             var barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
             ctx.font = "bold 78px Poppins";
-            textWidth = ctx.measureText(barcodeStyled);
+            // textWidth = ctx.measureText(barcodeStyled);
             ctx.fillText(barcodeStyled, (canvas.width / 2), 350);
             ctx.font = "45px Poppins";
-            textWidth = ctx.measureText("Andover, MA");
+            // textWidth = ctx.measureText("Andover, MA");
             ctx.translate(70, (canvas.height / 2) - 5);
             ctx.rotate(270 * (Math.PI / 180));
             ctx.fillText("Andover, MA", 0, 0);
@@ -532,8 +596,9 @@ function buildUserBox(obj, page, num = 0) {
     div2.appendChild(email);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        let string = "javascript:goToPage('admin/editUser?id=" + obj.cardNumber + "');";
-        div.setAttribute("onclick", string);
+        div.addEventListener("click", () => {
+            goToPage("admin/editUser?id=" + obj.cardNumber);
+        });
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Card Number: " + obj.cardNumber;
@@ -625,6 +690,22 @@ export function setupInventory() {
             $("#recent-scans").html(current + "<br>" + barcode);
         });
     });
+
+    $("#restart-inventory").on("click", () => {
+        restartInventory();
+    });
+
+    $("#inventory-cancel-button").on("click", () => {
+        cancelInventory();
+    });
+
+    $("#inventory-next-button").on("click", () => {
+        continueScanning();
+    });
+
+    $("#continue-scanning-button").on("click", () => {
+        continueScanning();
+    });
 }
 
 var cachedInventory = [];
@@ -656,8 +737,8 @@ function continueScanning() {
     });
     $("#inventory-book-barcode").focus();
     $("#inventory-book-barcode").off("keydown");
-    $("#inventory-book-barcode").keydown(function (event) {
-        if (event.keyCode === 13) {
+    $("#inventory-book-barcode").on("keydown", (event) => {
+        if (event.key === "Enter") {
             $("#inventory-book-barcode").off("blur");
             if ($("#inventory-book-barcode").val()) {
                 // Some checks should be done to ensure the barcode is valid, the book hasn't been scanned, etc.

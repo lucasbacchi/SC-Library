@@ -11,16 +11,18 @@
         <h3>There are currently <span id="number-of-books">???</span> books in the database</h3>
         <p>If you'd like to add a new book, enter the ISBN below:</p>
         <input id="add-entry-isbn">
-        <button onclick="javascript:addEntry();">Add Entry</button>
-        <a onclick="javascript:addEntryWithoutISBN();" style="display: block;">I don't have an ISBN number. Create a blank entry for me.</a>
-        <p>Enter an ISBN number above and also enter a barcode below to overrite that barcode. Please enter both of these <b>manually</b>.</p>
+        <button id="add-entry-button">Add Entry</button>
+        <a id="add-entry-without-isbn" style="display: block;">I don't have an ISBN number. Create a blank entry for
+            me.</a>
+        <p>Enter an ISBN number above and also enter a barcode below to overrite that barcode. Please enter both of
+            these <b>manually</b>.</p>
         <input id="add-entry-with-specific-barcode-number">
-        <button onclick="javascript:addEntryWithSpecificBarcodeNumber();">Change this Barcode</button>
+        <button id="add-entry-with-specific-barcode-number-button">Change this Barcode</button>
     </div>
     <div class="mgmt" id="edit-entry">
         <h3>Search for an entry to edit below:</h3>
         <input id="edit-entry-input">
-        <button id="edit-entry-search" onclick="javascript:adminSearch();">Search</button>
+        <button id="edit-entry-search">Search</button>
         <div id="edit-entry-search-results"></div>
     </div>
     <div class="mgmt" id="checked-out">
@@ -29,17 +31,17 @@
     </div>
     <div class="mgmt" id="report">
         <h3>Select your type of report:</h3>
-        <p><a onclick="javascript:goToPage('admin/report?type=circulation')">Circulation</a></p>
-        <p><a onclick="javascript:goToPage('admin/report?type=purchases')">New Purchases</a></p>
-        <p><a onclick="javascript:goToPage('admin/report?type=removed')">Removed Books</a></p>
-        <p><a onclick="javascript:goToPage('admin/inventory')">Inventory</a></p>
-        <p><a onclick="javascript:viewMissingBarcodes();">View Missing Barcodes</a></p>
-        <p><a onclick="javascript:goToPage('admin/view?type=books');">View All Books</a></p>
-        <p><a onclick="javascript:goToPage('admin/view?type=users');">View All Users</a></p>
-        <p><a onclick="javascript:goToPage('admin/barcode')">Generate New Barcodes</a></p>
+        <p><a id="circulation-report-link">Circulation</a></p>
+        <p><a id="purchases-report-link">New Purchases</a></p>
+        <p><a id="removed-report-link">Removed Books</a></p>
+        <p><a id="inventory-link">Inventory</a></p>
+        <p><a id="view-missing-barcodes">View Missing Barcodes</a></p>
+        <p><a id="view-all-books">View All Books</a></p>
+        <p><a id="view-all-users">View All Users</a></p>
+        <p><a id="barcode-link">Generate New Barcodes</a></p>
         <h3>Download or upload to the Database</h3>
-        <p><a onclick="javascript:uploadDatabase();">Import</a></p>
-        <input id="import-input" type="file" style="display: none;" onchange="javascript:setUploadDatabase(event);">
-        <p><a onclick="javascript:downloadDatabase();">Export</a></p>
+        <p><a id="import-link">Import</a></p>
+        <input id="import-input" type="file" style="display: none;">
+        <p><a id="export-link">Export</a></p>
     </div>
 </div>

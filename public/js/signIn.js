@@ -4,13 +4,26 @@ import { findURLValue } from "./common";
 import { currentPage, db } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
-    $("#submit, .login > input").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#submit, .login > input").on("keydown", (event) => {
+        if (event.key === "Enter") {
             signInSubmit(pageQueryInput);
         }
     });
+
+    $("#submit").on("click", () => {
+        signInSubmit();
+    });
+
     $("#password-reset").on("click", () => {
         sendPasswordReset();
+    });
+
+    $("#log-in-switch-link").on("click", () => {
+        goToPage('login');
+    });
+
+    $("#sign-up-switch-link").on("click", () => {
+        goToPage('signup');
     });
 }
 

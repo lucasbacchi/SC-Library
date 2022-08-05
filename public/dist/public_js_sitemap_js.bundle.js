@@ -37,15 +37,19 @@ function setupSitemap() {
             folder = newFolder;
             var char;
             if (folder == "account") char = "?"; else if (folder == "") char = ""; else char = "/";
-            $('#' + folder).append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#' + folder).append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         } else {
             folder = "";
             char = "";
-            $('#sitemap').append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#sitemap').append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
-    (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.isAdminCheck)().then(() => {
-        buildAdminSitemap();
+    (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.isAdminCheck)().then((isAdmin) => {
+        if (isAdmin) {
+            buildAdminSitemap();
+        }
+
+        (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.convertDataTagsToLinks)();
     }).catch((error) => {
         console.error(error);
     });
@@ -61,7 +65,7 @@ function buildAdminSitemap() {
             var newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
-            $('#admin').append("<li><a onclick='javascript:goToPage(&quot;admin/" + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#admin').append("<li><a data-link-target='admin/" + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
 }

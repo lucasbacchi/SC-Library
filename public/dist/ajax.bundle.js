@@ -10624,6 +10624,111 @@ registerAuth("Browser" /* BROWSER */);
 
 /***/ }),
 
+/***/ "./node_modules/@firebase/auth/dist/esm2017/index.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/@firebase/auth/dist/esm2017/index.js ***!
+  \***********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ActionCodeOperation": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.A),
+/* harmony export */   "ActionCodeURL": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ad),
+/* harmony export */   "AuthCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.H),
+/* harmony export */   "AuthErrorCodes": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.D),
+/* harmony export */   "EmailAuthCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.I),
+/* harmony export */   "EmailAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.M),
+/* harmony export */   "FacebookAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.N),
+/* harmony export */   "FactorId": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.F),
+/* harmony export */   "GithubAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.T),
+/* harmony export */   "GoogleAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.Q),
+/* harmony export */   "OAuthCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.J),
+/* harmony export */   "OAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.U),
+/* harmony export */   "OperationType": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.O),
+/* harmony export */   "PhoneAuthCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.K),
+/* harmony export */   "PhoneAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.P),
+/* harmony export */   "PhoneMultiFactorGenerator": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.m),
+/* harmony export */   "ProviderId": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.o),
+/* harmony export */   "RecaptchaVerifier": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.R),
+/* harmony export */   "SAMLAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.V),
+/* harmony export */   "SignInMethod": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.S),
+/* harmony export */   "TwitterAuthProvider": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.W),
+/* harmony export */   "applyActionCode": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a2),
+/* harmony export */   "beforeAuthStateChanged": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.t),
+/* harmony export */   "browserLocalPersistence": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.b),
+/* harmony export */   "browserPopupRedirectResolver": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.k),
+/* harmony export */   "browserSessionPersistence": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a),
+/* harmony export */   "checkActionCode": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a3),
+/* harmony export */   "confirmPasswordReset": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a1),
+/* harmony export */   "connectAuthEmulator": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.G),
+/* harmony export */   "createUserWithEmailAndPassword": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a5),
+/* harmony export */   "debugErrorMap": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.B),
+/* harmony export */   "deleteUser": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.z),
+/* harmony export */   "fetchSignInMethodsForEmail": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.aa),
+/* harmony export */   "getAdditionalUserInfo": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.al),
+/* harmony export */   "getAuth": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.n),
+/* harmony export */   "getIdToken": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ai),
+/* harmony export */   "getIdTokenResult": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.aj),
+/* harmony export */   "getMultiFactorResolver": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.an),
+/* harmony export */   "getRedirectResult": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.j),
+/* harmony export */   "inMemoryPersistence": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.L),
+/* harmony export */   "indexedDBLocalPersistence": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.i),
+/* harmony export */   "initializeAuth": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.E),
+/* harmony export */   "isSignInWithEmailLink": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a8),
+/* harmony export */   "linkWithCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.Z),
+/* harmony export */   "linkWithPhoneNumber": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.l),
+/* harmony export */   "linkWithPopup": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.d),
+/* harmony export */   "linkWithRedirect": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.g),
+/* harmony export */   "multiFactor": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ao),
+/* harmony export */   "onAuthStateChanged": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.v),
+/* harmony export */   "onIdTokenChanged": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.q),
+/* harmony export */   "parseActionCodeURL": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ae),
+/* harmony export */   "prodErrorMap": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.C),
+/* harmony export */   "reauthenticateWithCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__._),
+/* harmony export */   "reauthenticateWithPhoneNumber": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.r),
+/* harmony export */   "reauthenticateWithPopup": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.e),
+/* harmony export */   "reauthenticateWithRedirect": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.h),
+/* harmony export */   "reload": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.am),
+/* harmony export */   "sendEmailVerification": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ab),
+/* harmony export */   "sendPasswordResetEmail": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a0),
+/* harmony export */   "sendSignInLinkToEmail": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a7),
+/* harmony export */   "setPersistence": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.p),
+/* harmony export */   "signInAnonymously": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.X),
+/* harmony export */   "signInWithCredential": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.Y),
+/* harmony export */   "signInWithCustomToken": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.$),
+/* harmony export */   "signInWithEmailAndPassword": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a6),
+/* harmony export */   "signInWithEmailLink": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a9),
+/* harmony export */   "signInWithPhoneNumber": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.s),
+/* harmony export */   "signInWithPopup": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.c),
+/* harmony export */   "signInWithRedirect": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.f),
+/* harmony export */   "signOut": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.y),
+/* harmony export */   "unlink": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ak),
+/* harmony export */   "updateCurrentUser": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.x),
+/* harmony export */   "updateEmail": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ag),
+/* harmony export */   "updatePassword": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ah),
+/* harmony export */   "updatePhoneNumber": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.u),
+/* harmony export */   "updateProfile": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.af),
+/* harmony export */   "useDeviceLanguage": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.w),
+/* harmony export */   "verifyBeforeUpdateEmail": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.ac),
+/* harmony export */   "verifyPasswordResetCode": () => (/* reexport safe */ _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__.a4)
+/* harmony export */ });
+/* harmony import */ var _index_90ebcfae_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./index-90ebcfae.js */ "./node_modules/@firebase/auth/dist/esm2017/index-90ebcfae.js");
+/* harmony import */ var _firebase_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @firebase/util */ "./node_modules/@firebase/util/dist/index.esm2017.js");
+/* harmony import */ var _firebase_app__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @firebase/app */ "./node_modules/@firebase/app/dist/esm/index.esm2017.js");
+/* harmony import */ var _firebase_logger__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @firebase/logger */ "./node_modules/@firebase/logger/dist/esm/index.esm2017.js");
+/* harmony import */ var _firebase_component__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @firebase/component */ "./node_modules/@firebase/component/dist/esm/index.esm2017.js");
+
+
+
+
+
+
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
 /***/ "./node_modules/@firebase/auth/dist/esm2017/internal.js":
 /*!**************************************************************!*\
   !*** ./node_modules/@firebase/auth/dist/esm2017/internal.js ***!
@@ -37980,6 +38085,34 @@ module.exports = function () {
 
 /***/ }),
 
+/***/ "./node_modules/firebase/analytics/dist/index.esm.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/firebase/analytics/dist/index.esm.js ***!
+  \***********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getAnalytics": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.getAnalytics),
+/* harmony export */   "initializeAnalytics": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.initializeAnalytics),
+/* harmony export */   "isSupported": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.isSupported),
+/* harmony export */   "logEvent": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.logEvent),
+/* harmony export */   "setAnalyticsCollectionEnabled": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setAnalyticsCollectionEnabled),
+/* harmony export */   "setConsent": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setConsent),
+/* harmony export */   "setCurrentScreen": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setCurrentScreen),
+/* harmony export */   "setDefaultEventParameters": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setDefaultEventParameters),
+/* harmony export */   "setUserId": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setUserId),
+/* harmony export */   "setUserProperties": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.setUserProperties),
+/* harmony export */   "settings": () => (/* reexport safe */ _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__.settings)
+/* harmony export */ });
+/* harmony import */ var _firebase_analytics__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/analytics */ "./node_modules/@firebase/analytics/dist/esm/index.esm2017.js");
+
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
 /***/ "./node_modules/firebase/app/dist/index.esm.js":
 /*!*****************************************************!*\
   !*** ./node_modules/firebase/app/dist/index.esm.js ***!
@@ -38032,6 +38165,102 @@ var version = "9.9.2";
  * limitations under the License.
  */
 (0,_firebase_app__WEBPACK_IMPORTED_MODULE_0__.registerVersion)(name, version, 'app');
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/firebase/auth/dist/index.esm.js":
+/*!******************************************************!*\
+  !*** ./node_modules/firebase/auth/dist/index.esm.js ***!
+  \******************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "ActionCodeOperation": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.ActionCodeOperation),
+/* harmony export */   "ActionCodeURL": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.ActionCodeURL),
+/* harmony export */   "AuthCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.AuthCredential),
+/* harmony export */   "AuthErrorCodes": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.AuthErrorCodes),
+/* harmony export */   "EmailAuthCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.EmailAuthCredential),
+/* harmony export */   "EmailAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.EmailAuthProvider),
+/* harmony export */   "FacebookAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.FacebookAuthProvider),
+/* harmony export */   "FactorId": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.FactorId),
+/* harmony export */   "GithubAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.GithubAuthProvider),
+/* harmony export */   "GoogleAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.GoogleAuthProvider),
+/* harmony export */   "OAuthCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.OAuthCredential),
+/* harmony export */   "OAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.OAuthProvider),
+/* harmony export */   "OperationType": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.OperationType),
+/* harmony export */   "PhoneAuthCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.PhoneAuthCredential),
+/* harmony export */   "PhoneAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.PhoneAuthProvider),
+/* harmony export */   "PhoneMultiFactorGenerator": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.PhoneMultiFactorGenerator),
+/* harmony export */   "ProviderId": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.ProviderId),
+/* harmony export */   "RecaptchaVerifier": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.RecaptchaVerifier),
+/* harmony export */   "SAMLAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.SAMLAuthProvider),
+/* harmony export */   "SignInMethod": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.SignInMethod),
+/* harmony export */   "TwitterAuthProvider": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.TwitterAuthProvider),
+/* harmony export */   "applyActionCode": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.applyActionCode),
+/* harmony export */   "beforeAuthStateChanged": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.beforeAuthStateChanged),
+/* harmony export */   "browserLocalPersistence": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.browserLocalPersistence),
+/* harmony export */   "browserPopupRedirectResolver": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.browserPopupRedirectResolver),
+/* harmony export */   "browserSessionPersistence": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.browserSessionPersistence),
+/* harmony export */   "checkActionCode": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.checkActionCode),
+/* harmony export */   "confirmPasswordReset": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.confirmPasswordReset),
+/* harmony export */   "connectAuthEmulator": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.connectAuthEmulator),
+/* harmony export */   "createUserWithEmailAndPassword": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.createUserWithEmailAndPassword),
+/* harmony export */   "debugErrorMap": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.debugErrorMap),
+/* harmony export */   "deleteUser": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.deleteUser),
+/* harmony export */   "fetchSignInMethodsForEmail": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.fetchSignInMethodsForEmail),
+/* harmony export */   "getAdditionalUserInfo": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getAdditionalUserInfo),
+/* harmony export */   "getAuth": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getAuth),
+/* harmony export */   "getIdToken": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getIdToken),
+/* harmony export */   "getIdTokenResult": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getIdTokenResult),
+/* harmony export */   "getMultiFactorResolver": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getMultiFactorResolver),
+/* harmony export */   "getRedirectResult": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.getRedirectResult),
+/* harmony export */   "inMemoryPersistence": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.inMemoryPersistence),
+/* harmony export */   "indexedDBLocalPersistence": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.indexedDBLocalPersistence),
+/* harmony export */   "initializeAuth": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.initializeAuth),
+/* harmony export */   "isSignInWithEmailLink": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.isSignInWithEmailLink),
+/* harmony export */   "linkWithCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.linkWithCredential),
+/* harmony export */   "linkWithPhoneNumber": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.linkWithPhoneNumber),
+/* harmony export */   "linkWithPopup": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.linkWithPopup),
+/* harmony export */   "linkWithRedirect": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.linkWithRedirect),
+/* harmony export */   "multiFactor": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.multiFactor),
+/* harmony export */   "onAuthStateChanged": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onAuthStateChanged),
+/* harmony export */   "onIdTokenChanged": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.onIdTokenChanged),
+/* harmony export */   "parseActionCodeURL": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.parseActionCodeURL),
+/* harmony export */   "prodErrorMap": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.prodErrorMap),
+/* harmony export */   "reauthenticateWithCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.reauthenticateWithCredential),
+/* harmony export */   "reauthenticateWithPhoneNumber": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.reauthenticateWithPhoneNumber),
+/* harmony export */   "reauthenticateWithPopup": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.reauthenticateWithPopup),
+/* harmony export */   "reauthenticateWithRedirect": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.reauthenticateWithRedirect),
+/* harmony export */   "reload": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.reload),
+/* harmony export */   "sendEmailVerification": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.sendEmailVerification),
+/* harmony export */   "sendPasswordResetEmail": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.sendPasswordResetEmail),
+/* harmony export */   "sendSignInLinkToEmail": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.sendSignInLinkToEmail),
+/* harmony export */   "setPersistence": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.setPersistence),
+/* harmony export */   "signInAnonymously": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInAnonymously),
+/* harmony export */   "signInWithCredential": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithCredential),
+/* harmony export */   "signInWithCustomToken": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithCustomToken),
+/* harmony export */   "signInWithEmailAndPassword": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithEmailAndPassword),
+/* harmony export */   "signInWithEmailLink": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithEmailLink),
+/* harmony export */   "signInWithPhoneNumber": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithPhoneNumber),
+/* harmony export */   "signInWithPopup": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithPopup),
+/* harmony export */   "signInWithRedirect": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signInWithRedirect),
+/* harmony export */   "signOut": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.signOut),
+/* harmony export */   "unlink": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.unlink),
+/* harmony export */   "updateCurrentUser": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.updateCurrentUser),
+/* harmony export */   "updateEmail": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.updateEmail),
+/* harmony export */   "updatePassword": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.updatePassword),
+/* harmony export */   "updatePhoneNumber": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.updatePhoneNumber),
+/* harmony export */   "updateProfile": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.updateProfile),
+/* harmony export */   "useDeviceLanguage": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.useDeviceLanguage),
+/* harmony export */   "verifyBeforeUpdateEmail": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.verifyBeforeUpdateEmail),
+/* harmony export */   "verifyPasswordResetCode": () => (/* reexport safe */ _firebase_auth__WEBPACK_IMPORTED_MODULE_0__.verifyPasswordResetCode)
+/* harmony export */ });
+/* harmony import */ var _firebase_auth__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/auth */ "./node_modules/@firebase/auth/dist/esm2017/index.js");
+
 //# sourceMappingURL=index.esm.js.map
 
 
@@ -38161,6 +38390,166 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _firebase_storage_compat__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/storage-compat */ "./node_modules/@firebase/storage-compat/dist/esm/index.esm2017.js");
+
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/firebase/firestore/dist/index.esm.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/firebase/firestore/dist/index.esm.js ***!
+  \***********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "AbstractUserDataWriter": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.AbstractUserDataWriter),
+/* harmony export */   "Bytes": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.Bytes),
+/* harmony export */   "CACHE_SIZE_UNLIMITED": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.CACHE_SIZE_UNLIMITED),
+/* harmony export */   "CollectionReference": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.CollectionReference),
+/* harmony export */   "DocumentReference": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.DocumentReference),
+/* harmony export */   "DocumentSnapshot": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.DocumentSnapshot),
+/* harmony export */   "FieldPath": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.FieldPath),
+/* harmony export */   "FieldValue": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.FieldValue),
+/* harmony export */   "Firestore": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.Firestore),
+/* harmony export */   "FirestoreError": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.FirestoreError),
+/* harmony export */   "GeoPoint": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.GeoPoint),
+/* harmony export */   "LoadBundleTask": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.LoadBundleTask),
+/* harmony export */   "Query": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.Query),
+/* harmony export */   "QueryConstraint": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.QueryConstraint),
+/* harmony export */   "QueryDocumentSnapshot": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.QueryDocumentSnapshot),
+/* harmony export */   "QuerySnapshot": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.QuerySnapshot),
+/* harmony export */   "SnapshotMetadata": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.SnapshotMetadata),
+/* harmony export */   "Timestamp": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.Timestamp),
+/* harmony export */   "Transaction": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.Transaction),
+/* harmony export */   "WriteBatch": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.WriteBatch),
+/* harmony export */   "_DatabaseId": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._DatabaseId),
+/* harmony export */   "_DocumentKey": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._DocumentKey),
+/* harmony export */   "_EmptyAppCheckTokenProvider": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._EmptyAppCheckTokenProvider),
+/* harmony export */   "_EmptyAuthCredentialsProvider": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._EmptyAuthCredentialsProvider),
+/* harmony export */   "_FieldPath": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._FieldPath),
+/* harmony export */   "_cast": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._cast),
+/* harmony export */   "_debugAssert": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._debugAssert),
+/* harmony export */   "_isBase64Available": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._isBase64Available),
+/* harmony export */   "_logWarn": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._logWarn),
+/* harmony export */   "_validateIsNotUsedTogether": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__._validateIsNotUsedTogether),
+/* harmony export */   "addDoc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.addDoc),
+/* harmony export */   "arrayRemove": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.arrayRemove),
+/* harmony export */   "arrayUnion": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.arrayUnion),
+/* harmony export */   "clearIndexedDbPersistence": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.clearIndexedDbPersistence),
+/* harmony export */   "collection": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.collection),
+/* harmony export */   "collectionGroup": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.collectionGroup),
+/* harmony export */   "connectFirestoreEmulator": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.connectFirestoreEmulator),
+/* harmony export */   "deleteDoc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.deleteDoc),
+/* harmony export */   "deleteField": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.deleteField),
+/* harmony export */   "disableNetwork": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.disableNetwork),
+/* harmony export */   "doc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.doc),
+/* harmony export */   "documentId": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.documentId),
+/* harmony export */   "enableIndexedDbPersistence": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.enableIndexedDbPersistence),
+/* harmony export */   "enableMultiTabIndexedDbPersistence": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.enableMultiTabIndexedDbPersistence),
+/* harmony export */   "enableNetwork": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.enableNetwork),
+/* harmony export */   "endAt": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.endAt),
+/* harmony export */   "endBefore": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.endBefore),
+/* harmony export */   "ensureFirestoreConfigured": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.ensureFirestoreConfigured),
+/* harmony export */   "executeWrite": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.executeWrite),
+/* harmony export */   "getDoc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDoc),
+/* harmony export */   "getDocFromCache": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocFromCache),
+/* harmony export */   "getDocFromServer": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocFromServer),
+/* harmony export */   "getDocs": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocs),
+/* harmony export */   "getDocsFromCache": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocsFromCache),
+/* harmony export */   "getDocsFromServer": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocsFromServer),
+/* harmony export */   "getFirestore": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getFirestore),
+/* harmony export */   "increment": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.increment),
+/* harmony export */   "initializeFirestore": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.initializeFirestore),
+/* harmony export */   "limit": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.limit),
+/* harmony export */   "limitToLast": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.limitToLast),
+/* harmony export */   "loadBundle": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.loadBundle),
+/* harmony export */   "namedQuery": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.namedQuery),
+/* harmony export */   "onSnapshot": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.onSnapshot),
+/* harmony export */   "onSnapshotsInSync": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.onSnapshotsInSync),
+/* harmony export */   "orderBy": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.orderBy),
+/* harmony export */   "query": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.query),
+/* harmony export */   "queryEqual": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.queryEqual),
+/* harmony export */   "refEqual": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.refEqual),
+/* harmony export */   "runTransaction": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.runTransaction),
+/* harmony export */   "serverTimestamp": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.serverTimestamp),
+/* harmony export */   "setDoc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.setDoc),
+/* harmony export */   "setIndexConfiguration": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.setIndexConfiguration),
+/* harmony export */   "setLogLevel": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.setLogLevel),
+/* harmony export */   "snapshotEqual": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.snapshotEqual),
+/* harmony export */   "startAfter": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.startAfter),
+/* harmony export */   "startAt": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.startAt),
+/* harmony export */   "terminate": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.terminate),
+/* harmony export */   "updateDoc": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.updateDoc),
+/* harmony export */   "waitForPendingWrites": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.waitForPendingWrites),
+/* harmony export */   "where": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.where),
+/* harmony export */   "writeBatch": () => (/* reexport safe */ _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.writeBatch)
+/* harmony export */ });
+/* harmony import */ var _firebase_firestore__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/firestore */ "./node_modules/@firebase/firestore/dist/index.esm2017.js");
+
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/firebase/performance/dist/index.esm.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/firebase/performance/dist/index.esm.js ***!
+  \*************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "getPerformance": () => (/* reexport safe */ _firebase_performance__WEBPACK_IMPORTED_MODULE_0__.getPerformance),
+/* harmony export */   "initializePerformance": () => (/* reexport safe */ _firebase_performance__WEBPACK_IMPORTED_MODULE_0__.initializePerformance),
+/* harmony export */   "trace": () => (/* reexport safe */ _firebase_performance__WEBPACK_IMPORTED_MODULE_0__.trace)
+/* harmony export */ });
+/* harmony import */ var _firebase_performance__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/performance */ "./node_modules/@firebase/performance/dist/esm/index.esm2017.js");
+
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
+/***/ "./node_modules/firebase/storage/dist/index.esm.js":
+/*!*********************************************************!*\
+  !*** ./node_modules/firebase/storage/dist/index.esm.js ***!
+  \*********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "StringFormat": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.StringFormat),
+/* harmony export */   "_FbsBlob": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._FbsBlob),
+/* harmony export */   "_Location": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._Location),
+/* harmony export */   "_TaskEvent": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._TaskEvent),
+/* harmony export */   "_TaskState": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._TaskState),
+/* harmony export */   "_UploadTask": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._UploadTask),
+/* harmony export */   "_dataFromString": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._dataFromString),
+/* harmony export */   "_getChild": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._getChild),
+/* harmony export */   "_invalidArgument": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._invalidArgument),
+/* harmony export */   "_invalidRootOperation": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__._invalidRootOperation),
+/* harmony export */   "connectStorageEmulator": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.connectStorageEmulator),
+/* harmony export */   "deleteObject": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.deleteObject),
+/* harmony export */   "getBlob": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getBlob),
+/* harmony export */   "getBytes": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getBytes),
+/* harmony export */   "getDownloadURL": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getDownloadURL),
+/* harmony export */   "getMetadata": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getMetadata),
+/* harmony export */   "getStorage": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getStorage),
+/* harmony export */   "getStream": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.getStream),
+/* harmony export */   "list": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.list),
+/* harmony export */   "listAll": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.listAll),
+/* harmony export */   "ref": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.ref),
+/* harmony export */   "updateMetadata": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.updateMetadata),
+/* harmony export */   "uploadBytes": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.uploadBytes),
+/* harmony export */   "uploadBytesResumable": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.uploadBytesResumable),
+/* harmony export */   "uploadString": () => (/* reexport safe */ _firebase_storage__WEBPACK_IMPORTED_MODULE_0__.uploadString)
+/* harmony export */ });
+/* harmony import */ var _firebase_storage__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/storage */ "./node_modules/@firebase/storage/dist/index.esm2017.js");
 
 //# sourceMappingURL=index.esm.js.map
 
@@ -49358,6 +49747,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "changePageTitle": () => (/* binding */ changePageTitle),
 /* harmony export */   "closeLargeAccount": () => (/* binding */ closeLargeAccount),
+/* harmony export */   "convertDataTagsToLinks": () => (/* binding */ convertDataTagsToLinks),
 /* harmony export */   "goToPage": () => (/* binding */ goToPage),
 /* harmony export */   "isAdminCheck": () => (/* binding */ isAdminCheck),
 /* harmony export */   "updateEmail": () => (/* binding */ updateEmail),
@@ -49371,8 +49761,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var firebase_compat_storage__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! firebase/compat/storage */ "./node_modules/firebase/compat/storage/dist/index.esm.js");
 /* harmony import */ var firebase_compat_performance__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! firebase/compat/performance */ "./node_modules/firebase/compat/performance/dist/index.esm.js");
 /* harmony import */ var firebase_app__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! firebase/app */ "./node_modules/firebase/app/dist/index.esm.js");
-/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
-/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
+/* harmony import */ var firebase_performance__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! firebase/performance */ "./node_modules/firebase/performance/dist/index.esm.js");
+/* harmony import */ var firebase_analytics__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! firebase/analytics */ "./node_modules/firebase/analytics/dist/index.esm.js");
+/* harmony import */ var firebase_firestore__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! firebase/firestore */ "./node_modules/firebase/firestore/dist/index.esm.js");
+/* harmony import */ var firebase_storage__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! firebase/storage */ "./node_modules/firebase/storage/dist/index.esm.js");
+/* harmony import */ var firebase_auth__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! firebase/auth */ "./node_modules/firebase/auth/dist/index.esm.js");
+/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
 /* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
 // Importing version 9 compat libraries
 
@@ -49389,18 +49784,13 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// import { setupMain } from "./main";
-// import { setupEditEntry, unSavedChangesEditEntry } from "./editEntry"; // TODO: Figure out if this is a bad idea (don't load extra files? Will webpack deal with it for us?)
-
-// import { setupSignIn } from "./signIn";
-// import { setupResults, setupSearch } from "./search";
-// import { setupAdminMain, setupBarcodePage, setupEditUser, setupInventory, setupView } from "./admin";
-// import { setupReport } from "./report";
-// import { setupAccountPage } from "./account";
-// import { setupSitemap } from "./sitemap";
 
 
-// @ts-ignore
+
+
+
+
+
 // eslint-disable-next-line no-unused-vars
 var url = window.location.href;
 var path = window.location.pathname;
@@ -49418,7 +49808,7 @@ $(() => {
             // key is the counterpart to the secret key you set in the Firebase console.
             appCheck.activate("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu");
             setupIndex();
-            goToPage(fullExtension.substr(1), true);
+            goToPage(fullExtension.substring(1), true);
         }, function (error) {
             console.error(error);
         });
@@ -49433,15 +49823,8 @@ function setupIndex() {
     $("div#log-out").on("click", () => {
         signOut();
     });
-    // Iterate through all the links and set an onclick
-    document.querySelectorAll("a, div, button").forEach(element => {
-        // The html tags each have a custom data tag telling where the link should go
-        if (element.dataset.linkTarget) {
-            $(element).on("click", () => {
-                goToPage(element.dataset.linkTarget);
-            });
-        }
-    });
+
+    convertDataTagsToLinks();
 
     // Manage Menu Button event listener
     $("#hamburger-button").on("click", () => {
@@ -49525,6 +49908,19 @@ function setupIndex() {
     });
 }
 
+
+function convertDataTagsToLinks() {
+    // Iterate through all the links and set an onclick
+    document.querySelectorAll("a, div, button").forEach(element => {
+        // The html tags each have a custom data tag telling where the link should go
+        if (element.dataset.linkTarget) {
+            $(element).on("click", () => {
+                goToPage(element.dataset.linkTarget);
+            });
+        }
+    });
+}
+
 function closeNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("0");
@@ -49571,7 +49967,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         // If there is any reason for the user to not leave a page, then it will reject.
         // Currently, this handles unsaved changes on the edit entry page.
         // TODO: Add more
-        if (_globals__WEBPACK_IMPORTED_MODULE_8__.currentPage == "/admin/editEntry") {
+        if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage == "/admin/editEntry") {
             __webpack_require__.e(/*! import() */ "public_js_editEntry_js").then(__webpack_require__.bind(__webpack_require__, /*! ./editEntry */ "./public/js/editEntry.js")).then(({ unSavedChangesEditEntry }) => {
                 if (unSavedChangesEditEntry()) {
                     // It's fine to call it regardless because it will only call if the first argument is true.
@@ -49595,20 +49991,20 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
 
         // This removes the hash if one was passed in and stores it to a separate variable.
         if (pageName.includes("#")) {
-            pageHash = pageName.substr(pageName.indexOf("#"), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("#"));
+            pageHash = pageName.substring(pageName.indexOf("#"), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("#"));
         }
 
         // This removes the query if one was passed in and stores it to a separate variable.
         if (pageName.includes("?")) {
-            pageQuery = pageName.substr(pageName.indexOf("?"), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("?"));
+            pageQuery = pageName.substring(pageName.indexOf("?"), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("?"));
         }
 
         // This removes the file extension if one was passed in.
         if (pageName.includes(".")) {
-            // Never Used: pageExtension = pageName.substr(pageName.indexOf("."), pageName.length);
-            pageName = pageName.substr(0, pageName.indexOf("."));
+            // Never Used: pageExtension = pageName.substring(pageName.indexOf("."), pageName.length);
+            pageName = pageName.substring(0, pageName.indexOf("."));
         }
 
         // This removes an ending slash if one was mistakenly included
@@ -49632,9 +50028,9 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         if (!currentQuery) {
             currentQuery = "";
         }
-        let currentQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_9__.findURLValue)(currentQuery, "query", true);
-        let pageQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_9__.findURLValue)(pageQuery, "query", true);
-        if (_globals__WEBPACK_IMPORTED_MODULE_8__.currentPage && ((pageName == _globals__WEBPACK_IMPORTED_MODULE_8__.currentPage && pageName != "/search") || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))) {
+        let currentQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_14__.findURLValue)(currentQuery, "query", true);
+        let pageQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_14__.findURLValue)(pageQuery, "query", true);
+        if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage && ((pageName == _globals__WEBPACK_IMPORTED_MODULE_13__.currentPage && pageName != "/search") || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))) {
             // TODO: Remove when I know it's not going to break everything
 
             console.log("The user attempted to view the current page, and it was blocked.");
@@ -49685,7 +50081,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
 
 
 
-        isAdminCheck(_globals__WEBPACK_IMPORTED_MODULE_8__.currentPage == "/login" ? true : false).catch((error) => {
+        isAdminCheck(_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage == "/login" ? true : false).catch((error) => {
             console.error(error);
         }).then((result) => {
             if (result && $("#admin-link").html() == "") {
@@ -49705,7 +50101,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
 function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
     return new Promise((resolve) => {
         const xhttp = new XMLHttpRequest();
-        if (_globals__WEBPACK_IMPORTED_MODULE_8__.directory.includes(pageName)) {
+        if (_globals__WEBPACK_IMPORTED_MODULE_13__.directory.includes(pageName)) {
             xhttp.open("GET", "/content" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
         } else {
             xhttp.open("GET", "/content/404.html", true);
@@ -49716,7 +50112,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
         xhttp.onreadystatechange = function () {
 
             if (this.readyState == 4 && this.status == 200) {
-                if (_globals__WEBPACK_IMPORTED_MODULE_8__.currentPage != pageName) {
+                if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage != pageName) {
                     $("#content").addClass("fade");
                 }
 
@@ -49794,21 +50190,21 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
                 // Get an array of currently loaded Additional Resources like JS and CSS
                 // Iterate through the currently loaded css files
-                $('head > link.appended').each(() => {
+                $.each($('head > link.appended'), (index, value) => {
                     // Get the href attribute of the link tag
-                    var href = $(this)[0].attributes.href.value;
+                    var href = value.attributes.href.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!_globals__WEBPACK_IMPORTED_MODULE_8__.loadedSources.includes(href.substr(href.lastIndexOf('/') + 1, href.length))) {
-                        _globals__WEBPACK_IMPORTED_MODULE_8__.loadedSources.push(href.substr(href.lastIndexOf('/') + 1, href.length));
+                    if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(href.substring(href.lastIndexOf('/') + 1, href.length))) {
+                        _globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
                     }
                 });
                 // Iterate though the currently loaded js files
-                $('body > script.appended').each(() => {
+                $.each($('body > script.appended'), (index, value) => {
                     // Get the src attribute of the script tag.
-                    var src = $(this)[0].attributes.src.value;
+                    var src = value.attributes.src.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!_globals__WEBPACK_IMPORTED_MODULE_8__.loadedSources.includes(src.substr(src.lastIndexOf('/') + 1, src.length))) {
-                        _globals__WEBPACK_IMPORTED_MODULE_8__.loadedSources.push(src.substr(src.lastIndexOf('/') + 1, src.length));
+                    if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(src.substring(src.lastIndexOf('/') + 1, src.length))) {
+                        _globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.push(src.substring(src.lastIndexOf('/') + 1, src.length));
                     }
                 });
 
@@ -49823,13 +50219,13 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                 try {
                     for (let i = 0; i < sourcesForPage.length; i++) {
                         // If the source hasn't already been loaded.
-                        if (!_globals__WEBPACK_IMPORTED_MODULE_8__.loadedSources.includes(sourcesForPage[i])) {
+                        if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(sourcesForPage[i])) {
                             // If the source is a js file:
-                            if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
+                            if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
                                 // $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
                             }
                             // If the source is a css file
-                            else if (sourcesForPage[i].substr(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
+                            else if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
                                 $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
                             } else {
                                 console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
@@ -49854,7 +50250,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         if (pageHash) {
             document.querySelector(pageHash)?.scrollIntoView();
         } else {
-            if (_globals__WEBPACK_IMPORTED_MODULE_8__.currentPage != pageName) {
+            if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage != pageName) {
                 $(document).scrollTop(0); // Could change later if we don't like this behavior
             }
         }
@@ -49875,7 +50271,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
-            
+
         }
 
         if (pageName == "/search") {
@@ -49887,8 +50283,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }
 
         if (pageName == "/result") {
-            __webpack_require__.e(/*! import() */ "public_js_search_js").then(__webpack_require__.bind(__webpack_require__, /*! ./search */ "./public/js/search.js")).then(({ setupResults }) => {
-                setupResults(pageQuery);
+            __webpack_require__.e(/*! import() */ "public_js_search_js").then(__webpack_require__.bind(__webpack_require__, /*! ./search */ "./public/js/search.js")).then(({ setupResultPage }) => {
+                setupResultPage(pageQuery);
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -49901,7 +50297,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
                 console.error("Problem importing", error);
             });
         } else {
-            (0,_globals__WEBPACK_IMPORTED_MODULE_8__.setCurrentPanel)(null);
+            (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setCurrentPanel)(null);
         }
 
         if (pageName == "/admin/main") {
@@ -49977,7 +50373,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }, 200);*/
 
 
-        (0,_globals__WEBPACK_IMPORTED_MODULE_8__.setCurrentPage)(pageName);
+        (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setCurrentPage)(pageName);
         currentQuery = pageQuery;
         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
         resolve();
@@ -50028,11 +50424,25 @@ const firebaseConfig = {
  */
 function initApp() {
     // Initialize Firebase
-    (0,_globals__WEBPACK_IMPORTED_MODULE_8__.setApp)((0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(firebaseConfig));
+    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setApp)((0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(firebaseConfig));
+    // TODO: Remove v8
     firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].initializeApp(firebaseConfig);
-    /* Remove this comment when compat version is gone (then actually setup analytics...)
-    const analytics = getAnalytics(app);*/
-    (0,_globals__WEBPACK_IMPORTED_MODULE_8__.setDb)(firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].firestore());
+
+    // Start firebase services and globalize them.
+    // TODO: Start using analytics and performance properly
+    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setAnalytics)((0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.getAnalytics)(_globals__WEBPACK_IMPORTED_MODULE_13__.app));
+    (0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.logEvent)(_globals__WEBPACK_IMPORTED_MODULE_13__.analytics, 'app_open');
+
+    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setPerformance)((0,firebase_performance__WEBPACK_IMPORTED_MODULE_8__.getPerformance)(_globals__WEBPACK_IMPORTED_MODULE_13__.app)); // eslint-disable-line
+
+    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setDb)(firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].firestore());
+/* Uncomment when ready for v9
+    setDb(getFirestore(app));
+
+    setStorage(getStorage(app));
+
+    setAuth(getAuth(app));*/
+
     // Listening for auth state changes.
     return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
         try {
@@ -50041,7 +50451,7 @@ function initApp() {
                     // User is signed in.
                     console.log("User is now Signed In.");
                     var date = new Date();
-                    _globals__WEBPACK_IMPORTED_MODULE_8__.db.collection("users").doc(user.uid).update({
+                    _globals__WEBPACK_IMPORTED_MODULE_13__.db.collection("users").doc(user.uid).update({
                         lastSignIn: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
@@ -50064,7 +50474,7 @@ function updateUserAccountInfo() {
     var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     if (user) {
         // User is signed in.
-        _globals__WEBPACK_IMPORTED_MODULE_8__.db.collection("users").doc(user.uid).onSnapshot((doc) => {
+        _globals__WEBPACK_IMPORTED_MODULE_13__.db.collection("users").doc(user.uid).onSnapshot((doc) => {
             if (!doc.exists) {
                 console.error("The user document could not be found. Ignore if the user just signed up.");
                 return;
@@ -50095,7 +50505,9 @@ function updateUserAccountInfo() {
         $("#large-account-image").show();
         $("#account-email").show();
         $("#account-settings").show();
-        $("#log-out").html("<a>Log Out</a>").css("width", "50%").attr("onclick", "javascript:signOut();");
+        $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
+            signOut();
+        });
     } else {
         // User is signed out.
 
@@ -50112,7 +50524,7 @@ function updateUserAccountInfo() {
 }
 
 function updateEmail(email) {
-    email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
+    email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
     $("#account-email").text(email);
     $("#account-page-email").text(email);
 }
@@ -50169,7 +50581,7 @@ BEGIN SEARCH
  * @returns {Promise<void>} An array of results
  */
 function search(searchQuery, start = 0, end = 20, viewHidden = false) {
-    return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function(resolve) {
+    return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function (resolve) {
         if (_globals__WEBPACK_IMPORTED_MODULE_1__.timeLastSearched == null || _globals__WEBPACK_IMPORTED_MODULE_1__.timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             (0,_globals__WEBPACK_IMPORTED_MODULE_1__.setTimeLastSearched)(new Date());
@@ -50276,7 +50688,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
                 score += countInArray(book.subtitle.replace(/-/g, " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
                 // Title
                 score += countInArray(book.title.replace(/-/g, " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
-                scoresArray.push({book:book, score: score});
+                scoresArray.push({ book: book, score: score });
             }
         });
         scoresArray.sort((a, b) => {
@@ -50287,7 +50699,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
         var returnArray = [];
         console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
         scoresArray.forEach((item) => {
-            if (item.score < 1) {return;}
+            if (item.score < 1) { return; }
             if (isNaN(item.score)) {
                 console.error("A score for one of the books is NaN. Look into that.");
                 return;
@@ -50341,11 +50753,11 @@ function searchCompare(a, b) {
  * source: https://gist.github.com/IceCreamYou/8396172
  */
 function distance(source, target) {
-    if (!source) {return target ? target.length : 0;}
-    else if (!target) {return source.length;}
+    if (!source) { return target ? target.length : 0; }
+    else if (!target) { return source.length; }
 
     var m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
-    for (let i = 0; i < m + 2; i++) {score[i] = new Array(n + 2);}
+    for (let i = 0; i < m + 2; i++) { score[i] = new Array(n + 2); }
     score[0][0] = INF;
     for (let i = 0; i <= m; i++) {
         score[i + 1][1] = i;
@@ -50490,18 +50902,19 @@ function buildBookBox(obj, page, num = 0) {
     author.classList.add("author");
     var authorString = "";
     for (let i = 0; i < obj.authors.length; i++) {
-        if (i == 1) {authorString += " & ";}
+        if (i == 1) { authorString += " & "; }
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;
     }
-    if (authorString == ", ") {authorString = "";}
+    if (authorString == ", ") { authorString = ""; }
     author.appendChild(document.createTextNode(authorString));
     b.appendChild(title);
     div2.appendChild(b);
     div2.appendChild(author);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
-        div.setAttribute("onclick", string);
+        div.addEventListener("click", () => {
+            (0,_ajax__WEBPACK_IMPORTED_MODULE_0__.goToPage)("admin/editEntry?new=false&id=" + obj.barcodeNumber);
+        });
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
@@ -50693,7 +51106,7 @@ function calculateISBNCheckDigit(number) {
 
 function switchISBNformats(number) {
     number = number.toString();
-    if (number.substr(0, 3) == "978") {
+    if (number.substring(0, 3) == "978") {
         number = number.substring(3, number.length - 1);
     } else {
         number = "978" + number;
@@ -50772,22 +51185,30 @@ END ISBN UTILS
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "analytics": () => (/* binding */ analytics),
 /* harmony export */   "app": () => (/* binding */ app),
+/* harmony export */   "auth": () => (/* binding */ auth),
 /* harmony export */   "bookDatabase": () => (/* binding */ bookDatabase),
 /* harmony export */   "currentPage": () => (/* binding */ currentPage),
 /* harmony export */   "currentPanel": () => (/* binding */ currentPanel),
 /* harmony export */   "db": () => (/* binding */ db),
 /* harmony export */   "directory": () => (/* binding */ directory),
 /* harmony export */   "loadedSources": () => (/* binding */ loadedSources),
+/* harmony export */   "performance": () => (/* binding */ performance),
 /* harmony export */   "searchCache": () => (/* binding */ searchCache),
+/* harmony export */   "setAnalytics": () => (/* binding */ setAnalytics),
 /* harmony export */   "setApp": () => (/* binding */ setApp),
+/* harmony export */   "setAuth": () => (/* binding */ setAuth),
 /* harmony export */   "setBookDatabase": () => (/* binding */ setBookDatabase),
 /* harmony export */   "setCurrentPage": () => (/* binding */ setCurrentPage),
 /* harmony export */   "setCurrentPanel": () => (/* binding */ setCurrentPanel),
 /* harmony export */   "setDb": () => (/* binding */ setDb),
 /* harmony export */   "setLoadedSources": () => (/* binding */ setLoadedSources),
+/* harmony export */   "setPerformance": () => (/* binding */ setPerformance),
 /* harmony export */   "setSearchCache": () => (/* binding */ setSearchCache),
+/* harmony export */   "setStorage": () => (/* binding */ setStorage),
 /* harmony export */   "setTimeLastSearched": () => (/* binding */ setTimeLastSearched),
+/* harmony export */   "storage": () => (/* binding */ storage),
 /* harmony export */   "timeLastSearched": () => (/* binding */ timeLastSearched)
 /* harmony export */ });
 /* harmony import */ var firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/compat/app */ "./node_modules/firebase/compat/app/dist/index.esm.js");
@@ -50820,6 +51241,34 @@ let db = null;
 
 function setDb(newDb) {
     db = newDb;
+}
+
+
+let analytics = null;
+
+function setAnalytics(newAnalytics) {
+    analytics = newAnalytics;
+}
+
+
+let auth = null;
+
+function setAuth(newAuth) {
+    auth = newAuth;
+}
+
+
+let performance = null;
+
+function setPerformance(newPerformance) {
+    performance = newPerformance;
+}
+
+
+let storage = null;
+
+function setStorage(newStorage) {
+    storage = newStorage;
 }
 
 

@@ -248,6 +248,33 @@ function setupEditEntry(pageQuery) {
         }
     });
 
+    $("#file-input").on("change", (event) => {
+        loadFile(event);
+    });
+
+    $("#edit-entry-save").on("click", () => {
+        editEntry();
+    });
+
+    $("#delete-entry").on("click", () => {
+        editEntry(null, true);
+    });
+
+    $("#edit-entry-cancel").on("click", () => {
+        cancelEditEntry();
+    });
+
+    $("#edit-entry-delete").on("click", () => {
+        deleteEntry();
+    });
+
+    $("#delete-cancel").on("click", () => {
+        deleteEntry();
+    });
+
+    $("#add-subject").on("click", () => {
+        addSubject();
+    });
     
 }
 

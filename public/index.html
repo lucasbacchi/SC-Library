@@ -1,131 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
-        <!-- Measure input delay -->
-        <script>!function(n,e){var t,o,i,c=[],f={passive:!0,capture:!0},r=new Date,a="pointerup",u="pointercancel";function p(n,c){t||(t=c,o=n,i=new Date,w(e),s())}function s(){o>=0&&o<i-r&&(c.forEach(function(n){n(o,t)}),c=[])}function l(t){if(t.cancelable){var o=(t.timeStamp>1e12?new Date:performance.now())-t.timeStamp;"pointerdown"==t.type?function(t,o){function i(){p(t,o),r()}function c(){r()}function r(){e(a,i,f),e(u,c,f)}n(a,i,f),n(u,c,f)}(o,t):p(o,t)}}function w(n){["click","mousedown","keydown","touchstart","pointerdown"].forEach(function(e){n(e,l,f)})}w(n),self.perfMetrics=self.perfMetrics||{},self.perfMetrics.onFirstInputDelay=function(n){c.push(n),s()}}(addEventListener,removeEventListener);</script>
-        <!-- Global Site Tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-MRXNED32DZ"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-MRXNED32DZ');
-        </script>
-        <!-- Load Ajax Script -->
-        <!-- TODO: Will likely need to load other scripts... somehow... -->
-        <script src="/dist/runtime.bundle.js"></script>
-        <script src="/dist/ajax.bundle.js"></script>
-        <meta charset="utf-8">
-        <meta name="keywords" content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
-        <meta name="description" content="Official Library Catalog of South Church in Andover!">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1">
-        <!-- Chrome, Firefox OS and Opera -->
-        <meta name="theme-color" content="#3D7A8B">
-        <!-- Windows Phone -->
-        <meta name="msapplication-navbutton-color" content="#3D7A8B">
-        <!-- iOS Safari -->
-        <meta name="apple-mobile-web-app-status-bar-style" content="#3D7A8B">
-        <link rel="icon" href="/img/favicon.ico" type="image/png">
-        <link rel="stylesheet" href="/css/main.css" type="text/css">
-    </head>
+<head>
+    <!-- Load Bundled Scripts -->
+    <script src="/dist/runtime.bundle.js"></script>
+    <script src="/dist/ajax.bundle.js"></script>
+    <meta charset="utf-8">
+    <meta name="keywords"
+        content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
+    <meta name="description" content="Official Library Catalog of South Church in Andover!">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1">
+    <!-- Chrome, Firefox OS and Opera -->
+    <meta name="theme-color" content="#3D7A8B">
+    <!-- Windows Phone -->
+    <meta name="msapplication-navbutton-color" content="#3D7A8B">
+    <!-- iOS Safari -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="#3D7A8B">
+    <link rel="icon" href="/img/favicon.ico" type="image/png">
+    <link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
 
-    <body style="overflow: hidden;">
-        <header>
-            <h1><a data-link-target='main' class="no-select">South Church Library</a></h1>
-            <span id="hamburger-button" class="no-select">&#9776;</span>
-            <nav class="no-select">
-                <span id="close-button">&#10006;</span>
-                <li class=navlink><a data-link-target='main'>Home</a></li>
-                <li class=navlink><a data-link-target='about'>About</a></li>
-                <li class=navlink><a data-link-target='search'>Browse</a></li>
-                <!--<li class=navlink><a data-link-target='advancedSearch'>Search</a></li>-->
-                <li class=navlink><a data-link-target='help'>Help</a></li>
-            </nav>
-            <div id="account-container">
-                <div id="nav-login-signup" class="no-select">
-                    <div id="nav-login"><a data-link-target='login'>Log In</a></div>
-                    <div id="nav-signup"><a data-link-target='signup'>Sign Up</a></div>
+<body style="overflow: hidden;">
+    <header>
+        <h1><a data-link-target='main' class="no-select">South Church Library</a></h1>
+        <span id="hamburger-button" class="no-select">&#9776;</span>
+        <nav class="no-select">
+            <span id="close-button">&#10006;</span>
+            <li class=navlink><a data-link-target='main'>Home</a></li>
+            <li class=navlink><a data-link-target='about'>About</a></li>
+            <li class=navlink><a data-link-target='search'>Browse</a></li>
+            <!--<li class=navlink><a data-link-target='advancedSearch'>Search</a></li>-->
+            <li class=navlink><a data-link-target='help'>Help</a></li>
+        </nav>
+        <div id="account-container">
+            <div id="nav-login-signup" class="no-select">
+                <div id="nav-login"><a data-link-target='login'>Log In</a></div>
+                <div id="nav-signup"><a data-link-target='signup'>Sign Up</a></div>
+            </div>
+            <div id="small-account-container" class="no-select">
+                <img id="small-account-image" src="../img/default-user.jpg">
+                <span id="account-arrow">&#9660;</span>
+            </div>
+            <div id="large-account-container">
+                <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
+                <div id="account-information-container">
+                    <p id="account-name"></p>
+                    <p id="account-email"></p>
+                    <a id="admin-link" data-link-target="admin/main"></a>
                 </div>
-                <div id="small-account-container" class="no-select">
-                    <img id="small-account-image" src="../img/default-user.jpg">
-                    <span id="account-arrow">&#9660;</span>
-                </div>
-                <div id="large-account-container">
-                    <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
-                    <div id="account-information-container">
-                        <p id="account-name"></p>
-                        <p id="account-email"></p>
-                        <a id="admin-link" data-link-target="admin/main"></a>
-                    </div>
-                    <div id="log-out" class="account-bottom"><a>Log Out</a></div>
-                    <div id="account-settings" class="account-bottom" data-link-target='account'><a>View Account</a></div>
-                </div>
+                <div id="log-out" class="account-bottom"><a>Log Out</a></div>
+                <div id="account-settings" class="account-bottom" data-link-target='account'><a>View Account</a></div>
             </div>
-        </header>
-        <!-- Required to make sure the header doesn't overlay on other content. -->
-        <div id="header-spacer" style="clear: both; height: 100px;"></div>
+        </div>
+    </header>
+    <!-- Required to make sure the header doesn't overlay on other content. -->
+    <div id="header-spacer" style="clear: both; height: 100px;"></div>
 
-        <div id="content" style="height: 900px; margin-bottom: 20px;"></div>
-        
+    <div id="content" style="height: 900px; margin-bottom: 20px;"></div>
 
-        <div id="cover" style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;"></div>
-        <!-- Required to make sure the footer doesn't overlay on other content. -->
-        <div id="footer-spacer" style="clear: both; height: 200px;"></div>
-        <footer>
-            <div class="footer-div">
-                <h2 class="footer-title no-select">Contact Us</h2>
-                <ul class="footer-list">
-                    <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a></li>
-                    <li><a href="mailto:scand@southchurch.com" target="_blank">scand@southchurch.com</a></li>
-                    <li><a href="tel:978-475-0321">978-475-0321</a></li>
-                </ul>
-            </div>
-            <div class="footer-div">
-                <h2 class="footer-title no-select">South Church</h2>
-                <ul class="footer-list">
-                    <li><a href="https://www.southchurch.com" target="_blank">Website</a></li>
-                    <li><a href="https://southchurch.com/worship" target="_blank">Worship</a></li>
-                    <li><a href="https://www.southchurch.com/welcome" target="_blank">Welcome</a></li>
-                </ul>
-            </div>
-            <div class="footer-div">
-                <h2 class="footer-title no-select">Help</h2>
-                <ul class="footer-list">
-                    <li><a data-link-target='help'>Help Page</a></li>
-                    <li><a data-link-target='help#FAQ'>FAQs</a></li>
-                    <li><a data-link-target='sitemap'>Sitemap</a></li>
-                </ul>
-            </div>
-            <div class="footer-bottom">&#169; 2020 South Church in Andover</div>
-        </footer>
 
-        
+    <div id="cover"
+        style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">
+    </div>
+    <!-- Required to make sure the footer doesn't overlay on other content. -->
+    <div id="footer-spacer" style="clear: both; height: 200px;"></div>
+    <footer>
+        <div class="footer-div">
+            <h2 class="footer-title no-select">Contact Us</h2>
+            <ul class="footer-list">
+                <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a>
+                </li>
+                <li><a href="mailto:scand@southchurch.com" target="_blank">scand@southchurch.com</a></li>
+                <li><a href="tel:978-475-0321">978-475-0321</a></li>
+            </ul>
+        </div>
+        <div class="footer-div">
+            <h2 class="footer-title no-select">South Church</h2>
+            <ul class="footer-list">
+                <li><a href="https://www.southchurch.com" target="_blank">Website</a></li>
+                <li><a href="https://southchurch.com/worship" target="_blank">Worship</a></li>
+                <li><a href="https://www.southchurch.com/welcome" target="_blank">Welcome</a></li>
+            </ul>
+        </div>
+        <div class="footer-div">
+            <h2 class="footer-title no-select">Help</h2>
+            <ul class="footer-list">
+                <li><a data-link-target='help'>Help Page</a></li>
+                <li><a data-link-target='help#FAQ'>FAQs</a></li>
+                <li><a data-link-target='sitemap'>Sitemap</a></li>
+            </ul>
+        </div>
+        <div class="footer-bottom">&#169; 2020 South Church in Andover</div>
+    </footer>
 
-        <!-- Tell Google Analytics about first input delay -->
-        <!--
-        <script>
-            var analytics = firebase.analytics();
-            firebase.analytics().logEvent('firebase_event', {'name': 'test'});
-            // The perfMetrics object is created by the code that goes in <head>.
-            perfMetrics.onFirstInputDelay(function(delay, evt) {
-                gtag('event', 'input-delay', {
-                    'event_category': 'Perf Metrics',
-                    'event_action': 'first-input-delay',
-                    'event_label': evt.type,
-                    // Event values must be an integer.
-                    'value': Math.round(delay),
-                    // Exclude this event from bounce rate calculations.
-                    'nonInteraction': true
-                });
-            });
-            var perf = firebase.performance();
-        </script>-->
-
-        <script src="https://www.google.com/recaptcha/api.js"></script>
-
-        <!--<script type="text/javascript" src="/js/main.js"></script>-->
-
-    </body>
-
+    <script src="https://www.google.com/recaptcha/api.js"></script>
+</body>
 </html>

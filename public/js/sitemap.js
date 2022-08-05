@@ -1,5 +1,5 @@
 import firebase from "firebase/compat/app";
-import { isAdminCheck } from "./ajax";
+import { convertDataTagsToLinks, isAdminCheck } from "./ajax";
 import { directory } from "./globals";
 
 export function setupSitemap() {
@@ -20,15 +20,19 @@ export function setupSitemap() {
             folder = newFolder;
             var char;
             if (folder == "account") char = "?"; else if (folder == "") char = ""; else char = "/";
-            $('#' + folder).append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#' + folder).append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         } else {
             folder = "";
             char = "";
-            $('#sitemap').append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#sitemap').append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
-    isAdminCheck().then(() => {
-        buildAdminSitemap();
+    isAdminCheck().then((isAdmin) => {
+        if (isAdmin) {
+            buildAdminSitemap();
+        }
+
+        convertDataTagsToLinks();
     }).catch((error) => {
         console.error(error);
     });
@@ -44,7 +48,7 @@ function buildAdminSitemap() {
             var newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
-            $('#admin').append("<li><a onclick='javascript:goToPage(&quot;admin/" + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
+            $('#admin').append("<li><a data-link-target='admin/" + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
 }

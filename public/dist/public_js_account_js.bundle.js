@@ -29,14 +29,14 @@ var settingsDirectory = [
     "/security"
 ];
 
-$(window).on("resize", function() {
+$(window).on("resize", function () {
     alignMenuColumn();
 });
 
 
 // Set up a mutation observer to resize the menu column whenver content changes.
-const observer = new MutationObserver(function(mutationList) {
-    mutationList.forEach(function(mutation) {
+const observer = new MutationObserver(function (mutationList) {
+    mutationList.forEach(function (mutation) {
         if (mutation.type != "attributes" || (!$(".menu-column")[0].contains(mutation.target) && mutation.target != $(".menu-column")[0])) {
             alignMenuColumn();
         }
@@ -55,9 +55,9 @@ var heightCheck = 500;
 function alignMenuColumn() {
     // Get the padding above and below the column.
     var paddingStr = $(".menu-column").css("padding-top");
-    var padding = parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
+    var padding = parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
     paddingStr = $(".menu-column").css("padding-bottom");
-    padding += parseInt(paddingStr.substr(0, paddingStr.indexOf("px")));
+    padding += parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
 
     var mainColumnHeight = $(".main-column").height();
     var menuColumnFullHeight = $(".menu-column").height() + padding;
@@ -95,7 +95,7 @@ function setupAccountPage(pageQuery, goingBack = false) {
     if (user) {
 
         var email = user.email;
-        email = email.substr(0, email.indexOf("@")) + "\u200B" + email.substr(email.indexOf("@"), email.length);
+        email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
         $("#account-page-email").text(email);
         // Get the stored first and last name from the database
         _globals__WEBPACK_IMPORTED_MODULE_3__.db.collection("users").doc(user.uid).get().then((doc) => {
@@ -105,22 +105,25 @@ function setupAccountPage(pageQuery, goingBack = false) {
             }
             firstName = doc.data().firstName;
             lastName = doc.data().lastName;
-            accountOverviewSetup(doc.data().firstName, doc.data().lastName);
+            setupAccountOverview(doc.data().firstName, doc.data().lastName);
             $("#account-page-name").text(firstName + " " + lastName);
         });
         if (user.photoURL != null) {
             $("#account-page-image").attr("src", user.photoURL);
         }
     } else {
-        $("#settings-column").html("No user is signed in. To sign in, please click <a onclick='javascript:goToPage(\"login\")'>here</a>.");
-    }
+        $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link'>here</a>.");
+        $("#no-user-sign-in-link").on("click", () => {
+            (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)("login");
+        });
+        }
 
     if (pageQuery.substring(1) != "" && _globals__WEBPACK_IMPORTED_MODULE_3__.directory.includes("/account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1), goingBack);
     } else {
         goToSettingsPanel("overview", goingBack);
         // TODO: Figure out what was put in the URL bar to be processed here.... What page puts it there....
-        accountOverviewSetup("", "", pageQuery.substr(pageQuery.indexOf("=")+1, pageQuery.length));
+        setupAccountOverview("", "", pageQuery.substring(pageQuery.indexOf("=") + 1, pageQuery.length));
     }
 
     // Create an "Event Listener" for mutations to the settings column
@@ -155,7 +158,7 @@ function setupAccountPage(pageQuery, goingBack = false) {
     });
 
     // When there is a change to the input, upload the file
-    $("#file-input").on("change", function() {
+    $("#file-input").on("change", function () {
         let fileInput = $("#file-input")[0];
         // @ts-ignore
         if (!fileInput.files) {
@@ -167,10 +170,10 @@ function setupAccountPage(pageQuery, goingBack = false) {
         var meta;
         if (file.type == "image/jpg") {
             userSpecificRef = userSpecificRef.child(user.uid + "/pfp.jpg");
-            meta = {contentType: "image/jpeg"};
+            meta = { contentType: "image/jpeg" };
         } else if (file.type == "image/png") {
             userSpecificRef = userSpecificRef.child(user.uid + "/pfp.png");
-            meta = {contentType: "image/png"};
+            meta = { contentType: "image/png" };
         } else {
             alert("That file type is not supported. Please upload a JPG or PNG file.");
             return;
@@ -180,21 +183,21 @@ function setupAccountPage(pageQuery, goingBack = false) {
             userSpecificRef.getDownloadURL().then((url) => {
                 user.updateProfile({
                     photoURL: url
-                  }).then(function() {
+                }).then(function () {
                     if (user.photoURL != null) {
                         $("#account-page-image").attr("src", user.photoURL);
                         $("#large-account-image").attr("src", user.photoURL);
                         $("#small-account-image").attr("src", user.photoURL);
                     }
-                  }).catch(function(error) {
+                }).catch(function (error) {
                     console.error(error);
-                  });
+                });
             });
         });
     });
 }
 
-function accountOverviewSetup(firstName, lastName, email) {
+function setupAccountOverview(firstName, lastName, email) {
     var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
@@ -212,22 +215,46 @@ function accountOverviewSetup(firstName, lastName, email) {
     $(".save-button").on("click", () => {
         updateAccount();
     });
+
+    $("#email-verified-link").on("click", () => {
+        sendEmailVerification();
+    });
+
+    $("#overview-panel-link").on("click", () => {
+        goToSettingsPanel('overview');
+    });
+
+    $("#checkouts-panel-link").on("click", () => {
+        goToSettingsPanel('checkouts');
+    });
+
+    $("#notifications-panel-link").on("click", () => {
+        goToSettingsPanel('notifications');
+    });
+
+    $("#security-panel-link").on("click", () => {
+        goToSettingsPanel('security');
+    });
 }
 
-function accountCheckoutsSetup() {
+function setupAccountCheckouts() {
     var checkouts = getCheckouts();
     createCheckouts(checkouts, "checkouts");
 }
 
-function accountNotificationsSetup() {
+function setupAccountNotifications() {
     $(".save-button").on("click", () => {
         updateAccount();
     });
 }
 
-function accountSecuritySetup() {
+function setupAccountSecurity() {
     $("#change-password").on("click", () => {
         changePassword();
+    });
+
+    $("#delete-account-button").on("click", () => {
+        deleteAccount();
     });
 }
 
@@ -266,7 +293,7 @@ function updateAccount() {
                 nameError = true;
                 alert("An error has occured. Please try again later.");
                 console.error(error);
-            }).then(function() {
+            }).then(function () {
                 if (!nameError) {
                     // Assuming there was no problem with the update, set the new values.
                     firstName = $("#setting-first-name").val();
@@ -289,7 +316,7 @@ function updateAccount() {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
                 }
-            }).then(function() {
+            }).then(function () {
                 if (!emailError) {
                     let email = user.email;
                     if (!user.emailVerified) {
@@ -303,64 +330,69 @@ function updateAccount() {
     }
 }
 
+function deleteAccount() {
+    // TODO: Write this function
+    alert("Not implemented. If you'd like to delete your account, contact the librarian.");
+}
 
 
 
-    const xhttp = new XMLHttpRequest();
-    function goToSettingsPanel(newPanel, goingBack = false) {
-        var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
 
-        $("#settings-column").removeClass("fade");
+const xhttp = new XMLHttpRequest();
+function goToSettingsPanel(newPanel, goingBack = false) {
+    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
 
-        newPanel = "/" + newPanel;
-        if (newPanel == _globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel) {
-            // TODO: Remove after I know it's not breaking anything...
-            console.log("The user attempted to view the same account panel twice and it was prevented.");
-            return;
-        }
+    $("#settings-column").removeClass("fade");
 
-        if (settingsDirectory.includes(newPanel)){
-            xhttp.open("GET", "/content/account" + newPanel + ".html", true);
-        } else if (_globals__WEBPACK_IMPORTED_MODULE_3__.directory.includes("/account" + newPanel)) {
-            xhttp.open("GET", "/content/account" + newPanel, true);
-        } else if (settingsDirectory.includes(newPanel.substr(0, newPanel.indexOf(".")))) {
-            xhttp.open("GET", "/content/account" + newPanel, true);
-        } else {
-            xhttp.open("GET", "/content/404.html", true);
-        }
-        xhttp.send();
-
-        // Set the content of the page
-        xhttp.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-                if (_globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel != newPanel) {
-                    $("#settings-column").addClass("fade");
-                }
-
-                document.getElementById("settings-column").innerHTML = xhttp.responseText;
-                // Remove Placeholder Height
-                document.getElementById("settings-column").style.height = "";
-
-                if (newPanel == "/overview") {
-                    accountOverviewSetup(firstName, lastName, user.email);
-                }if (newPanel == "/checkouts") {
-                    accountCheckoutsSetup();
-                }if (newPanel == "/notifications") {
-                    accountNotificationsSetup();
-                }if (newPanel == "/security") {
-                    accountSecuritySetup();
-                }
-
-                alignMenuColumn();
-
-                if (goingBack == false) {
-                    window.history.pushState({}, "", "/account?" + newPanel.substring(1));
-                }
-
-                (0,_globals__WEBPACK_IMPORTED_MODULE_3__.setCurrentPanel)(newPanel);
-            }
-        };
+    newPanel = "/" + newPanel;
+    if (newPanel == _globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel) {
+        // TODO: Remove after I know it's not breaking anything...
+        console.log("The user attempted to view the same account panel twice and it was prevented.");
+        return;
     }
+
+    if (settingsDirectory.includes(newPanel)) {
+        xhttp.open("GET", "/content/account" + newPanel + ".html", true);
+    } else if (_globals__WEBPACK_IMPORTED_MODULE_3__.directory.includes("/account" + newPanel)) {
+        xhttp.open("GET", "/content/account" + newPanel, true);
+    } else if (settingsDirectory.includes(newPanel.substring(0, newPanel.indexOf(".")))) {
+        xhttp.open("GET", "/content/account" + newPanel, true);
+    } else {
+        xhttp.open("GET", "/content/404.html", true);
+    }
+    xhttp.send();
+
+    // Set the content of the page
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            if (_globals__WEBPACK_IMPORTED_MODULE_3__.currentPanel != newPanel) {
+                $("#settings-column").addClass("fade");
+            }
+
+            document.getElementById("settings-column").innerHTML = xhttp.responseText;
+            // Remove Placeholder Height
+            document.getElementById("settings-column").style.height = "";
+
+            if (newPanel == "/overview") {
+                setupAccountOverview(firstName, lastName, user.email);
+            } if (newPanel == "/checkouts") {
+                setupAccountCheckouts();
+            } if (newPanel == "/notifications") {
+                setupAccountNotifications();
+            } if (newPanel == "/security") {
+                setupAccountSecurity();
+            }
+
+            alignMenuColumn();
+
+            if (goingBack == false) {
+                window.history.pushState({}, "", "/account?" + newPanel.substring(1));
+            }
+
+            (0,_globals__WEBPACK_IMPORTED_MODULE_3__.setCurrentPanel)(newPanel);
+        }
+    };
+}
 
 // Returns true if the user has unsaved changes, otherwise, returns false
 function checkForChangedFields() {
@@ -382,7 +414,7 @@ function checkForChangedFields() {
  */
 function sendEmailVerification() {
     var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
-    user.sendEmailVerification().then(function() {
+    user.sendEmailVerification().then(function () {
         alert("Email Verification Sent! Please check your email!");
     });
     var count = 0;
@@ -406,7 +438,7 @@ function sendEmailVerification() {
 function changePassword() {
     let currentPassword = $("#current-password").val().toString();
     let newPassword = $("#new-password").val().toString();
-    if (newPassword != $("#confirm-new-password").val()){
+    if (newPassword != $("#confirm-new-password").val()) {
         alert("The new passwords do not match!");
         $("#current-password").val("");
         $("#new-password").val("");
@@ -414,7 +446,7 @@ function changePassword() {
     } else if (newPassword.length >= 4) {
         var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
         const credential = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth.EmailAuthProvider.credential(user.email, currentPassword);
-        user.reauthenticateWithCredential(credential).then(function() {
+        user.reauthenticateWithCredential(credential).then(function () {
             // User re-authenticated.
             user.updatePassword(newPassword).then(() => {
                 // Update successful
@@ -423,7 +455,7 @@ function changePassword() {
             }).catch((error) => {
                 console.error(error);
             });
-        }).catch(function(error) {
+        }).catch(function (error) {
             // An error happened.
             var errorCode = error.code;
             var errorMessage = error.message;
@@ -447,7 +479,7 @@ function changePassword() {
 
 
 // If the user attempts to leave, let them know if they have unsaved changes
-$(window).on("beforeunload", function(event) {
+$(window).on("beforeunload", function (event) {
     if (checkForChangedFields()) {
         event.preventDefault();
         return "You have unsaved changes! Please save changes before leaving!";
@@ -455,9 +487,9 @@ $(window).on("beforeunload", function(event) {
 });
 
 // Catch History Events such as forward and back and then go to those pages
-window.addEventListener("popstate", function() {
+window.addEventListener("popstate", function () {
     if (_globals__WEBPACK_IMPORTED_MODULE_3__.currentPage.includes("account") && document.location.pathname.includes("account")) {
-        goToSettingsPanel(document.location.search.substr(document.location.search.indexOf("?") + 1, document.location.search.length), true);
+        goToSettingsPanel(document.location.search.substring(document.location.search.indexOf("?") + 1, document.location.search.length), true);
     } /* Hopefully, this is no longer needed
     else {
         handleHistoryPages();

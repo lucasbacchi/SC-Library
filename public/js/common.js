@@ -14,7 +14,7 @@ BEGIN SEARCH
  * @returns {Promise<void>} An array of results
  */
 export function search(searchQuery, start = 0, end = 20, viewHidden = false) {
-    return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function(resolve) {
+    return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function (resolve) {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             setTimeLastSearched(new Date());
@@ -121,7 +121,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
                 score += countInArray(book.subtitle.replace(/-/g, " ").split(" "), searchQueryArray) * SUBTITLE_WEIGHT;
                 // Title
                 score += countInArray(book.title.replace(/-/g, " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
-                scoresArray.push({book:book, score: score});
+                scoresArray.push({ book: book, score: score });
             }
         });
         scoresArray.sort((a, b) => {
@@ -132,7 +132,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
         var returnArray = [];
         console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
         scoresArray.forEach((item) => {
-            if (item.score < 1) {return;}
+            if (item.score < 1) { return; }
             if (isNaN(item.score)) {
                 console.error("A score for one of the books is NaN. Look into that.");
                 return;
@@ -186,11 +186,11 @@ function searchCompare(a, b) {
  * source: https://gist.github.com/IceCreamYou/8396172
  */
 function distance(source, target) {
-    if (!source) {return target ? target.length : 0;}
-    else if (!target) {return source.length;}
+    if (!source) { return target ? target.length : 0; }
+    else if (!target) { return source.length; }
 
     var m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
-    for (let i = 0; i < m + 2; i++) {score[i] = new Array(n + 2);}
+    for (let i = 0; i < m + 2; i++) { score[i] = new Array(n + 2); }
     score[0][0] = INF;
     for (let i = 0; i <= m; i++) {
         score[i + 1][1] = i;
@@ -335,18 +335,19 @@ export function buildBookBox(obj, page, num = 0) {
     author.classList.add("author");
     var authorString = "";
     for (let i = 0; i < obj.authors.length; i++) {
-        if (i == 1) {authorString += " & ";}
+        if (i == 1) { authorString += " & "; }
         authorString += obj.authors[i].last + ", " + obj.authors[i].first;
     }
-    if (authorString == ", ") {authorString = "";}
+    if (authorString == ", ") { authorString = ""; }
     author.appendChild(document.createTextNode(authorString));
     b.appendChild(title);
     div2.appendChild(b);
     div2.appendChild(author);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        let string = "javascript:goToPage('admin/editEntry?new=false&id=" + obj.barcodeNumber + "');";
-        div.setAttribute("onclick", string);
+        div.addEventListener("click", () => {
+            goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
+        });
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
@@ -538,7 +539,7 @@ export function calculateISBNCheckDigit(number) {
 
 export function switchISBNformats(number) {
     number = number.toString();
-    if (number.substr(0, 3) == "978") {
+    if (number.substring(0, 3) == "978") {
         number = number.substring(3, number.length - 1);
     } else {
         number = "978" + number;

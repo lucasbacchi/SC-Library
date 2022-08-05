@@ -1,17 +1,25 @@
-
 <a id="link" download></a>
 <h3 style="margin-left: 8px; text-align: left;">Generate a Single Barcode</h3>
-<p style="text-align: left; margin-left: 8px; margin-bottom: 8px;">It must start with <strong>1 1711</strong> and be a total of 10 characters long.</p>
+<p style="text-align: left; margin-left: 8px; margin-bottom: 8px;">It must start with <strong>1 1711</strong> and be a
+    total of 10 characters long.</p>
 <span style="float: left; margin-left: 8px;">1 1711</span>
 <input id="barcode-single-input" style="float: left; width: 70px; margin-left: 8px;">
-<button onclick="javascript:mergeBarcodes();" style="float: left; margin-left: 4px;">Generate One</button>
+<button id="merge-one-barcode" style="float: left; margin-left: 4px;">Generate One</button>
 <br>
 <h3 style="margin-left: 8px; text-align: left; margin-top: 24px;">Generate Multiple Barcodes</h3>
-<p style="text-align: left; margin-left: 8px; margin-bottom: 8px;">They must both start with <strong>1 1711</strong> and be a total of 10 characters long.</p>
+<p style="text-align: left; margin-left: 8px; margin-bottom: 8px;">They must both start with <strong>1 1711</strong> and
+    be a total of 10 characters long.</p>
 <span style="float: left; margin-left: 8px;">Start: 1 1711</span>
 <input id="barcode-multiple-input-start" style="float: left; width: 70px; margin-left: 8px;">
 <span style="float: left; margin-left: 8px;">End: 1 1711</span>
 <input id="barcode-multiple-input-end" style="float: left; width: 70px; margin-left: 8px;">
-<button onclick="javascript:mergeBarcodes(true);" style="float: left; margin-left: 4px;">Generate Multiple</button>
-<p style="float: left; margin-left: 8px; clear: left; text-align: left; margin-top: 10px; font-size: 14px;"><b>Note:</b> Your browser may ask if you want to download multiple files. You must click "Allow" for the process to work.<br>This will start the process of downloading multiple image files. Depending on your settings, you may have to keep clicking "Save" in popup windows.<br>If you are downloading more than 10 barcodes, you may want to go switch the setting called "Ask where to save each file before downloading" off. Remember to turn it back on when you are finished.<br>You probably shouldn't do anything else with your computer while this process completes.<br>Finally, It would be a good idea to check the barcodes visually. There is no way to garentee that no problem has occurred.</p>
-<canvas id="canvas" width="1125" height="375" style="float: left; clear: both; margin-top: 16px; margin-left: 70px"></canvas>
+<button id="merge-multiple-barcodes" style="float: left; margin-left: 4px;">Generate Multiple</button>
+<p style="float: left; margin-left: 8px; clear: left; text-align: left; margin-top: 10px; font-size: 14px;"><b>Note:</b>
+    Your browser may ask if you want to download multiple files. You must click "Allow" for the process to work.<br>This
+    will start the process of downloading multiple image files. Depending on your settings, you may have to keep
+    clicking "Save" in popup windows.<br>If you are downloading more than 10 barcodes, you may want to go switch the
+    setting called "Ask where to save each file before downloading" off. Remember to turn it back on when you are
+    finished.<br>You probably shouldn't do anything else with your computer while this process completes.<br>Finally, It
+    would be a good idea to check the barcodes visually. There is no way to garentee that no problem has occurred.</p>
+<canvas id="canvas" width="1125" height="375"
+    style="float: left; clear: both; margin-top: 16px; margin-left: 70px"></canvas>
