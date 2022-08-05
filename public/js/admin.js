@@ -1,11 +1,16 @@
-function setupAdminMain() {
-    $("#edit-entry-input").keydown(function(event) {
+import firebase from "firebase/compat/app";
+import { goToPage } from "./ajax";
+import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
+import { bookDatabase, db } from "./globals";
+
+export function setupAdminMain() {
+    $("#edit-entry-input").keydown(function (event) {
         if (event.keyCode === 13) {
             adminSearch();
         }
     });
 
-    $("#add-entry-isbn").keydown(function(event) {
+    $("#add-entry-isbn").keydown(function (event) {
         if (event.keyCode === 13) {
             addEntry();
         }
@@ -15,178 +20,59 @@ function setupAdminMain() {
     addStats();
 }
 
+export function setupEditUser() {
+    console.error("TODO: Write this function");
+}
+
 var bookObject;
 var authorObject;
 var worksObject;
-{
-
-    let booksPath = db.collection("books");
-    let usersPath = db.collection("users");
 
 
-    function addEntry() {
-        var isbn = $("#add-entry-isbn").val();
-        var check = verifyISBN(isbn);
-        if (!check) {
-            alert("The number you entered is not a valid ISBN Number.");
-            return;
-        }
-        createEntry().then((newBarcode) => {
-            // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
-            goToPage('admin/editEntry?new=true&isbn=' + isbn + "&id=" + newBarcode);
-        });
+function addEntry() {
+    var isbn = $("#add-entry-isbn").val();
+    var check = verifyISBN(isbn);
+    if (!check) {
+        alert("The number you entered is not a valid ISBN Number.");
+        return;
     }
+    createEntry().then((newBarcode) => {
+        // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
+        goToPage("admin/editEntry?new=true&isbn=" + isbn + "&id=" + newBarcode);
+    });
+}
 
-    function addEntryWithoutISBN() {
-        createEntry().then((newBarcode) => {
-            goToPage('admin/editEntry?new=true&id=' + newBarcode);
-        });
-    }
+function addEntryWithoutISBN() {
+    createEntry().then((newBarcode) => {
+        goToPage("admin/editEntry?new=true&id=" + newBarcode);
+    });
+}
 
-    function addEntryWithSpecificBarcodeNumber() {
-        var isbn = $("#add-entry-isbn").val();
-        var check = verifyISBN(isbn);
-        if (!check && isbn != "") {
-            alert("The number you entered is not a valid ISBN Number.");
-            return;
-        }
-        var specificBarcode = $("#add-entry-with-specific-barcode-number").val();
-        getBookFromBarcode(specificBarcode).then((book) => {
-            if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
-                const a = document.createElement("a");
-                if (isbn == "") {
-                    a.href = "/admin/editEntry?new=true&id=" + specificBarcode;
-                } else {
-                    a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
-                }
-                a.innerHTML = "Click here to overwrite the barcode above."
-                $("#add-entry")[0].appendChild(a);
-            } else {
-                alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
-                return;
-            }
-        }).catch((barcodeNumber) => {
-            alert("Could not find a valid book at: " + barcodeNumber);
-        });
+function addEntryWithSpecificBarcodeNumber() {
+    var isbn = $("#add-entry-isbn").val();
+    var check = verifyISBN(isbn);
+    if (!check && isbn != "") {
+        alert("The number you entered is not a valid ISBN Number.");
+        return;
     }
-    
-    function gatherExternalInformation(isbn) {
-        return new Promise(function (resolve, reject) {
+    var specificBarcode = $("#add-entry-with-specific-barcode-number").val();
+    getBookFromBarcode(specificBarcode).then((book) => {
+        if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
+            const a = document.createElement("a");
             if (isbn == "") {
-                // In this case, the entry was created without an isbn
-                resolve(true);
+                a.href = "/admin/editEntry?new=true&id=" + specificBarcode;
+            } else {
+                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
             }
-            lookupBook(isbn)
-            .then((bookObjectReturn) => {
-                bookObject = bookObjectReturn;
-                lookupAuthor(bookObject)
-                .then((authorObjectReturn) => {
-                    authorObject = authorObjectReturn;
-                    lookupWorks(bookObject)
-                    .then((worksObjectReturn) => {
-                        worksObject = worksObjectReturn;
-                        resolve();
-                    }).catch((error) => {
-                        alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
-                        console.error(error);
-                        resolve(true);
-                        return;
-                    });
-                }).catch((error) => {
-                    alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
-                    console.error(error);
-                    resolve(true);
-                    return;
-                });
-            }).catch((error) => {
-                alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
-                console.error(error);
-                resolve(true);
-                return;
-            });
-        });
-    }
-}
-
-function lookupBook(isbn) {
-    return new Promise(function(resolve, reject) {
-        let xhttp = new XMLHttpRequest();
-
-        xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
-        xhttp.send();
-        xhttp.onreadystatechange = function() {
-            if (this.status == 404 || this.status == 403 || this.status == 400) {
-                reject();
-            }
-            if (this.readyState == 4 && this.status == 200) {
-                resolve(JSON.parse(xhttp.responseText));
-            }
-        }
-    });
-}
-
-function lookupAuthor(bookObject) {
-    console.log(bookObject);
-    return new Promise(function (resolve, reject) {
-        var total = 0;
-        if (bookObject.authors) {
-            for (let i = 0; i < bookObject.authors.length; i++) {
-                let xhttp = new XMLHttpRequest();
-                var authorLink = bookObject.authors[i].key;
-
-                xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
-                xhttp.send();
-                total++;
-                xhttp.onreadystatechange = function() {
-                    if (this.status == 404 || this.status == 403 || this.status == 400) {
-                        reject();
-                    }
-                    if (this.readyState == 4 && this.status == 200) {
-                        var authorObject = [];
-                        authorObject[i] = JSON.parse(xhttp.responseText);
-                        if (i == total - 1) {
-                            resolve(authorObject);
-                        }
-                    }
-                }
-            }
+            a.innerHTML = "Click here to overwrite the barcode above.";
+            $("#add-entry")[0].appendChild(a);
         } else {
-            resolve(true);
+            alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
+            return;
         }
+    }).catch((barcodeNumber) => {
+        alert("Could not find a valid book at: " + barcodeNumber);
     });
-}
-
-function lookupWorks(bookObject) {
-    return new Promise(function (resolve, reject) {
-        var total = 0;
-        for (let i = 0; i < bookObject.works.length; i++) {
-            let xhttp = new XMLHttpRequest();
-            var worksLink = bookObject.works[i].key;
-
-            xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
-            xhttp.send();
-            total++;
-            xhttp.onreadystatechange = function() {
-                if (this.status == 404 || this.status == 403 || this.status == 400) {
-                    reject();
-                }
-                if (this.readyState == 4 && this.status == 200) {
-                    var worksObject = [];
-                    worksObject[i] = JSON.parse(xhttp.responseText);
-                    if (i == total - 1) {
-                        resolve(worksObject);
-                    }
-                }
-            }
-        }
-    });
-}
-
-
-
-function addSubject() {
-    var numberofSubjects = $(".subject-field").length;
-    $("#book-subject-" + numberofSubjects).after("<input id=\"book-subject-" + (numberofSubjects + 1) + "\" placeholder=\"\" class=\"normal-form-input subject-field\">")
 }
 
 
@@ -206,6 +92,14 @@ function adminSearch() {
         });
     } else {
         alert("Please enter a search query");
+    }
+}
+
+
+
+function adminBookBoxes(objects) {
+    for (let i = 0; i < objects.length; i++) {
+        $("div#edit-entry-search-results")[0].appendChild(buildBookBox(objects[i], "edit-entry"));
     }
 }
 
@@ -244,7 +138,7 @@ function createEntry() {
                             if (doc.exists) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
                                 alert("A database error has occurred.");
-                                throw "Something went wrong."
+                                throw "Something went wrong.";
                             }
                         }).catch((err) => {
                             console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
@@ -261,13 +155,13 @@ function createEntry() {
                         } else if (newNumber < 100) {
                             newNumber = "0" + newNumber;
                         }
-                        var barcode = "11711" + newNumber + "00";
+                        let barcode = "11711" + newNumber + "00";
                         transaction.set(db.collection("books").doc(newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
                                 title: "",
                                 subtitle: "",
-                                authors: [{first: "", last: ""}],
+                                authors: [{ first: "", last: "" }],
                                 illustrators: [],
                                 medium: "",
                                 coverImageLink: "",
@@ -299,8 +193,8 @@ function createEntry() {
                         } else if (order < 100) {
                             order = "0" + order;
                         }
-                        
-                        var barcode;
+
+                        let barcode;
                         if (numBooksInDoc < 10) {
                             barcode = "11711" + order + "0" + numBooksInDoc;
                         } else {
@@ -311,7 +205,7 @@ function createEntry() {
                                 barcodeNumber: barcode,
                                 title: "",
                                 subtitle: "",
-                                authors: [{first: "", last: ""}],
+                                authors: [{ first: "", last: "" }],
                                 illustrators: [],
                                 medium: "",
                                 coverImageLink: "",
@@ -355,9 +249,9 @@ var input1;
 var input2;
 var canvas;
 var ctx;
-function setupBarcodePage() {
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
+export function setupBarcodePage() {
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d");
 }
 
 function mergeBarcodes(multiple = false) {
@@ -393,13 +287,13 @@ function mergeBarcodes(multiple = false) {
         numberOfBarcodes = parseInt(input2) - parseInt(input1) + 1;
         currentBarcode = parseInt(input1);
     }
-    for (var i = 0; i < numberOfBarcodes; i++) {
+    for (let i = 0; i < numberOfBarcodes; i++) {
         if (i != 0) {
             currentBarcode++;
         }
         var imageObjArray = [];
         var imageObjLoadedArray = [];
-        var delay = i * 1500 + (Math.floor(i/5) * 2000);
+        var delay = i * 1500 + (Math.floor(i / 5) * 2000);
         setTimeout((currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
             if (i == numberOfBarcodes - 1) {
                 setTimeout(() => {
@@ -411,44 +305,44 @@ function mergeBarcodes(multiple = false) {
             ctx.font = "bold 60px Poppins";
             ctx.textAlign = "center";
             var textWidth = ctx.measureText("South Church Library");
-            ctx.fillText("South Church Library", (canvas.width/2), 60);
-            var barcodeStyled = currentBarcodeString.substring(0,1) + "  " + currentBarcodeString.substring (1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
+            ctx.fillText("South Church Library", (canvas.width / 2), 60);
+            var barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
             ctx.font = "bold 78px Poppins";
             textWidth = ctx.measureText(barcodeStyled);
-            ctx.fillText(barcodeStyled, (canvas.width/2), 350);
+            ctx.fillText(barcodeStyled, (canvas.width / 2), 350);
             ctx.font = "45px Poppins";
             textWidth = ctx.measureText("Andover, MA");
-            ctx.translate(70, (canvas.height/2)-5);
+            ctx.translate(70, (canvas.height / 2) - 5);
             ctx.rotate(270 * (Math.PI / 180));
             ctx.fillText("Andover, MA", 0, 0);
             ctx.rotate(-270 * (Math.PI / 180));
-            ctx.translate(-70, -(canvas.height/2)+5);
+            ctx.translate(-70, -(canvas.height / 2) + 5);
             ctx.font = "45px Poppins";
-            ctx.translate(1055, (canvas.height/2)-5);
+            ctx.translate(1055, (canvas.height / 2) - 5);
             ctx.rotate(90 * (Math.PI / 180));
             ctx.fillText("Andover, MA", 0, 0);
             ctx.rotate(-90 * (Math.PI / 180));
-            ctx.translate(-1055, -(canvas.height/2)+5);
+            ctx.translate(-1055, -(canvas.height / 2) + 5);
 
-            for (var i = 0; i < 12; i++) {
+            for (let i = 0; i < 12; i++) {
                 imageObjLoadedArray[i] = false;
             }
-            for (var i = 0; i < 12; i++) {
+            for (let i = 0; i < 12; i++) {
                 imageObjArray.push(new Image());
                 loadBarcodeImage(i, imageObjArray, imageObjLoadedArray, currentBarcodeString);
             }
-            imageObjArray[0].src = '/img/barcode-parts/A.png';
-            imageObjArray[11].src = '/img/barcode-parts/B.png';
-            for (var i = 1; i < 11; i++) {
-                var temp = currentBarcodeString.substring(i-1, i);
-                imageObjArray[i].src = '/img/barcode-parts/' + temp + '.png';
+            imageObjArray[0].src = "/img/barcode-parts/A.png";
+            imageObjArray[11].src = "/img/barcode-parts/B.png";
+            for (let i = 1; i < 11; i++) {
+                var temp = currentBarcodeString.substring(i - 1, i);
+                imageObjArray[i].src = "/img/barcode-parts/" + temp + ".png";
             }
         }, delay, currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes);
     }
 }
 
 function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
-    imageObjArray[num].onload = function() {
+    imageObjArray[num].onload = function () {
         // console.log("Image #" + num + " has loaded");
         ctx.globalAlpha = 1;
         var position = 110 * 0.6 * num + 160;
@@ -458,7 +352,7 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
         ctx.drawImage(imageObjArray[num], position, 95, imageObjArray[num].width * 0.6, imageObjArray[num].height * 0.6);
         imageObjLoadedArray[num] = true;
         var allLoaded = true;
-        for (var i = 0; i < 12; i++) {
+        for (let i = 0; i < 12; i++) {
             if (imageObjLoadedArray[i]) {
                 continue;
             } else {
@@ -471,120 +365,12 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
                 var a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
-                a.click();
+                a.trigger("click");
                 window.URL.revokeObjectURL(url);
             });
         }
-    }
-    
-}
+    };
 
-
-function calculateISBNCheckDigit(number) {
-    number = number.toString();
-    var length = number.length;
-    if (length == 13 || length == 10) {
-        console.warn("The ISBN number already has a check digit");
-        return;
-    }
-
-    if (length == 12) {
-        var digits = [];
-        for (i = 0; i < length; i++) {
-            digits[i] = parseInt(number.substring(i, i + 1));
-        }
-
-        var total = 0;
-        for (i = 0; i < digits.length; i++) {
-            if (i % 2 == 0) {
-                total += digits[i];
-            } else {
-                total += digits[i] * 3;
-            }
-        }
-        return (10 - (total % 10)).toString();
-    } else if (length == 9) {
-        var digits = [];
-        var total = 0;
-        for (i = 0; i < length; i++) {
-            digits[i] = parseInt(number.substring(i, i + 1));
-        }
-
-        
-        for (i = 0; i < digits.length; i++) {
-            total += digits[i] * (10 - i);
-        }
-        
-        var answer = (11 - (total % 11)) % 11;
-        if (answer == 10) {
-            answer = "X";
-        }
-        return answer.toString();
-    }
-}
-
-function switchISBNformats(number) {
-    number = number.toString();
-    if (number.substr(0, 3) == "978") {
-        number = number.substring(3, number.length - 1);
-    } else {
-        number = "978" + number;
-        number = number.substring(0, number.length - 1)
-    }
-    number = number + calculateISBNCheckDigit(number);
-    // number = parseInt(number);
-    return number;
-}
-
-function verifyISBN(number) {
-    if (number.toString().length == 10) {
-        number = number.toString();
-        
-        var digits = [];
-        for (i = 0; i < number.length; i++) {
-            if (number.substring(i, i + 1) == "X") {
-                digits[i] = 10;
-            } else {
-                digits[i] = parseInt(number.substring(i, i + 1));
-            }
-        }
-
-        var total = 0;
-        for (i = 0; i < digits.length; i++) {
-            total += digits[i] * (10 - i);
-        }
-        
-        if (total % 11 == 0) {
-            return true;
-        } else {
-            return false;
-        }
-    } else if (number.toString().length == 13) {
-        number = number.toString();
-        
-        var digits = [];
-        for (i = 0; i < number.length; i++) {
-            digits[i] = parseInt(number.substring(i, i + 1));
-        }
-
-        var total = 0;
-        for (i = 0; i < digits.length - 1; i++) {
-            if (i % 2 == 0) {
-                total += digits[i];
-            } else {
-                total += digits[i] * 3;
-            }
-        }
-        
-        if ((10 - (total % 10)) % 10 == digits[digits.length - 1]) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        console.warn("That is not a valid ISBN number");
-        return false;
-    }
 }
 
 function recentlyCheckedOut() {
@@ -593,15 +379,15 @@ function recentlyCheckedOut() {
         var bookTimes = [];
         querySnapshot.forEach((doc) => {
             var co = doc.data().checkouts;
-            for (var i = 0; i < co.length; i++) {
-                bookTimes.push({book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut});
+            for (let i = 0; i < co.length; i++) {
+                bookTimes.push({ book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut });
                 if (bookTimes.length == 6) {
                     bookTimes.sort((a, b) => a.time - b.time);
                     bookTimes.pop();
                 }
             }
         });
-        for (var i = 0; i < bookTimes.length; i++) {
+        for (let i = 0; i < bookTimes.length; i++) {
             var currentBook = bookTimes[i];
             currentBook.book.get().then((doc) => {
                 if (!doc.exists) {
@@ -609,7 +395,7 @@ function recentlyCheckedOut() {
                     console.error("doc does not exist");
                     return;
                 }
-                for (var j = 0; j < doc.data().books.length; j++) {
+                for (let j = 0; j < doc.data().books.length; j++) {
                     if (doc.data().books[j].barcodeNumber == currentBook.barcode) {
                         $("#checked-out-books-container")[0].appendChild(buildBookBox(doc.data().books[j], "admin"));
                     }
@@ -624,7 +410,7 @@ function addStats() {
     search("", 0, 0).then(() => {
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
-            for (var i = 0; i < document.books.length; i++) {
+            for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
                 var book = document.books[i];
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
@@ -641,13 +427,13 @@ function viewMissingBarcodes() {
     var missingArray = [];
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
-        for (var i = 0; i < document.books.length; i++) {
+        for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
             var book = document.books[i];
             if (book.barcodeNumber == 1171100000 || (book.lastUpdated && !book.isDeleted)) {
                 continue;
             }
-            missingArray.push(book)
+            missingArray.push(book);
         }
     });
     var message = "The following Barcodes have been created, but they have never been updated:\n";
@@ -668,17 +454,17 @@ function downloadDatabase() {
         a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
         window.setTimeout(() => {
-            $("#download-database-link")[0].click();
+            $("#download-database-link")[0].trigger("click");
         }, 500);
     });
 }
 
 function uploadDatabase() {
-    $("#import-input").click();
+    $("#import-input").trigger("click");
 }
 
 function importFile(event) {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function (resolve) {
         resolve(event.target.files[0]);
     });
 }
@@ -688,37 +474,118 @@ function setUploadDatabase() {
         var dataToUpload = JSON.parse(JSON.stringify(file));
         console.log(dataToUpload);
         alert("The database wasn't uploaded, because this function didn't get finished.");
-    })
+    });
 }
 
 
 
 
-function setupView(pageQuery) {
+export function setupView(pageQuery) {
     var type = findURLValue(pageQuery, "type");
     if (type == "books") {
         search("", 0, 0, true).then(() => {
             bookDatabase.forEach((doc) => {
                 doc.books.forEach((book) => {
-                    $('div#view-container')[0].appendChild(buildBookBox(book, "view"));
+                    $("div#view-container")[0].appendChild(buildBookBox(book, "view"));
                 });
             });
         });
     } else if (type == "users") {
         getAllUsers().then(() => {
             userDatabase.forEach((user) => {
-                $('div#view-container')[0].appendChild(buildUserBox(user, "view"));
+                $("div#view-container")[0].appendChild(buildUserBox(user, "view"));
             });
         });
     } else {
         console.warn("There was no valid type to view.");
-        goToPage('admin/main');
+        goToPage("admin/main");
     }
+}
+
+
+function buildUserBox(obj, page, num = 0) {
+    const div = document.createElement("div");
+    switch (page) {
+        case "view":
+            div.classList.add("result-listing");
+            break;
+        default:
+            div.classList.add("user");
+    }
+    const div1 = document.createElement("div");
+    const div2 = document.createElement("div");
+    div.appendChild(div1);
+    div.appendChild(div2);
+    const img = document.createElement("img");
+    img.classList.add("bookimage");
+    img.src = obj.pfpLink;
+    div1.appendChild(img);
+    const b = document.createElement("b");
+    const name = document.createElement("p");
+    name.classList.add("title");
+    name.appendChild(document.createTextNode(obj.firstName + " " + obj.lastName));
+    const email = document.createElement("p");
+    email.classList.add("author");
+    email.appendChild(document.createTextNode(obj.email));
+    b.appendChild(name);
+    div2.appendChild(b);
+    div2.appendChild(email);
+    div2.classList.add("basic-info");
+    if (page == "edit-entry" || page == "view") {
+        let string = "javascript:goToPage('admin/editUser?id=" + obj.cardNumber + "');";
+        div.setAttribute("onclick", string);
+        const barcode = document.createElement("p");
+        barcode.classList.add("barcode");
+        barcode.innerHTML = "Card Number: " + obj.cardNumber;
+        div2.appendChild(barcode);
+    }
+    if ((page == "search" && num > 0) || page == "view") {
+        div.id = "result-number-" + num;
+        const number = document.createElement("div");
+        number.classList.add("result-number");
+        number.appendChild(document.createTextNode(obj.cardNumber % 2171100000 + "."));
+        div.appendChild(number);
+        const phone = document.createElement("p");
+        phone.classList.add("medium");
+        phone.appendChild(document.createTextNode(obj.phone));
+        div2.appendChild(phone);
+        const div3 = document.createElement("div");
+        div3.classList.add("advanced-info");
+        div.appendChild(div3);
+        const address = document.createElement("p");
+        address.classList.add("subjects");
+        address.appendChild(document.createTextNode("Address: " + obj.address));
+        div3.appendChild(address);
+        const dateCreated = document.createElement("p");
+        dateCreated.classList.add("subjects");
+        dateCreated.appendChild(document.createTextNode("Date Created: " + formatDate(obj.dateCreated)));
+        div3.appendChild(dateCreated);
+        const lastSignIn = document.createElement("p");
+        lastSignIn.classList.add("subjects");
+        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignIn)));
+        div3.appendChild(lastSignIn);
+        const lastCheckoutTime = document.createElement("p");
+        lastCheckoutTime.classList.add("subjects");
+        lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + formatDate(obj.lastCheckoutTime)));
+        div3.appendChild(lastCheckoutTime);
+        const checkouts = document.createElement("p");
+        checkouts.classList.add("description");
+        checkouts.appendChild(document.createTextNode(obj.checkouts));
+        div3.appendChild(checkouts);
+    }
+    return div;
+}
+
+function formatDate(date) {
+    if (!date) {
+        return "N/A";
+    }
+    return date.toDate().toLocaleString("en-US");
 }
 
 var userDatabase = [];
 function getAllUsers() {
-    return new Promise(function(resolve, reject) {
+    return /** @type {Promise<void>} */(new Promise(function (resolve) {
         db.collection("users").where("cardNumber", ">=", 0).orderBy("cardNumber", "asc").get().then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((doc) => {
@@ -730,7 +597,7 @@ function getAllUsers() {
             });
             resolve();
         });
-    });
+    }));
 }
 
 
@@ -741,7 +608,7 @@ function restartInventory() {
         inventoryCheck = true;
         window.setTimeout(() => {
             inventoryCheck = false;
-        }, 5000)
+        }, 5000);
         return;
     }
     db.collection("admin").doc("inventory").set({
@@ -751,18 +618,18 @@ function restartInventory() {
     window.location.reload();
 }
 
-function setupInventory() {
+export function setupInventory() {
     loadInventory().then(() => {
         cachedInventory.forEach((barcode) => {
             var current = $("#recent-scans").html();
             $("#recent-scans").html(current + "<br>" + barcode);
-        })
+        });
     });
 }
 
 var cachedInventory = [];
 function loadInventory() {
-    return new Promise(function(resolve, reject) {
+    return /** @type {Promise<void>} */(new Promise(function (resolve) {
         db.collection("admin").doc("inventory").get().then((doc) => {
             if (!doc.exists) {
                 console.error("inventory document does not exist");
@@ -771,7 +638,7 @@ function loadInventory() {
             cachedInventory = doc.data().books;
             resolve();
         });
-    });
+    }));
 }
 
 function cancelInventory() {
@@ -784,10 +651,12 @@ function continueScanning() {
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#inventory-book-barcode").blur(() => {$('#inventory-book-barcode').focus()});
+    $("#inventory-book-barcode").blur(() => {
+        $("#inventory-book-barcode").focus();
+    });
     $("#inventory-book-barcode").focus();
     $("#inventory-book-barcode").off("keydown");
-    $("#inventory-book-barcode").keydown(function(event) {
+    $("#inventory-book-barcode").keydown(function (event) {
         if (event.keyCode === 13) {
             $("#inventory-book-barcode").off("blur");
             if ($("#inventory-book-barcode").val()) {

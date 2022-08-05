@@ -1,0 +1,30 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "extends": ["eslint:recommended", "plugin:import/recommended"],
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "module"
+    },
+    "rules": {
+        "linebreak-style": ["error", "windows"],
+        "space-in-parens": "off",
+        "eqeqeq": "off",
+        "computed-property-spacing": "off",
+        "max-len": ["error", {"code": 200}],
+        "lines-around-comment": "off",
+        "no-multiple-empty-lines": ["error", {"max": 8}],
+        "eol-last": "error",
+        "no-loop-func": "off",
+        "no-unused-vars": "warn",
+        "array-bracket-spacing": "off",
+        "no-undef": "warn",
+        "no-debugger":"warn",
+        "semi": "error"
+    },
+    "globals": {
+        "$": "readonly"
+    }
+}
