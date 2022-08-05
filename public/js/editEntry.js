@@ -1,3 +1,8 @@
+import { goToPage } from "./ajax";
+import { findURLValue, switchISBNformats, verifyISBN } from "./common";
+import firebase from 'firebase/compat/app';
+import { db } from "./globals";
+
 /* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
 db.runTransaction((transaction) => {
     // This code may run multiple times if there are confilcts
@@ -15,14 +20,16 @@ db.runTransaction((transaction) => {
 */
 var editEntryData = null;
 var newEntry = null;
+var barcodeNumber;
+var isbn;
 
-function setupEditEntry(pageQuery) {
+export function setupEditEntry(pageQuery) {
     editEntryData = null;
     file = null;
     newEntry = null;
-    var newEntry = (findURLValue(pageQuery, "new") == "true");
-    var barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
-    var isbn = findURLValue(pageQuery, "isbn", true);
+    newEntry = (findURLValue(pageQuery, "new") == "true");
+    barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
+    isbn = findURLValue(pageQuery, "isbn", true);
     
     if (barcodeNumber == "" && newEntry == false) {
         alert("The barcode that you are trying to edit is not valid.");
@@ -49,12 +56,12 @@ function setupEditEntry(pageQuery) {
                 $("#book-title").val(data.title);
                 $("#book-subtitle").val(data.subtitle);
 
-                for (var i = 0; i < data.authors.length; i++) {
+                for (let i = 0; i < data.authors.length; i++) {
                     $("#book-author-" + (i + 1) + "-last").val(data.authors[i].last);
                     $("#book-author-" + (i + 1) + "-first").val(data.authors[i].first);
                 }
 
-                for (var i = 0; i < data.illustrators.length; i++) {
+                for (let i = 0; i < data.illustrators.length; i++) {
                     $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].last);
                     $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].first);
                 }
@@ -63,7 +70,7 @@ function setupEditEntry(pageQuery) {
 
                 $("#book-cover-image").attr('src', data.coverImageLink);
 
-                for (var i = 0; i < data.subjects.length; i++) {
+                for (let i = 0; i < data.subjects.length; i++) {
                     addSubject();
                     $("#book-subject-" + (i + 1)).val(data.subjects[i]);
                 }
@@ -103,9 +110,9 @@ function setupEditEntry(pageQuery) {
 
                 $("#book-dewey").val(data.ddc);
 
-                var temp = (data.canBeCheckedOut) ? "y":"";
+                let temp = (data.canBeCheckedOut) ? "y":"";
                 $("#book-can-be-checked-out").val(temp);
-                var temp = (data.isHidden) ? "y":"";
+                temp = (data.isHidden) ? "y":"";
                 $("#book-is-hidden").val(temp);
 
                 if (data.purchaseDate != null) {
@@ -139,357 +146,28 @@ function setupEditEntry(pageQuery) {
     } else {
         // If this is a new entry (and they are creating it for the first time) go get info from open library
         if (isbn.length >= 10) {
-            gatherExternalInformation(isbn).then((noISBN = false) => {
+            gatherExternalInformation(isbn).then((noISBN = false, bookObject, authorObject, worksObject) => {
                 // If this is a brand new entry...
-                loadDataOnToEditEntryPage(noISBN);
-            }).catch((error) => {
+                loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject);
+            }).catch(() => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
                 alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
             });
         } else {
-            var noISBN = true;
-            loadDataOnToEditEntryPage(noISBN);
+            loadDataOnToEditEntryPage(true);
         }
-    }
-
-    function loadDataOnToEditEntryPage(noISBN) {
-        $('#barcode').html(barcodeNumber);
-        if (noISBN) {
-            return;
-        }
-        
-        // Title
-        try {
-            $('#book-title').val(bookObject.title);
-        } catch {
-            console.error("The book doesn't have a title????? Something is wrong.");
-            console.log(bookObject);
-        }
-
-        // Subtitle
-        try {
-            $('#book-subtitle').val(bookObject.subtitle);
-        } catch {
-            console.log("No subtitle found");
-            console.log(bookObject);
-        }
-
-        // Author
-        try {
-            for (var i = 0; i < authorObject.length; i++) {
-                var fullName = authorObject[i].name;
-                var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
-                var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
-                $('#book-author-' + (i + 1) + '-last').val(lastName);
-                $('#book-author-' + (i + 1) + '-first').val(firstName);
-            }
-        } catch {
-            console.error("The book doesn't have an author?");
-            console.log(bookObject);
-            console.log(authorObject);
-        }
-
-        // Medium - Only looks at the first work (if there are multiple)
-        try {
-            if (bookObject.physical_format == "paperback") {
-                $("book-medium").val("Paperback");
-            } else if (bookObject.physical_format == "hardcover") {
-                $("book-medium").val("Hardcover");
-            }
-        } catch {
-            console.log("The book object did not have a medium. Falling back to the works object.");
-            try {
-                if (worksObject[0].physical_format == "paperback") {
-                    $("book-medium").val("Paperback");
-                } else if (worksObject[0].physical_format == "hardcover") {
-                    $("book-medium").val("Hardcover");
-                }
-            } catch {
-                console.warn("Neither source had a medium for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Cover
-        // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
-        // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
-        // Also at the save button, the image link should be stored in the database
-        try {
-            $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-            // uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-        } catch {
-            try {
-                $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-                //uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-            } catch {
-                console.warn("A cover could not be found for either the book or the work");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Subject
-        try {
-            for (var i = 0; i < bookObject.subjects.length; i++) {
-                addSubject();
-                $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
-            }
-        } catch {
-            console.log("The books object did not have any subjects. Falling back to the works object")
-            try {
-                for (var i = 0; i < worksObject[0].subjects.length; i++) {
-                    addSubject();
-                    $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
-                }
-            } catch {
-                console.warn("Neither source had subjects for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Description - Only gets the description from the first work (if there are multiple)
-        try {
-            $("book-description").val(worksObject[0].description.value);
-        } catch {
-            console.log("The works object did not have a description. Falling back to the book object.");
-            try {
-                $("book-description").val(bookObject.description.value);
-            } catch {
-                console.warn("Neither source had a description for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Audience???? I have yet to see this in an open library object, so I'm not including it
-
-        // ISBN 10 Number
-        if (isbn.length == 10) {
-            $("#book-isbn-10").val(isbn);
-        } else {
-            $("#book-isbn-10").val(switchISBNformats(isbn));
-        }
-
-        // ISBN 13 Number
-        if (isbn.length == 13) {
-            $("#book-isbn-13").val(isbn);
-        } else {
-            $("#book-isbn-13").val(switchISBNformats(isbn));
-        }
-
-        // Publisher
-        try {
-            for (var i = 0; i < bookObject.publishers.length; i++) {
-                if (i > 1) {
-                    console.warn("A publisher was cut off because there was only two input boxes.");
-                    return;
-                }
-                $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
-            }
-        } catch {
-            console.log("The books object did not have any publishers. Falling back to the works object")
-            try {
-                for (var i = 0; i < worksObject[0].publishers.length; i++) {
-                    if (i > 1) {
-                        console.warn("A publisher was cut off because there was only two input boxes.");
-                        return;
-                    }
-                    $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
-                }
-            } catch {
-                console.warn("Neither source had publishers for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Publish Date:
-        try {
-            var publish_date = bookObject.publish_date;
-            if (publish_date.length == 4) {
-                // We can assume that this is only a year.
-                $("#book-publish-year").val(publish_date);
-            } else {
-                var month = publish_date.substring(0, publish_date.indexOf(" "));
-                var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
-                switch (month) {
-                    case "Jan":
-                    case "January":
-                        month = 1;
-                        break;
-                    case "Feb":
-                    case "February":
-                        month = 2;
-                        break;
-                    case "Mar":
-                    case "March":
-                        month = 3;
-                        break;
-                    case "Apr":
-                    case "April":
-                        month = 4;
-                        break;
-                    case "May":
-                        month = 5;
-                        break;
-                    case "Jun":
-                    case "June":
-                        month = 6;
-                        break;
-                    case "Jul":
-                    case "July":
-                        month = 7;
-                        break;
-                    case "Aug":
-                    case "August":
-                        month = 8;
-                        break;
-                    case "Sep":
-                    case "September":
-                        month = 9;
-                        break;
-                    case "Oct":
-                    case "October":
-                        month = 10;
-                        break;
-                    case "Nov":
-                    case "November":
-                        month = 11;
-                        break;
-                    case "Dec":
-                    case "December":
-                        month = 12;
-                        break;
-                
-                    default:
-                        console.error("The month could not be detected");
-                        month = -1;
-                        break;
-                }
-                $("#book-publish-year").val(year);
-                $("#book-publish-month").val(month);
-                $("#book-publish-day").val(day);
-            }
-        } catch {
-            var publish_date = worksObject[0].publish_date;
-            try {
-                if (publish_date.length == 4) {
-                    // We can assume that this is only a year.
-                    $("#book-publish-year").val(publish_date);
-                } else {
-                    var month = publish_date.substring(0, publish_date.indexOf(" "));
-                    var day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                    var year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
-                    switch (month) {
-                        case "Jan":
-                            month = 1;
-                            break;
-                        case "Feb":
-                            month = 2;
-                            break;
-                        case "Mar":
-                            month = 3;
-                            break;
-                        case "Apr":
-                            month = 4;
-                            break;
-                        case "May":
-                            month = 5;
-                            break;
-                        case "Jun":
-                            month = 6;
-                            break;
-                        case "Jul":
-                            month = 7;
-                            break;
-                        case "Aug":
-                            month = 8;
-                            break;
-                        case "Sep":
-                            month = 9;
-                            break;
-                        case "Oct":
-                            month = 10;
-                            break;
-                        case "Nov":
-                            month = 11;
-                            break;
-                        case "Dec":
-                            month = 12;
-                            break;
-                    
-                        default:
-                            console.error("The month could not be detected");
-                            month = -1;
-                            break;
-                    }
-                    $("#book-publish-year").val(year);
-                    $("#book-publish-month").val(month);
-                    $("#book-publish-day").val(day);
-                }
-            } catch {
-                console.warn("Neither source had publish dates for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Number of Pages
-        try {
-            $("#book-pages").val(bookObject.number_of_pages);
-        } catch {
-            try {
-                $("#book-pages").val(worksObject[0].number_of_pages);
-            } catch {
-                console.warn("Neither source had a number of pages for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-
-        // Dewey Decimal Class
-        // I don't see why there would be two, but in case there are, they will get put in the same input
-        try {
-            var ddcAnswer = "";
-            for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
-                if (i > 0) {
-                    ddcAnswer += ", ";
-                }
-                ddcAnswer += bookObject.dewey_decimal_class[i];
-            }
-            $("#book-dewey").val(ddcAnswer);
-        } catch {
-            try {
-                var ddcAnswer;
-                for (var i = 0; i < bookObject.dewey_decimal_class.length; i++) {
-                    if (i > 0) {
-                        ddcAnswer += " ";
-                    }
-                    ddcAnswer += bookObject.dewey_decimal_class[i];
-                }
-                $("#book-dewey").val(ddcAnswer);
-            } catch {
-                console.warn("Neither source had a DDC for this book.");
-                console.log(bookObject);
-                console.log(worksObject);
-            }
-        }
-        $("#last-updated").hide();
     }
 
     // Create Event Listeners to handle book cover image changes
     // All are required to handle leaving the element and coming back again
-    $("#book-cover-image").mouseover(function() {
+    $("#book-cover-image").on("mouseover", () => {
         showAccountImageOverlay();
     });
-    $("#book-cover-image-overlay").mouseleave(function() {
+    $("#book-cover-image-overlay").on("mouseleave", () => {
         $("#book-cover-image-overlay").css("opacity", "0");
         $("#book-cover-image-overlay").delay(300).hide(0);
     });
-    $("#book-cover-image-overlay").mouseover(function() {
+    $("#book-cover-image-overlay").on("mouseover", () => {
         $("#book-cover-image-overlay").clearQueue().stop();
         showAccountImageOverlay();
     });
@@ -502,9 +180,9 @@ function setupEditEntry(pageQuery) {
     }
 
     // If a user clicks the button to change the book cover image, click the input button
-    $("#book-cover-image-overlay").click(function(event) {
+    $("#book-cover-image-overlay").on("click", () => {
         if ($("#file-input")) {
-            $("#file-input").click();
+            $("#file-input").trigger("click");
         }
     });
 
@@ -517,12 +195,12 @@ function setupEditEntry(pageQuery) {
 
     $("#book-medium")[0].addEventListener("input", (event) => {
         if (event.target.value == "av") {
-            var goAway = $(".no-av");
-            for (var i = 0; i < goAway.length; i++)
+            let goAway = $(".no-av");
+            for (let i = 0; i < goAway.length; i++)
                 goAway[i].style.display = "none";
         } else {
-            var goAway = $(".no-av");
-            for (var i = 0; i < goAway.length; i++)
+            let goAway = $(".no-av");
+            for (let i = 0; i < goAway.length; i++)
                 goAway[i].style.display = "";
         }
     });
@@ -554,8 +232,450 @@ function setupEditEntry(pageQuery) {
     
 }
 
-function saveImage() {
+function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
+    $('#barcode').html(barcodeNumber);
+    if (noISBN) {
+        return;
+    }
+    
+    // Title
+    try {
+        $('#book-title').val(bookObject.title);
+    } catch {
+        console.error("The book doesn't have a title????? Something is wrong.");
+        console.log(bookObject);
+    }
+
+    // Subtitle
+    try {
+        $('#book-subtitle').val(bookObject.subtitle);
+    } catch {
+        console.log("No subtitle found");
+        console.log(bookObject);
+    }
+
+    // Author
+    try {
+        for (let i = 0; i < authorObject.length; i++) {
+            var fullName = authorObject[i].name;
+            var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
+            var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
+            $('#book-author-' + (i + 1) + '-last').val(lastName);
+            $('#book-author-' + (i + 1) + '-first').val(firstName);
+        }
+    } catch {
+        console.error("The book doesn't have an author?");
+        console.log(bookObject);
+        console.log(authorObject);
+    }
+
+    // Medium - Only looks at the first work (if there are multiple)
+    try {
+        if (bookObject.physical_format == "paperback") {
+            $("book-medium").val("Paperback");
+        } else if (bookObject.physical_format == "hardcover") {
+            $("book-medium").val("Hardcover");
+        }
+    } catch {
+        console.log("The book object did not have a medium. Falling back to the works object.");
+        try {
+            if (worksObject[0].physical_format == "paperback") {
+                $("book-medium").val("Paperback");
+            } else if (worksObject[0].physical_format == "hardcover") {
+                $("book-medium").val("Hardcover");
+            }
+        } catch {
+            console.warn("Neither source had a medium for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Cover
+    // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
+    // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
+    // Also at the save button, the image link should be stored in the database
+    try {
+        $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+        // uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+    } catch {
+        try {
+            $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+            //uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+        } catch {
+            console.warn("A cover could not be found for either the book or the work");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Subject
+    try {
+        for (let i = 0; i < bookObject.subjects.length; i++) {
+            addSubject();
+            $('#book-subject-' + (i + 1)).val(bookObject.subjects[i]);
+        }
+    } catch {
+        console.log("The books object did not have any subjects. Falling back to the works object");
+        try {
+            for (let i = 0; i < worksObject[0].subjects.length; i++) {
+                addSubject();
+                $('#book-subject-' + (i + 1)).val(worksObject[0].subjects[i]);
+            }
+        } catch {
+            console.warn("Neither source had subjects for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Description - Only gets the description from the first work (if there are multiple)
+    try {
+        $("book-description").val(worksObject[0].description.value);
+    } catch {
+        console.log("The works object did not have a description. Falling back to the book object.");
+        try {
+            $("book-description").val(bookObject.description.value);
+        } catch {
+            console.warn("Neither source had a description for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Audience???? I have yet to see this in an open library object, so I'm not including it
+
+    // ISBN 10 Number
+    if (isbn.length == 10) {
+        $("#book-isbn-10").val(isbn);
+    } else {
+        $("#book-isbn-10").val(switchISBNformats(isbn));
+    }
+
+    // ISBN 13 Number
+    if (isbn.length == 13) {
+        $("#book-isbn-13").val(isbn);
+    } else {
+        $("#book-isbn-13").val(switchISBNformats(isbn));
+    }
+
+    // Publisher
+    try {
+        for (let i = 0; i < bookObject.publishers.length; i++) {
+            if (i > 1) {
+                console.warn("A publisher was cut off because there was only two input boxes.");
+                return;
+            }
+            $('#book-publisher-' + (i + 1)).val(bookObject.publishers[i]);
+        }
+    } catch {
+        console.log("The books object did not have any publishers. Falling back to the works object");
+        try {
+            for (let i = 0; i < worksObject[0].publishers.length; i++) {
+                if (i > 1) {
+                    console.warn("A publisher was cut off because there was only two input boxes.");
+                    return;
+                }
+                $('#book-publisher-' + (i + 1)).val(worksObject[0].publishers[i]);
+            }
+        } catch {
+            console.warn("Neither source had publishers for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Publish Date:
+    try {
+        let publish_date = bookObject.publish_date;
+        if (publish_date.length == 4) {
+            // We can assume that this is only a year.
+            $("#book-publish-year").val(publish_date);
+        } else {
+            let month = publish_date.substring(0, publish_date.indexOf(" "));
+            let day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+            let year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+            switch (month) {
+                case "Jan":
+                case "January":
+                    month = 1;
+                    break;
+                case "Feb":
+                case "February":
+                    month = 2;
+                    break;
+                case "Mar":
+                case "March":
+                    month = 3;
+                    break;
+                case "Apr":
+                case "April":
+                    month = 4;
+                    break;
+                case "May":
+                    month = 5;
+                    break;
+                case "Jun":
+                case "June":
+                    month = 6;
+                    break;
+                case "Jul":
+                case "July":
+                    month = 7;
+                    break;
+                case "Aug":
+                case "August":
+                    month = 8;
+                    break;
+                case "Sep":
+                case "September":
+                    month = 9;
+                    break;
+                case "Oct":
+                case "October":
+                    month = 10;
+                    break;
+                case "Nov":
+                case "November":
+                    month = 11;
+                    break;
+                case "Dec":
+                case "December":
+                    month = 12;
+                    break;
+            
+                default:
+                    console.error("The month could not be detected");
+                    month = -1;
+                    break;
+            }
+            $("#book-publish-year").val(year);
+            $("#book-publish-month").val(month);
+            $("#book-publish-day").val(day);
+        }
+    } catch {
+        let publish_date = worksObject[0].publish_date;
+        try {
+            if (publish_date.length == 4) {
+                // We can assume that this is only a year.
+                $("#book-publish-year").val(publish_date);
+            } else {
+                let month = publish_date.substring(0, publish_date.indexOf(" "));
+                let day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+                let year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+                switch (month) {
+                    case "Jan":
+                        month = 1;
+                        break;
+                    case "Feb":
+                        month = 2;
+                        break;
+                    case "Mar":
+                        month = 3;
+                        break;
+                    case "Apr":
+                        month = 4;
+                        break;
+                    case "May":
+                        month = 5;
+                        break;
+                    case "Jun":
+                        month = 6;
+                        break;
+                    case "Jul":
+                        month = 7;
+                        break;
+                    case "Aug":
+                        month = 8;
+                        break;
+                    case "Sep":
+                        month = 9;
+                        break;
+                    case "Oct":
+                        month = 10;
+                        break;
+                    case "Nov":
+                        month = 11;
+                        break;
+                    case "Dec":
+                        month = 12;
+                        break;
+                
+                    default:
+                        console.error("The month could not be detected");
+                        month = -1;
+                        break;
+                }
+                $("#book-publish-year").val(year);
+                $("#book-publish-month").val(month);
+                $("#book-publish-day").val(day);
+            }
+        } catch {
+            console.warn("Neither source had publish dates for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Number of Pages
+    try {
+        $("#book-pages").val(bookObject.number_of_pages);
+    } catch {
+        try {
+            $("#book-pages").val(worksObject[0].number_of_pages);
+        } catch {
+            console.warn("Neither source had a number of pages for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+
+    // Dewey Decimal Class
+    // I don't see why there would be two, but in case there are, they will get put in the same input
+    try {
+        let ddcAnswer = "";
+        for (let i = 0; i < bookObject.dewey_decimal_class.length; i++) {
+            if (i > 0) {
+                ddcAnswer += ", ";
+            }
+            ddcAnswer += bookObject.dewey_decimal_class[i];
+        }
+        $("#book-dewey").val(ddcAnswer);
+    } catch {
+        try {
+            let ddcAnswer;
+            for (let i = 0; i < bookObject.dewey_decimal_class.length; i++) {
+                if (i > 0) {
+                    ddcAnswer += " ";
+                }
+                ddcAnswer += bookObject.dewey_decimal_class[i];
+            }
+            $("#book-dewey").val(ddcAnswer);
+        } catch {
+            console.warn("Neither source had a DDC for this book.");
+            console.log(bookObject);
+            console.log(worksObject);
+        }
+    }
+    $("#last-updated").hide();
+}
+
+function gatherExternalInformation(isbn) {
+    return (new Promise(function(resolve) {
+        if (isbn == "") {
+            // In this case, the entry was created without an isbn
+            resolve(true);
+        }
+        lookupBook(isbn)
+        .then((bookObject) => {
+            lookupAuthor(bookObject)
+            .then((authorObject) => {
+                lookupWorks(bookObject, authorObject)
+                .then((bookObject, authorObject, worksObject) => {
+                    resolve(false, bookObject, authorObject, worksObject);
+                }).catch((error) => {
+                    alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
+                    console.error(error);
+                    resolve(true);
+                    return;
+                });
+            }).catch((error) => {
+                alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
+                console.error(error);
+                resolve(true);
+                return;
+            });
+        }).catch((error) => {
+            alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
+            console.error(error);
+            resolve(true);
+            return;
+        });
+    }));
+}
+
+
+function lookupBook(isbn) {
     return new Promise(function (resolve, reject) {
+        let xhttp = new XMLHttpRequest();
+
+        xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
+        xhttp.send();
+        xhttp.onreadystatechange = function () {
+            if (this.status == 404 || this.status == 403 || this.status == 400) {
+                reject();
+            }
+            if (this.readyState == 4 && this.status == 200) {
+                resolve(JSON.parse(xhttp.responseText));
+            }
+        };
+    });
+}
+
+function lookupAuthor(bookObject) {
+    console.log(bookObject);
+    return new Promise(function (resolve, reject) {
+        var total = 0;
+        if (bookObject.authors) {
+            for (let i = 0; i < bookObject.authors.length; i++) {
+                let xhttp = new XMLHttpRequest();
+                var authorLink = bookObject.authors[i].key;
+
+                xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
+                xhttp.send();
+                total++;
+                xhttp.onreadystatechange = function () {
+                    if (this.status == 404 || this.status == 403 || this.status == 400) {
+                        reject();
+                    }
+                    if (this.readyState == 4 && this.status == 200) {
+                        var authorObject = [];
+                        authorObject[i] = JSON.parse(xhttp.responseText);
+                        if (i == total - 1) {
+                            resolve(authorObject);
+                        }
+                    }
+                };
+            }
+        } else {
+            resolve(true);
+        }
+    });
+}
+
+function lookupWorks(bookObject) {
+    return new Promise(function (resolve, reject) {
+        var total = 0;
+        for (let i = 0; i < bookObject.works.length; i++) {
+            let xhttp = new XMLHttpRequest();
+            var worksLink = bookObject.works[i].key;
+
+            xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
+            xhttp.send();
+            total++;
+            xhttp.onreadystatechange = function () {
+                if (this.status == 404 || this.status == 403 || this.status == 400) {
+                    reject();
+                }
+                if (this.readyState == 4 && this.status == 200) {
+                    var worksObject = [];
+                    worksObject[i] = JSON.parse(xhttp.responseText);
+                    if (i == total - 1) {
+                        resolve(worksObject);
+                    }
+                }
+            };
+        }
+    });
+}
+
+function addSubject() {
+    var numberofSubjects = $(".subject-field").length;
+    $("#book-subject-" + numberofSubjects).after("<input id=\"book-subject-" + (numberofSubjects + 1) + "\" placeholder=\"\" class=\"normal-form-input subject-field\">");
+}
+
+function saveImage() {
+    return new Promise(function (resolve) {
         if ($("#book-medium")[0].value == "av") resolve(true);
         if (file) {
             resolve(storeImage(file));
@@ -563,7 +683,7 @@ function saveImage() {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', $("#book-cover-image").attr("src"), true);
             xhr.responseType = 'blob';
-            xhr.onload = function(e) {
+            xhr.onload = function() {
                 if (this.status == 200) {
                     if (this.responseURL.substring(0, 5) != "https") {
                         alert("This image was not able to be saved securely. Please download it and try again.");
@@ -597,7 +717,7 @@ function storeImage(file) {
         alert("That file type is not supported. Please upload a JPG or PNG file.");
         return false;
     }
-    return bookSpecificRef.put(file, meta).then((snapshot) => {
+    return bookSpecificRef.put(file, meta).then(() => {
         console.log('Uploaded the file!');
         return bookSpecificRef.getDownloadURL().then((url) => {
             $('#book-cover-image').attr('src', url);
@@ -617,8 +737,8 @@ var loadFile = function(event) {
         var output = document.getElementById('book-cover-image');
         output.src = URL.createObjectURL(file);
         output.onload = function() {
-            URL.revokeObjectURL(output.src) // free memory
-        }
+            URL.revokeObjectURL(output.src); // free memory
+        };
     }
 };
 /* No Longer needed (I think)
@@ -633,7 +753,7 @@ function uploadCoverImageFromExternal(link) {
 
 var loadingTimer;
 function validateEntry() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         // Gets the values of all the input elements
         var titleValue = $("#book-title").val();
         var author1LastValue = $("#book-author-1-last").val();
@@ -642,7 +762,7 @@ function validateEntry() {
         var coverLink = $("#book-cover-image").attr('src');
         var subjectValues = [];
         var maxSubject = false;
-        for (var i = 1; !maxSubject; i++) {
+        for (let i = 1; !maxSubject; i++) {
             if ($("#book-subject-" + i)[0]) {
                 if ($("#book-subject-" + i).val() != "") {
                     subjectValues.push($("#book-subject-" + i).val());
@@ -676,239 +796,239 @@ function validateEntry() {
         // Validate inputs
         if (titleValue == "") {
             alert("Title is required!");
-            var rect = $("#book-title")[0].getBoundingClientRect();
+            let rect = $("#book-title")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-title")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-title")[0].focus();}, 600);
-            $("#book-title")[0].onkeydown = function(e) {
+            $("#book-title")[0].onkeydown = function() {
                 $("#book-title")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (author1LastValue == "" && author1FirstValue == "" && mediumValue != "av") {
             alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
-            var rect = $("#book-author-1-last")[0].getBoundingClientRect();
+            let rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-author-1-last")[0].style.borderColor = "red";
             $("#book-author-1-first")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-author-1-last")[0].focus();}, 600);
-            $("#book-author-1-last")[0].onkeydown = function(e) {
+            $("#book-author-1-last")[0].onkeydown = function() {
                 $("#book-author-1-last")[0].style.borderColor = "";
                 $("#book-author-1-first")[0].style.borderColor = "";
-            }
-            $("#book-author-1-first")[0].onkeydown = function(e) {
+            };
+            $("#book-author-1-first")[0].onkeydown = function() {
                 $("#book-author-1-last")[0].style.borderColor = "";
                 $("#book-author-1-first")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (mediumValue == "") {
             alert("Medium is required!");
-            var rect = $("#book-medium")[0].getBoundingClientRect();
+            let rect = $("#book-medium")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-medium")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-medium")[0].focus();}, 600);
-            $("#book-medium")[0].onclick = function(e) {
+            $("#book-medium")[0].onclick = function() {
                 $("#book-medium")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (coverLink == "../img/favicon.ico" && mediumValue != "av") {
             alert("Cover image is required!");
-            var rect = $("#book-cover-image")[0].getBoundingClientRect();
+            let rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
             setTimeout(function() {$("#book-cover-image")[0].focus();}, 600);
-            $("#book-cover-image")[0].onkeydown = function(e) {
+            $("#book-cover-image")[0].onkeydown = function() {
                 $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
-            }
+            };
             resolve(false);
             return;
         }
         if (subjectValues[0] == "" && mediumValue != "av") {
             alert("Please enter at least one subject!");
-            var rect = $("#book-subject-1")[0].getBoundingClientRect();
+            let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-subject-1")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-subject-1")[0].focus();}, 600);
-            $("#book-subject-1")[0].onkeydown = function(e) {
+            $("#book-subject-1")[0].onkeydown = function() {
                 $("#book-subject-1")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (descriptionValue == "" && mediumValue != "av") {
             alert("Description is required!");
-            var rect = $("#book-description")[0].getBoundingClientRect();
+            let rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-description")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-description")[0].focus();}, 600);
-            $("#book-description")[0].onkeydown = function(e) {
+            $("#book-description")[0].onkeydown = function() {
                 $("#book-description")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
             alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
-            var rect = $("#book-audience-children")[0].getBoundingClientRect();
+            let rect = $("#book-audience-children")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-audience-children")[0].style.outline = "2px solid red";
             $("#book-audience-youth")[0].style.outline = "2px solid red";
             $("#book-audience-adult")[0].style.outline = "2px solid red";
             $("#book-audience-none")[0].style.outline = "2px solid red";
             setTimeout(function() {$("#book-audience-children")[0].focus();}, 600);
-            $("#book-audience-children")[0].onkeydown = function(e) {
+            $("#book-audience-children")[0].onkeydown = function() {
                 $("#book-audience-children")[0].style.outline = "";
                 $("#book-audience-youth")[0].style.outline = "";
                 $("#book-audience-adult")[0].style.outline = "";
                 $("#book-audience-none")[0].style.outline = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (mediumValue != "av" && !noISBN && isbn10Value == "" && isbn13Value == "") {
             alert("Please enter at least one ISBN number!");
-            var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+            let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-10")[0].style.borderColor = "red";
             $("#book-isbn-13")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
-            $("#book-isbn-10")[0].onkeydown = function(e) {
+            $("#book-isbn-10")[0].onkeydown = function() {
                 $("#book-isbn-10")[0].style.borderColor = "";
                 $("#book-isbn-13")[0].style.borderColor = "";
-            }
-            $("#book-isbn-13")[0].onkeydown = function(e) {
+            };
+            $("#book-isbn-13")[0].onkeydown = function() {
                 $("#book-isbn-10")[0].style.borderColor = "";
                 $("#book-isbn-13")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (!noISBN && !verifyISBN(isbn10Value) && isbn10Value != "" && mediumValue != "av") {
             alert("The ISBN number you entered was not valid! Please double check it.");
-            var rect = $("#book-isbn-10")[0].getBoundingClientRect();
+            let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-10")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
-            $("#book-isbn-10")[0].onkeydown = function(e) {
+            $("#book-isbn-10")[0].onkeydown = function() {
                 $("#book-isbn-10")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (!noISBN && !verifyISBN(isbn13Value) && isbn13Value != "" && mediumValue != "av") {
             alert("The ISBN number you entered was not valid! Please double check it.");
-            var rect = $("#book-isbn-13")[0].getBoundingClientRect();
+            let rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-13")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-isbn-13")[0].focus();}, 600);
-            $("#book-isbn-13")[0].onkeydown = function(e) {
+            $("#book-isbn-13")[0].onkeydown = function() {
                 $("#book-isbn-13")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (publisher1Value == "" && mediumValue != "av") {
             alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
-            var rect = $("#book-publisher-1")[0].getBoundingClientRect();
+            let rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publisher-1")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-publisher-1")[0].focus();}, 600);
-            $("#book-publisher-1")[0].onkeydown = function(e) {
+            $("#book-publisher-1")[0].onkeydown = function() {
                 $("#book-publisher-1")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue) && mediumValue != "av") {
             alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
-            var rect = $("#book-publish-month")[0].getBoundingClientRect();
+            let rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publish-month")[0].style.borderColor = "red";
             $("#book-publish-day")[0].style.borderColor = "red";
             $("#book-publish-year")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-publish-month")[0].focus();}, 600);
-            $("#book-publish-month")[0].onkeydown = function(e) {
+            $("#book-publish-month")[0].onkeydown = function() {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
-            }
-            $("#book-publish-day")[0].onkeydown = function(e) {
+            };
+            $("#book-publish-day")[0].onkeydown = function() {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
-            }
-            $("#book-publish-year")[0].onkeydown = function(e) {
+            };
+            $("#book-publish-year")[0].onkeydown = function() {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1)) && mediumValue != "av") {
             alert("Please enter a valid number of pages!");
-            var rect = $("#book-pages")[0].getBoundingClientRect();
+            let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-pages")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-pages")[0].focus();}, 600);
-            $("#book-pages")[0].onkeydown = function(e) {
+            $("#book-pages")[0].onkeydown = function() {
                 $("#book-pages")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
             alert("Please enter a valid Dewey Decimal Classification!");
-            var rect = $("#book-dewey")[0].getBoundingClientRect();
+            let rect = $("#book-dewey")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-dewey")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-dewey")[0].focus();}, 600);
-            $("#book-dewey")[0].onkeydown = function(e) {
+            $("#book-dewey")[0].onkeydown = function() {
                 $("#book-dewey")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
             alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
-            var rect = $("#book-purchase-month")[0].getBoundingClientRect();
+            let rect = $("#book-purchase-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-month")[0].style.borderColor = "red";
             $("#book-purchase-day")[0].style.borderColor = "red";
             $("#book-purchase-year")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-purchase-month")[0].focus();}, 600);
-            $("#book-purchase-month")[0].onkeydown = function(e) {
+            $("#book-purchase-month")[0].onkeydown = function() {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
-            }
-            $("#book-purchase-day")[0].onkeydown = function(e) {
+            };
+            $("#book-purchase-day")[0].onkeydown = function() {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
-            }
-            $("#book-purchase-year")[0].onkeydown = function(e) {
+            };
+            $("#book-purchase-year")[0].onkeydown = function() {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
         if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
             alert("Please enter a valid purchase price!");
-            var rect = $("#book-purchase-price")[0].getBoundingClientRect();
+            let rect = $("#book-purchase-price")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-price")[0].style.borderColor = "red";
             setTimeout(function() {$("#book-purchase-price")[0].focus();}, 600);
-            $("#book-purchase-price")[0].onkeydown = function(e) {
+            $("#book-purchase-price")[0].onkeydown = function() {
                 $("#book-purchase-price")[0].style.borderColor = "";
-            }
+            };
             resolve(false);
             return;
         }
@@ -943,7 +1063,7 @@ function validateEntry() {
                 }).catch((error) => {
                     alert("The Thumbnail Image could not be generated.");
                     console.error(error);
-                    resolve([res, undefined]);
+                    resolve([undefined, undefined]);
                 });
             } else {
                 resolve(true);
@@ -968,7 +1088,7 @@ function createAndUploadThumbnail() {
         var ctx = $("#thumbnail-canvas")[0].getContext('2d');
         var image = new Image($("#book-cover-image")[0].naturalWidth, $("#book-cover-image")[0].naturalHeight);
         image.setAttribute("crossorigin", "anonymous");
-        image.onload = function (event) {
+        image.onload = () => {
             ctx.drawImage(image, 0, 0, 300 / ratio, 300);
             $("#thumbnail-canvas")[0].toBlob((blob) => {
                 var file = new File([blob], "thumbnail", {type: blob.type});
@@ -989,7 +1109,7 @@ function createAndUploadThumbnail() {
                     alert("That file type is not supported. Please upload a JPG or PNG file.");
                     reject(false);
                 }
-                bookSpecificRef.put(file, meta).then((snapshot) => {
+                bookSpecificRef.put(file, meta).then(() => {
                     console.log('Uploaded the file!');
                     bookSpecificRef.getDownloadURL().then((url) => {
                         resolve(url);
@@ -999,7 +1119,7 @@ function createAndUploadThumbnail() {
                     });
                 });
             }, "image/jpeg");
-        }
+        };
         image.src = $("#book-cover-image")[0].src;
     });
 }
@@ -1044,7 +1164,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
     var coverLink = $("#book-cover-image").attr('src');
     var subjectValues = [];
     var maxSubject = false;
-    for (var i = 1; !maxSubject; i++) {
+    for (let i = 1; !maxSubject; i++) {
         if ($("#book-subject-" + i)[0]) {
             if ($("#book-subject-" + i).val() != "") {
                 subjectValues.push($("#book-subject-" + i).val());
@@ -1250,6 +1370,27 @@ function deleteEntry() {
     }
 }
 
+
+function cleanUpSearchTerm(searchArray) {
+    // List of words to remove from the keywords list
+    // eslint-disable-next-line max-len
+    var meaninglessWords = ["the", "is", "it", "an", "to", "on", "a", "in", "than", "and", "as", "they'll", "also", "for", "more", "here", "with", "without", "within", "most", "about", "almost", "any", "at", "be", "but", "by", "can", "come", "could", "do", "else", "if", "few", "get", "go", "he", "she", "they", "them", "him", "her", "his", "hers", "theirs", "there", "i", "", "into", "it", "its", "itself", "let", "lots", "me", "much", "must", "my", "oh", "yes", "no", "none", "nor", "not", "now", "of", "ok", "or", "our", "out", "own", "per", "put", "say", "see", "set", "so", "some", "soon", "still", "stay", "such", "sure", "tell", "then", "that", "these", "thing", "this", "those", "too", "try", "us", "use", "we", "what", "where", "when", "why", "how", "who", "whom", "you", "your"];
+    // Itterate through each word
+    for (let i = 0; i < searchArray.length; i++) {
+        // Remove all punctuation and make it lowercase
+        searchArray[i] = searchArray[i].replace(/-/g , " ");
+        searchArray[i] = searchArray[i].replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"");
+        searchArray[i] = searchArray[i].toLowerCase();
+        // Remove it from the list if it's meaningless
+        if (meaninglessWords.includes(searchArray[i])) {
+            searchArray.splice(i, 1);
+            i--;
+        }
+    }
+    return searchArray;
+}
+
+
 function convertToUTC(date) {
     // TODO: Acutally account for time shifts with Daylight Savings
     console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
@@ -1257,7 +1398,7 @@ function convertToUTC(date) {
 }
 
 // Returns true if there are unsaved changes on the Edit Entry page
-function unSavedChangesEditEntry() {
+export function unSavedChangesEditEntry() {
     // TODO: Fix
 
     return false;

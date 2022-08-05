@@ -1,4 +1,7 @@
-function setupReport(pageQuery) {
+import { goToPage } from "./ajax";
+import { findURLValue } from "./common";
+
+export function setupReport(pageQuery) {
     var type = findURLValue(pageQuery, "type");
     switch (type) {
         case "circulation":

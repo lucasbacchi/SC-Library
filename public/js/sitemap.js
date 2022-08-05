@@ -1,7 +1,11 @@
-function sitemapSetup() {
+import firebase from "firebase/compat/app";
+import { isAdminCheck } from "./ajax";
+import { directory } from "./globals";
+
+export function sitemapSetup() {
     var folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
     if (firebase.auth().currentUser) blacklist.push('login', 'signup');
-    for (var i = 0; i < directory.length; i++) {
+    for (let i = 0; i < directory.length; i++) {
         var page = directory[i].substring(1);
         if (blacklist.indexOf(page) != -1) continue;
         var slash = page.indexOf('/');
@@ -23,13 +27,17 @@ function sitemapSetup() {
             $('#sitemap').append("<li><a onclick='javascript:goToPage(&quot;" + folder + char + page + "&quot;);'>" + formatPageString(page) + "</a></li>");
         }
     }
-    isAdminCheck().then((x) => {buildAdminSitemap();}).catch((y) => {});
+    isAdminCheck().then(() => {
+        buildAdminSitemap();
+    }).catch((error) => {
+        console.error(error);
+    });
 }
 
 function buildAdminSitemap() {
     $('#sitemap').append("<li>Admin</li>");
     $('#sitemap').append("<ul id='admin'></ul>");
-    for (var i = 0; i < directory.length; i++) {
+    for (let i = 0; i < directory.length; i++) {
         var page = directory[i].substring(1);
         var slash = page.indexOf('/');
         if (slash != -1) {
@@ -43,10 +51,10 @@ function buildAdminSitemap() {
 
 function formatPageString(page) {
     page = page.charAt(0).toUpperCase() + page.substring(1);
-    for (var i = 1; i < page.length; i++) {
+    for (let i = 1; i < page.length; i++) {
         if (/[A-Z]/.test(page.charAt(i))) {
             page = page.substring(0, i) + " " + page.substring(i);
-            i++
+            i++;
         }
     }
     return page;

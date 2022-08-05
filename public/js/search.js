@@ -1,4 +1,8 @@
 // Make content Responsive
+import { changePageTitle, goToPage } from './ajax';
+import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
+import { bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import firebase from 'firebase/compat/app';
 // Doesn't have to be setup because the window element doesn't change.
 $(window).resize(function () {
     if ($(window).width() > 786) {
@@ -28,9 +32,9 @@ if ($(window).width() <= 786) {
 
 }
 
-function setupSearch(searchResultsArray, pageQuery) {
+export function setupSearch(searchResultsArray, pageQuery) {
     // Create Sort Dropdown Event Listener
-    $('#sort-main-title').click(function() {
+    $('#sort-main-title').on("click", () => {
         if (window.innerWidth < 787) {
             if ($('.sort-section').css('display') == 'none') {
                 $('.sort-section').show(0).delay(10);
@@ -46,11 +50,11 @@ function setupSearch(searchResultsArray, pageQuery) {
         }
     });
 
-    $('#author-show-more').click(function() {
+    $('#author-show-more').on("click", () => {
         alert("Add Functionality");
     });
 
-    $('#subject-show-more').click(function() {
+    $('#subject-show-more').on("click", () => {
         alert("Add Functionality");
     });
 
@@ -76,6 +80,10 @@ function setupSearch(searchResultsArray, pageQuery) {
     } else {
         createSearchResultsPage(searchResultsArray);
     }
+
+    $("#apply-search-filters").on("click", () => {
+        applySearchFilters();
+    });
 }
 
 function searchPageSearch() {
@@ -102,7 +110,7 @@ function browse() {
             return;
         }
         var values = [], count = 0;
-        for (var i = 0; i < 20; i++) {
+        for (let i = 0; i < 20; i++) {
             var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
             if (values.indexOf(random) > -1 || bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
                 i--;
@@ -145,7 +153,7 @@ function browse() {
                         return;
                     }
                     var values = [], count = 0;
-                    for (var i = 0; i < 20; i++) {
+                    for (let i = 0; i < 20; i++) {
                         var random = Math.floor(Math.random() * doc.data().books.length);
                         if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
                             i--;
@@ -180,7 +188,7 @@ function createSearchResultsPage(searchResultsArray) {
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
         $('div#results-container')[0].appendChild(p);
     }
-    for (var i = 0; i < searchResultsArray.length; i++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
         $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
     createFilterList(searchResultsArray);
@@ -196,7 +204,7 @@ function createFilterList(searchResultsArray) {
     $("#sort-subject-list").empty();
     
     // Authors
-    for (var i = 0; i < searchResultsArray.length; i++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
         if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
             searchResultsAuthorsArray.push(searchResultsArray[i].authors[0]);
         }
@@ -204,7 +212,7 @@ function createFilterList(searchResultsArray) {
             searchResultsAuthorsArray.push(searchResultsArray[i].authors[1]);
         }
     }
-    for (var i = 0; i < searchResultsAuthorsArray.length; i++) {
+    for (let i = 0; i < searchResultsAuthorsArray.length; i++) {
         let authorArray = searchResultsAuthorsArray[i];
         const li = document.createElement("li");
         li.classList.add("sort-item");
@@ -214,11 +222,11 @@ function createFilterList(searchResultsArray) {
         } else if (i == 6) {
             const span = document.createElement("span");
             span.id = "author-show-more";
-            span.innerHTML = "Show More..."
+            span.innerHTML = "Show More...";
             $("#sort-author-list")[0].appendChild(span);
             $("#author-show-more").on("click", () => {
                 $("#author-show-more").css("display", "none");
-                for (var j = 6; j < searchResultsAuthorsArray.length; j++) {
+                for (let j = 6; j < searchResultsAuthorsArray.length; j++) {
                     let authorArray = searchResultsAuthorsArray[j];
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
@@ -230,14 +238,14 @@ function createFilterList(searchResultsArray) {
     }
 
     // Subjects
-    for (var i = 0; i < searchResultsArray.length; i++) {
-        for (var j = 0; j < searchResultsArray[i].subjects.length; j++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
+        for (let j = 0; j < searchResultsArray[i].subjects.length; j++) {
             if (!searchResultsSubjectsArray.includes(searchResultsArray[i].subjects[j]) && searchResultsArray[i].subjects[j]) {
                 searchResultsSubjectsArray.push(searchResultsArray[i].subjects[j]);
             }
         }
     }
-    for (var i = 0; i < searchResultsSubjectsArray.length; i++) {
+    for (let i = 0; i < searchResultsSubjectsArray.length; i++) {
         let subject = searchResultsSubjectsArray[i];
         const li = document.createElement("li");
         li.classList.add("sort-item");
@@ -247,11 +255,11 @@ function createFilterList(searchResultsArray) {
         } else if (i == 6) {
             const span = document.createElement("span");
             span.id = "subject-show-more";
-            span.innerHTML = "Show More..."
+            span.innerHTML = "Show More...";
             $("#sort-subject-list")[0].appendChild(span);
             $("#subject-show-more").on("click", () => {
                 $("#subject-show-more").css("display", "none");
-                for (var j = 6; j < searchResultsSubjectsArray.length; j++) {
+                for (let j = 6; j < searchResultsSubjectsArray.length; j++) {
                     let subject = searchResultsSubjectsArray[j];
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
@@ -263,7 +271,7 @@ function createFilterList(searchResultsArray) {
     }
 }
 
-function setupResults(pageQuery) {
+export function setupResults(pageQuery) {
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
         alert("Error: A valid barcode was not provided.");
@@ -299,11 +307,11 @@ function setupResults(pageQuery) {
         }
         var callNumberAnswer = "";
         if (bookObject.audience[0] == true) {
-            callNumberAnswer += "J"
+            callNumberAnswer += "J";
         } else if (bookObject.audience[1] == true) {
             callNumberAnswer += "Y";
         } else if (bookObject.canBeCheckedOut == false) {
-            callNumberAnswer += "REF<br>"
+            callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
         callNumberAnswer += "<br>" + bookObject.authors[0].last.toUpperCase().substring(0, 3);
@@ -320,7 +328,7 @@ function setupResults(pageQuery) {
         }
         $("#result-page-medium").html(mediumAnswer);
         var audienceAnswer = "";
-        for (i = 0; i < 4; i++) {
+        for (let i = 0; i < 4; i++) {
             var temp = bookObject.audience[i];
             if (temp) {
                 if (i == 0) {
@@ -446,7 +454,7 @@ function setupResults(pageQuery) {
             $("#result-page-subjects-header").html("Subject");
         }
         var subjectsAnswer = "";
-        for (var i = 0; i < bookObject.subjects.length; i++) {
+        for (let i = 0; i < bookObject.subjects.length; i++) {
             subjectsAnswer += bookObject.subjects[i];
             if (i != bookObject.subjects.length - 1) {
                 subjectsAnswer += "<br>";
@@ -483,7 +491,7 @@ function scanCheckout() {
     var user = firebase.auth().currentUser;
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").blur(() => {$('#checkout-book-barcode').focus()});
+    $("#checkout-book-barcode").blur(() => {$('#checkout-book-barcode').focus();});
     $("#checkout-book-barcode").focus();
     var barcodeNumber = $("#result-page-barcode-number").html();
     $("#checkout-book-barcode").off("keydown");
@@ -492,7 +500,7 @@ function scanCheckout() {
             $("#checkout-book-barcode").off("blur");
             if ($("#checkout-book-barcode").val() == barcodeNumber) {
                 $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-security-barcode").blur(() => {$('#checkout-security-barcode').focus()});
+                $("#checkout-security-barcode").blur(() => {$('#checkout-security-barcode').focus();});
                 $("#checkout-security-barcode").focus();
                 $("#checkout-security-barcode").off("keydown");
                 $("#checkout-security-barcode").keydown(function(event) {
@@ -515,7 +523,9 @@ function scanCheckout() {
                             bookNumber = bookNumber % 100;
 
                             var d = new Date(2020);
-                            db.collection("users").where("lastCheckoutTime", ">", d).where("checkouts", "array-contains", barcodeNumber).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
+                            db.collection("users").where("lastCheckoutTime", ">", d)
+                            .where("checkouts", "array-contains", barcodeNumber)
+                            .orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
                                 querySnapshot.forEach((doc) => {
                                     doc.data().checkouts.forEach((checkoutObject) => {
                                         if (checkoutObject.returnTime != null) {
@@ -565,10 +575,10 @@ function scanCheckout() {
 
 function applySearchFilters() {
     var filters = [], items = [], results = [];
-    for (var i = 0; i < $(".sort-section").length; i++) {
+    for (let i = 0; i < $(".sort-section").length; i++) {
         filters.push($(".sort-section")[i].children[0].innerHTML);
         items.push([]);
-        for (var j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
+        for (let j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
             if ($(".sort-section")[i].children[1].children[j].tagName == "LI") {
                 items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
             }
@@ -578,10 +588,10 @@ function applySearchFilters() {
             items.pop();
         }
     }
-    for (var i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
-        for (var j = 0; j < filters.length; j++) {
+    for (let i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
+        for (let j = 0; j < filters.length; j++) {
             var passesFilter = false;
-            for (var k = 0; k < items[j].length; k++) {
+            for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Audience") {
                     if (items[j][k] && searchCache[i].audience[k]) {
                         passesFilter = true;
