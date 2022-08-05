@@ -38035,8 +38035,7 @@ __webpack_require__.r(__webpack_exports__);
   \********************************************/
 /***/ (function(module, exports) {
 
-var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// @ts-nocheck
-/*!
+var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * jQuery JavaScript Library v3.6.0
  * https://jquery.com/
  *
