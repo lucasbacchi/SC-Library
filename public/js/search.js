@@ -1,8 +1,9 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
-import { bookDatabase, db, searchCache, timeLastSearched } from './globals';
-import firebase from 'firebase/compat/app';
+import { auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import { arrayUnion, collection, doc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+
 // Doesn't have to be setup because the window element doesn't change.
 $(window).on("resize", () => {
     if ($(window).width() > 786) {
@@ -12,24 +13,20 @@ $(window).on("resize", () => {
         $('#close-button').hide();
         // $('#sort-sidebar').css('overflow-y', 'visible'); Was causing problems, if needed, reimplement
         $('#sort-sidebar').css('max-height', '');
-
     }
     if ($(window).width() <= 786 && $('#close-button').css('display') == 'none') {
         $('#sort-container').width('0');
         $('.sort-section').hide();
         $('.sort-section').css('opacity', '0');
-
     }
 });
 
 // Set Initial window layout.
 if ($(window).width() > 786) {
     $('.sort-section').show();
-
 }
 if ($(window).width() <= 786) {
     $('.sort-section').hide();
-
 }
 
 export function setupSearch(searchResultsArray, pageQuery) {
@@ -138,32 +135,32 @@ function browse() {
         createSearchResultsPage(browseResultsArray);
     } else {
         // No search has been performed on the page yet, so get it from the database.
-        db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists()) {
+        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
                     console.error("books document does not exist");
                     return;
                 }
-                var docs = doc.data().order;
-                if (doc.data().books.length < 25 && docs != 0) {
+                var docs = docSnap.data().order;
+                if (docSnap.data().books.length < 25 && docs != 0) {
                     docs--;
                 }
                 var rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
-                db.collection("books").doc(rand).get().then((doc) => {
-                    if (!doc.exists()) {
+                collection("books/" + rand).get().then((docSnap) => {
+                    if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
                     var values = [], count = 0;
                     for (let i = 0; i < 20; i++) {
-                        var random = Math.floor(Math.random() * doc.data().books.length);
-                        if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                        var random = Math.floor(Math.random() * docSnap.data().books.length);
+                        if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
                             i--;
                         } else {
                             values.push(random);
-                            browseResultsArray.push(doc.data().books[random]);
+                            browseResultsArray.push(docSnap.data().books[random]);
                         }
                         count++;
                         if (count > 10000) {
@@ -419,7 +416,6 @@ export function setupResultPage(pageQuery) {
             $("#result-page-pages").html("Unnumbered");
         }
 
-
         $("#result-page-title").html(bookObject.title);
         $("#result-page-subtitle").html(bookObject.subtitle);
         if (bookObject.subtitle == null || bookObject.subtitle.length < 1) {
@@ -498,8 +494,7 @@ function checkout(barcodeNumber) {
     }
     $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
     $("#checkout-popup").show();
-    var user = firebase.auth().currentUser;
-    $("#checkout-name").html(user.email);
+    $("#checkout-name").html(auth.currentUser.email);
     $("#checkout-next-button").show();
 }
 
@@ -508,11 +503,10 @@ function cancelCheckout() {
 }
 
 function scanCheckout() {
-    var user = firebase.auth().currentUser;
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").blur(() => { $('#checkout-book-barcode').focus(); });
-    $("#checkout-book-barcode").focus();
+    $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
+    $("#checkout-book-barcode").trigger("focus");
     var barcodeNumber = $("#result-page-barcode-number").html();
     $("#checkout-book-barcode").off("keydown");
     $("#checkout-book-barcode").on("keydown", (event) => {
@@ -520,8 +514,8 @@ function scanCheckout() {
             $("#checkout-book-barcode").off("blur");
             if ($("#checkout-book-barcode").val() == barcodeNumber) {
                 $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-security-barcode").blur(() => { $('#checkout-security-barcode').focus(); });
-                $("#checkout-security-barcode").focus();
+                $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
+                $("#checkout-security-barcode").trigger("focus");
                 $("#checkout-security-barcode").off("keydown");
                 $("#checkout-security-barcode").on("keydown", (event) => {
                     if (event.key === "Enter") {
@@ -529,7 +523,6 @@ function scanCheckout() {
                         // TODO: Change to something else
                         if ($("#checkout-security-barcode").val() != "") {
                             // At this point, they must have scanned both, so we check it out to them.
-                            var bookPath = db.collection("books");
                             var bookNumber = barcodeNumber - 1171100000;
                             var bookDocument = Math.floor(bookNumber / 100);
                             if (bookDocument >= 100) {
@@ -555,21 +548,21 @@ function scanCheckout() {
                                     });
                                 });
                             db.runTransaction((transaction) => {
-                                return transaction.get(bookPath.doc(bookDocument)).then((doc) => {
-                                    if (!doc.exists()) {
+                                return transaction.get(doc("books/" + bookDocument)).then((docSnap) => {
+                                    if (!docSnap.exists()) {
                                         alert("There was a problem with checking out that book.");
                                         return;
                                     }
 
-                                    var bookObject = doc.data().books[bookNumber];
+                                    var bookObject = docSnap.data().books[bookNumber];
                                     if (bookObject.canBeCheckedOut == false) {
                                         alert("We're sorry, but this is a reference book, and it may not be checked out.");
                                         return;
                                     }
                                     var currentTime = Date.now();
                                     // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(db.collection("users").doc(user.uid), {
-                                        checkouts: firebase.firestore.FieldValue.arrayUnion({
+                                    transaction.update(db.collection("users").doc(auth.currentUser.uid), {
+                                        checkouts: arrayUnion({
                                             barcodeNumber: barcodeNumber,
                                             outTime: currentTime,
                                             inTime: null,

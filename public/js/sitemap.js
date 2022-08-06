@@ -1,10 +1,9 @@
-import firebase from "firebase/compat/app";
 import { convertDataTagsToLinks, isAdminCheck } from "./ajax";
-import { directory } from "./globals";
+import { auth, directory } from "./globals";
 
 export function setupSitemap() {
     var folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
-    if (firebase.auth().currentUser) blacklist.push('login', 'signup');
+    if (auth.currentUser) blacklist.push('login', 'signup');
     for (let i = 0; i < directory.length; i++) {
         var page = directory[i].substring(1);
         if (blacklist.indexOf(page) != -1) continue;
