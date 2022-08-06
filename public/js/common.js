@@ -1,3 +1,4 @@
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache } from "./globals";
 
@@ -19,10 +20,10 @@ export function search(searchQuery, start = 0, end = 20, viewHidden = false) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             setTimeLastSearched(new Date());
             console.log("It's been 5 mins since last search (or it's the first one since page load).");
-            db.collection("books").where("order", ">=", 0).orderBy("order", "asc").get().then((querySnapshot) => {
+            getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
                 setBookDatabase([]);
                 querySnapshot.forEach((doc) => {
-                    if (!doc.exists) {
+                    if (!doc.exists()) {
                         console.error("books document does not exist");
                         return;
                     }
@@ -34,6 +35,8 @@ export function search(searchQuery, start = 0, end = 20, viewHidden = false) {
                 performSearch(searchQuery, start, end, viewHidden).then((output) => {
                     resolve(output);
                 });
+            }).catch((error) => {
+                console.error("Search function failed to query the database", error);
             });
         } else {
             // The bookDatabase cache is recent enough, just use that

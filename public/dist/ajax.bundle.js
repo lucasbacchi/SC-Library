@@ -38113,6 +38113,30 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
+/***/ "./node_modules/firebase/app-check/dist/index.esm.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/firebase/app-check/dist/index.esm.js ***!
+  \***********************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "CustomProvider": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.CustomProvider),
+/* harmony export */   "ReCaptchaEnterpriseProvider": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.ReCaptchaEnterpriseProvider),
+/* harmony export */   "ReCaptchaV3Provider": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.ReCaptchaV3Provider),
+/* harmony export */   "getToken": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.getToken),
+/* harmony export */   "initializeAppCheck": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.initializeAppCheck),
+/* harmony export */   "onTokenChanged": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.onTokenChanged),
+/* harmony export */   "setTokenAutoRefreshEnabled": () => (/* reexport safe */ _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__.setTokenAutoRefreshEnabled)
+/* harmony export */ });
+/* harmony import */ var _firebase_app_check__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @firebase/app-check */ "./node_modules/@firebase/app-check/dist/esm/index.esm2017.js");
+
+//# sourceMappingURL=index.esm.js.map
+
+
+/***/ }),
+
 /***/ "./node_modules/firebase/app/dist/index.esm.js":
 /*!*****************************************************!*\
   !*** ./node_modules/firebase/app/dist/index.esm.js ***!
@@ -49766,8 +49790,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var firebase_firestore__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! firebase/firestore */ "./node_modules/firebase/firestore/dist/index.esm.js");
 /* harmony import */ var firebase_storage__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! firebase/storage */ "./node_modules/firebase/storage/dist/index.esm.js");
 /* harmony import */ var firebase_auth__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! firebase/auth */ "./node_modules/firebase/auth/dist/index.esm.js");
-/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
-/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
+/* harmony import */ var firebase_app_check__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! firebase/app-check */ "./node_modules/firebase/app-check/dist/index.esm.js");
+/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+/* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
 /* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
 // Importing version 9 compat libraries
 
@@ -49779,6 +49804,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 // Imports for version 9 (TODO: Add more)
+
 
 
 
@@ -49803,10 +49829,6 @@ var fullExtension = path + query + hash;
 $(() => {
     initApp()
         .then(() => {
-            const appCheck = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].appCheck();
-            // Pass your reCAPTCHA v3 site key (public key) to activate(). Make sure this
-            // key is the counterpart to the secret key you set in the Firebase console.
-            appCheck.activate("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu");
             setupIndex();
             goToPage(fullExtension.substring(1), true);
         }, function (error) {
@@ -49967,7 +49989,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         // If there is any reason for the user to not leave a page, then it will reject.
         // Currently, this handles unsaved changes on the edit entry page.
         // TODO: Add more
-        if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage == "/admin/editEntry") {
+        if (_globals__WEBPACK_IMPORTED_MODULE_14__.currentPage == "/admin/editEntry") {
             __webpack_require__.e(/*! import() */ "public_js_editEntry_js").then(__webpack_require__.bind(__webpack_require__, /*! ./editEntry */ "./public/js/editEntry.js")).then(({ unSavedChangesEditEntry }) => {
                 if (unSavedChangesEditEntry()) {
                     // It's fine to call it regardless because it will only call if the first argument is true.
@@ -50028,9 +50050,9 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
         if (!currentQuery) {
             currentQuery = "";
         }
-        let currentQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_14__.findURLValue)(currentQuery, "query", true);
-        let pageQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_14__.findURLValue)(pageQuery, "query", true);
-        if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage && ((pageName == _globals__WEBPACK_IMPORTED_MODULE_13__.currentPage && pageName != "/search") || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))) {
+        let currentQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_15__.findURLValue)(currentQuery, "query", true);
+        let pageQueryValue = (0,_common__WEBPACK_IMPORTED_MODULE_15__.findURLValue)(pageQuery, "query", true);
+        if (_globals__WEBPACK_IMPORTED_MODULE_14__.currentPage && ((pageName == _globals__WEBPACK_IMPORTED_MODULE_14__.currentPage && pageName != "/search") || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))) {
             // TODO: Remove when I know it's not going to break everything
 
             console.log("The user attempted to view the current page, and it was blocked.");
@@ -50081,7 +50103,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
 
 
 
-        isAdminCheck(_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage == "/login" ? true : false).catch((error) => {
+        isAdminCheck(_globals__WEBPACK_IMPORTED_MODULE_14__.currentPage == "/login" ? true : false).catch((error) => {
             console.error(error);
         }).then((result) => {
             if (result && $("#admin-link").html() == "") {
@@ -50101,7 +50123,7 @@ function goToPage(pageName, goingBack = false, searchResultsArray = null) {
 function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
     return new Promise((resolve) => {
         const xhttp = new XMLHttpRequest();
-        if (_globals__WEBPACK_IMPORTED_MODULE_13__.directory.includes(pageName)) {
+        if (_globals__WEBPACK_IMPORTED_MODULE_14__.directory.includes(pageName)) {
             xhttp.open("GET", "/content" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
         } else {
             xhttp.open("GET", "/content/404.html", true);
@@ -50112,7 +50134,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
         xhttp.onreadystatechange = function () {
 
             if (this.readyState == 4 && this.status == 200) {
-                if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage != pageName) {
+                if (_globals__WEBPACK_IMPORTED_MODULE_14__.currentPage != pageName) {
                     $("#content").addClass("fade");
                 }
 
@@ -50194,8 +50216,8 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     // Get the href attribute of the link tag
                     var href = value.attributes.href.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(href.substring(href.lastIndexOf('/') + 1, href.length))) {
-                        _globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
+                    if (!_globals__WEBPACK_IMPORTED_MODULE_14__.loadedSources.includes(href.substring(href.lastIndexOf('/') + 1, href.length))) {
+                        _globals__WEBPACK_IMPORTED_MODULE_14__.loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
                     }
                 });
                 // Iterate though the currently loaded js files
@@ -50203,8 +50225,8 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     // Get the src attribute of the script tag.
                     var src = value.attributes.src.value;
                     // If the source isn't in the list of loaded scoures, add it.
-                    if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(src.substring(src.lastIndexOf('/') + 1, src.length))) {
-                        _globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.push(src.substring(src.lastIndexOf('/') + 1, src.length));
+                    if (!_globals__WEBPACK_IMPORTED_MODULE_14__.loadedSources.includes(src.substring(src.lastIndexOf('/') + 1, src.length))) {
+                        _globals__WEBPACK_IMPORTED_MODULE_14__.loadedSources.push(src.substring(src.lastIndexOf('/') + 1, src.length));
                     }
                 });
 
@@ -50219,7 +50241,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                 try {
                     for (let i = 0; i < sourcesForPage.length; i++) {
                         // If the source hasn't already been loaded.
-                        if (!_globals__WEBPACK_IMPORTED_MODULE_13__.loadedSources.includes(sourcesForPage[i])) {
+                        if (!_globals__WEBPACK_IMPORTED_MODULE_14__.loadedSources.includes(sourcesForPage[i])) {
                             // If the source is a js file:
                             if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
                                 // $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
@@ -50250,7 +50272,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         if (pageHash) {
             document.querySelector(pageHash)?.scrollIntoView();
         } else {
-            if (_globals__WEBPACK_IMPORTED_MODULE_13__.currentPage != pageName) {
+            if (_globals__WEBPACK_IMPORTED_MODULE_14__.currentPage != pageName) {
                 $(document).scrollTop(0); // Could change later if we don't like this behavior
             }
         }
@@ -50297,7 +50319,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
                 console.error("Problem importing", error);
             });
         } else {
-            (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setCurrentPanel)(null);
+            (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setCurrentPanel)(null);
         }
 
         if (pageName == "/admin/main") {
@@ -50373,7 +50395,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }, 200);*/
 
 
-        (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setCurrentPage)(pageName);
+        (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setCurrentPage)(pageName);
         currentQuery = pageQuery;
         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
         resolve();
@@ -50424,34 +50446,41 @@ const firebaseConfig = {
  */
 function initApp() {
     // Initialize Firebase
-    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setApp)((0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(firebaseConfig));
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setApp)((0,firebase_app__WEBPACK_IMPORTED_MODULE_7__.initializeApp)(firebaseConfig));
     // TODO: Remove v8
     firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].initializeApp(firebaseConfig);
 
     // Start firebase services and globalize them.
     // TODO: Start using analytics and performance properly
-    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setAnalytics)((0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.getAnalytics)(_globals__WEBPACK_IMPORTED_MODULE_13__.app));
-    (0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.logEvent)(_globals__WEBPACK_IMPORTED_MODULE_13__.analytics, 'app_open');
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setAnalytics)((0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.getAnalytics)(_globals__WEBPACK_IMPORTED_MODULE_14__.app));
+    (0,firebase_analytics__WEBPACK_IMPORTED_MODULE_9__.logEvent)(_globals__WEBPACK_IMPORTED_MODULE_14__.analytics, 'app_open');
 
-    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setPerformance)((0,firebase_performance__WEBPACK_IMPORTED_MODULE_8__.getPerformance)(_globals__WEBPACK_IMPORTED_MODULE_13__.app)); // eslint-disable-line
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setPerformance)((0,firebase_performance__WEBPACK_IMPORTED_MODULE_8__.getPerformance)(_globals__WEBPACK_IMPORTED_MODULE_14__.app)); // eslint-disable-line
 
-    (0,_globals__WEBPACK_IMPORTED_MODULE_13__.setDb)(firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].firestore());
-/* Uncomment when ready for v9
-    setDb(getFirestore(app));
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setDb)(firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].firestore());
 
-    setStorage(getStorage(app));
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setDb)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.getFirestore)(_globals__WEBPACK_IMPORTED_MODULE_14__.app));
 
-    setAuth(getAuth(app));*/
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setStorage)((0,firebase_storage__WEBPACK_IMPORTED_MODULE_11__.getStorage)(_globals__WEBPACK_IMPORTED_MODULE_14__.app));
+
+    (0,_globals__WEBPACK_IMPORTED_MODULE_14__.setAuth)((0,firebase_auth__WEBPACK_IMPORTED_MODULE_12__.getAuth)(_globals__WEBPACK_IMPORTED_MODULE_14__.app));
+
+    // Start App Check
+    // eslint-disable-next-line
+    const appCheck = (0,firebase_app_check__WEBPACK_IMPORTED_MODULE_13__.initializeAppCheck)(_globals__WEBPACK_IMPORTED_MODULE_14__.app, {
+        provider: new firebase_app_check__WEBPACK_IMPORTED_MODULE_13__.ReCaptchaV3Provider("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu"),
+        isTokenAutoRefreshEnabled: true
+    });
 
     // Listening for auth state changes.
     return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
         try {
-            firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().onAuthStateChanged(function (user) {
+            (0,firebase_auth__WEBPACK_IMPORTED_MODULE_12__.onAuthStateChanged)(_globals__WEBPACK_IMPORTED_MODULE_14__.auth, (user) => {
                 if (user) {
                     // User is signed in.
                     console.log("User is now Signed In.");
                     var date = new Date();
-                    _globals__WEBPACK_IMPORTED_MODULE_13__.db.collection("users").doc(user.uid).update({
+                    (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.updateDoc)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.doc)(_globals__WEBPACK_IMPORTED_MODULE_14__.db, "users/" + user.uid), {
                         lastSignIn: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
@@ -50471,11 +50500,11 @@ function initApp() {
 }
 
 function updateUserAccountInfo() {
-    var user = firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser;
+    var user = _globals__WEBPACK_IMPORTED_MODULE_14__.auth.currentUser;
     if (user) {
         // User is signed in.
-        _globals__WEBPACK_IMPORTED_MODULE_13__.db.collection("users").doc(user.uid).onSnapshot((doc) => {
-            if (!doc.exists) {
+        (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.onSnapshot)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.doc)(_globals__WEBPACK_IMPORTED_MODULE_14__.db, "users/" + user.uid), (doc) => {
+            if (!doc.exists()) {
                 console.error("The user document could not be found. Ignore if the user just signed up.");
                 return;
             }
@@ -50530,12 +50559,16 @@ function updateEmail(email) {
 }
 
 function signOut() {
-    if (firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().currentUser) {
-        firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__["default"].auth().signOut();
-        /* could change 'replace' to 'href' if we wanted to keep the page in the history */
-        window.location.replace("/");
+    if (_globals__WEBPACK_IMPORTED_MODULE_14__.auth.currentUser) {
+        signOut(_globals__WEBPACK_IMPORTED_MODULE_14__.auth).then(() => {
+            // could change 'replace' to 'href' if we wanted to keep the page in the history
+            window.location.replace("/");
+        }).catch((error) => {
+            alert("Unable to sign you out, please refresh the page and try again.");
+            console.error(error);
+        });
     } else {
-        alert("No user is currently signed in.");
+        alert("Unable to sign you out. No user is currently signed in.");
     }
 }
 
@@ -50563,8 +50596,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "switchISBNformats": () => (/* binding */ switchISBNformats),
 /* harmony export */   "verifyISBN": () => (/* binding */ verifyISBN)
 /* harmony export */ });
-/* harmony import */ var _ajax__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ajax */ "./public/js/ajax.js");
-/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+/* harmony import */ var firebase_firestore__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/firestore */ "./node_modules/firebase/firestore/dist/index.esm.js");
+/* harmony import */ var _ajax__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ajax */ "./public/js/ajax.js");
+/* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
+
 
 
 
@@ -50582,18 +50617,18 @@ BEGIN SEARCH
  */
 function search(searchQuery, start = 0, end = 20, viewHidden = false) {
     return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function (resolve) {
-        if (_globals__WEBPACK_IMPORTED_MODULE_1__.timeLastSearched == null || _globals__WEBPACK_IMPORTED_MODULE_1__.timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
+        if (_globals__WEBPACK_IMPORTED_MODULE_2__.timeLastSearched == null || _globals__WEBPACK_IMPORTED_MODULE_2__.timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
-            (0,_globals__WEBPACK_IMPORTED_MODULE_1__.setTimeLastSearched)(new Date());
+            (0,_globals__WEBPACK_IMPORTED_MODULE_2__.setTimeLastSearched)(new Date());
             console.log("It's been 5 mins since last search (or it's the first one since page load).");
-            _globals__WEBPACK_IMPORTED_MODULE_1__.db.collection("books").where("order", ">=", 0).orderBy("order", "asc").get().then((querySnapshot) => {
-                (0,_globals__WEBPACK_IMPORTED_MODULE_1__.setBookDatabase)([]);
+            (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.getDocs)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.query)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.collection)(_globals__WEBPACK_IMPORTED_MODULE_2__.db, "books"), (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.where)("order", ">=", 0), (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_0__.orderBy)("order", "asc"))).then((querySnapshot) => {
+                (0,_globals__WEBPACK_IMPORTED_MODULE_2__.setBookDatabase)([]);
                 querySnapshot.forEach((doc) => {
-                    if (!doc.exists) {
+                    if (!doc.exists()) {
                         console.error("books document does not exist");
                         return;
                     }
-                    _globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase.push(doc.data());
+                    _globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase.push(doc.data());
                 });
                 if (end == 0) {
                     resolve();
@@ -50601,6 +50636,8 @@ function search(searchQuery, start = 0, end = 20, viewHidden = false) {
                 performSearch(searchQuery, start, end, viewHidden).then((output) => {
                     resolve(output);
                 });
+            }).catch((error) => {
+                console.error("Search function failed to query the database", error);
             });
         } else {
             // The bookDatabase cache is recent enough, just use that
@@ -50630,9 +50667,9 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
 
     var scoresArray = [];
 
-    return (0,_ajax__WEBPACK_IMPORTED_MODULE_0__.isAdminCheck)().then((isAdmin) => {
+    return (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.isAdminCheck)().then((isAdmin) => {
         // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
-        _globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase.forEach((document) => {
+        _globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
@@ -50709,7 +50746,7 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
                 returnArray.push(item.book);
             }
         });
-        (0,_globals__WEBPACK_IMPORTED_MODULE_1__.setSearchCache)(returnArray);
+        (0,_globals__WEBPACK_IMPORTED_MODULE_2__.setSearchCache)(returnArray);
         return returnArray;
     });
 }
@@ -50913,7 +50950,7 @@ function buildBookBox(obj, page, num = 0) {
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
         div.addEventListener("click", () => {
-            (0,_ajax__WEBPACK_IMPORTED_MODULE_0__.goToPage)("admin/editEntry?new=false&id=" + obj.barcodeNumber);
+            (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)("admin/editEntry?new=false&id=" + obj.barcodeNumber);
         });
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
@@ -50921,7 +50958,7 @@ function buildBookBox(obj, page, num = 0) {
         div2.appendChild(barcode);
     } else {
         div.addEventListener("click", () => {
-            (0,_ajax__WEBPACK_IMPORTED_MODULE_0__.goToPage)("result?id=" + obj.barcodeNumber);
+            (0,_ajax__WEBPACK_IMPORTED_MODULE_1__.goToPage)("result?id=" + obj.barcodeNumber);
         });
     }
     if (page == "account") {
@@ -51029,12 +51066,12 @@ function getBookFromBarcode(barcodeNumber) {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
         }
-        if (!_globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase) {
+        if (!_globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase) {
             search("", 0, 0).then(() => {
                 var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
                 var bookNumber = barcodeNumber % 100;
-                if (_globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase[documentNumber].books[bookNumber]) {
-                    resolve(_globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase[documentNumber].books[bookNumber]);
+                if (_globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase[documentNumber].books[bookNumber]) {
+                    resolve(_globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase[documentNumber].books[bookNumber]);
                 } else {
                     reject(barcodeNumber);
                 }
@@ -51042,8 +51079,8 @@ function getBookFromBarcode(barcodeNumber) {
         } else {
             var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
             var bookNumber = barcodeNumber % 100;
-            if (_globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase[documentNumber].books[bookNumber]) {
-                resolve(_globals__WEBPACK_IMPORTED_MODULE_1__.bookDatabase[documentNumber].books[bookNumber]);
+            if (_globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase[documentNumber].books[bookNumber]) {
+                resolve(_globals__WEBPACK_IMPORTED_MODULE_2__.bookDatabase[documentNumber].books[bookNumber]);
             } else {
                 reject(barcodeNumber);
             }
@@ -51211,25 +51248,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "storage": () => (/* binding */ storage),
 /* harmony export */   "timeLastSearched": () => (/* binding */ timeLastSearched)
 /* harmony export */ });
-/* harmony import */ var firebase_compat_app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! firebase/compat/app */ "./node_modules/firebase/compat/app/dist/index.esm.js");
-/* harmony import */ var firebase_compat_analytics__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! firebase/compat/analytics */ "./node_modules/firebase/compat/analytics/dist/index.esm.js");
-/* harmony import */ var firebase_compat_app_check__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! firebase/compat/app-check */ "./node_modules/firebase/compat/app-check/dist/index.esm.js");
-/* harmony import */ var firebase_compat_auth__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! firebase/compat/auth */ "./node_modules/firebase/compat/auth/dist/index.esm.js");
-/* harmony import */ var firebase_compat_firestore__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! firebase/compat/firestore */ "./node_modules/firebase/compat/firestore/dist/index.esm.js");
-/* harmony import */ var firebase_compat_storage__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! firebase/compat/storage */ "./node_modules/firebase/compat/storage/dist/index.esm.js");
-/* harmony import */ var firebase_compat_performance__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! firebase/compat/performance */ "./node_modules/firebase/compat/performance/dist/index.esm.js");
-// Importing version 9 compat libraries
-// This might mean that we can remove these from the rest of the files.... stay tuned
-// @ts-ignore
- // eslint-disable-line
-
-
-
-
-
-
-
-
 let app = null;
 
 function setApp(newApp) {

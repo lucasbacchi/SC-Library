@@ -11,9 +11,10 @@ import "firebase/compat/performance";
 import { initializeApp } from "firebase/app";
 import { getPerformance } from "firebase/performance";
 import { getAnalytics, logEvent } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
+import { doc, getFirestore, onSnapshot, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 
 import { currentPage, db, directory, loadedSources, app, setApp, setCurrentPage, setCurrentPanel, setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth } from "./globals";
@@ -32,10 +33,6 @@ var fullExtension = path + query + hash;
 $(() => {
     initApp()
         .then(() => {
-            const appCheck = firebase.appCheck();
-            // Pass your reCAPTCHA v3 site key (public key) to activate(). Make sure this
-            // key is the counterpart to the secret key you set in the Firebase console.
-            appCheck.activate("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu");
             setupIndex();
             goToPage(fullExtension.substring(1), true);
         }, function (error) {
@@ -665,22 +662,29 @@ function initApp() {
     setPerformance(getPerformance(app)); // eslint-disable-line
 
     setDb(firebase.firestore());
-/* Uncomment when ready for v9
+
     setDb(getFirestore(app));
 
     setStorage(getStorage(app));
 
-    setAuth(getAuth(app));*/
+    setAuth(getAuth(app));
+
+    // Start App Check
+    // eslint-disable-next-line
+    const appCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu"),
+        isTokenAutoRefreshEnabled: true
+    });
 
     // Listening for auth state changes.
     return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
         try {
-            firebase.auth().onAuthStateChanged(function (user) {
+            onAuthStateChanged(auth, (user) => {
                 if (user) {
                     // User is signed in.
                     console.log("User is now Signed In.");
                     var date = new Date();
-                    db.collection("users").doc(user.uid).update({
+                    updateDoc(doc(db, "users/" + user.uid), {
                         lastSignIn: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
@@ -700,11 +704,11 @@ function initApp() {
 }
 
 export function updateUserAccountInfo() {
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
     if (user) {
         // User is signed in.
-        db.collection("users").doc(user.uid).onSnapshot((doc) => {
-            if (!doc.exists) {
+        onSnapshot(doc(db, "users/" + user.uid), (doc) => {
+            if (!doc.exists()) {
                 console.error("The user document could not be found. Ignore if the user just signed up.");
                 return;
             }
@@ -759,12 +763,16 @@ export function updateEmail(email) {
 }
 
 function signOut() {
-    if (firebase.auth().currentUser) {
-        firebase.auth().signOut();
-        /* could change 'replace' to 'href' if we wanted to keep the page in the history */
-        window.location.replace("/");
+    if (auth.currentUser) {
+        signOut(auth).then(() => {
+            // could change 'replace' to 'href' if we wanted to keep the page in the history
+            window.location.replace("/");
+        }).catch((error) => {
+            alert("Unable to sign you out, please refresh the page and try again.");
+            console.error(error);
+        });
     } else {
-        alert("No user is currently signed in.");
+        alert("Unable to sign you out. No user is currently signed in.");
     }
 }
 
