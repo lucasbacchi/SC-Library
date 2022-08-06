@@ -1,6 +1,11 @@
 // Make content Responsive
+import { changePageTitle, goToPage } from './ajax';
+import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
+import { auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
+
 // Doesn't have to be setup because the window element doesn't change.
-$(window).resize(function () {
+$(window).on("resize", () => {
     if ($(window).width() > 786) {
         $('#sort-container').width('fit-content');
         $('.sort-section').show();
@@ -8,29 +13,25 @@ $(window).resize(function () {
         $('#close-button').hide();
         // $('#sort-sidebar').css('overflow-y', 'visible'); Was causing problems, if needed, reimplement
         $('#sort-sidebar').css('max-height', '');
-
     }
     if ($(window).width() <= 786 && $('#close-button').css('display') == 'none') {
         $('#sort-container').width('0');
         $('.sort-section').hide();
         $('.sort-section').css('opacity', '0');
-
     }
 });
 
 // Set Initial window layout.
 if ($(window).width() > 786) {
     $('.sort-section').show();
-
 }
 if ($(window).width() <= 786) {
     $('.sort-section').hide();
-
 }
 
-function setupSearch(searchResultsArray, pageQuery) {
+export function setupSearch(searchResultsArray, pageQuery) {
     // Create Sort Dropdown Event Listener
-    $('#sort-main-title').click(function() {
+    $('#sort-main-title').on("click", () => {
         if (window.innerWidth < 787) {
             if ($('.sort-section').css('display') == 'none') {
                 $('.sort-section').show(0).delay(10);
@@ -46,18 +47,22 @@ function setupSearch(searchResultsArray, pageQuery) {
         }
     });
 
-    $('#author-show-more').click(function() {
+    $('#author-show-more').on("click", () => {
         alert("Add Functionality");
     });
 
-    $('#subject-show-more').click(function() {
+    $('#subject-show-more').on("click", () => {
         alert("Add Functionality");
     });
 
-    $("#search-page-input").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#search-page-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
             searchPageSearch();
         }
+    });
+
+    $("#search-page-search-button").on("click", () => {
+        searchPageSearch();
     });
 
     var queryFromURL = findURLValue(pageQuery, "query", true);
@@ -76,6 +81,10 @@ function setupSearch(searchResultsArray, pageQuery) {
     } else {
         createSearchResultsPage(searchResultsArray);
     }
+
+    $("#apply-search-filters").on("click", () => {
+        applySearchFilters();
+    });
 }
 
 function searchPageSearch() {
@@ -102,7 +111,7 @@ function browse() {
             return;
         }
         var values = [], count = 0;
-        for (var i = 0; i < 20; i++) {
+        for (let i = 0; i < 20; i++) {
             var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
             if (values.indexOf(random) > -1 || bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
                 i--;
@@ -126,32 +135,32 @@ function browse() {
         createSearchResultsPage(browseResultsArray);
     } else {
         // No search has been performed on the page yet, so get it from the database.
-        db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
+        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
                     console.error("books document does not exist");
                     return;
                 }
-                var docs = doc.data().order;
-                if (doc.data().books.length < 25 && docs != 0) {
+                var docs = docSnap.data().order;
+                if (docSnap.data().books.length < 25 && docs != 0) {
                     docs--;
                 }
                 var rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
-                db.collection("books").doc(rand).get().then((doc) => {
-                    if (!doc.exists) {
+                getDoc(doc(db, "books", rand)).then((docSnap) => {
+                    if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
                     var values = [], count = 0;
-                    for (var i = 0; i < 20; i++) {
-                        var random = Math.floor(Math.random() * doc.data().books.length);
-                        if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                    for (let i = 0; i < 20; i++) {
+                        var random = Math.floor(Math.random() * docSnap.data().books.length);
+                        if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
                             i--;
                         } else {
                             values.push(random);
-                            browseResultsArray.push(doc.data().books[random]);
+                            browseResultsArray.push(docSnap.data().books[random]);
                         }
                         count++;
                         if (count > 10000) {
@@ -160,7 +169,7 @@ function browse() {
                                 const p = document.createElement('p');
                                 p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
                                 $('div#results-container')[0].appendChild(p);
-    
+
                             }
                             createSearchResultsPage(browseResultsArray);
                             return;
@@ -180,7 +189,7 @@ function createSearchResultsPage(searchResultsArray) {
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
         $('div#results-container')[0].appendChild(p);
     }
-    for (var i = 0; i < searchResultsArray.length; i++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
         $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
     createFilterList(searchResultsArray);
@@ -194,9 +203,9 @@ function createFilterList(searchResultsArray) {
     searchResultsSubjectsArray = [];
     $("#sort-author-list").empty();
     $("#sort-subject-list").empty();
-    
+
     // Authors
-    for (var i = 0; i < searchResultsArray.length; i++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
         if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
             searchResultsAuthorsArray.push(searchResultsArray[i].authors[0]);
         }
@@ -204,7 +213,7 @@ function createFilterList(searchResultsArray) {
             searchResultsAuthorsArray.push(searchResultsArray[i].authors[1]);
         }
     }
-    for (var i = 0; i < searchResultsAuthorsArray.length; i++) {
+    for (let i = 0; i < searchResultsAuthorsArray.length; i++) {
         let authorArray = searchResultsAuthorsArray[i];
         const li = document.createElement("li");
         li.classList.add("sort-item");
@@ -214,11 +223,11 @@ function createFilterList(searchResultsArray) {
         } else if (i == 6) {
             const span = document.createElement("span");
             span.id = "author-show-more";
-            span.innerHTML = "Show More..."
+            span.innerHTML = "Show More...";
             $("#sort-author-list")[0].appendChild(span);
             $("#author-show-more").on("click", () => {
                 $("#author-show-more").css("display", "none");
-                for (var j = 6; j < searchResultsAuthorsArray.length; j++) {
+                for (let j = 6; j < searchResultsAuthorsArray.length; j++) {
                     let authorArray = searchResultsAuthorsArray[j];
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
@@ -230,14 +239,14 @@ function createFilterList(searchResultsArray) {
     }
 
     // Subjects
-    for (var i = 0; i < searchResultsArray.length; i++) {
-        for (var j = 0; j < searchResultsArray[i].subjects.length; j++) {
+    for (let i = 0; i < searchResultsArray.length; i++) {
+        for (let j = 0; j < searchResultsArray[i].subjects.length; j++) {
             if (!searchResultsSubjectsArray.includes(searchResultsArray[i].subjects[j]) && searchResultsArray[i].subjects[j]) {
                 searchResultsSubjectsArray.push(searchResultsArray[i].subjects[j]);
             }
         }
     }
-    for (var i = 0; i < searchResultsSubjectsArray.length; i++) {
+    for (let i = 0; i < searchResultsSubjectsArray.length; i++) {
         let subject = searchResultsSubjectsArray[i];
         const li = document.createElement("li");
         li.classList.add("sort-item");
@@ -247,11 +256,11 @@ function createFilterList(searchResultsArray) {
         } else if (i == 6) {
             const span = document.createElement("span");
             span.id = "subject-show-more";
-            span.innerHTML = "Show More..."
+            span.innerHTML = "Show More...";
             $("#sort-subject-list")[0].appendChild(span);
             $("#subject-show-more").on("click", () => {
                 $("#subject-show-more").css("display", "none");
-                for (var j = 6; j < searchResultsSubjectsArray.length; j++) {
+                for (let j = 6; j < searchResultsSubjectsArray.length; j++) {
                     let subject = searchResultsSubjectsArray[j];
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
@@ -263,14 +272,14 @@ function createFilterList(searchResultsArray) {
     }
 }
 
-function setupResults(pageQuery) {
+export function setupResultPage(pageQuery) {
     var barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
         alert("Error: A valid barcode was not provided.");
         goToPage("");
         return;
     }
-    
+
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             alert("Error: No information could be found for that book.");
@@ -284,14 +293,16 @@ function setupResults(pageQuery) {
         } else {
             $("#result-page-image").attr("src", bookObject.coverImageLink);
         }
-    
+
         $("#result-page-barcode-number").html(barcodeNumber);
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
             $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
         } else {
             $("#checkout-button").show();
-            $("#checkout-button").attr("onclick", "javascript:checkout(" + barcodeNumber + ");");
+            $("#checkout-button").on("click", () => {
+                checkout(barcodeNumber);
+            });
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
@@ -299,11 +310,11 @@ function setupResults(pageQuery) {
         }
         var callNumberAnswer = "";
         if (bookObject.audience[0] == true) {
-            callNumberAnswer += "J"
+            callNumberAnswer += "J";
         } else if (bookObject.audience[1] == true) {
             callNumberAnswer += "Y";
         } else if (bookObject.canBeCheckedOut == false) {
-            callNumberAnswer += "REF<br>"
+            callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
         callNumberAnswer += "<br>" + bookObject.authors[0].last.toUpperCase().substring(0, 3);
@@ -320,7 +331,7 @@ function setupResults(pageQuery) {
         }
         $("#result-page-medium").html(mediumAnswer);
         var audienceAnswer = "";
-        for (i = 0; i < 4; i++) {
+        for (let i = 0; i < 4; i++) {
             var temp = bookObject.audience[i];
             if (temp) {
                 if (i == 0) {
@@ -386,7 +397,7 @@ function setupResults(pageQuery) {
                     case 11:
                         month = "Dec";
                         break;
-                
+
                     default:
                         console.error("The month could not be detected");
                         month = "";
@@ -404,8 +415,7 @@ function setupResults(pageQuery) {
         } else {
             $("#result-page-pages").html("Unnumbered");
         }
-    
-    
+
         $("#result-page-title").html(bookObject.title);
         $("#result-page-subtitle").html(bookObject.subtitle);
         if (bookObject.subtitle == null || bookObject.subtitle.length < 1) {
@@ -446,7 +456,7 @@ function setupResults(pageQuery) {
             $("#result-page-subjects-header").html("Subject");
         }
         var subjectsAnswer = "";
-        for (var i = 0; i < bookObject.subjects.length; i++) {
+        for (let i = 0; i < bookObject.subjects.length; i++) {
             subjectsAnswer += bookObject.subjects[i];
             if (i != bookObject.subjects.length - 1) {
                 subjectsAnswer += "<br>";
@@ -460,6 +470,20 @@ function setupResults(pageQuery) {
         goToPage("");
         return;
     });
+
+    // Create Event Listeners
+
+    $("#checkout-button").on("click", () => {
+        checkout();
+    });
+
+    $("#checkout-next-button").on("click", () => {
+        scanCheckout();
+    });
+
+    $("#checkout-cancel-button").on("click", () => {
+        cancelCheckout();
+    });
 }
 
 function checkout(barcodeNumber) {
@@ -470,8 +494,7 @@ function checkout(barcodeNumber) {
     }
     $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
     $("#checkout-popup").show();
-    var user = firebase.auth().currentUser;
-    $("#checkout-name").html(user.email);
+    $("#checkout-name").html(auth.currentUser.email);
     $("#checkout-next-button").show();
 }
 
@@ -480,29 +503,26 @@ function cancelCheckout() {
 }
 
 function scanCheckout() {
-    var user = firebase.auth().currentUser;
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").blur(() => {$('#checkout-book-barcode').focus()});
-    $("#checkout-book-barcode").focus();
+    $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
+    $("#checkout-book-barcode").trigger("focus");
     var barcodeNumber = $("#result-page-barcode-number").html();
     $("#checkout-book-barcode").off("keydown");
-    $("#checkout-book-barcode").keydown(function(event) {
-        if (event.keyCode === 13) {
+    $("#checkout-book-barcode").on("keydown", (event) => {
+        if (event.key === "Enter") {
             $("#checkout-book-barcode").off("blur");
             if ($("#checkout-book-barcode").val() == barcodeNumber) {
                 $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-security-barcode").blur(() => {$('#checkout-security-barcode').focus()});
-                $("#checkout-security-barcode").focus();
+                $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
+                $("#checkout-security-barcode").trigger("focus");
                 $("#checkout-security-barcode").off("keydown");
-                $("#checkout-security-barcode").keydown(function(event) {
-                    if (event.keyCode === 13) {
-                        debugger;
+                $("#checkout-security-barcode").on("keydown", (event) => {
+                    if (event.key === "Enter") {
                         $("#checkout-security-barcode").off("blur");
                         // TODO: Change to something else
                         if ($("#checkout-security-barcode").val() != "") {
                             // At this point, they must have scanned both, so we check it out to them.
-                            var bookPath = db.collection("books");
                             var bookNumber = barcodeNumber - 1171100000;
                             var bookDocument = Math.floor(bookNumber / 100);
                             if (bookDocument >= 100) {
@@ -515,32 +535,34 @@ function scanCheckout() {
                             bookNumber = bookNumber % 100;
 
                             var d = new Date(2020);
-                            db.collection("users").where("lastCheckoutTime", ">", d).where("checkouts", "array-contains", barcodeNumber).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
-                                querySnapshot.forEach((doc) => {
-                                    doc.data().checkouts.forEach((checkoutObject) => {
-                                        if (checkoutObject.returnTime != null) {
-                                            alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
-                                            return;
-                                        }
+                            getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d),
+                                where("checkouts", "array-contains", barcodeNumber),
+                                orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
+                                    querySnapshot.forEach((docSnap) => {
+                                        docSnap.data().checkouts.forEach((checkoutObject) => {
+                                            if (checkoutObject.returnTime != null) {
+                                                alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
+                                                return;
+                                            }
+                                        });
                                     });
                                 });
-                            });
-                            db.runTransaction((transaction) => {
-                                return transaction.get(bookPath.doc(bookDocument)).then((doc) => {
-                                    if (!doc.exists) {
+                            runTransaction(db, (transaction) => {
+                                return transaction.get(doc("books/" + bookDocument)).then((docSnap) => {
+                                    if (!docSnap.exists()) {
                                         alert("There was a problem with checking out that book.");
                                         return;
                                     }
 
-                                    var bookObject = doc.data().books[bookNumber];
+                                    var bookObject = docSnap.data().books[bookNumber];
                                     if (bookObject.canBeCheckedOut == false) {
                                         alert("We're sorry, but this is a reference book, and it may not be checked out.");
                                         return;
                                     }
                                     var currentTime = Date.now();
                                     // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(db.collection("users").doc(user.uid), {
-                                        checkouts: firebase.firestore.FieldValue.arrayUnion({
+                                    transaction.update(doc(db, "users", auth.currentUser.uid), {
+                                        checkouts: arrayUnion({
                                             barcodeNumber: barcodeNumber,
                                             outTime: currentTime,
                                             inTime: null,
@@ -565,23 +587,23 @@ function scanCheckout() {
 
 function applySearchFilters() {
     var filters = [], items = [], results = [];
-    for (var i = 0; i < $(".sort-section").length; i++) {
+    for (let i = 0; i < $(".sort-section").length; i++) {
         filters.push($(".sort-section")[i].children[0].innerHTML);
         items.push([]);
-        for (var j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
+        for (let j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
             if ($(".sort-section")[i].children[1].children[j].tagName == "LI") {
                 items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
             }
         }
-        if (items[items.length - 1].every( (val, q, arr) => val === arr[0] )) {
+        if (items[items.length - 1].every((val, q, arr) => val === arr[0])) {
             filters.pop();
             items.pop();
         }
     }
-    for (var i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
-        for (var j = 0; j < filters.length; j++) {
+    for (let i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
+        for (let j = 0; j < filters.length; j++) {
             var passesFilter = false;
-            for (var k = 0; k < items[j].length; k++) {
+            for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Audience") {
                     if (items[j][k] && searchCache[i].audience[k]) {
                         passesFilter = true;
