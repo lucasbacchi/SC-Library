@@ -1,7 +1,7 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
 import { db, storage } from "./globals";
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, getDoc, runTransaction } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 /* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
@@ -49,8 +49,7 @@ export function setupEditEntry(pageQuery) {
             } else {
                 document = "00" + document;
             }
-            var docRef = doc("books/" + document);
-            docRef.get().then((docSnap) => {
+            getDoc(doc("books/" + document)).then((docSnap) => {
                 var data = docSnap.data().books[barcodeNumber % 100];
                 editEntryData = data;
                 $('#barcode').html(barcodeNumber);
