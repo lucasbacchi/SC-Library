@@ -1,14 +1,15 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
-import firebase from 'firebase/compat/app';
-import { db } from "./globals";
+import { db, storage } from "./globals";
+import { doc, runTransaction } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 /* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
-db.runTransaction((transaction) => {
+runTransaction(db, (transaction) => {
     // This code may run multiple times if there are confilcts
-    var bookPath = db.collection("books").doc(barcodeNumber);
-    return transaction.get(bookPath).then((doc) => {
-        if (!doc.exists()) {
+    var bookPath = doc("books/" + barcodeNumber);
+    return transaction.get(bookPath).then((docSnap) => {
+        if (!docSnap.exists()) {
             throw "Document does not exist!";
         }
     });
@@ -48,9 +49,9 @@ export function setupEditEntry(pageQuery) {
             } else {
                 document = "00" + document;
             }
-            var docRef = firebase.firestore().collection("books").doc(document);
-            docRef.get().then((doc) => {
-                var data = doc.data().books[barcodeNumber % 100];
+            var docRef = doc("books/" + document);
+            docRef.get().then((docSnap) => {
+                var data = docSnap.data().books[barcodeNumber % 100];
                 editEntryData = data;
                 $('#barcode').html(barcodeNumber);
                 $("#book-title").val(data.title);
@@ -132,7 +133,7 @@ export function setupEditEntry(pageQuery) {
 
             /* This should all be obsolete now
             var coverImageLink;
-            firebase.storage().ref().child("books").child("" + barcodeNumber).listAll().then((result) => {
+            listAll(ref(storage, "books/" + barcodeNumber)).then((result) => {
                 result.items.forEach((itemRef) => {
                     // If we store more that just one image per book, this will probably break.
                     coverImageLink = itemRef.getDownloadURL();
@@ -732,21 +733,21 @@ function storeImage(file) {
         alert("There was a problem saving that image.");
         return false;
     }
-    var bookSpecificRef = firebase.storage().ref().child("books");
+    var bookSpecificRef = ref(storage, "books");
     var meta;
     if (file.type == "image/jpg" || file.type == "image/jpeg") {
-        bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.jpg");
+        bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.jpg");
         meta = {contentType: 'image/jpeg'};
     } else if (file.type == "image/png") {
-        bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover.png");
+        bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.png");
         meta = {contentType: 'image/png'};
     } else {
         alert("That file type is not supported. Please upload a JPG or PNG file.");
         return false;
     }
-    return bookSpecificRef.put(file, meta).then(() => {
+    return uploadBytes(bookSpecificRef, file, meta).then(() => {
         console.log('Uploaded the file!');
-        return bookSpecificRef.getDownloadURL().then((url) => {
+        return getDownloadURL(bookSpecificRef).then((url) => {
             $('#book-cover-image').attr('src', url);
             return url;
         }).catch(function(error) {
@@ -770,10 +771,9 @@ var loadFile = function(event) {
 };
 /* No Longer needed (I think)
 function uploadCoverImageFromExternal(link) {
-    var ref = firebase.storage().ref();
-    ref = ref.child(barcodeNumber  + "/cover.jpg");
+    var ref = ref(storage, barcodeNumber + "/cover.jpg");
 
-    ref.put(link, {contentType: 'image/jpeg'}).then((snapshot) => {
+    uploadBytes(ref, link, {contentType: 'image/jpeg'}).then((snapshot) => {
         console.log("Image has been uploaded from the external source.");
     });
 }*/
@@ -1124,19 +1124,19 @@ function createAndUploadThumbnail() {
                     alert("There was a problem saving that image.");
                     reject(false);
                 }
-                var bookSpecificRef = firebase.storage().ref().child("books");
+                var bookSpecificRef = ref(storage, "books");
                 var meta;
                 if (file.type == "image/jpg" || file.type == "image/jpeg") {
-                    bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover-300px.jpg");
+                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-300px.jpg");
                     meta = {contentType: 'image/jpeg'};
                 } else if (file.type == "image/png") {
-                    bookSpecificRef = bookSpecificRef.child(barcodeValue + "/cover-300px.png");
+                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-300px.png");
                     meta = {contentType: 'image/png'};
                 } else {
                     alert("That file type is not supported. Please upload a JPG or PNG file.");
                     reject(false);
                 }
-                bookSpecificRef.put(file, meta).then(() => {
+                uploadBytes(bookSpecificRef, file, meta).then(() => {
                     console.log('Uploaded the file!');
                     bookSpecificRef.getDownloadURL().then((url) => {
                         resolve(url);
@@ -1249,7 +1249,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         }
 
         // Defines the paths of the the database collection
-        var booksPath = db.collection("books");
+        var booksPath = ref(storage, "books");
 
         // Create a list of keywords from the description
         var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
@@ -1324,10 +1324,10 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         var lastUpdatedValue = new Date();
 
         // Updates the book with the information
-        db.runTransaction((transaction) => {
-            let path = booksPath.doc(bookDocument);
-            return transaction.get(path).then((doc) => {
-                if (!doc.exists()) {
+        runTransaction(db, (transaction) => {
+            let path = doc(booksPath, bookDocument);
+            return transaction.get(path).then((docSnap) => {
+                if (!docSnap.exists()) {
                     console.error("There was a large problem because the books doc doesn't exist anymore...");
                 }
                 var existingBooks = doc.data().books;
@@ -1358,7 +1358,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                     isHidden: isHiddenValue,
                     lastUpdated: lastUpdatedValue
                 };
-                transaction.update(booksPath.doc(bookDocument), {
+                transaction.update(doc(booksPath, bookDocument), {
                     books: existingBooks
                 });
             });
@@ -1417,9 +1417,8 @@ function cleanUpSearchTerm(searchArray) {
     return searchArray;
 }
 
-
 function convertToUTC(date) {
-    // TODO: Acutally account for time shifts with Daylight Savings
+    // TODO: Actually account for time shifts with Daylight Savings
     console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
     return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
 }

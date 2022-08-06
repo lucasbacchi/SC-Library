@@ -1,7 +1,9 @@
-import firebase from "firebase/compat/app";
+import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
+import { doc, runTransaction } from "firebase/firestore";
+import { getDownloadURL, ref } from "firebase/storage";
 import { goToPage, updateUserAccountInfo } from "./ajax";
 import { findURLValue } from "./common";
-import { currentPage, db } from "./globals";
+import { auth, currentPage, db, storage } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
     $("#submit, .login > input").on("keydown", (event) => {
@@ -36,9 +38,9 @@ function authRedirect(pageQuery) {
         var newEmail = findURLValue(pageQuery, "email");
 
         var emailError = false;
-        var user = firebase.auth().currentUser;
+        var user = auth.currentUser;
         // Attempt to update the account
-        user.updateEmail(newEmail).catch((error) => {
+        updateEmail(user, newEmail).catch((error) => {
             emailError = true;
             alert("There was an error updating your email. Please try again later.");
             console.error(error);
@@ -79,12 +81,9 @@ function signInSubmit(pageQuery = "") {
     }
 }
 
-
-
-
 function signIn(reAuth = false) {
     return new Promise(function(resolve, reject) {
-        var user = firebase.auth().currentUser;
+        var user = auth.currentUser;
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
         } else {
@@ -100,7 +99,7 @@ function signIn(reAuth = false) {
             }
             if (!reAuth) {
                 // Sign in with email and pass.
-                firebase.auth().signInWithEmailAndPassword(email, password).then(function() {
+                signInWithEmailAndPassword(auth, email, password).then(function() {
                     resolve(reAuth);
                 }).catch(function(error) {
                     // Handle Errors here.
@@ -118,8 +117,8 @@ function signIn(reAuth = false) {
                 });
             } else {
                 // Reauthenticate
-                const credential = firebase.auth.EmailAuthProvider.credential(email, password);
-                user.reauthenticateWithCredential(credential).then(function() {
+                const credential = EmailAuthProvider.credential(email, password);
+                reauthenticateWithCredential(user, credential).then(function() {
                     // User re-authenticated.
                     resolve();
                 }).catch(function(error) {
@@ -140,7 +139,6 @@ function signIn(reAuth = false) {
     });
 }
 
-
 /**
  * Handles the sign up button press.
  */
@@ -155,7 +153,7 @@ function handleSignUp() {
         var state = document.getElementById('state').value;
         var zip = document.getElementById('zip').value;
         var password = document.getElementById('password').value;
-        var confrimPassword = document.getElementById('confirm-password').value;
+        var confirmPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
             alert('Please enter an email address.');
             reject();
@@ -166,7 +164,7 @@ function handleSignUp() {
             reject();
             return;
         }
-        if (password != confrimPassword) {
+        if (password != confirmPassword) {
             alert('Your passwords do not match.');
             reject();
             return;
@@ -208,7 +206,7 @@ function handleSignUp() {
         }
         var signUpError = false;
         // Create user with email and pass, then logs them in.
-        firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
+        createUserWithEmailAndPassword(auth, email, password).catch(function(error) {
             // Handle Errors here.
             signUpError = true;
             var errorCode = error.code;
@@ -222,24 +220,22 @@ function handleSignUp() {
             reject();
         }).then(function() {
             if (!signUpError) {
-                var user = firebase.auth().currentUser;
-                var usersPath = db.collection("users");
-                var pfpRef = firebase.storage().ref().child("/public/default-user.jpg");
-                pfpRef.getDownloadURL().then((pfpLink) => {
+                var user = auth.currentUser;
+                getDownloadURL(ref(storage, "/public/default-user.jpg")).then((pfpLink) => {
                     user.photoURL = pfpLink;
-                    // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
-                    db.runTransaction((transaction) => {
-                        var cloudVarsPath = db.collection("config").doc("writable_vars");
+                    // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
+                    runTransaction(db, (transaction) => {
+                        var cloudVarsPath = doc(db, "config/writable_vars");
                         // Get the variable stored in the writable_vars area
-                        return transaction.get(cloudVarsPath).then((doc) => {
-                            if (!doc.exists()) {
+                        return transaction.get(cloudVarsPath).then((docSnap) => {
+                            if (!docSnap.exists()) {
                                 throw "Document does not exist!";
                             }
                             // Save the max value and incriment it by one.
-                            var newCardNumber = doc.data().maxCardNumber + 1;
+                            var newCardNumber = docSnap.data().maxCardNumber + 1;
                             var dateCreated = new Date();
                             // Set the document to exist in the users path
-                            transaction.set(usersPath.doc(user.uid), {
+                            transaction.set(doc(db, "users/" + user.uid), {
                                 firstName: firstName,
                                 lastName: lastName,
                                 address: address + ", " + town + ", " + state + " " + zip,
@@ -279,7 +275,7 @@ function handleSignUp() {
  * Sends an email verification to the user.
  */
 function sendEmailVerification() {
-    firebase.auth().currentUser.sendEmailVerification().then(function() {
+    sendEmailVerification(auth.currentUser).then(function() {
         alert('Email Verification Sent! Please check your email!');
     });
 }
@@ -290,7 +286,7 @@ function sendPasswordReset() {
         alert("Please enter a valid email into the Email box above. Then try again.");
         return;
     }
-    firebase.auth().sendPasswordResetEmail(email).then(function() {
+    sendPasswordResetEmail(auth, email).then(function() {
         alert('Password Reset Email Sent!');
     }).catch(function(error) {
         // Handle Errors here.
