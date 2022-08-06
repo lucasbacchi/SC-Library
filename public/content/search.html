@@ -1,6 +1,6 @@
 <div id="sort-sidebar">
     <h3 id="sort-main-title" tabindex="0">Filter Search Results</h3>
-    <button id="apply-filters-button" onclick="javascript:applySearchFilters();">Apply Filters</button>
+    <button id="apply-filters-button">Apply Filters</button>
     <br />
     <div class="sort-section">
         <h6 class="sort-title">Author</h6>
@@ -17,7 +17,7 @@
     </div>
     <div class="sort-section">
         <h6 class="sort-title">Audience</h6>
-        <ul class="sort-list"  id="sort-audience-list">
+        <ul class="sort-list" id="sort-audience-list">
             <li class="sort-item"><input type="checkbox">Children</li>
             <li class="sort-item"><input type="checkbox">Youth</li>
             <li class="sort-item"><input type="checkbox">Adult</li>
@@ -40,8 +40,8 @@
 <div class="search-page-search-container search">
     <input id="search-page-input" placeholder="Search by title, author, subject, keyword..."></input>
     <div id="search-button-container" style="margin-top: 4px;">
-        <button onclick="javascript:searchPageSearch();">Search</button>
-        <button onclick="javascript:alert('Just use the other button for now');">Advanced Search</button>
+        <button id="search-page-search-button">Search</button>
+        <button onclick="alert('Just use the other button for now');">Advanced Search</button>
     </div>
 </div>
 
