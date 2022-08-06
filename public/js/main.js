@@ -1,20 +1,7 @@
-// I'm not sure if we need to reimport everything on each file
-// eslint-disable-next-line
-import firebase from "firebase/compat/app";
-import "firebase/compat/analytics";
-import "firebase/compat/app-check";
-import "firebase/compat/auth";
-import "firebase/compat/firestore";
-import "firebase/compat/storage";
-import "firebase/compat/performance";
-
-
 import { bookDatabase, db } from "./globals";
 import { goToPage } from "./ajax";
 import { buildBookBox, search } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
-
-
 
 
 export function setupMain() {

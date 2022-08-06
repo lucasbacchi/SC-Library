@@ -1,6 +1,6 @@
 import firebase from "firebase/compat/app";
 import { goToPage, updateUserAccountInfo } from "./ajax";
-import { findURLValue } from "./common";
+import { findURLValue, sendEmailVerificationToUser } from "./common";
 import { currentPage, db } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
@@ -263,7 +263,7 @@ function handleSignUp() {
                         // After both writes complete, send the user to the edit page and take it from there.
                         console.log("New User Created with card number: ", newCardNumber);
                         updateUserAccountInfo();
-                        sendEmailVerification();
+                        sendEmailVerificationToUser();
                         resolve();
                     }).catch((err) => {
                         console.error(err);
@@ -272,15 +272,6 @@ function handleSignUp() {
                 });
             }
         });
-    });
-}
-
-/**
- * Sends an email verification to the user.
- */
-function sendEmailVerification() {
-    firebase.auth().currentUser.sendEmailVerification().then(function() {
-        alert('Email Verification Sent! Please check your email!');
     });
 }
 

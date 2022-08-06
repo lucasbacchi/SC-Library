@@ -1,4 +1,4 @@
-import firebase from "firebase/compat/app";
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
 import { bookDatabase, db } from "./globals";
@@ -164,24 +164,23 @@ function adminBookBoxes(objects) {
 function createEntry() {
     return new Promise(function (resolve, reject) {
         // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
-        var lastBookDocQuery = db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1);
-        lastBookDocQuery.get().then((querySnapshot) => {
+        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
             var topDoc;
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists()) {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
                     throw "The books document doesn't exist";
                 }
-                topDoc = doc;
+                topDoc = docSnap;
             });
 
-            db.runTransaction((transaction) => {
-                return transaction.get(db.collection("books").doc(topDoc.id)).then((doc2) => {
-                    if (!doc2.exists) {
+            runTransaction(db, (transaction) => {
+                return transaction.get(doc("books" + topDoc.id)).then((docSnap) => {
+                    if (!docSnap.exists()) {
                         throw "Document does not exist!";
                     }
 
-                    var order = doc2.data().order;
-                    var numBooksInDoc = doc2.data().books.length;
+                    var order = docSnap.data().order;
+                    var numBooksInDoc = docSnap.data().books.length;
 
                     try {
                         var next = order + 1;
@@ -190,8 +189,8 @@ function createEntry() {
                         } else if (next < 100) {
                             next = "0" + (next);
                         }
-                        db.collection("books").doc(next).get().then((doc) => {
-                            if (doc.exists()) {
+                        getDoc(doc("books/" + next)).then((docSnap) => {
+                            if (docSnap.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
                                 alert("A database error has occurred.");
                                 throw "Something went wrong.";
@@ -200,7 +199,7 @@ function createEntry() {
                             console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
                         });
                     } catch {
-                        console.log("Something about the try catch failed....");
+                        console.warn("Something about the try catch failed....");
                     }
 
                     if (numBooksInDoc == 100) {
@@ -212,7 +211,7 @@ function createEntry() {
                             newNumber = "0" + newNumber;
                         }
                         let barcode = "11711" + newNumber + "00";
-                        transaction.set(db.collection("books").doc(newNumber), {
+                        transaction.set(doc(db, "books/" + newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
                                 title: "",
@@ -256,8 +255,8 @@ function createEntry() {
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
-                        transaction.update(db.collection("books").doc(order), {
-                            books: firebase.firestore.FieldValue.arrayUnion({
+                        transaction.update(doc(db, "books/" + order), {
+                            books: arrayUnion({
                                 barcodeNumber: barcode,
                                 title: "",
                                 subtitle: "",
@@ -439,10 +438,10 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
 
 function recentlyCheckedOut() {
     var d = new Date(2021, 1, 1);
-    db.collection("users").where("lastCheckoutTime", ">", d).orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
+    getDocs(query(collection("users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
         var bookTimes = [];
-        querySnapshot.forEach((doc) => {
-            var co = doc.data().checkouts;
+        querySnapshot.forEach((docSnapshot) => {
+            var co = docSnapshot.data().checkouts;
             for (let i = 0; i < co.length; i++) {
                 bookTimes.push({ book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut });
                 if (bookTimes.length == 6) {
@@ -453,15 +452,15 @@ function recentlyCheckedOut() {
         });
         for (let i = 0; i < bookTimes.length; i++) {
             var currentBook = bookTimes[i];
-            currentBook.book.get().then((doc) => {
-                if (!doc.exists()) {
+            getDoc(currentBook.book).then((docSnap) => {
+                if (!docSnap.exists()) {
                     // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
                     console.error("doc does not exist");
                     return;
                 }
-                for (let j = 0; j < doc.data().books.length; j++) {
-                    if (doc.data().books[j].barcodeNumber == currentBook.barcode) {
-                        $("#checked-out-books-container")[0].appendChild(buildBookBox(doc.data().books[j], "admin"));
+                for (let j = 0; j < docSnap.data().books.length; j++) {
+                    if (docSnap.data().books[j].barcodeNumber == currentBook.barcode) {
+                        $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
                     }
                 }
             });
@@ -651,14 +650,14 @@ function formatDate(date) {
 var userDatabase = [];
 function getAllUsers() {
     return /** @type {Promise<void>} */(new Promise(function (resolve) {
-        db.collection("users").where("cardNumber", ">=", 0).orderBy("cardNumber", "asc").get().then((querySnapshot) => {
+        getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
             userDatabase = [];
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists()) {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
                     console.error("user document does not exist");
                     return;
                 }
-                userDatabase.push(doc.data());
+                userDatabase.push(docSnap.data());
             });
             resolve();
         });
@@ -676,7 +675,7 @@ function restartInventory() {
         }, 5000);
         return;
     }
-    db.collection("admin").doc("inventory").set({
+    setDoc(doc(db, "admin", "inventory"), {
         books: []
     });
     alert("The Inventory Progress has been reset.");
@@ -711,12 +710,12 @@ export function setupInventory() {
 var cachedInventory = [];
 function loadInventory() {
     return /** @type {Promise<void>} */(new Promise(function (resolve) {
-        db.collection("admin").doc("inventory").get().then((doc) => {
-            if (!doc.exists()) {
+        getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
+            if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
                 return;
             }
-            cachedInventory = doc.data().books;
+            cachedInventory = docSnap.data().books;
             resolve();
         });
     }));
@@ -732,20 +731,22 @@ function continueScanning() {
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#inventory-book-barcode").blur(() => {
-        $("#inventory-book-barcode").focus();
+    $("#inventory-book-barcode").on("blur", () => {
+        $("#inventory-book-barcode").trigger("focus");
     });
-    $("#inventory-book-barcode").focus();
+    $("#inventory-book-barcode").trigger("focus");
     $("#inventory-book-barcode").off("keydown");
     $("#inventory-book-barcode").on("keydown", (event) => {
         if (event.key === "Enter") {
             $("#inventory-book-barcode").off("blur");
             if ($("#inventory-book-barcode").val()) {
                 // Some checks should be done to ensure the barcode is valid, the book hasn't been scanned, etc.
-                db.collection("admin").doc("inventory").update({
-                    books: firebase.firestore.FieldValue.arrayUnion($("#inventory-book-barcode").val())
+                updateDoc(doc(db, "admin", "inventory"), {
+                    books: arrayUnion($("#inventory-book-barcode").val())
                 });
             }
         }
     });
 }
+
+console.log("admin.js has loaded!");
