@@ -451,6 +451,7 @@ function recentlyCheckedOut() {
             }
         });
         for (let i = 0; i < bookTimes.length; i++) {
+            /* TODO: Implement Checkout System
             var currentBook = bookTimes[i];
             getDoc(currentBook.book).then((docSnap) => {
                 if (!docSnap.exists()) {
@@ -463,7 +464,7 @@ function recentlyCheckedOut() {
                         $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
                     }
                 }
-            });
+            });*/
         }
     });
 }

@@ -49,7 +49,7 @@ export function setupEditEntry(pageQuery) {
             } else {
                 document = "00" + document;
             }
-            getDoc(doc("books/" + document)).then((docSnap) => {
+            getDoc(doc(db, "books/" + document)).then((docSnap) => {
                 var data = docSnap.data().books[barcodeNumber % 100];
                 editEntryData = data;
                 $('#barcode').html(barcodeNumber);
@@ -1324,7 +1324,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
         // Updates the book with the information
         runTransaction(db, (transaction) => {
-            let path = doc(booksPath, bookDocument);
+            let path = doc(db, booksPath, bookDocument);
             return transaction.get(path).then((docSnap) => {
                 if (!docSnap.exists()) {
                     console.error("There was a large problem because the books doc doesn't exist anymore...");
