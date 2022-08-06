@@ -189,7 +189,7 @@ function createEntry() {
                         } else if (next < 100) {
                             next = "0" + (next);
                         }
-                        getDoc(doc("books/" + next)).then((docSnap) => {
+                        getDoc(doc(db, "books/" + next)).then((docSnap) => {
                             if (docSnap.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
                                 alert("A database error has occurred.");
