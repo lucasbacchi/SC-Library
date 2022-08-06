@@ -4,7 +4,7 @@ import { getPerformance } from "firebase/performance";
 import { getAnalytics, logEvent } from "firebase/analytics";
 import { doc, getDoc, getFirestore, onSnapshot, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 
@@ -38,7 +38,7 @@ export let closeLargeAccount;
 function setupIndex() {
     // Set up on click for log out button
     $("div#log-out").on("click", () => {
-        signOut();
+        signOutUser();
     });
 
     convertDataTagsToLinks();
@@ -726,7 +726,7 @@ export function updateUserAccountInfo() {
         $("#account-email").show();
         $("#account-settings").show();
         $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
-            signOut();
+            signOutUser();
         });
     } else {
         // User is signed out.
@@ -749,7 +749,7 @@ export function updateEmailinUI(email) {
     $("#account-page-email").text(email);
 }
 
-function signOut() {
+function signOutUser() {
     if (auth.currentUser) {
         signOut(auth).then(() => {
             // could change 'replace' to 'href' if we wanted to keep the page in the history

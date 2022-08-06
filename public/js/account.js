@@ -17,7 +17,6 @@ $(window).on("resize", function () {
     alignMenuColumn();
 });
 
-
 // Set up a mutation observer to resize the menu column whenver content changes.
 const observer = new MutationObserver(function (mutationList) {
     mutationList.forEach(function (mutation) {
@@ -57,7 +56,6 @@ function alignMenuColumn() {
         $(".menu-column").height(mainColumnHeight - padding);
     }
 
-
     var interval = setInterval(() => {
         if ($(".menu-column").height() > heightCheck) {
             heightCheck += 10;
@@ -67,9 +65,6 @@ function alignMenuColumn() {
         }
     }, 50);
 }
-
-
-
 
 var firstName;
 var lastName;
@@ -81,7 +76,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
         $("#account-page-email").text(email);
         // Get the stored first and last name from the database
-        getDoc(doc("users/" + user.uid)).then((docSnap) => {
+        getDoc(doc(db, "users", user.uid)).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("The user document could not be found.");
                 return;
