@@ -1,17 +1,8 @@
-// Importing version 9 compat libraries
-import firebase from "firebase/compat/app";
-import "firebase/compat/analytics";
-import "firebase/compat/app-check";
-import "firebase/compat/auth";
-import "firebase/compat/firestore";
-import "firebase/compat/storage";
-import "firebase/compat/performance";
-
-// Imports for version 9 (TODO: Add more)
+// Imports for Firebase version 9
 import { initializeApp } from "firebase/app";
 import { getPerformance } from "firebase/performance";
 import { getAnalytics, logEvent } from "firebase/analytics";
-import { doc, getFirestore, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getFirestore, onSnapshot, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
@@ -171,7 +162,7 @@ let isAdmin;
 export function isAdminCheck(recheck = false) {
     return new Promise(function (resolve) {
         if (isAdmin == null || recheck) {
-            firebase.firestore().collection("admin").doc("private_vars").get().then(() => {
+            getDoc(doc(db, "admin", "private_vars")).then(() => {
                 isAdmin = true;
                 resolve(true);
             }).catch(() => {
@@ -275,7 +266,7 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null)
                 });
             } else {
                 // TODO: Might have broken reauth.
-                if (firebase.auth().currentUser != null) {
+                if (auth.currentUser != null) {
                     goToPage("");
                     return;
                 } else {
@@ -651,17 +642,13 @@ const firebaseConfig = {
 function initApp() {
     // Initialize Firebase
     setApp(initializeApp(firebaseConfig));
-    // TODO: Remove v8
-    firebase.initializeApp(firebaseConfig);
 
     // Start firebase services and globalize them.
     // TODO: Start using analytics and performance properly
     setAnalytics(getAnalytics(app));
     logEvent(analytics, 'app_open');
 
-    setPerformance(getPerformance(app)); // eslint-disable-line
-
-    setDb(firebase.firestore());
+    setPerformance(getPerformance(app));
 
     setDb(getFirestore(app));
 
@@ -720,7 +707,7 @@ export function updateUserAccountInfo() {
         });
 
         var email = user.email;
-        updateEmail(email);
+        updateEmailinUI(email);
         var emailVerified = user.emailVerified;
         var photoURL = user.photoURL;
         if (photoURL != null) {
@@ -756,7 +743,7 @@ export function updateUserAccountInfo() {
 
 }
 
-export function updateEmail(email) {
+export function updateEmailinUI(email) {
     email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
     $("#account-email").text(email);
     $("#account-page-email").text(email);

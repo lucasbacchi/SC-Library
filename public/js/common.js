@@ -1,6 +1,7 @@
+import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -607,4 +608,22 @@ export function verifyISBN(number) {
 
 /**********
 END ISBN UTILS
+BEGIN AUTH
+***********/
+
+
+/**
+ * Sends an email verification to the user.
+ */
+export function sendEmailVerificationToUser() {
+    var user = auth.currentUser;
+    sendEmailVerification(user).then(() => {
+        alert("Email Verification Sent! Please check your email!");
+    });
+}
+
+
+
+/**********
+END AUTH
 ***********/

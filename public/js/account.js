@@ -1,7 +1,9 @@
-import firebase from "firebase/compat/app";
-import { goToPage, updateEmail } from "./ajax";
-import { buildBookBox } from "./common";
-import { currentPage, currentPanel, db, directory, setCurrentPanel } from "./globals";
+import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { goToPage, updateEmailinUI } from "./ajax";
+import { buildBookBox, sendEmailVerificationToUser } from "./common";
+import { auth, currentPage, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 // TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
 var settingsDirectory = [
@@ -73,22 +75,23 @@ var firstName;
 var lastName;
 // Load correct info for account
 export function setupAccountPage(pageQuery, goingBack = false) {
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
     if (user) {
-
         var email = user.email;
         email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
         $("#account-page-email").text(email);
         // Get the stored first and last name from the database
-        db.collection("users").doc(user.uid).get().then((doc) => {
-            if (!doc.exists()) {
+        getDoc(doc("users/" + user.uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
                 console.error("The user document could not be found.");
                 return;
             }
-            firstName = doc.data().firstName;
-            lastName = doc.data().lastName;
-            setupAccountOverview(doc.data().firstName, doc.data().lastName);
+            firstName = docSnap.data().firstName;
+            lastName = docSnap.data().lastName;
+            setupAccountOverview(docSnap.data().firstName, docSnap.data().lastName);
             $("#account-page-name").text(firstName + " " + lastName);
+        }).catch((error) => {
+            console.log("Failed to get the database file for this user", error);
         });
         if (user.photoURL != null) {
             $("#account-page-image").attr("src", user.photoURL);
@@ -98,7 +101,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         $("#no-user-sign-in-link").on("click", () => {
             goToPage("login");
         });
-        }
+    }
 
     if (pageQuery.substring(1) != "" && directory.includes("/account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1), goingBack);
@@ -148,30 +151,30 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         }
         // @ts-ignore
         const file = fileInput.files[0];
-        var userSpecificRef = firebase.storage().ref().child("users");
+        var userSpecificRef = ref(storage, "users");
         var meta;
         if (file.type == "image/jpg") {
-            userSpecificRef = userSpecificRef.child(user.uid + "/pfp.jpg");
+            userSpecificRef = ref(userSpecificRef, user.uid + "/pfp.jpg");
             meta = { contentType: "image/jpeg" };
         } else if (file.type == "image/png") {
-            userSpecificRef = userSpecificRef.child(user.uid + "/pfp.png");
+            userSpecificRef = ref(userSpecificRef, user.uid + "/pfp.png");
             meta = { contentType: "image/png" };
         } else {
             alert("That file type is not supported. Please upload a JPG or PNG file.");
             return;
         }
-        userSpecificRef.put(file, meta).then(() => {
+        uploadBytes(userSpecificRef, file, meta).then(() => {
             console.log("Uploaded the file!");
-            userSpecificRef.getDownloadURL().then((url) => {
-                user.updateProfile({
+            getDownloadURL(userSpecificRef).then((url) => {
+                updateProfile(user, {
                     photoURL: url
-                }).then(function () {
+                }).then(() => {
                     if (user.photoURL != null) {
                         $("#account-page-image").attr("src", user.photoURL);
                         $("#large-account-image").attr("src", user.photoURL);
                         $("#small-account-image").attr("src", user.photoURL);
                     }
-                }).catch(function (error) {
+                }).catch((error) => {
                     console.error(error);
                 });
             });
@@ -180,7 +183,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
 }
 
 function setupAccountOverview(firstName, lastName, email) {
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
     }
@@ -199,7 +202,7 @@ function setupAccountOverview(firstName, lastName, email) {
     });
 
     $("#email-verified-link").on("click", () => {
-        sendEmailVerification();
+        sendEmailVerificationToUser();
     });
 
     $("#overview-panel-link").on("click", () => {
@@ -261,51 +264,43 @@ function createCheckouts(books, str) {
 
 // Runs when the user clicks the Save button on the account page
 function updateAccount() {
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
     if (!checkForChangedFields()) {
         alert("There are no changes to save.");
     } else {
-        var nameError = false;
         // If the names were changed, update them.
         if (($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined) || ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)) {
-            db.collection("users").doc(user.uid).update({
+            updateDoc(doc(db, "users/" + user.uid), {
                 firstName: $("#setting-first-name").val(),
                 lastName: $("#setting-last-name").val()
+            }).then(() => {
+                // Assuming there was no problem with the update, set the new values.
+                firstName = $("#setting-first-name").val();
+                lastName = $("#setting-last-name").val();
+                alert("Your name was saved successfully.");
             }).catch((error) => {
-                nameError = true;
                 alert("An error has occured. Please try again later.");
                 console.error(error);
-            }).then(function () {
-                if (!nameError) {
-                    // Assuming there was no problem with the update, set the new values.
-                    firstName = $("#setting-first-name").val();
-                    lastName = $("#setting-last-name").val();
-                    alert("Your name was saved successfully.");
-                }
             });
         }
-        var emailError = false;
         // If the email was changed update it.
         if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined) {
-            user.updateEmail($("#setting-email").val().toString()).catch((error) => {
-                emailError = true;
+            updateEmail(user, $("#setting-email").val().toString()).then(() => {
+                let email = user.email;
+                if (!user.emailVerified) {
+                    $("#email-verified").show();
+                }
+                updateEmailinUI(email);
+                alert("Your email was saved successfully.");
+            }).catch((error) => {
                 // If the user needs to reauthenticate:
                 if (error.code == "auth/requires-recent-login") {
                     alert("You must sign in again to complete this opperation.");
                     // Send them to the login page with a query
-                    goToPage("login?redirect=account&email=" + $("#setting-email").val());
+                    goToPage("login?redirect=account&email=" + $("#setting-email").val().toString());
                 } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
-                }
-            }).then(function () {
-                if (!emailError) {
-                    let email = user.email;
-                    if (!user.emailVerified) {
-                        $("#email-verified").show();
-                    }
-                    updateEmail(email);
-                    alert("Your email was saved successfully.");
                 }
             });
         }
@@ -322,7 +317,7 @@ function deleteAccount() {
 
 const xhttp = new XMLHttpRequest();
 function goToSettingsPanel(newPanel, goingBack = false) {
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
 
     $("#settings-column").removeClass("fade");
 
@@ -379,7 +374,7 @@ function goToSettingsPanel(newPanel, goingBack = false) {
 // Returns true if the user has unsaved changes, otherwise, returns false
 function checkForChangedFields() {
     var answer = false;
-    var user = firebase.auth().currentUser;
+    var user = auth.currentUser;
 
     if ($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined)
         answer = true;
@@ -390,33 +385,6 @@ function checkForChangedFields() {
     return answer;
 }
 
-
-/**
- * Sends an email verification to the user.
- */
-function sendEmailVerification() {
-    var user = firebase.auth().currentUser;
-    user.sendEmailVerification().then(function () {
-        alert("Email Verification Sent! Please check your email!");
-    });
-    var count = 0;
-    // After a user sends a verification email, check ever 2 seconds to see if it went through.
-    // Cancel it if it goes too long.
-    var interval = setInterval(() => {
-        if (firebase.auth().currentUser.emailVerified) {
-            $("#email-verified").hide();
-            clearInterval(interval);
-        }
-        count++;
-        if (count > 500) {
-            clearInterval(interval);
-        }
-    }, 2000);
-}
-
-
-
-
 function changePassword() {
     let currentPassword = $("#current-password").val().toString();
     let newPassword = $("#new-password").val().toString();
@@ -426,18 +394,18 @@ function changePassword() {
         $("#new-password").val("");
         $("#confirm-new-password").val("");
     } else if (newPassword.length >= 4) {
-        var user = firebase.auth().currentUser;
-        const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
-        user.reauthenticateWithCredential(credential).then(function () {
+        var user = auth.currentUser;
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        reauthenticateWithCredential(user, credential).then(() => {
             // User re-authenticated.
-            user.updatePassword(newPassword).then(() => {
+            updatePassword(user, newPassword).then(() => {
                 // Update successful
                 alert("Your password was succesfully changed");
                 goToPage("");
             }).catch((error) => {
                 console.error(error);
             });
-        }).catch(function (error) {
+        }).catch((error) => {
             // An error happened.
             var errorCode = error.code;
             var errorMessage = error.message;
@@ -461,7 +429,7 @@ function changePassword() {
 
 
 // If the user attempts to leave, let them know if they have unsaved changes
-$(window).on("beforeunload", function (event) {
+$(window).on("beforeunload", (event) => {
     if (checkForChangedFields()) {
         event.preventDefault();
         return "You have unsaved changes! Please save changes before leaving!";
@@ -469,7 +437,7 @@ $(window).on("beforeunload", function (event) {
 });
 
 // Catch History Events such as forward and back and then go to those pages
-window.addEventListener("popstate", function () {
+window.addEventListener("popstate", () => {
     if (currentPage.includes("account") && document.location.pathname.includes("account")) {
         goToSettingsPanel(document.location.search.substring(document.location.search.indexOf("?") + 1, document.location.search.length), true);
     } /* Hopefully, this is no longer needed
