@@ -550,7 +550,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }
 
         if (pageName == "/admin/report") {
-            import('./admin').then(({ setupReport }) => {
+            import('./report').then(({ setupReport }) => {
                 setupReport(pageQuery);
             }).catch((error) => {
                 console.error("Problem importing", error);
