@@ -116,9 +116,9 @@ function addEntryWithSpecificBarcodeNumber() {
         if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
             const a = document.createElement("a");
             if (isbn == "") {
-                a.href = "/admin/editEntry?new=true&id=" + specificBarcode;
+                a.href = "/admin/editEntry?new=true&id=" + encodeURI(specificBarcode);
             } else {
-                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + specificBarcode;
+                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + encodeURI(specificBarcode);
             }
             a.innerHTML = "Click here to overwrite the barcode above.";
             $("#add-entry")[0].appendChild(a);
@@ -130,8 +130,6 @@ function addEntryWithSpecificBarcodeNumber() {
         alert("Could not find a valid book at: " + barcodeNumber);
     });
 }
-
-
 
 function adminSearch() {
     var searchQuery = $("#edit-entry-input").val();
@@ -150,8 +148,6 @@ function adminSearch() {
         alert("Please enter a search query");
     }
 }
-
-
 
 function adminBookBoxes(objects) {
     for (let i = 0; i < objects.length; i++) {
