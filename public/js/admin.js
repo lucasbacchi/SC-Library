@@ -168,7 +168,7 @@ function createEntry() {
         lastBookDocQuery.get().then((querySnapshot) => {
             var topDoc;
             querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
+                if (!doc.exists()) {
                     throw "The books document doesn't exist";
                 }
                 topDoc = doc;
@@ -191,7 +191,7 @@ function createEntry() {
                             next = "0" + (next);
                         }
                         db.collection("books").doc(next).get().then((doc) => {
-                            if (doc.exists) {
+                            if (doc.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
                                 alert("A database error has occurred.");
                                 throw "Something went wrong.";
@@ -454,7 +454,7 @@ function recentlyCheckedOut() {
         for (let i = 0; i < bookTimes.length; i++) {
             var currentBook = bookTimes[i];
             currentBook.book.get().then((doc) => {
-                if (!doc.exists) {
+                if (!doc.exists()) {
                     // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
                     console.error("doc does not exist");
                     return;
@@ -654,7 +654,7 @@ function getAllUsers() {
         db.collection("users").where("cardNumber", ">=", 0).orderBy("cardNumber", "asc").get().then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
+                if (!doc.exists()) {
                     console.error("user document does not exist");
                     return;
                 }
@@ -712,7 +712,7 @@ var cachedInventory = [];
 function loadInventory() {
     return /** @type {Promise<void>} */(new Promise(function (resolve) {
         db.collection("admin").doc("inventory").get().then((doc) => {
-            if (!doc.exists) {
+            if (!doc.exists()) {
                 console.error("inventory document does not exist");
                 return;
             }

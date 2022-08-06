@@ -159,7 +159,7 @@ function browse() {
         // No search has been performed on the page yet, so get it from the database.
         _globals__WEBPACK_IMPORTED_MODULE_2__.db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
             querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
+                if (!doc.exists()) {
                     console.error("books document does not exist");
                     return;
                 }
@@ -171,7 +171,7 @@ function browse() {
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
                 _globals__WEBPACK_IMPORTED_MODULE_2__.db.collection("books").doc(rand).get().then((doc) => {
-                    if (!doc.exists) {
+                    if (!doc.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
@@ -575,7 +575,7 @@ function scanCheckout() {
                                 });
                             _globals__WEBPACK_IMPORTED_MODULE_2__.db.runTransaction((transaction) => {
                                 return transaction.get(bookPath.doc(bookDocument)).then((doc) => {
-                                    if (!doc.exists) {
+                                    if (!doc.exists()) {
                                         alert("There was a problem with checking out that book.");
                                         return;
                                     }

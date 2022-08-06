@@ -250,7 +250,7 @@ function handleSignUp() {
                         var cloudVarsPath = _globals__WEBPACK_IMPORTED_MODULE_3__.db.collection("config").doc("writable_vars");
                         // Get the variable stored in the writable_vars area
                         return transaction.get(cloudVarsPath).then((doc) => {
-                            if (!doc.exists) {
+                            if (!doc.exists()) {
                                 throw "Document does not exist!";
                             }
                             // Save the max value and incriment it by one.
@@ -288,7 +288,6 @@ function handleSignUp() {
                         reject(err);
                     });
                 });
-                
             }
         });
     });

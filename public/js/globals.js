@@ -1,15 +1,3 @@
-// Importing version 9 compat libraries
-// This might mean that we can remove these from the rest of the files.... stay tuned
-// @ts-ignore
-import firebase from "firebase/compat/app"; // eslint-disable-line
-import "firebase/compat/analytics";
-import "firebase/compat/app-check";
-import "firebase/compat/auth";
-import "firebase/compat/firestore";
-import "firebase/compat/storage";
-import "firebase/compat/performance";
-
-
 export let app = null;
 
 export function setApp(newApp) {

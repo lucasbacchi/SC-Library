@@ -21,9 +21,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _globals__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./globals */ "./public/js/globals.js");
 /* harmony import */ var _ajax__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./ajax */ "./public/js/ajax.js");
 /* harmony import */ var _common__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./common */ "./public/js/common.js");
+/* harmony import */ var firebase_firestore__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! firebase/firestore */ "./node_modules/firebase/firestore/dist/index.esm.js");
 /* provided dependency */ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery-exposed.js");
 // I'm not sure if we need to reimport everything on each file
 // eslint-disable-next-line
+
 
 
 
@@ -89,30 +91,31 @@ function homeBookBoxes() {
             $('div#books')[0].appendChild((0,_common__WEBPACK_IMPORTED_MODULE_9__.buildBookBox)(book, "main"));
         }
     } else {
-        _globals__WEBPACK_IMPORTED_MODULE_7__.db.collection("books").where("order", ">=", 0).orderBy("order", "desc").limit(1).get().then((querySnapshot) => {
-            querySnapshot.forEach((doc) => {
-                if (!doc.exists) {
+        // Got get the largest doc to figure out how many total books there are.
+        (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.getDocs)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.query)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.collection)(_globals__WEBPACK_IMPORTED_MODULE_7__.db, "books"), (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.where)("order", ">=", 0), (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.orderBy)("order", "desc"), (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.limit)(1))).then((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
                     console.error("books document does not exist");
                     return;
                 }
-                var docs = doc.data().order;
-                if (doc.data().books.length < 25 && doc.data().order != 0) {
+                var docs = docSnap.data().order;
+                if (docSnap.data().books.length < 25 && docSnap.data().order != 0) {
                     docs--;
                 }
                 var rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
-                _globals__WEBPACK_IMPORTED_MODULE_7__.db.collection("books").doc(rand).get().then((doc) => {
-                    if (!doc.exists) {
+                (0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.getDoc)((0,firebase_firestore__WEBPACK_IMPORTED_MODULE_10__.doc)(_globals__WEBPACK_IMPORTED_MODULE_7__.db, "books/" + rand)).then((docSnap) => {
+                    if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
                     var values = [];
                     let count = 0;
                     for (let i = 0; i < 9; i++) {
-                        var random = Math.floor(Math.random() * doc.data().books.length);
+                        var random = Math.floor(Math.random() * docSnap.data().books.length);
                         // TODO: Prevent duplicate books (with different barcode numbers)
-                        if (values.indexOf(random) > -1 || doc.data().books[random].isDeleted || doc.data().books[random].isHidden) {
+                        if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
                             i--;
                         } else {
                             values.push(random);
@@ -124,11 +127,15 @@ function homeBookBoxes() {
                         }
                     }
                     for (let i = 0; i < 9; i++) {
-                        var book = doc.data().books[values[i]];
+                        var book = docSnap.data().books[values[i]];
                         $('div#books')[0].appendChild((0,_common__WEBPACK_IMPORTED_MODULE_9__.buildBookBox)(book, "main"));
                     }
+                }).catch((error) => {
+                    console.error("There was an issue getting the random book doc", error);
                 });
             });
+        }).catch((error) => {
+            console.error("There was an error getting the last book doc", error);
         });
     }
 }

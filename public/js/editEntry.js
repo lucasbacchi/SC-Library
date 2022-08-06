@@ -8,7 +8,7 @@ db.runTransaction((transaction) => {
     // This code may run multiple times if there are confilcts
     var bookPath = db.collection("books").doc(barcodeNumber);
     return transaction.get(bookPath).then((doc) => {
-        if (!doc.exists) {
+        if (!doc.exists()) {
             throw "Document does not exist!";
         }
     });
@@ -30,7 +30,7 @@ export function setupEditEntry(pageQuery) {
     newEntry = (findURLValue(pageQuery, "new") == "true");
     barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     isbn = findURLValue(pageQuery, "isbn", true);
-    
+
     if (barcodeNumber == "" && newEntry == false) {
         alert("The barcode that you are trying to edit is not valid.");
         goToPage("admin/main");
@@ -81,7 +81,7 @@ export function setupEditEntry(pageQuery) {
                 $("#book-audience-youth").prop("checked", data.audience[1]);
                 $("#book-audience-adult").prop("checked", data.audience[2]);
                 $("#book-audience-none").prop("checked", data.audience[3]);
-                
+
                 $("#book-isbn-10").val(data.isbn10);
                 $("#book-isbn-13").val(data.isbn13);
 
@@ -142,7 +142,7 @@ export function setupEditEntry(pageQuery) {
                 console.error(error);
             });*/
         }
-        
+
     } else {
         // If this is a new entry (and they are creating it for the first time) go get info from open library
         if (isbn.length >= 10) {
@@ -204,7 +204,7 @@ export function setupEditEntry(pageQuery) {
                 goAway[i].style.display = "";
         }
     });
-    
+
     $("#book-unnumbered")[0].addEventListener("input", (event) => {
         if (event.target.checked == true) {
             $("#book-pages").val("");
@@ -214,7 +214,7 @@ export function setupEditEntry(pageQuery) {
             $("#book-pages")[0].disabled = false;
         }
     });
-    
+
     $("#book-no-isbn")[0].addEventListener("input", (event) => {
         if (event.target.checked == true) {
             $("#book-isbn-10").val("");
@@ -256,7 +256,7 @@ export function setupEditEntry(pageQuery) {
     $("#add-subject").on("click", () => {
         addSubject();
     });
-    
+
 }
 
 function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
@@ -264,7 +264,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
     if (noISBN) {
         return;
     }
-    
+
     // Title
     try {
         $('#book-title').val(bookObject.title);
@@ -286,7 +286,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
         for (let i = 0; i < authorObject.length; i++) {
             var fullName = authorObject[i].name;
             var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
-            var firstName  = fullName.substring(0, fullName.lastIndexOf(' '));
+            var firstName = fullName.substring(0, fullName.lastIndexOf(' '));
             $('#book-author-' + (i + 1) + '-last').val(lastName);
             $('#book-author-' + (i + 1) + '-first').val(firstName);
         }
@@ -470,7 +470,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
                 case "December":
                     month = 12;
                     break;
-            
+
                 default:
                     console.error("The month could not be detected");
                     month = -1;
@@ -527,7 +527,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
                     case "Dec":
                         month = 12;
                         break;
-                
+
                     default:
                         console.error("The month could not be detected");
                         month = -1;
@@ -819,7 +819,7 @@ function validateEntry() {
         var purchaseDayValue = $("#book-purchase-day").val();
         var purchaseYearValue = $("#book-purchase-year").val();
         var purchasePriceValue = $("#book-purchase-price").val();
-        
+
         // Validate inputs
         if (titleValue == "") {
             alert("Title is required!");
@@ -1060,7 +1060,7 @@ function validateEntry() {
             return;
         }
 
-        
+
         $("#edit-entry-save")[0].disabled = true;
         $("#loading-overlay").show();
         loadingTimer = window.setTimeout(() => {
@@ -1250,12 +1250,12 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
         // Defines the paths of the the database collection
         var booksPath = db.collection("books");
-    
+
         // Create a list of keywords from the description
         var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
-    
+
         keywordsValue = cleanUpSearchTerm(keywordsValue);
-    
+
         var bookNumber = barcodeValue - 1171100000;
         var bookDocument = Math.floor(bookNumber / 100);
         if (bookDocument >= 100) {
@@ -1266,12 +1266,12 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
             bookDocument = "00" + bookDocument;
         }
         bookNumber = bookNumber % 100;
-    
+
         var authorsValue = [{last: author1LastValue, first: author1FirstValue}];
         if (author2FirstValue != "" || author2LastValue != "") {
             authorsValue.push({last: author2LastValue, first: author2FirstValue});
         }
-    
+
         var illustratorsValue = [];
         if (illustrator1FirstValue != "" || illustrator1LastValue != "") {
             illustratorsValue.push({last: illustrator1LastValue, first: illustrator1FirstValue});
@@ -1279,7 +1279,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
             illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
         }
-    
+
         var publishersValue = [];
         if (publisher1Value != "") {
             publishersValue.push(publisher1Value);
@@ -1287,16 +1287,16 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         if (publisher2Value != "") {
             publishersValue.push(publisher2Value);
         }
-    
+
         if (noISBN) {
             isbn10Value = "";
             isbn13Value = "";
         }
-    
+
         if (unNumbered) {
             numPagesValue = -1;
         }
-    
+
         var publishDateValue = null;
         if (publishMonthValue != "" && publishDayValue != "") {
             publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
@@ -1308,7 +1308,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         if (publishDateValue) {
             publishDateValue = convertToUTC(publishDateValue);
         }
-    
+
         var purchaseDateValue = null;
         if (purchaseMonthValue != "" && purchaseDayValue != "") {
             purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
@@ -1320,14 +1320,14 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         if (purchaseDateValue) {
             purchaseDateValue = convertToUTC(purchaseDateValue);
         }
-    
+
         var lastUpdatedValue = new Date();
-    
+
         // Updates the book with the information
         db.runTransaction((transaction) => {
             let path = booksPath.doc(bookDocument);
             return transaction.get(path).then((doc) => {
-                if (!doc.exists) {
+                if (!doc.exists()) {
                     console.error("There was a large problem because the books doc doesn't exist anymore...");
                 }
                 var existingBooks = doc.data().books;

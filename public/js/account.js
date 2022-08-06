@@ -81,7 +81,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
         $("#account-page-email").text(email);
         // Get the stored first and last name from the database
         db.collection("users").doc(user.uid).get().then((doc) => {
-            if (!doc.exists) {
+            if (!doc.exists()) {
                 console.error("The user document could not be found.");
                 return;
             }
