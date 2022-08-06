@@ -118,7 +118,7 @@ function addEntryWithSpecificBarcodeNumber() {
             if (isbn == "") {
                 a.href = "/admin/editEntry?new=true&id=" + encodeURI(specificBarcode);
             } else {
-                a.href = "/admin/editEntry?new=true&isbn=" + isbn + "&id=" + encodeURI(specificBarcode);
+                a.href = "/admin/editEntry?new=true&isbn=" + encodeURI(isbn) + "&id=" + encodeURI(specificBarcode);
             }
             a.innerHTML = "Click here to overwrite the barcode above.";
             $("#add-entry")[0].appendChild(a);
