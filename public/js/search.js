@@ -2,7 +2,7 @@
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
 import { auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
-import { arrayUnion, collection, doc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
 
 // Doesn't have to be setup because the window element doesn't change.
 $(window).on("resize", () => {
@@ -148,7 +148,7 @@ function browse() {
                 var rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
-                collection("books/" + rand).get().then((docSnap) => {
+                getDoc(doc(db, "books", rand)).then((docSnap) => {
                     if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
@@ -535,11 +535,11 @@ function scanCheckout() {
                             bookNumber = bookNumber % 100;
 
                             var d = new Date(2020);
-                            db.collection("users").where("lastCheckoutTime", ">", d)
-                                .where("checkouts", "array-contains", barcodeNumber)
-                                .orderBy("lastCheckoutTime").limit(5).get().then((querySnapshot) => {
-                                    querySnapshot.forEach((doc) => {
-                                        doc.data().checkouts.forEach((checkoutObject) => {
+                            getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d),
+                                where("checkouts", "array-contains", barcodeNumber),
+                                orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
+                                    querySnapshot.forEach((docSnap) => {
+                                        docSnap.data().checkouts.forEach((checkoutObject) => {
                                             if (checkoutObject.returnTime != null) {
                                                 alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
                                                 return;
@@ -547,7 +547,7 @@ function scanCheckout() {
                                         });
                                     });
                                 });
-                            db.runTransaction((transaction) => {
+                            runTransaction(db, (transaction) => {
                                 return transaction.get(doc("books/" + bookDocument)).then((docSnap) => {
                                     if (!docSnap.exists()) {
                                         alert("There was a problem with checking out that book.");
@@ -561,7 +561,7 @@ function scanCheckout() {
                                     }
                                     var currentTime = Date.now();
                                     // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(db.collection("users").doc(auth.currentUser.uid), {
+                                    transaction.update(doc(db, "users", auth.currentUser.uid), {
                                         checkouts: arrayUnion({
                                             barcodeNumber: barcodeNumber,
                                             outTime: currentTime,

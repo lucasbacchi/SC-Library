@@ -438,7 +438,7 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
 
 function recentlyCheckedOut() {
     var d = new Date(2021, 1, 1);
-    getDocs(query(collection("users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
+    getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
         var bookTimes = [];
         querySnapshot.forEach((docSnapshot) => {
             var co = docSnapshot.data().checkouts;
