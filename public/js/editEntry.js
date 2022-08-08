@@ -1,7 +1,7 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
 import { db, storage } from "./globals";
-import { doc, getDoc, runTransaction } from "firebase/firestore";
+import { collection, doc, getDoc, runTransaction } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 /* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
@@ -1248,7 +1248,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         }
 
         // Defines the paths of the the database collection
-        var booksPath = ref(storage, "books");
+        var booksPath = collection(db, "books");
 
         // Create a list of keywords from the description
         var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
@@ -1324,8 +1324,8 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
 
         // Updates the book with the information
         runTransaction(db, (transaction) => {
-            let path = doc(db, booksPath, bookDocument);
-            return transaction.get(path).then((docSnap) => {
+            let bookDoc = doc(booksPath, bookDocument);
+            return transaction.get(bookDoc).then((docSnap) => {
                 if (!docSnap.exists()) {
                     console.error("There was a large problem because the books doc doesn't exist anymore...");
                 }
@@ -1357,7 +1357,7 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                     isHidden: isHiddenValue,
                     lastUpdated: lastUpdatedValue
                 };
-                transaction.update(doc(booksPath, bookDocument), {
+                transaction.update(bookDoc, {
                     books: existingBooks
                 });
             });
