@@ -109,3 +109,37 @@ export function setLoadedSources(newLoadedSources) {
     loadedSources = newLoadedSources;
 }
 
+
+
+export class Book {
+    constructor(barcodeNumber, title, subtitle, authors, illustrators, medium, coverImageLink, thumbnailImageLink,
+                subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages, ddc,
+                purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
+        this.barcodeNumber = barcodeNumber;
+        this.title = title;
+        this.subtitle = subtitle;
+        this.authors = authors;
+        this.illustrators = illustrators;
+        this.medium = medium;
+        this.coverImageLink = coverImageLink;
+        this.thumbnailImageLink = thumbnailImageLink;
+        this.subjects = subjects;
+        this.description = description;
+        this.audience = audience;
+        this.isbn10 = isbn10;
+        this.isbn13 = isbn13;
+        this.publishers = publishers;
+        this.publishDate = publishDate;
+        this.numberOfPages = numberOfPages;
+        this.ddc = ddc;
+        this.purchaseDate = purchaseDate;
+        this.purchasePrice = purchasePrice;
+        this.vendor = vendor;
+        this.keywords = keywords;
+        this.canBeCheckedOut = canBeCheckedOut;
+        this.isDeleted = isDeleted;
+        this.isHidden = isHidden;
+        this.lastUpdated = lastUpdated;
+    }
+}
+
