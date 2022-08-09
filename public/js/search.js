@@ -65,6 +65,10 @@ export function setupSearch(searchResultsArray, pageQuery) {
         searchPageSearch();
     });
 
+    $("#apply-filters-button").on("click", () => {
+        applySearchFilters();
+    });
+
     var queryFromURL = findURLValue(pageQuery, "query", true);
 
     $("#search-page-input").val(queryFromURL);
@@ -73,18 +77,14 @@ export function setupSearch(searchResultsArray, pageQuery) {
         // If you are entering the page without a search completed
         if (queryFromURL == "") {
             browse();
-            return;
+        } else {
+            search(queryFromURL).then((resultsArray) => {
+                createSearchResultsPage(resultsArray);
+            });
         }
-        search(queryFromURL).then((resultsArray) => {
-            createSearchResultsPage(resultsArray);
-        });
     } else {
         createSearchResultsPage(searchResultsArray);
     }
-
-    $("#apply-search-filters").on("click", () => {
-        applySearchFilters();
-    });
 }
 
 function searchPageSearch() {
@@ -182,7 +182,7 @@ function browse() {
     }
 }
 
-function createSearchResultsPage(searchResultsArray) {
+function createSearchResultsPage(searchResultsArray, filters = [], items = [[]]) {
     $('div#results-container').empty();
     if (searchResultsArray.length == 0) {
         const p = document.createElement('p');
@@ -192,12 +192,12 @@ function createSearchResultsPage(searchResultsArray) {
     for (let i = 0; i < searchResultsArray.length; i++) {
         $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
-    createFilterList(searchResultsArray);
+    createFilterList(searchResultsArray, filters, items);
 }
 
 var searchResultsAuthorsArray = [];
 var searchResultsSubjectsArray = [];
-function createFilterList(searchResultsArray) {
+function createFilterList(searchResultsArray, filters = [], items = [[]]) {
     // TODO: This function should also order each of the lists by occurances.
     searchResultsAuthorsArray = [];
     searchResultsSubjectsArray = [];
@@ -206,32 +206,63 @@ function createFilterList(searchResultsArray) {
 
     // Authors
     for (let i = 0; i < searchResultsArray.length; i++) {
-        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
-            searchResultsAuthorsArray.push(searchResultsArray[i].authors[0]);
-        }
-        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[1]) && searchResultsArray[i].authors[1]) {
-            searchResultsAuthorsArray.push(searchResultsArray[i].authors[1]);
+        for (let j = 0; j < 2; j++) {
+            if (searchResultsArray[i].authors[j]) {
+                let authorString = searchResultsArray[i].authors[j]?.last + ", " + searchResultsArray[i].authors[j]?.first;
+                if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined") {
+                    searchResultsAuthorsArray.push(authorString);
+                }
+            }
         }
     }
-    for (let i = 0; i < searchResultsAuthorsArray.length; i++) {
-        let authorArray = searchResultsAuthorsArray[i];
+    let authorIndex = filters.indexOf("Author"), checkedCount = 0, offset = 0;
+    if (authorIndex != -1) {
+        for (let i = 0; i < items[authorIndex].length; i++) {
+            let authorString = items[authorIndex][i];
+            const li = document.createElement("li");
+            li.classList.add("sort-item");
+            li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+            li.children[0].checked = true;
+            $("#sort-author-list")[0].appendChild(li);
+            checkedCount++;
+        }
+    }
+    let maxAuthors = Math.max(6, checkedCount);
+    for (let i = checkedCount; i < searchResultsAuthorsArray.length; i++) {
+        let authorString = searchResultsAuthorsArray[i - checkedCount + offset], alreadyExists = false;
+        for (let j = 0; j < checkedCount; j++) {
+            if ($("#sort-author-list")[0].children[j].children[1].innerHTML == authorString) {
+                i--;
+                offset++;
+                alreadyExists = true;
+            }
+        }
+        if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
-        if (i < 6) {
+        li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+        if (i < maxAuthors) {
             $("#sort-author-list")[0].appendChild(li);
-        } else if (i == 6) {
+        } else if (i == maxAuthors) {
             const span = document.createElement("span");
             span.id = "author-show-more";
             span.innerHTML = "Show More...";
             $("#sort-author-list")[0].appendChild(span);
             $("#author-show-more").on("click", () => {
                 $("#author-show-more").css("display", "none");
-                for (let j = 6; j < searchResultsAuthorsArray.length; j++) {
-                    let authorArray = searchResultsAuthorsArray[j];
+                for (let j = maxAuthors; j < searchResultsAuthorsArray.length; j++) {
+                    let authorString = searchResultsAuthorsArray[j - checkedCount + offset], alreadyExists = false;
+                    for (let k = 0; k < checkedCount; k++) {
+                        if ($("#sort-author-list")[0].children[k].children[j].innerHTML == authorString) {
+                            i--;
+                            offset++;
+                            alreadyExists = true;
+                        }
+                    }
+                    if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
+                    li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span>";
                     $("#sort-author-list")[0].appendChild(li);
                 }
             });
@@ -246,25 +277,55 @@ function createFilterList(searchResultsArray) {
             }
         }
     }
-    for (let i = 0; i < searchResultsSubjectsArray.length; i++) {
-        let subject = searchResultsSubjectsArray[i];
+    let subjectIndex = filters.indexOf("Subject");
+    checkedCount = 0, offset = 0;
+    if (subjectIndex != -1) {
+        for (let i = 0; i < items[subjectIndex].length; i++) {
+            let subject = items[subjectIndex][i];
+            const li = document.createElement("li");
+            li.classList.add("sort-item");
+            li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span";
+            li.children[0].checked = true;
+            $("#sort-subject-list")[0].appendChild(li);
+            checkedCount++;
+        }
+    }
+    let maxSubjects = Math.max(6, checkedCount);
+    for (let i = checkedCount; i < searchResultsSubjectsArray.length; i++) {
+        let subject = searchResultsSubjectsArray[i - checkedCount + offset], alreadyExists = false;
+        for (let j = 0; j < checkedCount; j++) {
+            if ($("#sort-subject-list")[0].children[j].children[1].innerHTML == subject) {
+                i--;
+                offset++;
+                alreadyExists = true;
+            }
+        }
+        if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\">" + subject;
-        if (i < 6) {
+        li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
+        if (i < maxSubjects) {
             $("#sort-subject-list")[0].appendChild(li);
-        } else if (i == 6) {
+        } else if (i == maxSubjects) {
             const span = document.createElement("span");
             span.id = "subject-show-more";
             span.innerHTML = "Show More...";
             $("#sort-subject-list")[0].appendChild(span);
             $("#subject-show-more").on("click", () => {
                 $("#subject-show-more").css("display", "none");
-                for (let j = 6; j < searchResultsSubjectsArray.length; j++) {
-                    let subject = searchResultsSubjectsArray[j];
+                for (let j = maxSubjects; j < searchResultsSubjectsArray.length; j++) {
+                    let subject = searchResultsSubjectsArray[j - checkedCount + offset], alreadyExists = false;
+                    for (let k = 0; k < checkedCount; k++) {
+                        if ($("#sort-subject-list")[0].children[k].children[1].innerHTML == subject) {
+                            j--;
+                            offset++;
+                            alreadyExists = true;
+                        }
+                    }
+                    if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\">" + subject;
+                    li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
                     $("#sort-subject-list")[0].appendChild(li);
                 }
             });
@@ -591,37 +652,71 @@ function applySearchFilters() {
         filters.push($(".sort-section")[i].children[0].innerHTML);
         items.push([]);
         for (let j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
-            if ($(".sort-section")[i].children[1].children[j].tagName == "LI") {
-                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
+            if ($(".sort-section")[i].children[1].children[j].tagName == "LI" &&
+                $(".sort-section")[i].children[1].children[j].children[0].checked) {
+                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[1].innerHTML);
             }
         }
-        if (items[items.length - 1].every((val, q, arr) => val === arr[0])) {
+        if (items[items.length - 1].length == 0) {
             filters.pop();
             items.pop();
         }
     }
-    for (let i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
-        for (let j = 0; j < filters.length; j++) {
-            var passesFilter = false;
+    if (!searchCache) {
+        search("").then(() => {
+            searchWithFilters(filters, items, results);
+        });
+    } else {
+        searchWithFilters(filters, items, results);
+    }
+}
+
+function searchWithFilters(filters, items, results) {
+    for (let i = 0; i < searchCache.length; i++) {
+        let passesAllFilters = true;
+        for (let j = 0; j < filters.length && passesAllFilters; j++) {
+            var passesFilter = true;
             for (let k = 0; k < items[j].length; k++) {
-                if (filters[j] == "Audience") {
-                    if (items[j][k] && searchCache[i].audience[k]) {
-                        passesFilter = true;
+                if (filters[j] == "Author") {
+                    if (items[j][k] != searchCache[i].authors[0].last + ", " + searchCache[i].authors[0].first) {
+                        if (searchCache[i].authors[1]) {
+                            if (items[j][k] != searchCache[i].authors[1].last + ", " + searchCache[i].authors[1].first) {
+                                passesFilter = false;
+                            }
+                        } else {
+                            passesFilter = false;
+                        }
                     }
                 } else if (filters[j] == "Medium") {
-                    if (searchCache[i].medium == items[j][k]) {
-                        // Justin, finish this
+                    if (items[j][k].toUpperCase() != searchCache[i].medium.toUpperCase()) {
+                        passesFilter = false;
+                    }
+                } else if (filters[j] == "Audience") {
+                    if (items[j][k] == "Children" && !searchCache[i].audience[0] ||
+                        items[j][k] == "Youth" && !searchCache[i].audience[1] ||
+                        items[j][k] == "Adult" && !searchCache[i].audience[2]) {
+                        passesFilter = false;
+                    }
+                } else if (filters[j] == "Subject") {
+                    if (!searchCache[i].subjects.includes(items[j][k])) {
+                        passesFilter = false;
+                    }
+                } else if (filters[j] == "Type") {
+                    if (items[j][k] == "Non-fiction" && searchCache[i].ddc == "FIC" ||
+                        items[j][k] == "Fiction" && searchCache[i].ddc != "FIC") {
+                        passesFilter = false;
                     }
                 }
             }
             if (!passesFilter)
-                passesFilters = false;
+                passesAllFilters = false;
         }
-        if (passesFilters) {
+        if (passesAllFilters) {
             results.push(searchCache[i]);
         }
     }
-    createSearchResultsPage(results);
+
+    createSearchResultsPage(results, filters, items);
 }
 
 console.log("search.js Loaded!");
