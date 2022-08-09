@@ -353,6 +353,9 @@ export function buildBookBox(obj, page, num = 0) {
         div.addEventListener("click", () => {
             goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
         });
+        if (obj.isDeleted) {
+            div.classList.add("deleted");
+        }
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
