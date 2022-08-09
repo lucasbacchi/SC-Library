@@ -1,7 +1,7 @@
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -287,7 +287,8 @@ export function setURLValue(param, value, append = true) {
         answer = "?" + param + "=" + value;
     }
 
-    window.history.pushState({}, "", encodeURI(answer));
+    historyStack.push(encodeURI(answer));
+    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", encodeURI(answer));
 }
 
 /**********

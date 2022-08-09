@@ -3,7 +3,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI } from "./ajax";
 import { buildBookBox, sendEmailVerificationToUser } from "./common";
-import { auth, currentPage, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
+import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 // TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
 var settingsDirectory = [
@@ -13,6 +13,7 @@ var settingsDirectory = [
     "/security"
 ];
 
+// TODO: Fix this so that it doesn't error once you've left the account pages.
 $(window).on("resize", function () {
     alignMenuColumn();
 });
@@ -36,6 +37,10 @@ const observerOptions = {
 var heightCheck = 500;
 // Use the height of the main column to stretch the height of the menu column.
 function alignMenuColumn() {
+    if ($(".main-column").length == 0) {
+        return;
+    }
+
     // Get the padding above and below the column.
     var paddingStr = $(".menu-column").css("padding-top");
     var padding = parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
@@ -69,7 +74,7 @@ function alignMenuColumn() {
 var firstName;
 var lastName;
 // Load correct info for account
-export function setupAccountPage(pageQuery, goingBack = false) {
+export function setupAccountPage(pageQuery) {
     var user = auth.currentUser;
     if (user) {
         var email = user.email;
@@ -83,7 +88,7 @@ export function setupAccountPage(pageQuery, goingBack = false) {
             }
             firstName = docSnap.data().firstName;
             lastName = docSnap.data().lastName;
-            setupAccountOverview(docSnap.data().firstName, docSnap.data().lastName);
+            fillAccountOverviewFields(docSnap.data().firstName, docSnap.data().lastName);
             $("#account-page-name").text(firstName + " " + lastName);
         }).catch((error) => {
             console.log("Failed to get the database file for this user", error);
@@ -99,11 +104,9 @@ export function setupAccountPage(pageQuery, goingBack = false) {
     }
 
     if (pageQuery.substring(1) != "" && directory.includes("/account/" + pageQuery.substring(1))) {
-        goToSettingsPanel(pageQuery.substring(1), goingBack);
+        goToSettingsPanel(pageQuery.substring(1), true);
     } else {
-        goToSettingsPanel("overview", goingBack);
-        // TODO: Figure out what was put in the URL bar to be processed here.... What page puts it there....
-        setupAccountOverview("", "", pageQuery.substring(pageQuery.indexOf("=") + 1, pageQuery.length));
+        goToSettingsPanel("overview", true);
     }
 
     // Create an "Event Listener" for mutations to the settings column
@@ -140,11 +143,9 @@ export function setupAccountPage(pageQuery, goingBack = false) {
     // When there is a change to the input, upload the file
     $("#file-input").on("change", function () {
         let fileInput = $("#file-input")[0];
-        // @ts-ignore
         if (!fileInput.files) {
             return;
         }
-        // @ts-ignore
         const file = fileInput.files[0];
         var userSpecificRef = ref(storage, "users");
         var meta;
@@ -175,9 +176,47 @@ export function setupAccountPage(pageQuery, goingBack = false) {
             });
         });
     });
+
+    $("#overview-panel-link").on("click", () => {
+        goToPage('account?overview');
+    });
+
+    $("#checkouts-panel-link").on("click", () => {
+        goToPage('account?checkouts');
+    });
+
+    $("#notifications-panel-link").on("click", () => {
+        goToPage('account?notifications');
+    });
+
+    $("#security-panel-link").on("click", () => {
+        goToPage('account?security');
+    });
 }
 
 function setupAccountOverview(firstName, lastName, email) {
+    fillAccountOverviewFields(firstName, lastName, email);
+
+    $(".save-button").on("click", () => {
+        updateAccount();
+    });
+
+    $("#email-verified-link").on("click", () => {
+        sendEmailVerificationToUser();
+    });
+
+    // If the user attempts to leave, let them know if they have unsaved changes
+    $(window).on("beforeunload", (event) => {
+        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+            event.preventDefault();
+            return "You have unsaved changes! Please save changes before leaving!";
+        } else {
+            $(window).off("beforeunload");
+        }
+    });
+}
+
+function fillAccountOverviewFields(firstName, lastName, email) {
     var user = auth.currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
@@ -191,30 +230,6 @@ function setupAccountOverview(firstName, lastName, email) {
     if (!user.emailVerified) {
         $("#email-verified").show();
     }
-
-    $(".save-button").on("click", () => {
-        updateAccount();
-    });
-
-    $("#email-verified-link").on("click", () => {
-        sendEmailVerificationToUser();
-    });
-
-    $("#overview-panel-link").on("click", () => {
-        goToSettingsPanel('overview');
-    });
-
-    $("#checkouts-panel-link").on("click", () => {
-        goToSettingsPanel('checkouts');
-    });
-
-    $("#notifications-panel-link").on("click", () => {
-        goToSettingsPanel('notifications');
-    });
-
-    $("#security-panel-link").on("click", () => {
-        goToSettingsPanel('security');
-    });
 }
 
 function setupAccountCheckouts() {
@@ -311,7 +326,7 @@ function deleteAccount() {
 
 
 const xhttp = new XMLHttpRequest();
-function goToSettingsPanel(newPanel, goingBack = false) {
+export function goToSettingsPanel(newPanel) {
     var user = auth.currentUser;
 
     $("#settings-column").removeClass("fade");
@@ -356,10 +371,6 @@ function goToSettingsPanel(newPanel, goingBack = false) {
             }
 
             alignMenuColumn();
-
-            if (goingBack == false) {
-                window.history.pushState({}, "", "/account?" + newPanel.substring(1));
-            }
 
             setCurrentPanel(newPanel);
         }
@@ -422,23 +433,5 @@ function changePassword() {
     }
 }
 
-
-// If the user attempts to leave, let them know if they have unsaved changes
-$(window).on("beforeunload", (event) => {
-    if (checkForChangedFields()) {
-        event.preventDefault();
-        return "You have unsaved changes! Please save changes before leaving!";
-    }
-});
-
-// Catch History Events such as forward and back and then go to those pages
-window.addEventListener("popstate", () => {
-    if (currentPage.includes("account") && document.location.pathname.includes("account")) {
-        goToSettingsPanel(document.location.search.substring(document.location.search.indexOf("?") + 1, document.location.search.length), true);
-    } /* Hopefully, this is no longer needed
-    else {
-        handleHistoryPages();
-    }*/
-});
 
 console.log("account.js has Loaded!");

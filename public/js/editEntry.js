@@ -189,8 +189,12 @@ export function setupEditEntry(pageQuery) {
     // If the user attempts to leave, let them know if they have unsaved changes
     // TO DO: Remove when the user leaves the page.
     $(window).on("beforeunload", function (event) {
-        event.preventDefault();
-        return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
+        if (changesDetected && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+            event.preventDefault();
+            return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
+        } else {
+            $(window).off("beforeunload");
+        }
     });
 
     $("#book-medium")[0].addEventListener("input", (event) => {
@@ -257,6 +261,21 @@ export function setupEditEntry(pageQuery) {
         addSubject();
     });
 
+    watchForChanges();
+}
+
+var changesDetected = false;
+function watchForChanges() {
+    changesDetected = false;
+    $("input, textarea").on("input", () => {
+        changesDetected = true;
+    });
+    $("select").on("change", () => {
+        changesDetected = true;
+    });
+    $("#book-cover-image-overlay").on("click", () => {
+        changesDetected = true;
+    });
 }
 
 function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
@@ -1420,11 +1439,4 @@ function convertToUTC(date) {
     // TODO: Actually account for time shifts with Daylight Savings
     console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
     return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
-}
-
-// Returns true if there are unsaved changes on the Edit Entry page
-export function unSavedChangesEditEntry() {
-    // TODO: Fix
-
-    return false;
 }
