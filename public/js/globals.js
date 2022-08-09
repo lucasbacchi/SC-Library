@@ -68,6 +68,14 @@ export function setCurrentPage(newCurrentPage) {
 }
 
 
+
+export let currentQuery = null;
+
+export function setCurrentQuery(newCurrentQuery) {
+    currentQuery = newCurrentQuery;
+}
+
+
 export let currentPanel = null;
 
 export function setCurrentPanel(newCurrentPanel) {
@@ -107,5 +115,56 @@ export let loadedSources = [];
 
 export function setLoadedSources(newLoadedSources) {
     loadedSources = newLoadedSources;
+}
+
+
+export class HistoryStack {
+    stack = [];
+    currentIndex = -1;
+    constructor(stack, currentIndex) {
+        this.stack = stack;
+        this.currentIndex = currentIndex;
+    }
+
+    push(item) {
+        if (this.currentIndex < this.stack.length - 1) {
+            this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
+        }
+        this.stack.push(item);
+        this.currentIndex++;
+    }
+
+    pop() {
+        this.currentIndex--;
+        return this.stack.pop();
+    }
+
+    insert(item, index) {
+        this.stack.splice(index, 0, item);
+    }
+
+    remove(index, count = 1) {
+        this.stack.splice(index, count);
+        if (this.currentIndex >= index) {
+            this.currentIndex -= count;
+        }
+    }
+
+    first(item) {
+        if (this.stack.length == 0 && this.currentIndex == -1) {
+            this.push(item);
+            window.history.replaceState({stack: this.stack, index: this.currentIndex}, "");
+        }
+    }
+}
+
+export let historyStack = null;
+
+export function setHistoryStack(newHistoryStack) {
+    if (newHistoryStack == undefined) {
+        historyStack = new HistoryStack([], -1);
+    } else {
+        historyStack = new HistoryStack(newHistoryStack.stack, newHistoryStack.index);
+    }
 }
 

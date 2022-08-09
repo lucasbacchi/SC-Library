@@ -8,7 +8,9 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 
-import { currentPage, db, directory, loadedSources, app, setApp, setCurrentPage, setCurrentPanel, setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth } from "./globals";
+import { currentPage, db, directory, loadedSources, app, setApp, setCurrentPage, setCurrentPanel,
+    setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
+    currentQuery, historyStack, setHistoryStack } from "./globals";
 import { findURLValue } from "./common";
 
 
@@ -25,7 +27,9 @@ $(() => {
     initApp()
         .then(() => {
             setupIndex();
+            setHistoryStack(window.history.state);
             goToPage(fullExtension.substring(1), true);
+            historyStack.first(fullExtension.substring(1));
         }, function (error) {
             console.error(error);
         });
@@ -104,7 +108,6 @@ function setupIndex() {
         $(window).on("click", (event) => {
             // Added to fix dupe input bug
             event.stopPropagation();
-            // @ts-ignore
             if (!($.contains($("#large-account-container")[0], event.target) || event.target == $("#large-account-container")[0])) {
                 if (largeAccountOpen) {
                     closeLargeAccount();
@@ -116,7 +119,6 @@ function setupIndex() {
 
 
     $(window).on("scroll", function () {
-        // @ts-ignore
         if ($(document).scrollTop() > 0) {
             $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
         } else {
@@ -178,30 +180,9 @@ export function isAdminCheck(recheck = false) {
         }
     });
 }
-var currentQuery;
-export function goToPage(pageName, goingBack = false, searchResultsArray = null) {
+
+export function goToPage(pageName, goingBack = false, searchResultsArray = null, bypassUnload = false) {
     return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
-        // If there is any reason for the user to not leave a page, then it will reject.
-        // Currently, this handles unsaved changes on the edit entry page.
-        // TODO: Add more
-        if (currentPage == "/admin/editEntry") {
-            import("./editEntry").then(({ unSavedChangesEditEntry }) => {
-                if (unSavedChangesEditEntry()) {
-                    // It's fine to call it regardless because it will only call if the first argument is true.
-                    reject("The User attempted to leave the page without saving.");
-                    return;
-                }
-            }).catch((error) => {
-                console.log(error);
-            });
-        }
-
-        $("#content").removeClass("fade");
-        if (window.innerWidth <= 570) {
-            closeNavMenu();
-        }
-        closeLargeAccount();
-
         var pageHash = "";
         var pageQuery = "";
         // Never Used: var pageExtension = "";
@@ -243,14 +224,50 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null)
 
         // Prevent users from going to the same page (just don't reload the content if you do)
         if (!currentQuery) {
-            currentQuery = "";
+            setCurrentQuery("");
         }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
-        if (currentPage && ((pageName == currentPage && pageName != "/search") || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))) {
+        if (currentPage && ((pageName == currentPage && pageName != "/search")
+            || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
+            && (pageName + pageQuery == currentPage + currentQuery)) {
             // TODO: Remove when I know it's not going to break everything
 
             console.log("The user attempted to view the current page, and it was blocked.");
+            return;
+        }
+
+        // If there is any reason for the user to not leave a page, then it will reject.
+        if (!bypassUnload) {
+            let cancelEvent = !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
+
+            if (cancelEvent) {
+                return reject("Cancelled by BeforeUnload Event");
+            }
+        }
+
+
+        $("#content").removeClass("fade");
+        if (window.innerWidth <= 570) {
+            closeNavMenu();
+        }
+        closeLargeAccount();
+
+
+        // If the user is going to a different pannel on the account page, handle it and return.
+        if (currentPage == "/account" && pageName == "/account") {
+            import('./account').then(({ goToSettingsPanel }) => {
+                goToSettingsPanel(pageQuery.substring(1), goingBack);
+                setCurrentQuery(pageQuery);
+                if (goingBack == false) {
+                    // Update the URL and History for all but the first page load
+                    historyStack.push("account?" + pageQuery.substring(1));
+                    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", "account?" + pageQuery.substring(1));
+                }
+                resolve();
+            }).catch((error) => {
+                reject(console.error("Problem importing", error));
+            });
             return;
         }
 
@@ -311,7 +328,15 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null)
         $("body").addClass("fade");
         $("body").css("overflow", "");
     }).catch((error) => {
-        console.error("goToPage function failed: " + error);
+        if (error == "Cancelled by BeforeUnload Event") {
+            console.log("goToPage function cancelled by BeforeUnload Event");
+            // Trigger catch in the history function
+            if (goingBack) {
+                return Promise.reject();
+            }
+        } else {
+            console.error("goToPage function failed: " + error);
+        }
     });
 }
 
@@ -336,12 +361,12 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
                 var pageUrl = pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
-                    pageUrl = "../";
+                    pageUrl = "/";
                 }
 
-                // The account pages handle their own states because they are panels
-                if (!goingBack && !pageName.includes("account")) {
-                    window.history.pushState({}, "", pageUrl + pageQuery + pageHash);
+                if (!goingBack) {
+                    historyStack.push(pageUrl.substring(1) + pageQuery + pageHash);
+                    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", pageUrl + pageQuery + pageHash);
                 }
 
                 $("#content").html(xhttp.responseText);
@@ -374,7 +399,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                 // Add Titles baseed on page Name
                 if (titleList[pageName] != undefined) {
                     changePageTitle(titleList[pageName], false);
-                } else if (pageUrl == "./") {
+                } else if (pageUrl == "/") {
                     changePageTitle("Home", false);
                 } else {
                     document.title = "South Church Library Catalog";
@@ -415,15 +440,6 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                         loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
                     }
                 });
-                // Iterate though the currently loaded js files
-                $.each($('body > script.appended'), (index, value) => {
-                    // Get the src attribute of the script tag.
-                    var src = value.attributes.src.value;
-                    // If the source isn't in the list of loaded scoures, add it.
-                    if (!loadedSources.includes(src.substring(src.lastIndexOf('/') + 1, src.length))) {
-                        loadedSources.push(src.substring(src.lastIndexOf('/') + 1, src.length));
-                    }
-                });
 
                 // Check if this page has every thing it needs. If not, load additional resources
                 // Get the list of sources needed for the current page
@@ -437,15 +453,9 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     for (let i = 0; i < sourcesForPage.length; i++) {
                         // If the source hasn't already been loaded.
                         if (!loadedSources.includes(sourcesForPage[i])) {
-                            // If the source is a js file:
-                            if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".js") {
-                                // $('body').append('<script src="/js/' + sourcesForPage[i] + '" class="appended">');
-                            }
                             // If the source is a css file
-                            else if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
+                            if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
                                 $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
-                            } else {
-                                console.error("SOURCE NEEDED COULD NOT BE FOUND!!");
                             }
                         }
                     }
@@ -591,22 +601,49 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
 
         setCurrentPage(pageName);
-        currentQuery = pageQuery;
+        setCurrentQuery(pageQuery);
         // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
         resolve();
     });
 }
 
 // Catch History Events such as forward and back and then go to those pages
-window.onpopstate = function () {
-    handleHistoryPages();
-};
+window.onpopstate = () => {
+    if (historyStack.currentIndex == window.history.state.index) {
+        // If the current index is the same as the state index, then we haven't moved
+        // forward or back in the history. This could be a beforeunload event.
+        return;
+    }
 
-function handleHistoryPages() {
     let path = document.location.pathname.substring(1);
     let search = document.location.search;
     let hash = document.location.hash;
-    goToPage(path + search + hash, true);
+
+    goToPage(path + search + hash, true).then(() => {
+        if (historyStack.currentIndex - 1 == window.history.state.index) {
+            historyStack.currentIndex--;
+        } else if (historyStack.currentIndex + 1 == window.history.state.index) {
+            historyStack.currentIndex++;
+        }
+
+        // Give the past knowlege of the future
+        window.history.replaceState({stack:historyStack.stack, index:historyStack.currentIndex}, "");
+    }).catch(() => {
+        restoreHistory();
+    });
+};
+
+// In the event that a navigation action was cancelled, we need to reset the history state
+function restoreHistory() {
+    if (historyStack.currentIndex != window.history.state.index) {
+        if (historyStack.currentIndex > window.history.state.index) {
+            // We're going backwards
+            window.history.forward();
+        } else {
+            // We're going forwards
+            window.history.back();
+        }
+    }
 }
 
 export function changePageTitle(newTitle, append = true) {
