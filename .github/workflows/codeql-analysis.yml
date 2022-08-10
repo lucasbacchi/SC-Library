@@ -24,7 +24,7 @@ on:
 
 jobs:
   analyze:
-    if: github.actor != 'dependabot'
+    if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
     name: Analyze
     runs-on: ubuntu-latest
 
