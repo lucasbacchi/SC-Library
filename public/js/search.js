@@ -126,7 +126,7 @@ function browse() {
                     console.error("no books available");
                     const p = document.createElement('p');
                     p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                    $('div#results-container')[0].appendChild(p);
+                    $('div#search-results-container')[0].appendChild(p);
 
                 }
                 createSearchResultsPage(browseResultsArray);
@@ -169,7 +169,7 @@ function browse() {
                                 console.error("no books available");
                                 const p = document.createElement('p');
                                 p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                                $('div#results-container')[0].appendChild(p);
+                                $('div#search-results-container')[0].appendChild(p);
 
                             }
                             createSearchResultsPage(browseResultsArray);
@@ -183,17 +183,51 @@ function browse() {
     }
 }
 
-function createSearchResultsPage(searchResultsArray, filters = [], items = [[]]) {
-    $('div#results-container').empty();
+function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]]) {
+    $('div#search-results-container').empty();
     if (searchResultsArray.length == 0) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
-        $('div#results-container')[0].appendChild(p);
+        $('div#search-results-container')?.[0].appendChild(p);
     }
-    for (let i = 0; i < searchResultsArray.length; i++) {
-        $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
+    for (let i = (page - 1) * 20; i < Math.min(page * 20, searchResultsArray.length); i++) {
+        $('div#search-results-container')?.[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
     createFilterList(searchResultsArray, filters, items);
+
+    $("#paginator").empty();
+    if (page > 1) {
+        const prev = document.createElement('a');
+        prev.innerHTML = "< Previous Page";
+        prev.onclick = function() {
+            createSearchResultsPage(searchResultsArray, page - 1);
+        };
+        $("#paginator")[0].appendChild(prev);
+    }
+    for (let p = page - 2; p <= page + 2; p++) {
+        if (p < 1 || (p - 1) * 20 > searchResultsArray.length) continue;
+        if (p == page) {
+            const span = document.createElement('span');
+            span.innerHTML = "<b>" + p + "</b>";
+            $("#paginator")[0].appendChild(span);
+            continue;
+        }
+        const a = document.createElement('a');
+        a.innerHTML = p;
+        a.onclick = function() {
+            createSearchResultsPage(searchResultsArray, p);
+        };
+        $("#paginator")[0].appendChild(a);
+    }
+    if (page * 20 < searchResultsArray.length) {
+        const next = document.createElement('a');
+        next.innerHTML = "Next Page >";
+        next.onclick = function() {
+            createSearchResultsPage(searchResultsArray, page + 1);
+        };
+        $("#paginator")[0].appendChild(next);
+    }
+    $(document).scrollTop(0);
 }
 
 var searchResultsAuthorsArray = [];
@@ -680,36 +714,35 @@ function searchWithFilters(filters, items, results) {
     for (let i = 0; i < searchCache.length; i++) {
         let passesAllFilters = true;
         for (let j = 0; j < filters.length && passesAllFilters; j++) {
-            var passesFilter = true;
+            var passesFilter = false;
             for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Author") {
-                    if (items[j][k] != searchCache[i].authors[0].last + ", " + searchCache[i].authors[0].first) {
-                        if (searchCache[i].authors[1]) {
-                            if (items[j][k] != searchCache[i].authors[1].last + ", " + searchCache[i].authors[1].first) {
-                                passesFilter = false;
-                            }
-                        } else {
-                            passesFilter = false;
-                        }
+                    if (passesFilter ||
+                        items[j][k] == searchCache[i].authors[0].last + ", " + searchCache[i].authors[0].first
+                        || (searchCache[i].authors[1] &&
+                            items[j][k] == searchCache[i].authors[1].last + ", " + searchCache[i].authors[1].first)) {
+                        passesFilter = true;
                     }
                 } else if (filters[j] == "Medium") {
-                    if (items[j][k].toUpperCase() != searchCache[i].medium.toUpperCase()) {
-                        passesFilter = false;
+                    if (passesFilter || items[j][k].toUpperCase() == searchCache[i].medium.toUpperCase()) {
+                        passesFilter = true;
                     }
                 } else if (filters[j] == "Audience") {
-                    if (items[j][k] == "Children" && !searchCache[i].audience[0] ||
-                        items[j][k] == "Youth" && !searchCache[i].audience[1] ||
-                        items[j][k] == "Adult" && !searchCache[i].audience[2]) {
-                        passesFilter = false;
+                    if (passesFilter ||
+                        items[j][k] == "Children" && searchCache[i].audience[0] ||
+                        items[j][k] == "Youth" && searchCache[i].audience[1] ||
+                        items[j][k] == "Adult" && searchCache[i].audience[2]) {
+                        passesFilter = true;
                     }
                 } else if (filters[j] == "Subject") {
-                    if (!searchCache[i].subjects.includes(items[j][k])) {
-                        passesFilter = false;
+                    if (passesFilter || searchCache[i].subjects.includes(items[j][k])) {
+                        passesFilter = true;
                     }
                 } else if (filters[j] == "Type") {
-                    if (items[j][k] == "Non-fiction" && searchCache[i].ddc == "FIC" ||
+                    if (passesFilter ||
+                        items[j][k] == "Non-fiction" && searchCache[i].ddc == "FIC" ||
                         items[j][k] == "Fiction" && searchCache[i].ddc != "FIC") {
-                        passesFilter = false;
+                        passesFilter = true;
                     }
                 }
             }
@@ -721,7 +754,7 @@ function searchWithFilters(filters, items, results) {
         }
     }
 
-    createSearchResultsPage(results, filters, items);
+    createSearchResultsPage(results, 1, filters, items);
 }
 
 console.log("search.js Loaded!");
