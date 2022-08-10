@@ -229,7 +229,7 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         if (currentPage && ((pageName == currentPage && pageName != "search")
             || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
             && (pageName + pageQuery == currentPage + currentQuery)) {
-            reject("The user attempted to view the current page, and it was blocked.");
+            reject("The user attempted to view the current page.");
             return;
         }
 
@@ -313,8 +313,8 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             console.log("goToPage function cancelled because the user is already logged in.");
         } else if (error == "User is not an admin.") {
             console.log("goToPage function cancelled because the user is not an admin.");
-        } else if (error == "The user attempted to view the current page, and it was blocked.") {
-            console.log("goToPage function cancelled because the user attempted to view the current page, and it was blocked.");
+        } else if (error == "The user attempted to view the current page.") {
+            console.log("goToPage function cancelled because the user attempted to view the current page.");
         } else {
             console.error("goToPage function failed: " + error);
         }
@@ -334,7 +334,9 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
         // If the user is going to a different panel on the account page, handle it with the other function and return.
         if (currentPage == "account" && pageName == "account") {
             import('./account').then(({ goToSettingsPanel }) => {
-                goToSettingsPanel(pageQuery.substring(1), goingBack);
+                goToSettingsPanel(pageQuery.substring(1), goingBack).catch((error) => {
+                    reject(error);
+                });
                 setCurrentQuery(pageQuery);
                 if (goingBack == false) {
                     // Update the URL and History for all but the first page load

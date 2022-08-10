@@ -325,7 +325,7 @@ export function goToSettingsPanel(newPanel) {
         $("#settings-column").removeClass("fade");
 
         if (newPanel == currentPanel) {
-            reject("The user attempted to view the same account panel twice and it was prevented.");
+            reject("The user attempted to view the same account panel twice.");
             return;
         }
 
