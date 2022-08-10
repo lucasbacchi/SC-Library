@@ -137,7 +137,7 @@ function adminSearch() {
     if (searchQuery) {
         $("#edit-entry-search-results").show();
         $("#edit-entry-search-results").empty();
-        search(searchQuery, undefined, undefined, true).then((results) => {
+        search(searchQuery, true).then((results) => {
             if (results.length == 0) {
                 $("#edit-entry-search-results").html("Your search returned no results. Please try again.");
             } else {
@@ -467,7 +467,7 @@ function recentlyCheckedOut() {
 
 function addStats() {
     let count = 0;
-    search("", 0, 0).then(() => {
+    search("").then(() => {
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
@@ -504,7 +504,7 @@ function viewMissingBarcodes() {
 }
 
 function downloadDatabase() {
-    search("", 0, 0, true).then(() => {
+    search("", true).then(() => {
         var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
@@ -543,7 +543,7 @@ function setUploadDatabase() {
 export function setupView(pageQuery) {
     var type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        search("", 0, 0, true).then(() => {
+        search("", true).then(() => {
             bookDatabase.forEach((doc) => {
                 doc.books.forEach((book) => {
                     $("div#view-container")[0].appendChild(buildBookBox(book, "view"));
@@ -728,7 +728,7 @@ function cancelInventory() {
 }
 
 function continueScanning() {
-    search("", 0, 0, true);
+    search("", true);
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
