@@ -89,10 +89,6 @@ h4:hover {
     justify-content: space-between;
 }
 
-.result-listing:last-child {
-    border-bottom: 0px;
-}
-
 .result-number {
     float: left;
     margin-right: 16px;
@@ -143,6 +139,10 @@ h4:hover {
 
 div#result-page-info-bar > p {
     text-align: left;
+}
+
+#paginator, #paginator > * {
+    margin: 8px;
 }
 
 #checkout-button {
