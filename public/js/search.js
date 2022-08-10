@@ -191,7 +191,7 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
         $('div#search-results-container')?.[0].appendChild(p);
     }
     for (let i = (page - 1) * 20; i < Math.min(page * 20, searchResultsArray.length); i++) {
-        $('div#search-results-container')?.[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
+        $('div#search-results-container')?.[0]?.appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
     createFilterList(searchResultsArray, filters, items);
 
@@ -277,7 +277,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
         li.classList.add("sort-item");
         li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
         if (i < maxAuthors) {
-            $("#sort-author-list")[0].appendChild(li);
+            $("#sort-author-list")[0]?.appendChild(li);
         } else if (i == maxAuthors) {
             const span = document.createElement("span");
             span.id = "author-show-more";
