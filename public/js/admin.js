@@ -577,7 +577,7 @@ function buildUserBox(obj, page, num = 0) {
     div.appendChild(div1);
     div.appendChild(div2);
     const img = document.createElement("img");
-    img.classList.add("bookimage");
+    img.classList.add("userimage");
     img.src = obj.pfpLink;
     div1.appendChild(img);
     const b = document.createElement("b");
@@ -631,7 +631,11 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(lastCheckoutTime);
         const checkouts = document.createElement("p");
         checkouts.classList.add("description");
-        checkouts.appendChild(document.createTextNode(obj.checkouts));
+        if (obj.checkouts.length > 0) {
+            checkouts.appendChild(document.createTextNode("Last Checked Out Book: " + obj.checkouts[0].title + " (Barcode: " + obj.checkouts[0].barcodeNumber + ")"));
+        } else {
+            checkouts.appendChild(document.createTextNode("Last Checked Out Book: N/A"));
+        }
         div3.appendChild(checkouts);
     }
     return div;
@@ -646,7 +650,7 @@ function formatDate(date) {
 
 var userDatabase = [];
 function getAllUsers() {
-    return /** @type {Promise<void>} */(new Promise(function (resolve) {
+    return new Promise(function (resolve) {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((docSnap) => {
@@ -658,7 +662,7 @@ function getAllUsers() {
             });
             resolve();
         });
-    }));
+    });
 }
 
 
@@ -706,7 +710,7 @@ export function setupInventory() {
 
 var cachedInventory = [];
 function loadInventory() {
-    return /** @type {Promise<void>} */(new Promise(function (resolve) {
+    return new Promise(function (resolve) {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
@@ -715,7 +719,7 @@ function loadInventory() {
             cachedInventory = docSnap.data().books;
             resolve();
         });
-    }));
+    });
 }
 
 function cancelInventory() {

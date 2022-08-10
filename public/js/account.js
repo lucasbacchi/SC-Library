@@ -5,15 +5,7 @@ import { goToPage, updateEmailinUI } from "./ajax";
 import { buildBookBox, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
-// TODO: Probably can reference the original directory and can get rid of this at a later date. Leaving this for now/backup.
-var settingsDirectory = [
-    "/overview",
-    "/notifications",
-    "/checkouts",
-    "/security"
-];
 
-// TODO: Fix this so that it doesn't error once you've left the account pages.
 $(window).on("resize", function () {
     alignMenuColumn();
 });
@@ -103,7 +95,7 @@ export function setupAccountPage(pageQuery) {
         });
     }
 
-    if (pageQuery.substring(1) != "" && directory.includes("/account/" + pageQuery.substring(1))) {
+    if (pageQuery.substring(1) != "" && directory.includes("account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1), true);
     } else {
         goToSettingsPanel("overview", true);
@@ -327,54 +319,51 @@ function deleteAccount() {
 
 const xhttp = new XMLHttpRequest();
 export function goToSettingsPanel(newPanel) {
-    var user = auth.currentUser;
+    return new Promise((resolve, reject) => {
+        var user = auth.currentUser;
 
-    $("#settings-column").removeClass("fade");
+        $("#settings-column").removeClass("fade");
 
-    newPanel = "/" + newPanel;
-    if (newPanel == currentPanel) {
-        // TODO: Remove after I know it's not breaking anything...
-        console.log("The user attempted to view the same account panel twice and it was prevented.");
-        return;
-    }
-
-    if (settingsDirectory.includes(newPanel)) {
-        xhttp.open("GET", "/content/account" + newPanel + ".html", true);
-    } else if (directory.includes("/account" + newPanel)) {
-        xhttp.open("GET", "/content/account" + newPanel, true);
-    } else if (settingsDirectory.includes(newPanel.substring(0, newPanel.indexOf(".")))) {
-        xhttp.open("GET", "/content/account" + newPanel, true);
-    } else {
-        xhttp.open("GET", "/content/404.html", true);
-    }
-    xhttp.send();
-
-    // Set the content of the page
-    xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-            if (currentPanel != newPanel) {
-                $("#settings-column").addClass("fade");
-            }
-
-            document.getElementById("settings-column").innerHTML = xhttp.responseText;
-            // Remove Placeholder Height
-            document.getElementById("settings-column").style.height = "";
-
-            if (newPanel == "/overview") {
-                setupAccountOverview(firstName, lastName, user.email);
-            } if (newPanel == "/checkouts") {
-                setupAccountCheckouts();
-            } if (newPanel == "/notifications") {
-                setupAccountNotifications();
-            } if (newPanel == "/security") {
-                setupAccountSecurity();
-            }
-
-            alignMenuColumn();
-
-            setCurrentPanel(newPanel);
+        if (newPanel == currentPanel) {
+            reject("The user attempted to view the same account panel twice and it was prevented.");
+            return;
         }
-    };
+
+        if (directory.includes("account/" + newPanel)) {
+            xhttp.open("GET", "/content/account/" + newPanel + ".html", true);
+        } else {
+            xhttp.open("GET", "/content/404.html", true);
+        }
+        xhttp.send();
+
+        // Set the content of the page
+        xhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                if (currentPanel != newPanel) {
+                    $("#settings-column").addClass("fade");
+                }
+
+                document.getElementById("settings-column").innerHTML = xhttp.responseText;
+                // Remove Placeholder Height
+                document.getElementById("settings-column").style.height = "";
+
+                if (newPanel == "/overview") {
+                    setupAccountOverview(firstName, lastName, user.email);
+                } if (newPanel == "/checkouts") {
+                    setupAccountCheckouts();
+                } if (newPanel == "/notifications") {
+                    setupAccountNotifications();
+                } if (newPanel == "/security") {
+                    setupAccountSecurity();
+                }
+
+                alignMenuColumn();
+
+                setCurrentPanel(newPanel);
+                resolve();
+            }
+        };
+    });
 }
 
 // Returns true if the user has unsaved changes, otherwise, returns false

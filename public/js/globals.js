@@ -84,38 +84,31 @@ export function setCurrentPanel(newCurrentPanel) {
 
 
 export let directory = [
-    "/account/overview",
-    "/account/notifications",
-    "/account/checkouts",
-    "/account/security",
-    "/admin/barcode",
-    "/admin/editEntry",
-    "/admin/editUser",
-    "/admin/inventory",
-    "/admin/main",
-    "/admin/report",
-    "/admin/view",
-    "/404",
-    "/about",
-    "/account",
-    "/advancedSearch",
-    "/autogenindex",
-    "/help",
-    "/login",
-    "/main",
-    "/result",
-    "/search",
-    "/signup",
-    "/sitemap"
+    "account/overview",
+    "account/notifications",
+    "account/checkouts",
+    "account/security",
+    "admin/barcode",
+    "admin/editEntry",
+    "admin/editUser",
+    "admin/inventory",
+    "admin/main",
+    "admin/report",
+    "admin/view",
+    "404",
+    "about",
+    "account",
+    "advancedSearch",
+    "autogenindex",
+    "help",
+    "login",
+    "main",
+    "result",
+    "search",
+    "signup",
+    "sitemap"
 ];
 
-
-
-export let loadedSources = [];
-
-export function setLoadedSources(newLoadedSources) {
-    loadedSources = newLoadedSources;
-}
 
 
 export class HistoryStack {

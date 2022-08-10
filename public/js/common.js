@@ -1,7 +1,8 @@
+import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack, analytics } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -16,7 +17,7 @@ BEGIN SEARCH
  * @returns {Promise<void>} An array of results
  */
 export function search(searchQuery, start = 0, end = 20, viewHidden = false) {
-    return /** @type {Promise<void>} */(/** @type {Promise<void>} */(new Promise(function (resolve) {
+    return new Promise(function (resolve) {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             setTimeLastSearched(new Date());
@@ -48,7 +49,7 @@ export function search(searchQuery, start = 0, end = 20, viewHidden = false) {
                 resolve(output);
             });
         }
-    })));
+    });
 }
 
 
@@ -146,6 +147,12 @@ function performSearch(searchQuery, start, end, viewHidden = false) {
                 returnArray.push(item.book);
             }
         });
+
+        if (searchQuery != "") {
+            logEvent(analytics, "search", {
+                searchTerm: searchQuery
+            });
+        }
         setSearchCache(returnArray);
         return returnArray;
     });

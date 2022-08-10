@@ -1,8 +1,9 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
-import { auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import { analytics, auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
+import { logEvent } from 'firebase/analytics';
 
 // Doesn't have to be setup because the window element doesn't change.
 $(window).on("resize", () => {
@@ -525,9 +526,13 @@ export function setupResultPage(pageQuery) {
         }
         $("#result-page-subjects").html(subjectsAnswer);
         $("#result-page-description").html(bookObject.description);
+
+        logEvent(analytics, "select_content", {
+            content_type: "book_result",
+            item_id: barcodeNumber
+        });
     }).catch((barcodeNumber) => {
-        alert("Error: No information could be found for that book.");
-        alert(barcodeNumber + " is not a valid barcode number.");
+        alert("Error: No information could be found for that book. Could not find book with barcode number: " + barcodeNumber);
         goToPage("");
         return;
     });
