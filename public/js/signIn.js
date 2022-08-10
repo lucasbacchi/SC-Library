@@ -1,9 +1,10 @@
+import { logEvent } from "firebase/analytics";
 import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
 import { doc, runTransaction } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { goToPage, updateUserAccountInfo } from "./ajax";
 import { findURLValue, sendEmailVerificationToUser } from "./common";
-import { auth, currentPage, db, storage } from "./globals";
+import { analytics, auth, currentPage, db, storage } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
     $("#submit, .login > input").on("keydown", (event) => {
@@ -99,7 +100,12 @@ function signIn(reAuth = false) {
             }
             if (!reAuth) {
                 // Sign in with email and pass.
-                signInWithEmailAndPassword(auth, email, password).then(function() {
+                signInWithEmailAndPassword(auth, email, password).then(() => {
+                    user = auth.currentUser;
+                    logEvent(analytics, "login", {
+                        method: "email",
+                        userId: user.uid
+                    });
                     resolve(reAuth);
                 }).catch(function(error) {
                     // Handle Errors here.
@@ -260,6 +266,16 @@ function handleSignUp() {
                         console.log("New User Created with card number: ", newCardNumber);
                         updateUserAccountInfo();
                         sendEmailVerificationToUser();
+                        logEvent(analytics, "sign_up", {
+                            method: "email",
+                            userId: user.uid,
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            phone: phone,
+                            address: address + ", " + town + ", " + state + " " + zip,
+                            cardNumber: newCardNumber
+                        });
                         resolve();
                     }).catch((err) => {
                         console.error(err);

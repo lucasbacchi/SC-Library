@@ -145,6 +145,17 @@ div#edit-entry-search-results > .book {
     opacity: 0.7;
 }
 
+.userimage {
+    max-height: 150px;
+    float: left;
+    user-select: none;
+    border-radius: 200px;
+    box-shadow: 0px 0px 14px -4px var(--teal);
+    /*padding: 4px;*/
+    height: 100%;
+}
+
+
 
 
 /* Content if screen is large */

@@ -8,9 +8,11 @@ import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 
-import { currentPage, db, directory, loadedSources, app, setApp, setCurrentPage, setCurrentPanel,
+import {
+    currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyStack, setHistoryStack } from "./globals";
+    currentQuery, historyStack, setHistoryStack
+} from "./globals";
 import { findURLValue } from "./common";
 
 
@@ -37,8 +39,6 @@ $(() => {
 
 
 // Runs on the first load of all pages to handle nav links
-
-export let closeLargeAccount;
 function setupIndex() {
     // Set up on click for log out button
     $("div#log-out").on("click", () => {
@@ -53,12 +53,10 @@ function setupIndex() {
 
     });
 
-
     // Manage Menu Close Button event listener
     $("#close-button").on("click", () => {
         closeNavMenu();
     });
-
 
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
@@ -79,45 +77,33 @@ function setupIndex() {
         }
     });
 
-
-
     // Manage Account Panel and animation
-    {
-        let largeAccountOpen = false;
-        $("#small-account-container").on("click", () => {
-            if ($("#large-account-container").css("display") == "none") {
-                setTimeout(function () {
-                    largeAccountOpen = true;
-                }, 20);
-                $("#large-account-container").show(0).delay(10);
-                $("#large-account-container").css("right", "0%");
-            } else {
+    $("#small-account-container").on("click", () => {
+        if ($("#large-account-container").css("display") == "none") {
+            setTimeout(function () {
+                largeAccountOpen = true;
+            }, 20);
+            $("#large-account-container").show(0).delay(10);
+            $("#large-account-container").css("right", "0%");
+        } else {
+            closeLargeAccount();
+        }
+
+    });
+
+    // Watch for clicks outside of the account panel
+    $(window).on("click", (event) => {
+        // Added to fix dupe input bug
+        event.stopPropagation();
+        if (!($.contains($("#large-account-container")[0], event.target) || event.target == $("#large-account-container")[0])) {
+            if (largeAccountOpen) {
                 closeLargeAccount();
             }
+        }
 
-        });
+    });
 
-
-        closeLargeAccount = () => {
-            largeAccountOpen = false;
-            $("#large-account-container").delay(400).hide(0);
-            $("#large-account-container").css("right", "-500%");
-        };
-
-
-        $(window).on("click", (event) => {
-            // Added to fix dupe input bug
-            event.stopPropagation();
-            if (!($.contains($("#large-account-container")[0], event.target) || event.target == $("#large-account-container")[0])) {
-                if (largeAccountOpen) {
-                    closeLargeAccount();
-                }
-            }
-
-        });
-    }
-
-
+    // Watch the scroll status of the page and change the nav bar drop shadow accordingly
     $(window).on("scroll", function () {
         if ($(document).scrollTop() > 0) {
             $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
@@ -127,6 +113,12 @@ function setupIndex() {
     });
 }
 
+var largeAccountOpen = false;
+export function closeLargeAccount() {
+    largeAccountOpen = false;
+    $("#large-account-container").delay(400).hide(0);
+    $("#large-account-container").css("right", "-500%");
+}
 
 export function convertDataTagsToLinks() {
     // Iterate through all the links and set an onclick
@@ -158,11 +150,9 @@ function openNavMenu() {
     $("#close-button").css("opacity", "1");
 }
 
-
-
-let isAdmin;
 export function isAdminCheck(recheck = false) {
     return new Promise(function (resolve) {
+        let isAdmin;
         if (isAdmin == null || recheck) {
             getDoc(doc(db, "admin", "private_vars")).then(() => {
                 isAdmin = true;
@@ -181,11 +171,19 @@ export function isAdminCheck(recheck = false) {
     });
 }
 
+/**
+ * Called every time the user wants to go to a new page. The function checks if the page change is valid.
+ * If the page change is valid, the function will go to the new page by calling getPage().
+ * @param {String} pageName - The name of the page to go to.
+ * @param {Boolean} goingBack - Whether the user is going forward or backward in the history. (Prevents new history entries)
+ * @param {Array<Book>} searchResultsArray - The array of books to display in the search results page.
+ * @param {Boolean} bypassUnload - Whether to bypass the unload event.
+ * @returns 
+ */
 export function goToPage(pageName, goingBack = false, searchResultsArray = null, bypassUnload = false) {
-    return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var pageHash = "";
         var pageQuery = "";
-        // Never Used: var pageExtension = "";
 
         // This removes the hash if one was passed in and stores it to a separate variable.
         if (pageName.includes("#")) {
@@ -201,7 +199,6 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 
         // This removes the file extension if one was passed in.
         if (pageName.includes(".")) {
-            // Never Used: pageExtension = pageName.substring(pageName.indexOf("."), pageName.length);
             pageName = pageName.substring(0, pageName.indexOf("."));
         }
 
@@ -210,17 +207,18 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             pageName = pageName.substring(0, pageName.length - 1);
         }
 
+        // This removes a leading slash if one was mistakenly included
+        if (pageName.substring(0, 1) == "/") {
+            pageName = pageName.substring(1, pageName.length);
+        }
+
         if (pageName == "" || pageName == "index.html" || pageName == "index") {
             pageName = "main";
         }
 
         if (pageName == "admin") {
-            goToPage("admin/main");
             pageName = "admin/main";
-            return;
         }
-
-        pageName = "/" + pageName;
 
         // Prevent users from going to the same page (just don't reload the content if you do)
         if (!currentQuery) {
@@ -228,74 +226,36 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
-        if (currentPage && ((pageName == currentPage && pageName != "/search")
-            || (pageName == "/search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
+        if (currentPage && ((pageName == currentPage && pageName != "search")
+            || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
             && (pageName + pageQuery == currentPage + currentQuery)) {
-            // TODO: Remove when I know it's not going to break everything
-
-            console.log("The user attempted to view the current page, and it was blocked.");
+            reject("The user attempted to view the current page, and it was blocked.");
             return;
         }
 
+        // Prevent the user from visiting the auth pages if they are already logged in
+        if (pageName.includes("login") || pageName.includes("signup")) {
+            if (auth.currentUser != null && findURLValue(pageQuery, "redirect", true) == "") {
+                alert("You can't visit the login or signup pages while you're logged in.");
+                reject("User is already logged in.");
+                goToPage("");
+                return;
+            }
+        }
+
+        // At this point, the user is going somewhere, but we don't know if they are allowed to go to admin pages yet
         // If there is any reason for the user to not leave a page, then it will reject.
         if (!bypassUnload) {
             let cancelEvent = !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
 
             if (cancelEvent) {
-                return reject("Cancelled by BeforeUnload Event");
+                reject("Cancelled by BeforeUnload Event");
+                return;
             }
         }
 
-
-        $("#content").removeClass("fade");
-        if (window.innerWidth <= 570) {
-            closeNavMenu();
-        }
-        closeLargeAccount();
-
-
-        // If the user is going to a different pannel on the account page, handle it and return.
-        if (currentPage == "/account" && pageName == "/account") {
-            import('./account').then(({ goToSettingsPanel }) => {
-                goToSettingsPanel(pageQuery.substring(1), goingBack);
-                setCurrentQuery(pageQuery);
-                if (goingBack == false) {
-                    // Update the URL and History for all but the first page load
-                    historyStack.push("account?" + pageQuery.substring(1));
-                    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", "account?" + pageQuery.substring(1));
-                }
-                resolve();
-            }).catch((error) => {
-                reject(console.error("Problem importing", error));
-            });
-            return;
-        }
-
-        // Prevent users from viewing admin pages without having admin privilages
-        if (!pageName.includes("admin")) {
-            // Prevent users from going to the sign in/up page if they are signed in
-            if (!pageName.includes("login") && !pageName.includes("signup")) {
-                // Normal exit for all non admin and non auth pages
-                getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
-                    pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
-                        resolve();
-                    });
-                });
-            } else {
-                // TODO: Might have broken reauth.
-                if (auth.currentUser != null) {
-                    goToPage("");
-                    return;
-                } else {
-                    // Normal exit for login and signup
-                    getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
-                        pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
-                            resolve();
-                        });
-                    });
-                }
-            }
-        } else {
+        // Prevent the user from visiting admin pages if they are not an admin
+        if (pageName.includes("admin")) {
             isAdminCheck(true).then((isAdmin) => {
                 if (isAdmin) {
                     // Normal exit for all admin pages
@@ -304,25 +264,40 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
                             resolve();
                         });
                     });
+                    return;
                 } else {
+                    reject("User is not an admin.");
                     goToPage("");
+                    return;
                 }
             }).catch((error) => {
-                console.error("error in admin check", error);
+                console.error("Error in admin check", error);
                 return;
             });
+            return;
+        } else {
+            // At this point, we have decided that we are going to a new page that doesn't require admin access
+            getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
+                // Run the setup function for whichever page has loaded.
+                let pageSetupPromise = pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery);
+
+                // Recheck the admin status if needed and then add the admin link if appropriate.
+                let isAdminCheckPromise = isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
+                    console.error(error);
+                }).then((result) => {
+                    if (result && $("#admin-link").html() == "") {
+                        $("#admin-link").html("Admin Dashboard");
+                    }
+                });
+
+                Promise.all([pageSetupPromise, isAdminCheckPromise]).then(() => {
+                    resolve();
+                }).catch((error) => {
+                    console.error(error);
+                });
+            });
         }
-
-
-
-        isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
-            console.error(error);
-        }).then((result) => {
-            if (result && $("#admin-link").html() == "") {
-                $("#admin-link").html("Admin Dashboard");
-            }
-        });
-    })).then(() => {
+    }).then(() => {
         // Will Run after goToPage resolves
         $("#cover").hide();
         $("body").addClass("fade");
@@ -334,6 +309,12 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             if (goingBack) {
                 return Promise.reject();
             }
+        } else if (error == "User is already logged in.") {
+            console.log("goToPage function cancelled because the user is already logged in.");
+        } else if (error == "User is not an admin.") {
+            console.log("goToPage function cancelled because the user is not an admin.");
+        } else if (error == "The user attempted to view the current page, and it was blocked.") {
+            console.log("goToPage function cancelled because the user attempted to view the current page, and it was blocked.");
         } else {
             console.error("goToPage function failed: " + error);
         }
@@ -341,10 +322,36 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 }
 
 function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        // Prepare the page for loading
+        $("#content").removeClass("fade");
+        if (window.innerWidth <= 570) {
+            closeNavMenu();
+        }
+        closeLargeAccount();
+
+
+        // If the user is going to a different panel on the account page, handle it with the other function and return.
+        if (currentPage == "account" && pageName == "account") {
+            import('./account').then(({ goToSettingsPanel }) => {
+                goToSettingsPanel(pageQuery.substring(1), goingBack);
+                setCurrentQuery(pageQuery);
+                if (goingBack == false) {
+                    // Update the URL and History for all but the first page load
+                    historyStack.push("account?" + pageQuery.substring(1));
+                    window.history.pushState({ stack: historyStack.stack, index: historyStack.currentIndex }, "", "account?" + pageQuery.substring(1));
+                }
+                resolve();
+            }).catch((error) => {
+                reject(console.error("Problem importing", error));
+            });
+            return;
+        }
+
+        // Start getting the page
         const xhttp = new XMLHttpRequest();
         if (directory.includes(pageName)) {
-            xhttp.open("GET", "/content" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
+            xhttp.open("GET", "/content/" + pageName + ".html", true); // removed sending the hash/query (I don't see why we'd need the server to know it...)
         } else {
             xhttp.open("GET", "/content/404.html", true);
         }
@@ -352,21 +359,16 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
         // Set the content of the page
         xhttp.onreadystatechange = function () {
-
             if (this.readyState == 4 && this.status == 200) {
-                if (currentPage != pageName) {
-                    $("#content").addClass("fade");
-                }
-
-
-                var pageUrl = pageName;
+                var pageUrl = "/" + pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
                     pageUrl = "/";
                 }
 
                 if (!goingBack) {
                     historyStack.push(pageUrl.substring(1) + pageQuery + pageHash);
-                    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", pageUrl + pageQuery + pageHash);
+                    // Can't use substring because it will remove the leading / and the history entry can't have an empty string.
+                    window.history.pushState({ stack: historyStack.stack, index: historyStack.currentIndex }, "", pageUrl + pageQuery + pageHash);
                 }
 
                 $("#content").html(xhttp.responseText);
@@ -375,25 +377,25 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
                 // Set Title Correctly
                 var titleList = {
-                    "/admin/editEntry": "Edit an Entry",
-                    "/admin/main": "Admin Console",
-                    "/admin/report": "Run a Report",
-                    "/admin/barcode": "Generate Barcodes",
-                    "/admin/view": "View Database",
-                    "/admin/editUser": "Edit a User",
-                    "/admin/inventory": "Conduct Inventory",
-                    "/404": "404 | File Not Found",
-                    "/about": "About Us",
-                    "/account": "Your Account",
-                    "/advancedSearch": "Advanced Search",
-                    "/autogenindex": "LEAVE",
-                    "/help": "Help",
-                    "/login": "Login",
-                    "/main": "Home",
-                    "/result": "Search Result", // This will get changed on the page to be specific to the title.
-                    "/search": "Search Results",
-                    "/signup": "Signup",
-                    "/sitemap": "Sitemap"
+                    "admin/editEntry": "Edit an Entry",
+                    "admin/main": "Admin Console",
+                    "admin/report": "Run a Report",
+                    "admin/barcode": "Generate Barcodes",
+                    "admin/view": "View Database",
+                    "admin/editUser": "Edit a User",
+                    "admin/inventory": "Conduct Inventory",
+                    "404": "404 | File Not Found",
+                    "about": "About Us",
+                    "account": "Your Account",
+                    "advancedSearch": "Advanced Search",
+                    "autogenindex": "LEAVE",
+                    "help": "Help",
+                    "login": "Login",
+                    "main": "Home",
+                    "result": "Search Result", // This will get changed on the page to be specific to the title.
+                    "search": "Search Results",
+                    "signup": "Signup",
+                    "sitemap": "Sitemap"
                 };
 
                 // Add Titles baseed on page Name
@@ -405,65 +407,11 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     document.title = "South Church Library Catalog";
                 }
 
-                // Define what sources are required on each page
-                // (excluding favicon.ico, ajax.js, main.js, and main.css)
-                // These will always be loaded no matter what page.
-                var sourcesRequired = {
-                    "/admin/editEntry": ["form.css", "editEntry.js", "admin.js", "admin.css"],
-                    "/admin/main": ["admin.js", "admin.css", "editEntry.js"],
-                    "/admin/report": ["admin.js", "admin.css", "report.js"],
-                    "/admin/barcode": ["admin.js", "admin.css"],
-                    "/admin/view": ["admin.js", "admin.css", "search.css"],
-                    "/admin/editUser": ["admin.js", "admin.css"],
-                    "/admin/inventory": ["admin.js", "admin.css"],
-                    "/404": [],
-                    "/about": [],
-                    "/account": ["account.js", "account.css"],
-                    "/advancedSearch": ["search.js", "search.css"],
-                    "/autogenindex": [],
-                    "/help": [],
-                    "/login": ["signIn.js"],
-                    "/main": [],
-                    "/result": ["search.js", "search.css"],
-                    "/search": ["search.js", "search.css"],
-                    "/signup": ["signIn.js"],
-                    "/sitemap": ["sitemap.js"]
-                };
-
-                // Get an array of currently loaded Additional Resources like JS and CSS
-                // Iterate through the currently loaded css files
-                $.each($('head > link.appended'), (index, value) => {
-                    // Get the href attribute of the link tag
-                    var href = value.attributes.href.value;
-                    // If the source isn't in the list of loaded scoures, add it.
-                    if (!loadedSources.includes(href.substring(href.lastIndexOf('/') + 1, href.length))) {
-                        loadedSources.push(href.substring(href.lastIndexOf('/') + 1, href.length));
-                    }
-                });
-
-                // Check if this page has every thing it needs. If not, load additional resources
-                // Get the list of sources needed for the current page
-                var sourcesForPage = sourcesRequired[pageName];
-                // Correct the empty path if required, set it to main.
-                if (pageName == "/" || pageName == "/index.html" || pageName == "/index") {
-                    sourcesForPage = sourcesRequired["/main"];
-                }
-                // Itterate through each of the scources needed
-                try {
-                    for (let i = 0; i < sourcesForPage.length; i++) {
-                        // If the source hasn't already been loaded.
-                        if (!loadedSources.includes(sourcesForPage[i])) {
-                            // If the source is a css file
-                            if (sourcesForPage[i].substring(sourcesForPage[i].indexOf("."), sourcesForPage[i].length) == ".css") {
-                                $('head').append('<link rel="stylesheet" href="/css/' + sourcesForPage[i] + '" type="text/css" class="appended">');
-                            }
-                        }
-                    }
-                } catch {
-                    console.warn("This page name does not exist in the source list.");
-                }
-
                 // Page Content has now Loaded
+                // Start fading the page in
+                if (currentPage != pageName) {
+                    $("#content").addClass("fade");
+                }
                 resolve();
             }
         };
@@ -475,7 +423,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         // Scroll to a specific part of the page if needed
         // If no hash, scroll to the top of the page.
         if (pageHash) {
-            document.querySelector(pageHash)?.scrollIntoView();
+            document.querySelector(pageHash).scrollIntoView();
         } else {
             if (currentPage != pageName) {
                 $(document).scrollTop(0); // Could change later if we don't like this behavior
@@ -484,7 +432,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
 
         // Fire Additional Scripts based on Page
-        if (pageName == "/main") {
+        // No function for help, autogenindex, about, advancedsearch, or 404
+        if (pageName == "main") {
             import('./main').then(({ setupMain }) => {
                 setupMain();
             }).catch((error) => {
@@ -492,7 +441,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/login" || pageName == "/signup") {
+        if (pageName == "login" || pageName == "signup") {
             import('./signIn').then(({ setupSignIn }) => {
                 setupSignIn(pageQuery);
             }).catch((error) => {
@@ -501,7 +450,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         }
 
-        if (pageName == "/search") {
+        if (pageName == "search") {
+            import('../css/search.css');
             import('./search').then(({ setupSearch }) => {
                 setupSearch(searchResultsArray, pageQuery);
             }).catch((error) => {
@@ -509,7 +459,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/result") {
+        if (pageName == "result") {
+            import('../css/search.css');
             import('./search').then(({ setupResultPage }) => {
                 setupResultPage(pageQuery);
             }).catch((error) => {
@@ -517,7 +468,9 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/account") {
+        // Need a special case for the account page because we have to travel to subpages without calling setup multiple times.
+        if (pageName == "account" && currentPage != "account") {
+            import('../css/account.css');
             import('./account').then(({ setupAccountPage }) => {
                 setupAccountPage(pageQuery, goingBack);
             }).catch((error) => {
@@ -527,7 +480,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             setCurrentPanel(null);
         }
 
-        if (pageName == "/admin/main") {
+        if (pageName == "admin/main") {
+            import('../css/admin.css');
             import('./admin').then(({ setupAdminMain }) => {
                 setupAdminMain();
             }).catch((error) => {
@@ -535,7 +489,9 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/editEntry") {
+        if (pageName == "admin/editEntry") {
+            import('../css/form.css');
+            import('../css/admin.css');
             import('./editEntry').then(({ setupEditEntry }) => {
                 setupEditEntry(pageQuery);
             }).catch((error) => {
@@ -543,7 +499,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/editUser") {
+        if (pageName == "admin/editUser") {
+            import('../css/admin.css');
             import('./admin').then(({ setupEditUser }) => {
                 setupEditUser();
             }).catch((error) => {
@@ -551,7 +508,9 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/view") {
+        if (pageName == "admin/view") {
+            import('../css/admin.css');
+            import('../css/search.css');
             import('./admin').then(({ setupView }) => {
                 setupView(pageQuery);
             }).catch((error) => {
@@ -559,7 +518,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/report") {
+        if (pageName == "admin/report") {
+            import('../css/admin.css');
             import('./report').then(({ setupReport }) => {
                 setupReport(pageQuery);
             }).catch((error) => {
@@ -567,7 +527,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/inventory") {
+        if (pageName == "admin/inventory") {
+            import('../css/admin.css');
             import('./admin').then(({ setupInventory }) => {
                 setupInventory();
             }).catch((error) => {
@@ -575,7 +536,8 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/admin/barcode") {
+        if (pageName == "admin/barcode") {
+            import('../css/admin.css');
             import('./admin').then(({ setupBarcodePage }) => {
                 setupBarcodePage();
             }).catch((error) => {
@@ -583,22 +545,13 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "/sitemap") {
+        if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
         }
-
-        /* TRYING THIS IN A .THEN We'll see how that goes...
-        // Give the CSS time to apply - FIX THIS METHODOLOGY
-        setTimeout(function() {
-            $("#cover").hide();
-            $("body").addClass("fade");
-            $("body").css('overflow', '');
-        }, 200);*/
-
 
         setCurrentPage(pageName);
         setCurrentQuery(pageQuery);
@@ -627,7 +580,7 @@ window.onpopstate = () => {
         }
 
         // Give the past knowlege of the future
-        window.history.replaceState({stack:historyStack.stack, index:historyStack.currentIndex}, "");
+        window.history.replaceState({ stack: historyStack.stack, index: historyStack.currentIndex }, "");
     }).catch(() => {
         restoreHistory();
     });
@@ -701,7 +654,7 @@ function initApp() {
     });
 
     // Listening for auth state changes.
-    return /** @type {Promise<void>} */(new Promise(function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
         try {
             onAuthStateChanged(auth, (user) => {
                 if (user) {
@@ -724,7 +677,7 @@ function initApp() {
         } catch (err) {
             reject(err);
         }
-    }));
+    });
 }
 
 export function updateUserAccountInfo() {
