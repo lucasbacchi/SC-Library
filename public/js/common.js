@@ -124,10 +124,13 @@ function performSearch(searchQuery, viewHidden = false) {
                     scoresArray.push({ book: book, score: score });
                 }
             });
+
+            // Sort the array by score
             scoresArray.sort((a, b) => {
                 // Custom Sort
                 return b.score - a.score;
             });
+
             var returnArray = [];
             console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
@@ -137,10 +140,18 @@ function performSearch(searchQuery, viewHidden = false) {
                     return;
                 }
                 returnArray.push(item.book);
-            }
+            });
+
+            logEvent(analytics, "search", {
+                search_term: searchQuery,
+                viewHidden: viewHidden
+            });
+
+            setSearchCache(returnArray);
+            resolve(returnArray);
+        }).catch((error) => {
+            reject("Error in isAdminCheck", error);
         });
-        setSearchCache(returnArray);
-        return returnArray;
     });
 }
 
