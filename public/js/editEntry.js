@@ -7,7 +7,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 /* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
 runTransaction(db, (transaction) => {
     // This code may run multiple times if there are confilcts
-    var bookPath = doc("books/" + barcodeNumber);
+    var bookPath = doc("books", barcodeNumber);
     return transaction.get(bookPath).then((docSnap) => {
         if (!docSnap.exists()) {
             throw "Document does not exist!";
@@ -49,7 +49,7 @@ export function setupEditEntry(pageQuery) {
             } else {
                 document = "00" + document;
             }
-            getDoc(doc(db, "books/" + document)).then((docSnap) => {
+            getDoc(doc(db, "books", document)).then((docSnap) => {
                 var data = docSnap.data().books[barcodeNumber % 100];
                 editEntryData = data;
                 $('#barcode').html(barcodeNumber);
@@ -132,7 +132,7 @@ export function setupEditEntry(pageQuery) {
 
             /* This should all be obsolete now
             var coverImageLink;
-            listAll(ref(storage, "books/" + barcodeNumber)).then((result) => {
+            listAll(ref(storage, "books", barcodeNumber)).then((result) => {
                 result.items.forEach((itemRef) => {
                     // If we store more that just one image per book, this will probably break.
                     coverImageLink = itemRef.getDownloadURL();

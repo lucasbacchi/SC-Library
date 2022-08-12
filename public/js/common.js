@@ -73,6 +73,10 @@ function performSearch(searchQuery, viewHidden = false) {
                     if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
                         continue;
                     }
+                    if (searchQuery == "") {
+                        scoresArray.push({book: book, score: Math.random() * 99 + 1}); // puts the books in a random order so that it's not the same every time
+                        continue;
+                    }
                     var score = 0;
                     // Authors
                     for (let j = 0; j < book.authors.length; j++) {
