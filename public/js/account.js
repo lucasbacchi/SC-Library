@@ -272,7 +272,7 @@ function updateAccount() {
     } else {
         // If the names were changed, update them.
         if (($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined) || ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)) {
-            updateDoc(doc(db, "users/" + user.uid), {
+            updateDoc(doc(db, "users", user.uid), {
                 firstName: $("#setting-first-name").val(),
                 lastName: $("#setting-last-name").val()
             }).then(() => {

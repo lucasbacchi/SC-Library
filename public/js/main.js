@@ -67,7 +67,7 @@ function homeBookBoxes() {
                 var rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
-                getDoc(doc(db, "books/" + rand)).then((docSnap) => {
+                getDoc(doc(db, "books", rand)).then((docSnap) => {
                     if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;

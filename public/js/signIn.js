@@ -241,7 +241,7 @@ function handleSignUp() {
                             var newCardNumber = docSnap.data().maxCardNumber + 1;
                             var dateCreated = new Date();
                             // Set the document to exist in the users path
-                            transaction.set(doc(db, "users/" + user.uid), {
+                            transaction.set(doc(db, "users", user.uid), {
                                 firstName: firstName,
                                 lastName: lastName,
                                 address: address + ", " + town + ", " + state + " " + zip,

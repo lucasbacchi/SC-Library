@@ -185,7 +185,7 @@ function createEntry() {
                         } else if (next < 100) {
                             next = "0" + (next);
                         }
-                        getDoc(doc(db, "books/" + next)).then((docSnap) => {
+                        getDoc(doc(db, "books", next)).then((docSnap) => {
                             if (docSnap.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
                                 alert("A database error has occurred.");
@@ -207,7 +207,7 @@ function createEntry() {
                             newNumber = "0" + newNumber;
                         }
                         let barcode = "11711" + newNumber + "00";
-                        transaction.set(doc(db, "books/" + newNumber), {
+                        transaction.set(doc(db, "books", newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
                                 title: "",
@@ -251,7 +251,7 @@ function createEntry() {
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
-                        transaction.update(doc(db, "books/" + order), {
+                        transaction.update(doc(db, "books", order), {
                             books: arrayUnion({
                                 barcodeNumber: barcode,
                                 title: "",
