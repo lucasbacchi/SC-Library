@@ -59,7 +59,7 @@ function authRedirect(pageQuery) {
 }
 
 function signInSubmit(pageQuery = "") {
-    if (currentPage == '/login') {
+    if (currentPage == 'login') {
         var reAuth;
         if (pageQuery.length > 1) {
             reAuth = true;
@@ -73,7 +73,7 @@ function signInSubmit(pageQuery = "") {
                 goToPage("");
             }
         }).catch(() => {});
-    } else if (currentPage == '/signup') {
+    } else if (currentPage == 'signup') {
         handleSignUp().then(function() {
             authRedirect(pageQuery);
         }).catch(() => {
