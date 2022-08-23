@@ -333,7 +333,9 @@ export function buildBookBox(obj, page, num = 0) {
     if (obj.medium == "av") {
         img.src = "../img/av-image.jpg";
     } else {
-        if (obj.thumbnailImageLink) {
+        if (obj.iconImageLink) {
+            img.src = obj.iconImageLink;
+        } else if (obj.thumbnailImageLink) {
             img.src = obj.thumbnailImageLink;
         } else {
             img.src = obj.coverImageLink;

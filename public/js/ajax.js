@@ -264,6 +264,10 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
                             resolve();
                         });
                     });
+                    // Add the Admin Dashboard Link to the account panel if it isn't there already.
+                    if ($("#admin-link").html() == "") {
+                        $("#admin-link").html("Admin Dashboard");
+                    }
                     return;
                 } else {
                     reject("User is not an admin.");

@@ -46,7 +46,7 @@ div#checked-out-books-container > .book {
     padding: 4px 6px;
 }
 
-#thumbnail-canvas {
+#thumbnail-canvas, #original-canvas, #icon-canvas {
     display: none;
 }
 
