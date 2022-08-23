@@ -456,7 +456,6 @@ export function buildBookBox(obj, page, num = 0) {
     return div;
 }
 
-
 function buildAudienceString(audience) {
     var str = "", values = ["Children", "Youth", "Adult"];
     for (let i = 0; i < 3; i++) {

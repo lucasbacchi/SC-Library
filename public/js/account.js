@@ -80,7 +80,7 @@ export function setupAccountPage(pageQuery) {
             }
             firstName = docSnap.data().firstName;
             lastName = docSnap.data().lastName;
-            fillAccountOverviewFields(docSnap.data().firstName, docSnap.data().lastName);
+            fillAccountOverviewFields(firstName, lastName);
             $("#account-page-name").text(firstName + " " + lastName);
         }).catch((error) => {
             console.log("Failed to get the database file for this user", error);
