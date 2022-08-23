@@ -541,9 +541,6 @@ function setUploadDatabase() {
     });
 }
 
-
-
-
 export function setupView(pageQuery) {
     var type = findURLValue(pageQuery, "type");
     if (type == "books") {
@@ -581,7 +578,10 @@ function buildUserBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement("img");
     img.classList.add("userimage");
-    img.src = obj.pfpLink != null ? obj.pfpLink : "../img/default-user.jpg";
+    img.src = obj.pfpLink != null ? obj.pfpLink : "/img/default-user.jpg";
+    img.onload = () => {
+        div.style.opacity = 1;
+    };
     div1.appendChild(img);
     const b = document.createElement("b");
     const name = document.createElement("p");
