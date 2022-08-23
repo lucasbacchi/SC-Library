@@ -1,10 +1,9 @@
 import { logEvent } from "firebase/analytics";
 import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
 import { doc, runTransaction } from "firebase/firestore";
-import { getDownloadURL, ref } from "firebase/storage";
 import { goToPage, updateUserAccountInfo } from "./ajax";
 import { findURLValue, sendEmailVerificationToUser } from "./common";
-import { analytics, auth, currentPage, db, storage } from "./globals";
+import { analytics, auth, currentPage, db } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
     $("#submit, .login > input").on("keydown", (event) => {
@@ -227,60 +226,58 @@ function handleSignUp() {
         }).then(function() {
             if (!signUpError) {
                 var user = auth.currentUser;
-                getDownloadURL(ref(storage, "/public/default-user.jpg")).then((pfpLink) => {
-                    user.photoURL = pfpLink;
-                    // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
-                    runTransaction(db, (transaction) => {
-                        var cloudVarsPath = doc(db, "config/writable_vars");
-                        // Get the variable stored in the writable_vars area
-                        return transaction.get(cloudVarsPath).then((docSnap) => {
-                            if (!docSnap.exists()) {
-                                throw "Document does not exist!";
-                            }
-                            // Save the max value and incriment it by one.
-                            var newCardNumber = docSnap.data().maxCardNumber + 1;
-                            var dateCreated = new Date();
-                            // Set the document to exist in the users path
-                            transaction.set(doc(db, "users", user.uid), {
-                                firstName: firstName,
-                                lastName: lastName,
-                                address: address + ", " + town + ", " + state + " " + zip,
-                                phone: phone,
-                                email: email,
-                                cardNumber: newCardNumber,
-                                pfpLink: pfpLink,
-                                checkouts: [],
-                                notificationsOn: true,
-                                dateCreated: dateCreated,
-                                lastSignIn: dateCreated,
-                                lastCheckoutTime: null
-                            });
-                            // Update the cloud var to contain the next card number value
-                            transaction.update(cloudVarsPath, {
-                                maxCardNumber: newCardNumber
-                            });
-                            return newCardNumber;
-                        });
-                    }).then((newCardNumber) => {
-                        // After both writes complete, send the user to the edit page and take it from there.
-                        console.log("New User Created with card number: ", newCardNumber);
-                        updateUserAccountInfo();
-                        sendEmailVerificationToUser();
-                        logEvent(analytics, "sign_up", {
-                            method: "email",
-                            userId: user.uid,
+                user.photoURL = null;
+                // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
+                runTransaction(db, (transaction) => {
+                    var cloudVarsPath = doc(db, "config/writable_vars");
+                    // Get the variable stored in the writable_vars area
+                    return transaction.get(cloudVarsPath).then((docSnap) => {
+                        if (!docSnap.exists()) {
+                            throw "Document does not exist!";
+                        }
+                        // Save the max value and incriment it by one.
+                        var newCardNumber = docSnap.data().maxCardNumber + 1;
+                        var dateCreated = new Date();
+                        // Set the document to exist in the users path
+                        transaction.set(doc(db, "users", user.uid), {
                             firstName: firstName,
                             lastName: lastName,
-                            email: email,
-                            phone: phone,
                             address: address + ", " + town + ", " + state + " " + zip,
-                            cardNumber: newCardNumber
+                            phone: phone,
+                            email: email,
+                            cardNumber: newCardNumber,
+                            pfpLink: null,
+                            checkouts: [],
+                            notificationsOn: true,
+                            dateCreated: dateCreated,
+                            lastSignIn: dateCreated,
+                            lastCheckoutTime: null
                         });
-                        resolve();
-                    }).catch((err) => {
-                        console.error(err);
-                        reject(err);
+                        // Update the cloud var to contain the next card number value
+                        transaction.update(cloudVarsPath, {
+                            maxCardNumber: newCardNumber
+                        });
+                        return newCardNumber;
                     });
+                }).then((newCardNumber) => {
+                    // After both writes complete, send the user to the edit page and take it from there.
+                    console.log("New User Created with card number: ", newCardNumber);
+                    updateUserAccountInfo();
+                    sendEmailVerificationToUser();
+                    logEvent(analytics, "sign_up", {
+                        method: "email",
+                        userId: user.uid,
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        phone: phone,
+                        address: address + ", " + town + ", " + state + " " + zip,
+                        cardNumber: newCardNumber
+                    });
+                    resolve();
+                }).catch((err) => {
+                    console.error(err);
+                    reject(err);
                 });
             }
         });

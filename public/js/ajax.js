@@ -705,6 +705,9 @@ export function updateUserAccountInfo() {
         if (photoURL != null) {
             $("#small-account-image").attr("src", photoURL);
             $("#large-account-image").attr("src", photoURL);
+        } else {
+            $("#small-account-image").attr("src", "../img/default-user.jpg");
+            $("#large-account-image").attr("src", "../img/default-user.jpg");
         }
         if (!emailVerified) {
             // User's email is not verified
