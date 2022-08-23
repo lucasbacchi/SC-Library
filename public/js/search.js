@@ -205,6 +205,11 @@ function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items
     createFilterList(searchResultsArray, filters, items);
 
     $("#paginator").empty();
+    if (searchResultsArray.length < 21) {
+        // there is only one page, so don't bother displaying the paginator
+        $("#paginator").hide();
+        return;
+    }
     if (page > 1) {
         const prev = document.createElement('a');
         prev.innerHTML = "< Previous Page";

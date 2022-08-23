@@ -87,6 +87,8 @@ export function setupAccountPage(pageQuery) {
         });
         if (user.photoURL != null) {
             $("#account-page-image").attr("src", user.photoURL);
+        } else {
+            $("#account-page-image").attr("src", "../img/default-user.jpg");
         }
     } else {
         $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link'>here</a>.");
@@ -161,6 +163,10 @@ export function setupAccountPage(pageQuery) {
                         $("#account-page-image").attr("src", user.photoURL);
                         $("#large-account-image").attr("src", user.photoURL);
                         $("#small-account-image").attr("src", user.photoURL);
+                    } else {
+                        $("#account-page-image").attr("src", "../img/default-user.jpg");
+                        $("#large-account-image").attr("src", "../img/default-user.jpg");
+                        $("#small-account-image").attr("src", "../img/default-user.jpg");
                     }
                 }).catch((error) => {
                     console.error(error);

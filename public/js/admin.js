@@ -562,7 +562,6 @@ export function setupView(pageQuery) {
     }
 }
 
-
 function buildUserBox(obj, page, num = 0) {
     const div = document.createElement("div");
     switch (page) {
@@ -578,7 +577,7 @@ function buildUserBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement("img");
     img.classList.add("userimage");
-    img.src = obj.pfpLink;
+    img.src = obj.pfpLink != null ? obj.pfpLink : "../img/default-user.jpg";
     div1.appendChild(img);
     const b = document.createElement("b");
     const name = document.createElement("p");
