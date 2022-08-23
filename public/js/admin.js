@@ -159,7 +159,8 @@ function adminBookBoxes(objects) {
 
 function createEntry() {
     return new Promise(function (resolve, reject) {
-        // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
+        // Run a Transaction to ensure that the correct barcode is used.
+        // First, get the highest barcode number by loading the largest book document.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
             var topDoc;
             querySnapshot.forEach((docSnap) => {
@@ -169,8 +170,9 @@ function createEntry() {
                 topDoc = docSnap;
             });
 
+            // Now that we have the highest document, we can get that document and create a new book within it.
             runTransaction(db, (transaction) => {
-                return transaction.get(doc("books" + topDoc.id)).then((docSnap) => {
+                return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
                     if (!docSnap.exists()) {
                         throw "Document does not exist!";
                     }
@@ -178,6 +180,7 @@ function createEntry() {
                     var order = docSnap.data().order;
                     var numBooksInDoc = docSnap.data().books.length;
 
+                    // Let's make sure that there isn't another doc that has been created after this one already.
                     try {
                         var next = order + 1;
                         if (next < 10) {
@@ -185,10 +188,10 @@ function createEntry() {
                         } else if (next < 100) {
                             next = "0" + (next);
                         }
-                        getDoc(doc(db, "books/" + next)).then((docSnap) => {
+                        getDoc(doc(db, "books", next)).then((docSnap) => {
                             if (docSnap.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                alert("A database error has occurred.");
+                                alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
                                 throw "Something went wrong.";
                             }
                         }).catch((err) => {
@@ -207,7 +210,7 @@ function createEntry() {
                             newNumber = "0" + newNumber;
                         }
                         let barcode = "11711" + newNumber + "00";
-                        transaction.set(doc(db, "books/" + newNumber), {
+                        transaction.set(doc(db, "books", newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
                                 title: "",
@@ -239,6 +242,7 @@ function createEntry() {
                         });
                         return barcode;
                     } else {
+                        // We don't need to add a new book doc, so just add the book to the existing one.
                         if (order < 10) {
                             order = "00" + order;
                         } else if (order < 100) {
@@ -251,7 +255,7 @@ function createEntry() {
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
-                        transaction.update(doc(db, "books/" + order), {
+                        transaction.update(doc(db, "books", order), {
                             books: arrayUnion({
                                 barcodeNumber: barcode,
                                 title: "",
@@ -284,7 +288,7 @@ function createEntry() {
                 });
             }).then((newBarcode) => {
                 // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: ", newBarcode);
+                console.log("New Entry Created with barcode: " + newBarcode);
                 // editEntry(newBarcode);
                 resolve(newBarcode);
             });
@@ -514,7 +518,7 @@ function downloadDatabase() {
         a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
         window.setTimeout(() => {
-            $("#download-database-link")[0].trigger("click");
+            $("#download-database-link")[0].click();
         }, 500);
     });
 }
