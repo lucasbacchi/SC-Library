@@ -1,7 +1,7 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
-import { analytics, auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import { analytics, auth, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -66,11 +66,11 @@ export function setupSearch(searchResultsArray, pageQuery) {
         searchPageSearch();
     });
 
-    $("#apply-filters-button").on("click", () => {
-        applySearchFilters();
-    });
-
     var queryFromURL = findURLValue(pageQuery, "query", true);
+
+    $("#apply-filters-button").on("click", () => {
+        applySearchFilters(queryFromURL);
+    });
 
     $("#search-page-input").val(queryFromURL);
 
@@ -97,95 +97,104 @@ function searchPageSearch() {
     });
 }
 
-function browse() {
-    changePageTitle("Browse", false);
-    var browseResultsArray = [];
-    if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
-        // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
-        var docs = bookDatabase.length - 1;
-        if (bookDatabase[bookDatabase.length - 1].books.length < 25 && docs != 0) {
-            docs--;
-        }
-        var rand = Math.floor(Math.random() * docs);
-        if (!bookDatabase[rand]) {
-            console.error("books " + rand + " does not exist in the local book database");
-            return;
-        }
-        var values = [], count = 0;
-        for (let i = 0; i < 20; i++) {
-            var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
-            if (values.indexOf(random) > -1 || bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
-                i--;
-            } else {
-                values.push(random);
-                browseResultsArray.push(bookDatabase[rand].books[random]);
-            }
-            count++;
-            if (count > 10000) {
-                if (i > 0) {
-                    console.error("no books available");
-                    const p = document.createElement('p');
-                    p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                    $('div#search-results-container')[0].appendChild(p);
-
-                }
-                createSearchResultsPage(browseResultsArray);
+function browse(browseResultsArray = [], docsUsed = [], page = 1) {
+    return new Promise((resolve, reject) => {
+        changePageTitle("Browse", false);
+        if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
+            // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
+            var docs = bookDatabase.length;
+            if (docsUsed.length == docs) {
+                resolve(true); // lets createSearchResultsPage know that the end is nigh
                 return;
             }
-        }
-        createSearchResultsPage(browseResultsArray);
-    } else {
-        // No search has been performed on the page yet, so get it from the database.
-        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
-            querySnapshot.forEach((docSnap) => {
-                if (!docSnap.exists()) {
-                    console.error("books document does not exist");
-                    return;
+            var rand = Math.floor(Math.random() * docs);
+            while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
+            docsUsed.push(rand);
+            if (!bookDatabase[rand]) {
+                console.error("books " + rand + " does not exist in the local book database");
+                reject();
+                return;
+            }
+            var values = [], invalidBookIndices = [];
+            while (values.length < bookDatabase[rand].books.length - invalidBookIndices.length) {
+                var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
+                if (values.indexOf(random) > -1) continue;
+                if (bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
+                    if (!invalidBookIndices.includes(random)) {
+                        invalidBookIndices.push(random);
+                    }
+                } else {
+                    values.push(random);
+                    browseResultsArray.push(bookDatabase[rand].books[random]);
                 }
-                var docs = docSnap.data().order;
-                if (docSnap.data().books.length < 25 && docs != 0) {
-                    docs--;
-                }
-                var rand = Math.floor(Math.random() * docs);
-                rand = "0" + rand;
-                if (rand.length == 2) rand = "0" + rand;
-                getDoc(doc(db, "books", rand)).then((docSnap) => {
+            }
+            setSearchCache(browseResultsArray);
+            createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+        } else {
+            // No search has been performed on the page yet, so get it from the database.
+            getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+                querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
-                        console.error("books " + rand + " does not exist");
+                        console.error("books document does not exist");
+                        reject();
                         return;
                     }
-                    var values = [], count = 0;
-                    for (let i = 0; i < 20; i++) {
-                        var random = Math.floor(Math.random() * docSnap.data().books.length);
-                        if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
-                            i--;
-                        } else {
-                            values.push(random);
-                            browseResultsArray.push(docSnap.data().books[random]);
-                        }
-                        count++;
-                        if (count > 10000) {
-                            if (i > 0) {
-                                console.error("no books available");
-                                const p = document.createElement('p');
-                                p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                                $('div#search-results-container')[0].appendChild(p);
-
-                            }
-                            createSearchResultsPage(browseResultsArray);
+                    var docs = docSnap.data().order + 1;
+                    if (docsUsed.length == docs) {
+                        resolve(true); // lets createSearchResultsPage know that the end is nigh
+                        return;
+                    }
+                    var rand = Math.floor(Math.random() * docs);
+                    while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
+                    docsUsed.push(rand);
+                    rand = "0" + rand;
+                    if (rand.length == 2) rand = "0" + rand;
+                    getDoc(doc(db, "books", rand)).then((docSnap) => {
+                        if (!docSnap.exists()) {
+                            console.error("books " + rand + " does not exist");
+                            reject();
                             return;
                         }
-                    }
-                    createSearchResultsPage(browseResultsArray);
+                        var values = [], invalidBookIndices = [], data = docSnap.data();
+                        while (values.length < data.books.length - invalidBookIndices.length) {
+                            var random = Math.floor(Math.random() * data.books.length);
+                            if (values.includes(random)) continue;
+                            if (data.books[random].isDeleted || data.books[random].isHidden) {
+                                if (!invalidBookIndices.includes(random)) {
+                                    invalidBookIndices.push(random);
+                                }
+                            } else {
+                                values.push(random);
+                                browseResultsArray.push(data.books[random]);
+                            }
+                        }
+                        setSearchCache(browseResultsArray);
+                        createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+                    });
                 });
             });
+        }
+    });
+}
+
+function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
+    $(document).scrollTop(0);
+    if (isBrowse && (page + 2) * 20 > searchResultsArray.length) {
+        browse(searchResultsArray, docsUsed, page).then((allDocsUsed) => {
+            if (allDocsUsed) {
+                fillSearchResultsPage(searchResultsArray, page, filters, items, false);
+            } else {
+                return;
+            }
         });
+    } else {
+        fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
     }
 }
 
-function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]]) {
+function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
     $('div#search-results-container').empty();
-    if (searchResultsArray.length == 0) {
+    if (searchResultsArray.length == 0 || (page - 1) * 20 >= searchResultsArray.length) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
         $('div#search-results-container')?.[0].appendChild(p);
@@ -200,12 +209,12 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
         const prev = document.createElement('a');
         prev.innerHTML = "< Previous Page";
         prev.onclick = function() {
-            createSearchResultsPage(searchResultsArray, page - 1);
+            createSearchResultsPage(searchResultsArray, page - 1, undefined, undefined, isBrowse, docsUsed);
         };
         $("#paginator")[0].appendChild(prev);
     }
     for (let p = page - 2; p <= page + 2; p++) {
-        if (p < 1 || (p - 1) * 20 > searchResultsArray.length) continue;
+        if (p < 1 || (p - 1) * 20 >= searchResultsArray.length && !isBrowse) continue;
         if (p == page) {
             const span = document.createElement('span');
             span.innerHTML = "<b>" + p + "</b>";
@@ -215,7 +224,7 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
         const a = document.createElement('a');
         a.innerHTML = p;
         a.onclick = function() {
-            createSearchResultsPage(searchResultsArray, p);
+            createSearchResultsPage(searchResultsArray, p, undefined, undefined, isBrowse, docsUsed);
         };
         $("#paginator")[0].appendChild(a);
     }
@@ -223,11 +232,10 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
         const next = document.createElement('a');
         next.innerHTML = "Next Page >";
         next.onclick = function() {
-            createSearchResultsPage(searchResultsArray, page + 1);
+            createSearchResultsPage(searchResultsArray, page + 1, undefined, undefined, isBrowse, docsUsed);
         };
         $("#paginator")[0].appendChild(next);
     }
-    $(document).scrollTop(0);
 }
 
 var searchResultsAuthorsArray = [];
@@ -694,7 +702,7 @@ function scanCheckout() {
     });
 }
 
-function applySearchFilters() {
+function applySearchFilters(queryFromURL) {
     var filters = [], items = [], results = [];
     for (let i = 0; i < $(".sort-section").length; i++) {
         filters.push($(".sort-section")[i].children[0].innerHTML);
@@ -710,7 +718,7 @@ function applySearchFilters() {
             items.pop();
         }
     }
-    if (!searchCache) {
+    if (queryFromURL == "") {
         search("").then(() => {
             searchWithFilters(filters, items, results);
         });

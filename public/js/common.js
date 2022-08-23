@@ -73,6 +73,10 @@ function performSearch(searchQuery, viewHidden = false) {
                     if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
                         continue;
                     }
+                    if (searchQuery == "") {
+                        scoresArray.push({book: book, score: Math.random() * 99 + 1}); // puts the books in a random order so that it's not the same every time
+                        continue;
+                    }
                     var score = 0;
                     // Authors
                     for (let j = 0; j < book.authors.length; j++) {
@@ -305,7 +309,7 @@ BEGIN BUILD BOOK BOX
  * @param {Object<book>} obj The Book object that is going to be created
  * @param {String} page The page this book box will be displayed on
  * @param {Number} num The number of days that the book is due in
- * @returns An HTMLDivElment with the book information
+ * @returns An HTMLDivElement with the book information
  */
 export function buildBookBox(obj, page, num = 0) {
     const div = document.createElement("div");
@@ -337,6 +341,9 @@ export function buildBookBox(obj, page, num = 0) {
             img.src = obj.coverImageLink;
         }
     }
+    img.onload = () => {
+        div.style.opacity = 1;
+    };
     div1.appendChild(img);
     const b = document.createElement("b");
     const title = document.createElement("p");
@@ -426,6 +433,26 @@ export function buildBookBox(obj, page, num = 0) {
         description.appendChild(document.createTextNode(shortenDescription(obj.description)));
         div3.appendChild(description);
     }
+    isAdminCheck().then((isAdmin) => {
+        if (isAdmin) {
+            const img = document.createElement("img");
+            img.classList.add("icon");
+            if (page == "edit-entry") {
+                img.src = "../img/paper.png";
+                img.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    goToPage("result?id=" + obj.barcodeNumber);
+                });
+            } else {
+                img.src = "../img/pencil.png";
+                img.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
+                });
+            }
+            div.appendChild(img);
+        }
+    });
     return div;
 }
 
