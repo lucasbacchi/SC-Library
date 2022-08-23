@@ -667,7 +667,7 @@ function initApp() {
                     // User is signed in.
                     console.log("User is now Signed In.");
                     var date = new Date();
-                    updateDoc(doc(db, "users/" + user.uid), {
+                    updateDoc(doc(db, "users", user.uid), {
                         lastSignIn: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
@@ -690,7 +690,7 @@ export function updateUserAccountInfo() {
     var user = auth.currentUser;
     if (user) {
         // User is signed in.
-        onSnapshot(doc(db, "users/" + user.uid), (doc) => {
+        onSnapshot(doc(db, "users", user.uid), (doc) => {
             if (!doc.exists()) {
                 console.error("The user document could not be found. Ignore if the user just signed up.");
                 return;
