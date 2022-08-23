@@ -420,7 +420,8 @@ footer {
 }
 
 #small-account-image {
-    max-height: 50px;
+    height: 50px;
+    width: 50px;
     border-radius: 50px;
     border: 2.5px solid white;
     background-color: white;
@@ -528,6 +529,10 @@ img.icon {
 
 img.icon:hover {
     opacity: 0.5;
+}
+
+#thumbnail-canvas, #original-canvas, #icon-canvas {
+    display: none;
 }
 
 /* Content if screen is large */

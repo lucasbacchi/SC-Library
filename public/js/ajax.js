@@ -2,9 +2,9 @@
 import { initializeApp } from "firebase/app";
 import { getPerformance } from "firebase/performance";
 import { getAnalytics, logEvent } from "firebase/analytics";
-import { doc, getDoc, getFirestore, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 
@@ -413,11 +413,6 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     document.title = "South Church Library Catalog";
                 }
 
-                // Page Content has now Loaded
-                // Start fading the page in
-                if (currentPage != pageName) {
-                    $("#content").addClass("fade");
-                }
                 resolve();
             }
         };
@@ -438,10 +433,15 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
 
         // Fire Additional Scripts based on Page
-        // No function for help, autogenindex, about, advancedsearch, or 404
+        // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
+        if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
+            resolve();
+        }
+
         if (pageName == "main") {
             import('./main').then(({ setupMain }) => {
                 setupMain();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -450,6 +450,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         if (pageName == "login" || pageName == "signup") {
             import('./signIn').then(({ setupSignIn }) => {
                 setupSignIn(pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -460,6 +461,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/search.css');
             import('./search').then(({ setupSearch }) => {
                 setupSearch(searchResultsArray, pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -469,6 +471,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/search.css');
             import('./search').then(({ setupResultPage }) => {
                 setupResultPage(pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -479,6 +482,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/account.css');
             import('./account').then(({ setupAccountPage }) => {
                 setupAccountPage(pageQuery, goingBack);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -490,6 +494,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./admin').then(({ setupAdminMain }) => {
                 setupAdminMain();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -500,6 +505,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./editEntry').then(({ setupEditEntry }) => {
                 setupEditEntry(pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -509,6 +515,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./admin').then(({ setupEditUser }) => {
                 setupEditUser();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -519,6 +526,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/search.css');
             import('./admin').then(({ setupView }) => {
                 setupView(pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -528,6 +536,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./report').then(({ setupReport }) => {
                 setupReport(pageQuery);
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -537,6 +546,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./admin').then(({ setupInventory }) => {
                 setupInventory();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -546,6 +556,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             import('../css/admin.css');
             import('./admin').then(({ setupBarcodePage }) => {
                 setupBarcodePage();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -554,6 +565,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
+                resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
@@ -561,8 +573,12 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         setCurrentPage(pageName);
         setCurrentQuery(pageQuery);
-        // Ideally this doesn't resolve until everything is redrawn... Not sure if that's how it's going to work
-        resolve();
+    }).then(() => {
+        // Page Content has now Loaded and setup is done
+        // Start fading the page in
+        if (currentPage != pageName) {
+            $("#content").addClass("fade");
+        }
     });
 }
 
@@ -677,8 +693,9 @@ function initApp() {
                     // User is signed out.
                     console.log("User is now Signed Out.");
                 }
-                updateUserAccountInfo();
-                resolve();
+                updateUserAccountInfo().then(() => {
+                    resolve();
+                });
             });
         } catch (err) {
             reject(err);
@@ -687,59 +704,67 @@ function initApp() {
 }
 
 export function updateUserAccountInfo() {
-    var user = auth.currentUser;
-    if (user) {
-        // User is signed in.
-        onSnapshot(doc(db, "users", user.uid), (doc) => {
-            if (!doc.exists()) {
-                console.error("The user document could not be found. Ignore if the user just signed up.");
-                return;
-            }
-            $("#account-name").text(doc.data().firstName + " " + doc.data().lastName);
-            $("#account-page-name").text(doc.data().firstName + " " + doc.data().lastName);
-        }, (error) => {
-            console.log("The User Document is no longer listening for updates:");
-            console.error(error);
-        });
+    return new Promise((resolve, reject) => {
+        var user = auth.currentUser;
+        if (user) {
+            // User is signed in.
+            // Get the information about the current user from the database.
+            getDoc(doc(db, "users", user.uid)).then((docSnap) => {
+                if (!docSnap.exists()) {
+                    console.error("The user document could not be found. Ignore if the user just signed up.");
+                    return;
+                }
 
-        var email = user.email;
-        updateEmailinUI(email);
-        var emailVerified = user.emailVerified;
-        var photoURL = user.photoURL;
-        if (photoURL != null) {
-            $("#small-account-image").attr("src", photoURL);
-            $("#large-account-image").attr("src", photoURL);
+                // Update the UI with the information from the doc
+                $("#account-name").text(docSnap.data().firstName + " " + docSnap.data().lastName);
+                $("#account-page-name").text(docSnap.data().firstName + " " + docSnap.data().lastName);
+                updateEmailinUI(docSnap.data().email);
+                if (docSnap.data().pfpIconLink) {
+                    $("#small-account-image").attr("src", docSnap.data().pfpIconLink);
+                    $("#large-account-image").attr("src", docSnap.data().pfpIconLink);
+                } else if (docSnap.data().pfpLink) {
+                    $("#small-account-image").attr("src", docSnap.data().pfpLink);
+                    $("#large-account-image").attr("src", docSnap.data().pfpLink);
+                } else {
+                    $("#small-account-image").attr("src", "/img/default-user.jpg");
+                    $("#large-account-image").attr("src", "/img/default-user.jpg");
+                }
+
+                // Update Firebase Auth with any out of date data
+                updateProfile(user, {
+                    displayName: docSnap.data().firstName + " " + docSnap.data().lastName,
+                    photoURL: docSnap.data().pfpLink
+                });
+
+                // Change Account Container Appearence
+                $("#nav-login-signup").hide();
+                $("#small-account-container").show();
+                $("#large-account-image").show();
+                $("#large-account-image").show();
+                $("#account-email").show();
+                $("#account-settings").show();
+                $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
+                    signOutUser();
+                });
+                resolve();
+            }).catch((error) => {
+                console.error("Could not get the user information from the database: ", error);
+                reject(error);
+            });
         } else {
-            $("#small-account-image").attr("src", "../img/default-user.jpg");
-            $("#large-account-image").attr("src", "../img/default-user.jpg");
+            // User is signed out.
+
+            // Change Account Container Appearence
+            $("#nav-login-signup").show();
+            $("#small-account-container").hide();
+            $("#large-account-image").hide();
+            $("#account-email").hide();
+            $("#account-name").html("No user signed in");
+            $("#account-settings").hide();
+            $("#log-out").html("<a href=\"login.html\">Log In</a>").css("width", "100%").attr("onclick", "");
+            resolve();
         }
-        if (!emailVerified) {
-            // User's email is not verified
-        }
-
-        // Change Account Container Appearence
-        $("#nav-login-signup").hide();
-        $("#small-account-container").show();
-        $("#large-account-image").show();
-        $("#large-account-image").show();
-        $("#account-email").show();
-        $("#account-settings").show();
-        $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
-            signOutUser();
-        });
-    } else {
-        // User is signed out.
-
-        // Change Account Container Appearence
-        $("#nav-login-signup").show();
-        $("#small-account-container").hide();
-        $("#large-account-image").hide();
-        $("#account-email").hide();
-        $("#account-name").html("No user signed in");
-        $("#account-settings").hide();
-        $("#log-out").html("<a href=\"login.html\">Log In</a>").css("width", "100%").attr("onclick", "");
-    }
-
+    });
 }
 
 export function updateEmailinUI(email) {

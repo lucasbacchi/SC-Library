@@ -226,7 +226,6 @@ function handleSignUp() {
         }).then(function() {
             if (!signUpError) {
                 var user = auth.currentUser;
-                user.photoURL = null;
                 // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
                 runTransaction(db, (transaction) => {
                     var cloudVarsPath = doc(db, "config/writable_vars");
@@ -247,6 +246,7 @@ function handleSignUp() {
                             email: email,
                             cardNumber: newCardNumber,
                             pfpLink: null,
+                            pfpIconLink: null,
                             checkouts: [],
                             notificationsOn: true,
                             dateCreated: dateCreated,
