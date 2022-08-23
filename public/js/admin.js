@@ -578,7 +578,13 @@ function buildUserBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement("img");
     img.classList.add("userimage");
-    img.src = obj.pfpLink != null ? obj.pfpLink : "/img/default-user.jpg";
+    if (obj.pfpIconLink) {
+        img.src = obj.pfpIconLink;
+    } else if (obj.pfpLink) {
+        img.src = obj.pfpLink;
+    } else {
+        img.src = "/img/default-user.jpg";
+    }
     img.onload = () => {
         div.style.opacity = 1;
     };

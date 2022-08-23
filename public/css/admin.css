@@ -46,10 +46,6 @@ div#checked-out-books-container > .book {
     padding: 4px 6px;
 }
 
-#thumbnail-canvas, #original-canvas, #icon-canvas {
-    display: none;
-}
-
 div#edit-entry-search-results > .book {
     width: 100%;
     height: auto;
