@@ -385,9 +385,18 @@ export function setupResultPage(pageQuery) {
         changePageTitle(bookObject.title);
 
         if (bookObject.medium == "av") {
-            $("#result-page-image").attr("src", "../img/av-image.jpg");
+            $("#result-page-image").attr("src", "/img/av-image.jpg");
         } else {
-            $("#result-page-image").attr("src", bookObject.coverImageLink);
+            // Currently not checking for icons because they are too low quality. Could change that if needed.
+            if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
+                $("#result-page-image").attr("src", bookObject.thumbnailImageLink);
+            } else if (bookObject.coverImageLink.indexOf("http") != -1) {
+                console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
+                $("#result-page-image").attr("src", bookObject.coverImageLink);
+            } else {
+                console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
+                $("#result-page-image").attr("src", "/img/favicon.ico");
+            }
         }
 
         $("#result-page-barcode-number").html(barcodeNumber);
@@ -648,7 +657,7 @@ function scanCheckout() {
                                     });
                                 });
                             runTransaction(db, (transaction) => {
-                                return transaction.get(doc("books/" + bookDocument)).then((docSnap) => {
+                                return transaction.get(doc(db, "books", bookDocument)).then((docSnap) => {
                                     if (!docSnap.exists()) {
                                         alert("There was a problem with checking out that book.");
                                         return;
