@@ -878,7 +878,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (subjectValues.length == 0 == "" && mediumValue != "av") {
+        if (subjectValues.length == 0 && mediumValue != "av") {
             alert("Please enter at least one subject!");
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
