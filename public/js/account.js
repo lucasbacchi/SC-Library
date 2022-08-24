@@ -65,6 +65,7 @@ function alignMenuColumn() {
 
 var firstName;
 var lastName;
+var cardNumber;
 // Load correct info for account
 export function setupAccountPage(pageQuery) {
     var user = auth.currentUser;
@@ -80,7 +81,9 @@ export function setupAccountPage(pageQuery) {
             }
             firstName = docSnap.data().firstName;
             lastName = docSnap.data().lastName;
-            fillAccountOverviewFields(firstName, lastName);
+            cardNumber = docSnap.data().cardNumber.toString();
+            cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
+            fillAccountOverviewFields(firstName, lastName, user.email, cardNumber);
             $("#account-page-name").text(firstName + " " + lastName);
         }).catch((error) => {
             console.log("Failed to get the database file for this user", error);
@@ -156,8 +159,8 @@ export function setupAccountPage(pageQuery) {
     });
 }
 
-function setupAccountOverview(firstName, lastName, email) {
-    fillAccountOverviewFields(firstName, lastName, email);
+function setupAccountOverview(firstName, lastName, email, cardNumber) {
+    fillAccountOverviewFields(firstName, lastName, email, cardNumber);
 
     $(".save-button").on("click", () => {
         updateAccount();
@@ -178,7 +181,7 @@ function setupAccountOverview(firstName, lastName, email) {
     });
 }
 
-function fillAccountOverviewFields(firstName, lastName, email) {
+function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     var user = auth.currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
@@ -191,6 +194,9 @@ function fillAccountOverviewFields(firstName, lastName, email) {
     }
     if (!user.emailVerified) {
         $("#email-verified").show();
+    }
+    if (cardNumber && cardNumber != "") {
+        $("#setting-card-number").val(cardNumber);
     }
 }
 
@@ -317,13 +323,13 @@ export function goToSettingsPanel(newPanel) {
                 // Remove Placeholder Height
                 document.getElementById("settings-column").style.height = "";
 
-                if (newPanel == "/overview") {
-                    setupAccountOverview(firstName, lastName, user.email);
-                } if (newPanel == "/checkouts") {
+                if (newPanel == "overview") {
+                    setupAccountOverview(firstName, lastName, user.email, cardNumber);
+                } if (newPanel == "checkouts") {
                     setupAccountCheckouts();
-                } if (newPanel == "/notifications") {
+                } if (newPanel == "notifications") {
                     setupAccountNotifications();
-                } if (newPanel == "/security") {
+                } if (newPanel == "security") {
                     setupAccountSecurity();
                 }
 
