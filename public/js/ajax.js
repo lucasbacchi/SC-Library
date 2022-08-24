@@ -695,6 +695,11 @@ function initApp() {
                 }
                 updateUserAccountInfo().then(() => {
                     resolve();
+                }).catch(() => {
+                    alert("Error logging in. Please contact an administrator for support.");
+                    signOut(auth).then(() => {
+                        window.location.href = "/";
+                    });
                 });
             });
         } catch (err) {
@@ -711,8 +716,7 @@ export function updateUserAccountInfo() {
             // Get the information about the current user from the database.
             getDoc(doc(db, "users", user.uid)).then((docSnap) => {
                 if (!docSnap.exists()) {
-                    console.error("The user document could not be found. Ignore if the user just signed up.");
-                    return;
+                    throw "The user document could not be found. Ignore if the user just signed up.";
                 }
 
                 // Update the UI with the information from the doc

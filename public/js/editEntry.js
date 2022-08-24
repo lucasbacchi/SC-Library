@@ -800,18 +800,9 @@ function validateEntry() {
         var mediumValue = $("#book-medium")[0].value;
         var coverLink = $("#book-cover-image").attr('src');
         var subjectValues = [];
-        var maxSubject = false;
-        for (let i = 1; !maxSubject; i++) {
-            if ($("#book-subject-" + i)[0]) {
-                if ($("#book-subject-" + i).val() != "") {
-                    subjectValues.push($("#book-subject-" + i).val());
-                } else {
-                    maxSubject = true;
-                }
-            } else {
-                maxSubject = true;
-            }
-        }
+        $("[id^=book-subject-]").each((index, input) => {
+            if (input.value != "") subjectValues.push(input.value);
+        });
         var descriptionValue = $("#book-description").val();
         var childrenValue = $("#book-audience-children")[0].checked;
         var youthValue = $("#book-audience-youth")[0].checked;
@@ -887,7 +878,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (subjectValues[0] == "" && mediumValue != "av") {
+        if (subjectValues.length == 0 == "" && mediumValue != "av") {
             alert("Please enter at least one subject!");
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1097,18 +1088,9 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
         var illustrator2FirstValue = $("#book-illustrator-2-first").val();
         var mediumValue = $("#book-medium")[0].value;
         var subjectValues = [];
-        var maxSubject = false;
-        for (let i = 1; !maxSubject; i++) {
-            if ($("#book-subject-" + i)[0]) {
-                if ($("#book-subject-" + i).val() != "") {
-                    subjectValues.push($("#book-subject-" + i).val());
-                } else {
-                    maxSubject = true;
-                }
-            } else {
-                maxSubject = true;
-            }
-        }
+        $("[id^=book-subject-]").each((index, input) => {
+            if (input.value != "") subjectValues.push(input.value);
+        });
         var descriptionValue = $("#book-description").val();
         var childrenValue = $("#book-audience-children")[0].checked;
         var youthValue = $("#book-audience-youth")[0].checked;
