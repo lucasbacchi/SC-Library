@@ -428,7 +428,7 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
                 var a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
-                a.trigger("click");
+                a.click();
                 window.URL.revokeObjectURL(url);
             });
         }

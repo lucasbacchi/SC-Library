@@ -696,9 +696,7 @@ function initApp() {
                 // If user has just signed in, don't bother updating info a second time
                 // TODO: maybe add something to do with time since last page load?
                 if (user) {
-                    console.log(user.metadata.creationTime);
                     let millisecondsSinceSignup = new Date().getTime() - new Date(user.metadata.creationTime).getTime();
-                    console.log(millisecondsSinceSignup);
                     if (millisecondsSinceSignup < 30000) {
                         resolve();
                         return;
