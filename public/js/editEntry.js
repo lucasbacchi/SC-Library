@@ -310,15 +310,20 @@ function lookupBook(isbn) {
         let xhttp = new XMLHttpRequest();
 
         xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
-        xhttp.send();
         xhttp.onreadystatechange = function () {
             if (this.status == 404 || this.status == 403 || this.status == 400) {
-                reject();
+                reject("Invalid Response");
             }
             if (this.readyState == 4 && this.status == 200) {
                 resolve(JSON.parse(xhttp.responseText));
             }
         };
+        xhttp.timeout = 5000;
+        xhttp.ontimeout = (event) => {
+            reject("Request Timed Out");
+            console.error(event);
+        };
+        xhttp.send();
     });
 }
 
@@ -332,11 +337,18 @@ function lookupAuthor(bookObject) {
                 var authorLink = bookObject.authors[i].key;
 
                 xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
+
+                xhttp.timeout = 5000;
+                xhttp.ontimeout = (event) => {
+                    reject("Request Timed Out");
+                    console.error(event);
+                };
                 xhttp.send();
+
                 total++;
                 xhttp.onreadystatechange = function () {
                     if (this.status == 404 || this.status == 403 || this.status == 400) {
-                        reject();
+                        reject("Invalid Response");
                     }
                     if (this.readyState == 4 && this.status == 200) {
                         var authorObject = [];
@@ -362,11 +374,18 @@ function lookupWorks(bookObject, authorObject) {
             var worksLink = bookObject.works[i].key;
 
             xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
+
+            xhttp.timeout = 5000;
+            xhttp.ontimeout = (event) => {
+                reject("Request Timed Out");
+                console.error(event);
+            };
+
             xhttp.send();
             total++;
             xhttp.onreadystatechange = function () {
                 if (this.status == 404 || this.status == 403 || this.status == 400) {
-                    reject();
+                    reject("Invalid Response");
                 }
                 if (this.readyState == 4 && this.status == 200) {
                     var worksObject = [];

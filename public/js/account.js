@@ -339,6 +339,12 @@ export function goToSettingsPanel(newPanel) {
                 resolve();
             }
         };
+
+        xhttp.timeout = 5000;
+        xhttp.ontimeout = (event) => {
+            reject();
+            console.error(event);
+        };
     });
 }
 
