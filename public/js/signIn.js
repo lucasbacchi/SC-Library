@@ -28,7 +28,7 @@ export function setupSignIn(pageQueryInput) {
         goToPage('signup');
     });
 
-    if (findURLValue(pageQueryInput, "redirect") != "") {
+    if (findURLValue(pageQueryInput, "redirect", true) != "") {
         $("#content").empty();
         var form = document.createElement('div');
         form.id = 'form';
@@ -122,8 +122,9 @@ function signIn(reAuth = false) {
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
         } else {
-            var email = user.email;
-            if (!reAuth) email = document.getElementById('email').value;
+            var email;
+            if (reAuth) email = user.email;
+            else email = document.getElementById('email').value;
             var password = document.getElementById('password').value;
             if (email.length < 4) {
                 alert('Please enter an email address.');
