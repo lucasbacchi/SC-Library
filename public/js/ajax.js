@@ -363,6 +363,12 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
         }
         xhttp.send();
 
+        xhttp.timeout = 5000;
+        xhttp.ontimeout = (event) => {
+            reject();
+            console.error(event);
+        };
+
         // Set the content of the page
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
