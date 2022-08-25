@@ -736,7 +736,6 @@ export function updateUserAccountInfo() {
 
                 // Update the UI with the information from the doc
                 $("#account-name").text(docSnap.data().firstName + " " + docSnap.data().lastName);
-                $("#account-page-name").text(docSnap.data().firstName + " " + docSnap.data().lastName);
                 updateEmailinUI(docSnap.data().email);
                 if (docSnap.data().pfpIconLink) {
                     $("#small-account-image").attr("src", docSnap.data().pfpIconLink);

@@ -1,7 +1,7 @@
 import { logEvent } from "firebase/analytics";
 import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
-import { doc, runTransaction } from "firebase/firestore";
-import { goToPage, updateUserAccountInfo } from "./ajax";
+import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { findURLValue, sendEmailVerificationToUser } from "./common";
 import { analytics, auth, currentPage, db } from "./globals";
 
@@ -13,7 +13,7 @@ export function setupSignIn(pageQueryInput) {
     });
 
     $("#submit").on("click", () => {
-        signInSubmit();
+        signInSubmit(pageQueryInput);
     });
 
     $("#password-reset").on("click", () => {
@@ -27,6 +27,33 @@ export function setupSignIn(pageQueryInput) {
     $("#sign-up-switch-link").on("click", () => {
         goToPage('signup');
     });
+
+    if (findURLValue(pageQueryInput, "redirect") != "") {
+        $("#content").empty();
+        var form = document.createElement('div');
+        form.id = 'form';
+        var p = document.createElement('h3');
+        p.innerHTML = "Please enter your password.";
+        $(form).append(p);
+        var lbl = document.createElement('label');
+        lbl.innerHTML = 'Password:';
+        lbl.setAttribute('for', 'password');
+        $(form).append(lbl);
+        var input = document.createElement('input');
+        input.type = 'password';
+        input.id = 'password';
+        $(form).append(input);
+        var btn = document.createElement('button');
+        btn.id = 'submit';
+        btn.innerHTML = 'Submit';
+        $(form).append(btn);
+        btn.addEventListener('click', () => {
+            signInSubmit(pageQueryInput);
+        });
+        $(form).append(document.createElement('br'));
+        $(form).append(document.createElement('br'));
+        $("#content").append(form);
+    }
 }
 
 function authRedirect(pageQuery) {
@@ -37,18 +64,26 @@ function authRedirect(pageQuery) {
     if (pageQuery.includes("email")) {
         var newEmail = findURLValue(pageQuery, "email");
 
-        var emailError = false;
         var user = auth.currentUser;
         // Attempt to update the account
-        updateEmail(user, newEmail).catch((error) => {
-            emailError = true;
+        updateEmail(user, newEmail).then(function() {
+            updateDoc(doc(db, "users", user.uid), {
+                email: newEmail
+            }).then(() => {
+                let email = user.email;
+                if (!user.emailVerified) {
+                    $("#email-verified").show();
+                }
+                updateEmailinUI(email);
+                alert("Your email was saved successfully.");
+                goToPage(redirect + "?email=" + newEmail);
+            }).catch((error) => {
+                alert("There was an error updating your email. Please try again later.");
+                console.error(error);
+            });
+        }).catch((error) => {
             alert("There was an error updating your email. Please try again later.");
             console.error(error);
-        }).then(function() {
-            if (!emailError) {
-                alert("Your email was saved successfully.");
-            }
-            goToPage(redirect + "?email=" + newEmail);
         });
     } else {
         // If they do not have an email in the query
@@ -65,7 +100,7 @@ function signInSubmit(pageQuery = "") {
         } else {
             reAuth = false;
         }
-        signIn(reAuth).then(function(reAuth) {
+        signIn(reAuth).then(function() {
             if (reAuth) {
                 authRedirect(pageQuery);
             } else {
@@ -87,7 +122,8 @@ function signIn(reAuth = false) {
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
         } else {
-            var email = document.getElementById('email').value;
+            var email = user.email;
+            if (!reAuth) email = document.getElementById('email').value;
             var password = document.getElementById('password').value;
             if (email.length < 4) {
                 alert('Please enter an email address.');
@@ -125,7 +161,7 @@ function signIn(reAuth = false) {
                 const credential = EmailAuthProvider.credential(email, password);
                 reauthenticateWithCredential(user, credential).then(function() {
                     // User re-authenticated.
-                    resolve();
+                    resolve(reAuth);
                 }).catch(function(error) {
                     // An error happened.
                     var errorCode = error.code;

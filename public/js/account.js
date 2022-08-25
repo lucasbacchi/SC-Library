@@ -1,7 +1,7 @@
 import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { goToPage, updateEmailinUI } from "./ajax";
+import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { buildBookBox, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
@@ -73,21 +73,7 @@ export function setupAccountPage(pageQuery) {
         var email = user.email;
         email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
         $("#account-page-email").text(email);
-        // Get the stored first and last name from the database
-        getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                return;
-            }
-            firstName = docSnap.data().firstName;
-            lastName = docSnap.data().lastName;
-            cardNumber = docSnap.data().cardNumber.toString();
-            cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
-            fillAccountOverviewFields(firstName, lastName, user.email, cardNumber);
-            $("#account-page-name").text(firstName + " " + lastName);
-        }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-        });
+        updateAccountPageFromDatabase();
         if (user.photoURL != null) {
             $("#account-page-image").attr("src", user.photoURL);
         } else {
@@ -200,6 +186,25 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     }
 }
 
+function updateAccountPageFromDatabase() {
+    var user = auth.currentUser;
+    // Get the stored first and last name from the database
+    getDoc(doc(db, "users", user.uid)).then((docSnap) => {
+        if (!docSnap.exists()) {
+            console.error("The user document could not be found.");
+            return;
+        }
+        firstName = docSnap.data().firstName;
+        lastName = docSnap.data().lastName;
+        cardNumber = docSnap.data().cardNumber.toString();
+        cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
+        fillAccountOverviewFields(firstName, lastName, user.email, cardNumber);
+        $("#account-page-name").text(firstName + " " + lastName);
+    }).catch((error) => {
+        console.log("Failed to get the database file for this user", error);
+    });
+}
+
 function setupAccountCheckouts() {
     var checkouts = getCheckouts();
     createCheckouts(checkouts, "checkouts");
@@ -255,6 +260,8 @@ function updateAccount() {
                 // Assuming there was no problem with the update, set the new values.
                 firstName = $("#setting-first-name").val();
                 lastName = $("#setting-last-name").val();
+                updateUserAccountInfo();
+                updateAccountPageFromDatabase();
                 alert("Your name was saved successfully.");
             }).catch((error) => {
                 alert("An error has occured. Please try again later.");
@@ -269,13 +276,13 @@ function updateAccount() {
                     $("#email-verified").show();
                 }
                 updateEmailinUI(email);
+                updateAccountPageFromDatabase();
                 alert("Your email was saved successfully.");
             }).catch((error) => {
                 // If the user needs to reauthenticate:
                 if (error.code == "auth/requires-recent-login") {
-                    alert("You must sign in again to complete this opperation.");
-                    // Send them to the login page with a query
-                    goToPage("login?redirect=account&email=" + $("#setting-email").val().toString());
+                    alert("Please re-enter your password to complete this operation.");
+                    goToPage("login?redirect=account&email=" + $("#setting-email").val().toString(), null, null, true);
                 } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
