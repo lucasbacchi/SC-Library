@@ -1,6 +1,6 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
-import { db, storage } from "./globals";
+import { db, setTimeLastSearched, storage } from "./globals";
 import { collection, doc, getDoc, runTransaction } from "firebase/firestore";
 import { deleteObject, getDownloadURL, list, ref, uploadBytes } from "firebase/storage";
 
@@ -1001,8 +1001,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        // TODO: Remove the meduim check from this conditional? We had a NAN value put in the database on an AV item. Shouldn't it just be -1 for unnumbered?
-        if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1)) && mediumValue != "av") {
+        if (!unNumbered && (isNaN(numPagesValue) || numPagesValue < 1)) {
             alert("Please enter a valid number of pages!");
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1287,6 +1286,7 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
     }).then(() => {
         $("#loading-overlay").hide();
         alert("Edits were made successfully");
+        setTimeLastSearched(null);
         clearTimeout(loadingTimer);
         $(window).off("beforeunload");
         goToPage('admin/main');
