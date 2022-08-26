@@ -99,13 +99,13 @@ function authRedirect(pageQuery) {
 }
 
 function signInSubmit(pageQuery = "") {
+    var reAuth;
+    if (pageQuery.length > 1) {
+        reAuth = true;
+    } else {
+        reAuth = false;
+    }
     if (currentPage == 'login') {
-        var reAuth;
-        if (pageQuery.length > 1) {
-            reAuth = true;
-        } else {
-            reAuth = false;
-        }
         signIn(reAuth).then(function() {
             if (reAuth) {
                 authRedirect(pageQuery);
@@ -115,7 +115,11 @@ function signInSubmit(pageQuery = "") {
         }).catch(() => {});
     } else if (currentPage == 'signup') {
         handleSignUp().then(function() {
-            authRedirect(pageQuery);
+            if (reAuth) {
+                authRedirect(pageQuery);
+            } else {
+                goToPage("");
+            }
         }).catch(() => {
             console.warn("Signup failed (likely because the user failed validation)");
         });
@@ -261,6 +265,8 @@ function handleSignUp() {
             var errorMessage = error.message;
             if (errorCode == 'auth/weak-password') {
                 alert('The password is too weak.');
+            } else if (errorCode == 'auth/email-already-in-use') {
+                alert("This email is already in use. If you already have an account, please try signing in instead.");
             } else {
                 alert(errorMessage);
             }
