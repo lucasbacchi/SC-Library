@@ -269,7 +269,6 @@ p {
 
 .bookimage {
     max-height: 150px;
-    max-width: 120px;
     float: left;
     user-select: none;
     border-radius: 2px;

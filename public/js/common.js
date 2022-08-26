@@ -330,6 +330,9 @@ export function buildBookBox(obj, page, num = 0) {
     div.appendChild(div2);
     const img = document.createElement("img");
     img.classList.add("bookimage");
+    if (page == "edit-entry") {
+        img.classList.add("edit-entry-book-image");
+    }
     if (obj.medium == "av") {
         img.src = "../img/av-image.jpg";
     } else {
