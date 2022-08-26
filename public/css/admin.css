@@ -36,18 +36,15 @@ div#checked-out-books-container > .book {
 #edit-entry-search-results {
     margin: 0px;
     margin-top: 8px;
+    overflow-x: hidden;
     overflow-y: scroll;
     position: relative;
     /*border: 3px solid var(--teal);*/
     width: calc(100% + 16px);
     display: none;
     left: -8px;
-    max-height: 730px;
+    max-height: 87.5%;
     padding: 4px 6px;
-}
-
-#thumbnail-canvas {
-    display: none;
 }
 
 div#edit-entry-search-results > .book {
@@ -55,6 +52,10 @@ div#edit-entry-search-results > .book {
     height: auto;
     margin: 0;
     margin-bottom: 12px;
+}
+
+.edit-entry-book-image {
+    max-width: 120px;
 }
 
 #management-grid {
@@ -134,6 +135,27 @@ div#edit-entry-search-results > .book {
     top: -20px;
     left: -200px;
 }
+
+.deleted {
+    background-color: #ff9999;
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+}
+
+.deleted > * {
+    opacity: 0.7;
+}
+
+.userimage {
+    max-height: 150px;
+    float: left;
+    user-select: none;
+    border-radius: 200px;
+    box-shadow: 0px 0px 14px -4px var(--teal);
+    /*padding: 4px;*/
+    height: 100%;
+}
+
 
 
 

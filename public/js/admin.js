@@ -137,7 +137,7 @@ function adminSearch() {
     if (searchQuery) {
         $("#edit-entry-search-results").show();
         $("#edit-entry-search-results").empty();
-        search(searchQuery, undefined, undefined, true).then((results) => {
+        search(searchQuery, true).then((results) => {
             if (results.length == 0) {
                 $("#edit-entry-search-results").html("Your search returned no results. Please try again.");
             } else {
@@ -159,7 +159,8 @@ function adminBookBoxes(objects) {
 
 function createEntry() {
     return new Promise(function (resolve, reject) {
-        // Run a Transaction to ensure that the correct barcode is used. (Atomic Transation)
+        // Run a Transaction to ensure that the correct barcode is used.
+        // First, get the highest barcode number by loading the largest book document.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
             var topDoc;
             querySnapshot.forEach((docSnap) => {
@@ -169,8 +170,9 @@ function createEntry() {
                 topDoc = docSnap;
             });
 
+            // Now that we have the highest document, we can get that document and create a new book within it.
             runTransaction(db, (transaction) => {
-                return transaction.get(doc("books" + topDoc.id)).then((docSnap) => {
+                return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
                     if (!docSnap.exists()) {
                         throw "Document does not exist!";
                     }
@@ -178,6 +180,7 @@ function createEntry() {
                     var order = docSnap.data().order;
                     var numBooksInDoc = docSnap.data().books.length;
 
+                    // Let's make sure that there isn't another doc that has been created after this one already.
                     try {
                         var next = order + 1;
                         if (next < 10) {
@@ -185,10 +188,10 @@ function createEntry() {
                         } else if (next < 100) {
                             next = "0" + (next);
                         }
-                        getDoc(doc(db, "books/" + next)).then((docSnap) => {
+                        getDoc(doc(db, "books", next)).then((docSnap) => {
                             if (docSnap.exists()) {
                                 console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                alert("A database error has occurred.");
+                                alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
                                 throw "Something went wrong.";
                             }
                         }).catch((err) => {
@@ -207,7 +210,7 @@ function createEntry() {
                             newNumber = "0" + newNumber;
                         }
                         let barcode = "11711" + newNumber + "00";
-                        transaction.set(doc(db, "books/" + newNumber), {
+                        transaction.set(doc(db, "books", newNumber), {
                             books: [{
                                 barcodeNumber: barcode,
                                 title: "",
@@ -239,6 +242,7 @@ function createEntry() {
                         });
                         return barcode;
                     } else {
+                        // We don't need to add a new book doc, so just add the book to the existing one.
                         if (order < 10) {
                             order = "00" + order;
                         } else if (order < 100) {
@@ -251,7 +255,7 @@ function createEntry() {
                         } else {
                             barcode = "11711" + order + numBooksInDoc;
                         }
-                        transaction.update(doc(db, "books/" + order), {
+                        transaction.update(doc(db, "books", order), {
                             books: arrayUnion({
                                 barcodeNumber: barcode,
                                 title: "",
@@ -284,7 +288,7 @@ function createEntry() {
                 });
             }).then((newBarcode) => {
                 // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: ", newBarcode);
+                console.log("New Entry Created with barcode: " + newBarcode);
                 // editEntry(newBarcode);
                 resolve(newBarcode);
             });
@@ -424,7 +428,7 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
                 var a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
-                a.trigger("click");
+                a.click();
                 window.URL.revokeObjectURL(url);
             });
         }
@@ -467,7 +471,7 @@ function recentlyCheckedOut() {
 
 function addStats() {
     let count = 0;
-    search("", 0, 0).then(() => {
+    search("").then(() => {
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
@@ -504,7 +508,7 @@ function viewMissingBarcodes() {
 }
 
 function downloadDatabase() {
-    search("", 0, 0, true).then(() => {
+    search("", true).then(() => {
         var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
@@ -514,7 +518,7 @@ function downloadDatabase() {
         a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
         window.setTimeout(() => {
-            $("#download-database-link")[0].trigger("click");
+            $("#download-database-link")[0].click();
         }, 500);
     });
 }
@@ -537,13 +541,10 @@ function setUploadDatabase() {
     });
 }
 
-
-
-
 export function setupView(pageQuery) {
     var type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        search("", 0, 0, true).then(() => {
+        search("", true).then(() => {
             bookDatabase.forEach((doc) => {
                 doc.books.forEach((book) => {
                     $("div#view-container")[0].appendChild(buildBookBox(book, "view"));
@@ -562,7 +563,6 @@ export function setupView(pageQuery) {
     }
 }
 
-
 function buildUserBox(obj, page, num = 0) {
     const div = document.createElement("div");
     switch (page) {
@@ -577,8 +577,17 @@ function buildUserBox(obj, page, num = 0) {
     div.appendChild(div1);
     div.appendChild(div2);
     const img = document.createElement("img");
-    img.classList.add("bookimage");
-    img.src = obj.pfpLink;
+    img.classList.add("userimage");
+    if (obj.pfpIconLink) {
+        img.src = obj.pfpIconLink;
+    } else if (obj.pfpLink) {
+        img.src = obj.pfpLink;
+    } else {
+        img.src = "/img/default-user.jpg";
+    }
+    img.onload = () => {
+        div.style.opacity = 1;
+    };
     div1.appendChild(img);
     const b = document.createElement("b");
     const name = document.createElement("p");
@@ -631,7 +640,11 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(lastCheckoutTime);
         const checkouts = document.createElement("p");
         checkouts.classList.add("description");
-        checkouts.appendChild(document.createTextNode(obj.checkouts));
+        if (obj.checkouts.length > 0) {
+            checkouts.appendChild(document.createTextNode("Last Checked Out Book: " + obj.checkouts[0].title + " (Barcode: " + obj.checkouts[0].barcodeNumber + ")"));
+        } else {
+            checkouts.appendChild(document.createTextNode("Last Checked Out Book: N/A"));
+        }
         div3.appendChild(checkouts);
     }
     return div;
@@ -646,7 +659,7 @@ function formatDate(date) {
 
 var userDatabase = [];
 function getAllUsers() {
-    return /** @type {Promise<void>} */(new Promise(function (resolve) {
+    return new Promise(function (resolve) {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((docSnap) => {
@@ -658,7 +671,7 @@ function getAllUsers() {
             });
             resolve();
         });
-    }));
+    });
 }
 
 
@@ -706,7 +719,7 @@ export function setupInventory() {
 
 var cachedInventory = [];
 function loadInventory() {
-    return /** @type {Promise<void>} */(new Promise(function (resolve) {
+    return new Promise(function (resolve) {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
@@ -715,7 +728,7 @@ function loadInventory() {
             cachedInventory = docSnap.data().books;
             resolve();
         });
-    }));
+    });
 }
 
 function cancelInventory() {
@@ -724,7 +737,7 @@ function cancelInventory() {
 }
 
 function continueScanning() {
-    search("", 0, 0, true);
+    search("", true);
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");

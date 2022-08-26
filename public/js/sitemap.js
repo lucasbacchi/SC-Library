@@ -5,7 +5,7 @@ export function setupSitemap() {
     var folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
     if (auth.currentUser) blacklist.push('login', 'signup');
     for (let i = 0; i < directory.length; i++) {
-        var page = directory[i].substring(1);
+        var page = directory[i];
         if (blacklist.indexOf(page) != -1) continue;
         var slash = page.indexOf('/');
         if (slash != -1) {
@@ -41,7 +41,7 @@ function buildAdminSitemap() {
     $('#sitemap').append("<li>Admin</li>");
     $('#sitemap').append("<ul id='admin'></ul>");
     for (let i = 0; i < directory.length; i++) {
-        var page = directory[i].substring(1);
+        var page = directory[i];
         var slash = page.indexOf('/');
         if (slash != -1) {
             var newFolder = page.substring(0, slash);
