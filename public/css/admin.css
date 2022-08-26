@@ -54,6 +54,10 @@ div#edit-entry-search-results > .book {
     margin-bottom: 12px;
 }
 
+.edit-entry-book-image {
+    max-width: 120px;
+}
+
 #management-grid {
     margin: 0 auto;
     margin-top: 10px;
