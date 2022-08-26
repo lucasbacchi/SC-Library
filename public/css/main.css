@@ -274,7 +274,7 @@ p {
     border-radius: 2px;
     box-shadow: 0px 0px 14px -4px var(--teal);
     /*padding: 4px;*/
-    height: 100%;
+    height: auto;
 }
 
 #search-input {
@@ -420,7 +420,8 @@ footer {
 }
 
 #small-account-image {
-    max-height: 50px;
+    height: 50px;
+    width: 50px;
     border-radius: 50px;
     border: 2.5px solid white;
     background-color: white;
@@ -509,11 +510,30 @@ button.save-button {
 }
 
 .book, .result-listing {
-    transition: box-shadow 0.25s;
+    opacity: 0;
+    position: relative;
+    transition: box-shadow 0.25s, opacity 0.3s;
 }
 
+img.icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 5px;
+    z-index: 49;
+    max-height: 32px;
+    max-width: 32px;
+    opacity: 0.15;
+    transition: 0.5s;
+}
 
+img.icon:hover {
+    opacity: 0.5;
+}
 
+#thumbnail-canvas, #original-canvas, #icon-canvas {
+    display: none;
+}
 
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {

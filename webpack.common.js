@@ -1,6 +1,7 @@
 // Use Node.js for require function
 const path = require('path');
 const webpack = require("webpack");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 // This is just a javascript module that exports the config to webpack
 module.exports = {/*
@@ -27,6 +28,9 @@ module.exports = {/*
         new webpack.ProvidePlugin({
             $: "jquery",
             jQuery: "jquery"
+        }),
+        new MiniCssExtractPlugin({
+            filename: "[name].css",
         })
     ],
     module: {
@@ -37,7 +41,14 @@ module.exports = {/*
                 options: {
                     exposes: ["$", "jQuery"],
                 }
+            },
+            {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, "css-loader"]
             }
         ]
+    },
+    resolve: {
+        modules: ['node_modules', path.resolve(__dirname, "./public/css")],
     }
 };
