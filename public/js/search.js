@@ -178,7 +178,6 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
 }
 
 function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
-    $(document).scrollTop(0);
     if (isBrowse && (page + 2) * 20 > searchResultsArray.length) {
         browse(searchResultsArray, docsUsed, page).then((allDocsUsed) => {
             if (allDocsUsed) {
@@ -190,6 +189,7 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
     } else {
         fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
     }
+    $(document).scrollTop(0);
 }
 
 function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
