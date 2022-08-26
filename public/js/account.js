@@ -291,6 +291,8 @@ function updateAccount() {
                 if (error.code == "auth/requires-recent-login") {
                     alert("Please re-enter your password to complete this operation.");
                     goToPage("login?redirect=account&email=" + $("#setting-email").val().toString(), null, null, true);
+                } else if (error.code == "auth/email-already-in-use") {
+                    alert("This email is already associated with another account. Please sign into that account, or try a different email.");
                 } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
