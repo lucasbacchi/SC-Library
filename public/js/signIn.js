@@ -6,12 +6,6 @@ import { findURLValue, sendEmailVerificationToUser } from "./common";
 import { analytics, auth, currentPage, db } from "./globals";
 
 export function setupSignIn(pageQueryInput) {
-    $("#submit, .login > input").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            signInSubmit(pageQueryInput);
-        }
-    });
-
     $("#submit").on("click", () => {
         signInSubmit(pageQueryInput);
     });
@@ -30,30 +24,42 @@ export function setupSignIn(pageQueryInput) {
 
     if (findURLValue(pageQueryInput, "redirect", true) != "") {
         $("#content").empty();
-        var form = document.createElement('div');
-        form.id = 'form';
-        var p = document.createElement('h3');
-        p.innerHTML = "Please enter your password.";
-        $(form).append(p);
+        var div1 = document.createElement('div');
+        div1.id = 'form';
+        var div2 = document.createElement('div');
+        div2.classList.add("login");
+        var h3 = document.createElement('h3');
+        h3.innerHTML = "Please enter your password.";
+        $(div2).append(h3);
         var lbl = document.createElement('label');
         lbl.innerHTML = 'Password:';
         lbl.setAttribute('for', 'password');
-        $(form).append(lbl);
+        $(div2).append(lbl);
         var input = document.createElement('input');
         input.type = 'password';
         input.id = 'password';
-        $(form).append(input);
+        $(div2).append(input);
+        $(div2).append(document.createElement('br'));
+        $(div2).append(document.createElement('br'));
         var btn = document.createElement('button');
         btn.id = 'submit';
         btn.innerHTML = 'Submit';
-        $(form).append(btn);
+        $(div2).append(btn);
         btn.addEventListener('click', () => {
             signInSubmit(pageQueryInput);
         });
-        $(form).append(document.createElement('br'));
-        $(form).append(document.createElement('br'));
-        $("#content").append(form);
+        $(div2).append(document.createElement('br'));
+        $(div2).append(document.createElement('br'));
+        $(div1).append(div2);
+        $("#content").append(div1);
     }
+
+    $("#submit, .login > input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            signInSubmit(pageQueryInput);
+        }
+    });
+
 }
 
 function authRedirect(pageQuery) {
@@ -76,7 +82,7 @@ function authRedirect(pageQuery) {
                 }
                 updateEmailinUI(email);
                 alert("Your email was saved successfully.");
-                goToPage(redirect + "?email=" + newEmail);
+                goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
             }).catch((error) => {
                 alert("There was an error updating your email. Please try again later.");
                 console.error(error);

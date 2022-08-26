@@ -270,14 +270,22 @@ function updateAccount() {
         }
         // If the email was changed update it.
         if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined) {
-            updateEmail(user, $("#setting-email").val().toString()).then(() => {
-                let email = user.email;
-                if (!user.emailVerified) {
-                    $("#email-verified").show();
-                }
-                updateEmailinUI(email);
-                updateAccountPageFromDatabase();
-                alert("Your email was saved successfully.");
+            let newEmail = $("#setting-email").val().toString();
+            updateEmail(user, newEmail).then(() => {
+                updateDoc(doc(db, "users", user.uid), {
+                    email: newEmail
+                }).then(() => {
+                    let email = user.email;
+                    if (!user.emailVerified) {
+                        $("#email-verified").show();
+                    }
+                    updateEmailinUI(email);
+                    updateAccountPageFromDatabase();
+                    alert("Your email was saved successfully.");
+                }).catch((error) => {
+                    alert("There was an error updating your email. Please try again later.");
+                    console.error(error);
+                });
             }).catch((error) => {
                 // If the user needs to reauthenticate:
                 if (error.code == "auth/requires-recent-login") {
