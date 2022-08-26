@@ -1,8 +1,9 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
-import { auth, bookDatabase, db, searchCache, timeLastSearched } from './globals';
+import { analytics, auth, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
+import { logEvent } from 'firebase/analytics';
 
 // Doesn't have to be setup because the window element doesn't change.
 $(window).on("resize", () => {
@@ -67,24 +68,25 @@ export function setupSearch(searchResultsArray, pageQuery) {
 
     var queryFromURL = findURLValue(pageQuery, "query", true);
 
+    $("#apply-filters-button").on("click", () => {
+        var queryFromURL = findURLValue(window.location.search, "query", true);
+        applySearchFilters(queryFromURL);
+    });
+
     $("#search-page-input").val(queryFromURL);
 
     if (searchResultsArray == null) {
         // If you are entering the page without a search completed
         if (queryFromURL == "") {
             browse();
-            return;
+        } else {
+            search(queryFromURL).then((resultsArray) => {
+                createSearchResultsPage(resultsArray);
+            });
         }
-        search(queryFromURL).then((resultsArray) => {
-            createSearchResultsPage(resultsArray);
-        });
     } else {
         createSearchResultsPage(searchResultsArray);
     }
-
-    $("#apply-search-filters").on("click", () => {
-        applySearchFilters();
-    });
 }
 
 function searchPageSearch() {
@@ -96,108 +98,158 @@ function searchPageSearch() {
     });
 }
 
-function browse() {
-    changePageTitle("Browse", false);
-    var browseResultsArray = [];
-    if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
-        // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
-        var docs = bookDatabase.length - 1;
-        if (bookDatabase[bookDatabase.length - 1].books.length < 25 && docs != 0) {
-            docs--;
-        }
-        var rand = Math.floor(Math.random() * docs);
-        if (!bookDatabase[rand]) {
-            console.error("books " + rand + " does not exist in the local book database");
-            return;
-        }
-        var values = [], count = 0;
-        for (let i = 0; i < 20; i++) {
-            var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
-            if (values.indexOf(random) > -1 || bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
-                i--;
-            } else {
-                values.push(random);
-                browseResultsArray.push(bookDatabase[rand].books[random]);
-            }
-            count++;
-            if (count > 10000) {
-                if (i > 0) {
-                    console.error("no books available");
-                    const p = document.createElement('p');
-                    p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                    $('div#results-container')[0].appendChild(p);
-
-                }
-                createSearchResultsPage(browseResultsArray);
+function browse(browseResultsArray = [], docsUsed = [], page = 1) {
+    return new Promise((resolve, reject) => {
+        changePageTitle("Browse", false);
+        if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
+            // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
+            var docs = bookDatabase.length;
+            if (docsUsed.length == docs) {
+                resolve(true); // lets createSearchResultsPage know that the end is nigh
                 return;
             }
-        }
-        createSearchResultsPage(browseResultsArray);
-    } else {
-        // No search has been performed on the page yet, so get it from the database.
-        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
-            querySnapshot.forEach((docSnap) => {
-                if (!docSnap.exists()) {
-                    console.error("books document does not exist");
-                    return;
+            var rand = Math.floor(Math.random() * docs);
+            while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
+            docsUsed.push(rand);
+            if (!bookDatabase[rand]) {
+                console.error("books " + rand + " does not exist in the local book database");
+                reject();
+                return;
+            }
+            var values = [], invalidBookIndices = [];
+            while (values.length < bookDatabase[rand].books.length - invalidBookIndices.length) {
+                var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
+                if (values.indexOf(random) > -1) continue;
+                if (bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
+                    if (!invalidBookIndices.includes(random)) {
+                        invalidBookIndices.push(random);
+                    }
+                } else {
+                    values.push(random);
+                    browseResultsArray.push(bookDatabase[rand].books[random]);
                 }
-                var docs = docSnap.data().order;
-                if (docSnap.data().books.length < 25 && docs != 0) {
-                    docs--;
-                }
-                var rand = Math.floor(Math.random() * docs);
-                rand = "0" + rand;
-                if (rand.length == 2) rand = "0" + rand;
-                getDoc(doc(db, "books", rand)).then((docSnap) => {
+            }
+            setSearchCache(browseResultsArray);
+            createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+        } else {
+            // No search has been performed on the page yet, so get it from the database.
+            getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+                querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
-                        console.error("books " + rand + " does not exist");
+                        console.error("books document does not exist");
+                        reject();
                         return;
                     }
-                    var values = [], count = 0;
-                    for (let i = 0; i < 20; i++) {
-                        var random = Math.floor(Math.random() * docSnap.data().books.length);
-                        if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
-                            i--;
-                        } else {
-                            values.push(random);
-                            browseResultsArray.push(docSnap.data().books[random]);
-                        }
-                        count++;
-                        if (count > 10000) {
-                            if (i > 0) {
-                                console.error("no books available");
-                                const p = document.createElement('p');
-                                p.appendChild(document.createTextNode("Sorry, we were not able to process your query at this time. Please try again later."));
-                                $('div#results-container')[0].appendChild(p);
-
-                            }
-                            createSearchResultsPage(browseResultsArray);
+                    var docs = docSnap.data().order + 1;
+                    if (docsUsed.length == docs) {
+                        resolve(true); // lets createSearchResultsPage know that the end is nigh
+                        return;
+                    }
+                    var rand = Math.floor(Math.random() * docs);
+                    while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
+                    docsUsed.push(rand);
+                    rand = "0" + rand;
+                    if (rand.length == 2) rand = "0" + rand;
+                    getDoc(doc(db, "books", rand)).then((docSnap) => {
+                        if (!docSnap.exists()) {
+                            console.error("books " + rand + " does not exist");
+                            reject();
                             return;
                         }
-                    }
-                    createSearchResultsPage(browseResultsArray);
+                        var values = [], invalidBookIndices = [], data = docSnap.data();
+                        while (values.length < data.books.length - invalidBookIndices.length) {
+                            var random = Math.floor(Math.random() * data.books.length);
+                            if (values.includes(random)) continue;
+                            if (data.books[random].isDeleted || data.books[random].isHidden) {
+                                if (!invalidBookIndices.includes(random)) {
+                                    invalidBookIndices.push(random);
+                                }
+                            } else {
+                                values.push(random);
+                                browseResultsArray.push(data.books[random]);
+                            }
+                        }
+                        setSearchCache(browseResultsArray);
+                        createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+                    });
                 });
             });
-        });
-    }
+        }
+    });
 }
 
-function createSearchResultsPage(searchResultsArray) {
-    $('div#results-container').empty();
-    if (searchResultsArray.length == 0) {
+function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
+    if (isBrowse && (page + 2) * 20 > searchResultsArray.length) {
+        browse(searchResultsArray, docsUsed, page).then((allDocsUsed) => {
+            if (allDocsUsed) {
+                fillSearchResultsPage(searchResultsArray, page, filters, items, false);
+            } else {
+                return;
+            }
+        });
+    } else {
+        fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
+    }
+    setTimeout(() => {
+        $(document).scrollTop(0);
+    }, 100);
+}
+
+function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
+    $('div#search-results-container').empty();
+    if (searchResultsArray.length == 0 || (page - 1) * 20 >= searchResultsArray.length) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
-        $('div#results-container')[0].appendChild(p);
+        $('div#search-results-container')?.[0].appendChild(p);
     }
-    for (let i = 0; i < searchResultsArray.length; i++) {
-        $('div#results-container')[0].appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
+    for (let i = (page - 1) * 20; i < Math.min(page * 20, searchResultsArray.length); i++) {
+        $('div#search-results-container')?.[0]?.appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
     }
-    createFilterList(searchResultsArray);
+    createFilterList(searchResultsArray, filters, items);
+
+    $("#paginator").empty();
+    $("#paginator").show();
+    if (searchResultsArray.length < 21) {
+        // there is only one page, so don't bother displaying the paginator
+        $("#paginator").hide();
+        return;
+    }
+    if (page > 1) {
+        const prev = document.createElement('a');
+        prev.innerHTML = "< Previous Page";
+        prev.onclick = function() {
+            createSearchResultsPage(searchResultsArray, page - 1, undefined, undefined, isBrowse, docsUsed);
+        };
+        $("#paginator")[0].appendChild(prev);
+    }
+    for (let p = page - 2; p <= page + 2; p++) {
+        if (p < 1 || (p - 1) * 20 >= searchResultsArray.length && !isBrowse) continue;
+        if (p == page) {
+            const span = document.createElement('span');
+            span.innerHTML = "<b>" + p + "</b>";
+            $("#paginator")[0].appendChild(span);
+            continue;
+        }
+        const a = document.createElement('a');
+        a.innerHTML = p;
+        a.onclick = function() {
+            createSearchResultsPage(searchResultsArray, p, undefined, undefined, isBrowse, docsUsed);
+        };
+        $("#paginator")[0].appendChild(a);
+    }
+    if (page * 20 < searchResultsArray.length) {
+        const next = document.createElement('a');
+        next.innerHTML = "Next Page >";
+        next.onclick = function() {
+            createSearchResultsPage(searchResultsArray, page + 1, undefined, undefined, isBrowse, docsUsed);
+        };
+        $("#paginator")[0].appendChild(next);
+    }
 }
 
 var searchResultsAuthorsArray = [];
 var searchResultsSubjectsArray = [];
-function createFilterList(searchResultsArray) {
+function createFilterList(searchResultsArray, filters = [], items = [[]]) {
     // TODO: This function should also order each of the lists by occurances.
     searchResultsAuthorsArray = [];
     searchResultsSubjectsArray = [];
@@ -206,32 +258,63 @@ function createFilterList(searchResultsArray) {
 
     // Authors
     for (let i = 0; i < searchResultsArray.length; i++) {
-        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[0]) && searchResultsArray[i].authors[0]) {
-            searchResultsAuthorsArray.push(searchResultsArray[i].authors[0]);
-        }
-        if (!searchResultsAuthorsArray.includes(searchResultsArray[i].authors[1]) && searchResultsArray[i].authors[1]) {
-            searchResultsAuthorsArray.push(searchResultsArray[i].authors[1]);
+        for (let j = 0; j < 2; j++) {
+            if (searchResultsArray[i].authors[j]) {
+                let authorString = searchResultsArray[i].authors[j]?.last + ", " + searchResultsArray[i].authors[j]?.first;
+                if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined" && authorString != ", ") {
+                    searchResultsAuthorsArray.push(authorString);
+                }
+            }
         }
     }
-    for (let i = 0; i < searchResultsAuthorsArray.length; i++) {
-        let authorArray = searchResultsAuthorsArray[i];
+    let authorIndex = filters.indexOf("Author"), checkedCount = 0, offset = 0;
+    if (authorIndex != -1) {
+        for (let i = 0; i < items[authorIndex].length; i++) {
+            let authorString = items[authorIndex][i];
+            const li = document.createElement("li");
+            li.classList.add("sort-item");
+            li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+            li.children[0].checked = true;
+            $("#sort-author-list")[0].appendChild(li);
+            checkedCount++;
+        }
+    }
+    let maxAuthors = Math.max(6, checkedCount);
+    for (let i = checkedCount; i < searchResultsAuthorsArray.length; i++) {
+        let authorString = searchResultsAuthorsArray[i - checkedCount + offset], alreadyExists = false;
+        for (let j = 0; j < checkedCount; j++) {
+            if ($("#sort-author-list")[0].children[j].children[1].innerHTML == authorString) {
+                i--;
+                offset++;
+                alreadyExists = true;
+            }
+        }
+        if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
-        if (i < 6) {
-            $("#sort-author-list")[0].appendChild(li);
-        } else if (i == 6) {
+        li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+        if (i < maxAuthors) {
+            $("#sort-author-list")[0]?.appendChild(li);
+        } else if (i == maxAuthors) {
             const span = document.createElement("span");
             span.id = "author-show-more";
             span.innerHTML = "Show More...";
             $("#sort-author-list")[0].appendChild(span);
             $("#author-show-more").on("click", () => {
                 $("#author-show-more").css("display", "none");
-                for (let j = 6; j < searchResultsAuthorsArray.length; j++) {
-                    let authorArray = searchResultsAuthorsArray[j];
+                for (let j = maxAuthors; j < searchResultsAuthorsArray.length; j++) {
+                    let authorString = searchResultsAuthorsArray[j - checkedCount + offset], alreadyExists = false;
+                    for (let k = 0; k < checkedCount; k++) {
+                        if ($("#sort-author-list")[0].children[k].children[j].innerHTML == authorString) {
+                            i--;
+                            offset++;
+                            alreadyExists = true;
+                        }
+                    }
+                    if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\">" + authorArray.last + ", " + authorArray.first;
+                    li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span>";
                     $("#sort-author-list")[0].appendChild(li);
                 }
             });
@@ -246,25 +329,55 @@ function createFilterList(searchResultsArray) {
             }
         }
     }
-    for (let i = 0; i < searchResultsSubjectsArray.length; i++) {
-        let subject = searchResultsSubjectsArray[i];
+    let subjectIndex = filters.indexOf("Subject");
+    checkedCount = 0, offset = 0;
+    if (subjectIndex != -1) {
+        for (let i = 0; i < items[subjectIndex].length; i++) {
+            let subject = items[subjectIndex][i];
+            const li = document.createElement("li");
+            li.classList.add("sort-item");
+            li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span";
+            li.children[0].checked = true;
+            $("#sort-subject-list")[0].appendChild(li);
+            checkedCount++;
+        }
+    }
+    let maxSubjects = Math.max(6, checkedCount);
+    for (let i = checkedCount; i < searchResultsSubjectsArray.length; i++) {
+        let subject = searchResultsSubjectsArray[i - checkedCount + offset], alreadyExists = false;
+        for (let j = 0; j < checkedCount; j++) {
+            if ($("#sort-subject-list")[0].children[j].children[1].innerHTML == subject) {
+                i--;
+                offset++;
+                alreadyExists = true;
+            }
+        }
+        if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\">" + subject;
-        if (i < 6) {
+        li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
+        if (i < maxSubjects) {
             $("#sort-subject-list")[0].appendChild(li);
-        } else if (i == 6) {
+        } else if (i == maxSubjects) {
             const span = document.createElement("span");
             span.id = "subject-show-more";
             span.innerHTML = "Show More...";
             $("#sort-subject-list")[0].appendChild(span);
             $("#subject-show-more").on("click", () => {
                 $("#subject-show-more").css("display", "none");
-                for (let j = 6; j < searchResultsSubjectsArray.length; j++) {
-                    let subject = searchResultsSubjectsArray[j];
+                for (let j = maxSubjects; j < searchResultsSubjectsArray.length; j++) {
+                    let subject = searchResultsSubjectsArray[j - checkedCount + offset], alreadyExists = false;
+                    for (let k = 0; k < checkedCount; k++) {
+                        if ($("#sort-subject-list")[0].children[k].children[1].innerHTML == subject) {
+                            j--;
+                            offset++;
+                            alreadyExists = true;
+                        }
+                    }
+                    if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\">" + subject;
+                    li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
                     $("#sort-subject-list")[0].appendChild(li);
                 }
             });
@@ -289,9 +402,18 @@ export function setupResultPage(pageQuery) {
         changePageTitle(bookObject.title);
 
         if (bookObject.medium == "av") {
-            $("#result-page-image").attr("src", "../img/av-image.jpg");
+            $("#result-page-image").attr("src", "/img/av-image.jpg");
         } else {
-            $("#result-page-image").attr("src", bookObject.coverImageLink);
+            // Currently not checking for icons because they are too low quality. Could change that if needed.
+            if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
+                $("#result-page-image").attr("src", bookObject.thumbnailImageLink);
+            } else if (bookObject.coverImageLink.indexOf("http") != -1) {
+                console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
+                $("#result-page-image").attr("src", bookObject.coverImageLink);
+            } else {
+                console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
+                $("#result-page-image").attr("src", "/img/favicon.ico");
+            }
         }
 
         $("#result-page-barcode-number").html(barcodeNumber);
@@ -464,9 +586,13 @@ export function setupResultPage(pageQuery) {
         }
         $("#result-page-subjects").html(subjectsAnswer);
         $("#result-page-description").html(bookObject.description);
+
+        logEvent(analytics, "select_content", {
+            content_type: "book_result",
+            item_id: barcodeNumber
+        });
     }).catch((barcodeNumber) => {
-        alert("Error: No information could be found for that book.");
-        alert(barcodeNumber + " is not a valid barcode number.");
+        alert("Error: No information could be found for that book. Could not find book with barcode number: " + barcodeNumber);
         goToPage("");
         return;
     });
@@ -548,7 +674,7 @@ function scanCheckout() {
                                     });
                                 });
                             runTransaction(db, (transaction) => {
-                                return transaction.get(doc("books/" + bookDocument)).then((docSnap) => {
+                                return transaction.get(doc(db, "books", bookDocument)).then((docSnap) => {
                                     if (!docSnap.exists()) {
                                         alert("There was a problem with checking out that book.");
                                         return;
@@ -585,43 +711,76 @@ function scanCheckout() {
     });
 }
 
-function applySearchFilters() {
+function applySearchFilters(queryFromURL) {
     var filters = [], items = [], results = [];
     for (let i = 0; i < $(".sort-section").length; i++) {
         filters.push($(".sort-section")[i].children[0].innerHTML);
         items.push([]);
         for (let j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
-            if ($(".sort-section")[i].children[1].children[j].tagName == "LI") {
-                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[0].checked);
+            if ($(".sort-section")[i].children[1].children[j].tagName == "LI" &&
+                $(".sort-section")[i].children[1].children[j].children[0].checked) {
+                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[1].innerHTML);
             }
         }
-        if (items[items.length - 1].every((val, q, arr) => val === arr[0])) {
+        if (items[items.length - 1].length == 0) {
             filters.pop();
             items.pop();
         }
     }
-    for (let i = 0, passesFilters = true; i < searchCache.length && passesFilters; i++) {
-        for (let j = 0; j < filters.length; j++) {
+    if (queryFromURL == "") {
+        search("").then(() => {
+            searchWithFilters(filters, items, results);
+        });
+    } else {
+        searchWithFilters(filters, items, results);
+    }
+}
+
+function searchWithFilters(filters, items, results) {
+    for (let i = 0; i < searchCache.length; i++) {
+        let passesAllFilters = true;
+        for (let j = 0; j < filters.length && passesAllFilters; j++) {
             var passesFilter = false;
             for (let k = 0; k < items[j].length; k++) {
-                if (filters[j] == "Audience") {
-                    if (items[j][k] && searchCache[i].audience[k]) {
+                if (filters[j] == "Author") {
+                    if (passesFilter ||
+                        items[j][k] == searchCache[i].authors[0].last + ", " + searchCache[i].authors[0].first
+                        || (searchCache[i].authors[1] &&
+                            items[j][k] == searchCache[i].authors[1].last + ", " + searchCache[i].authors[1].first)) {
                         passesFilter = true;
                     }
                 } else if (filters[j] == "Medium") {
-                    if (searchCache[i].medium == items[j][k]) {
-                        // Justin, finish this
+                    if (passesFilter || items[j][k].toUpperCase() == searchCache[i].medium.toUpperCase()) {
+                        passesFilter = true;
+                    }
+                } else if (filters[j] == "Audience") {
+                    if (passesFilter ||
+                        items[j][k] == "Children" && searchCache[i].audience[0] ||
+                        items[j][k] == "Youth" && searchCache[i].audience[1] ||
+                        items[j][k] == "Adult" && searchCache[i].audience[2]) {
+                        passesFilter = true;
+                    }
+                } else if (filters[j] == "Subject") {
+                    if (passesFilter || searchCache[i].subjects.includes(items[j][k])) {
+                        passesFilter = true;
+                    }
+                } else if (filters[j] == "Type") {
+                    if (passesFilter ||
+                        items[j][k] == "Non-fiction" && searchCache[i].ddc == "FIC" ||
+                        items[j][k] == "Fiction" && searchCache[i].ddc != "FIC") {
+                        passesFilter = true;
                     }
                 }
             }
             if (!passesFilter)
-                passesFilters = false;
+                passesAllFilters = false;
         }
-        if (passesFilters) {
+        if (passesAllFilters) {
             results.push(searchCache[i]);
         }
     }
-    createSearchResultsPage(results);
+
+    createSearchResultsPage(results, 1, filters, items);
 }
 
 console.log("search.js Loaded!");

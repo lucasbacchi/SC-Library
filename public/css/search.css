@@ -89,10 +89,6 @@ h4:hover {
     justify-content: space-between;
 }
 
-.result-listing:last-child {
-    border-bottom: 0px;
-}
-
 .result-number {
     float: left;
     margin-right: 16px;
@@ -124,7 +120,8 @@ h4:hover {
     grid-row: 1 / 5;
     grid-column: 1 / 2;
     /*text-align: center;*/
-    padding: 12px;
+    padding: 0px 12px;
+    margin-right: 24px;
 }
 
 #result-page-details {
@@ -132,12 +129,16 @@ h4:hover {
     grid-column: 2 / 5;
 }
 
+#result-page-details:first-child {
+    margin-top: 0;
+}
+
 #result-page-details > p {
     text-align: left;
 }
 
 #result-page-image {
-    max-width: 80%;
+    width: 100%;
     min-height: 100px;
 }
 
@@ -145,10 +146,14 @@ div#result-page-info-bar > p {
     text-align: left;
 }
 
+#paginator, #paginator > * {
+    margin: 8px;
+}
+
 #checkout-button {
     padding: 16px;
     margin: 8px 0px;
-    width: 80%;
+    width: 100%;
     background-color: var(--mint);
     border-radius: 8px;
     text-align: center;
