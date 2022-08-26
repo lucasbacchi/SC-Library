@@ -36,13 +36,14 @@ div#checked-out-books-container > .book {
 #edit-entry-search-results {
     margin: 0px;
     margin-top: 8px;
+    overflow-x: hidden;
     overflow-y: scroll;
     position: relative;
     /*border: 3px solid var(--teal);*/
     width: calc(100% + 16px);
     display: none;
     left: -8px;
-    max-height: 730px;
+    max-height: 87.5%;
     padding: 4px 6px;
 }
 
