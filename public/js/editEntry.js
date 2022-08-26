@@ -1,36 +1,21 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
-import { db, storage } from "./globals";
+import { db, setTimeLastSearched, storage } from "./globals";
 import { collection, doc, getDoc, runTransaction } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, list, ref, uploadBytes } from "firebase/storage";
 
-/* Implement the whole thing in a transaction to ensure that nothing breaks along the way.
-runTransaction(db, (transaction) => {
-    // This code may run multiple times if there are confilcts
-    var bookPath = doc("books/" + barcodeNumber);
-    return transaction.get(bookPath).then((docSnap) => {
-        if (!docSnap.exists()) {
-            throw "Document does not exist!";
-        }
-    });
-}).then((content) => {
-    // Will run after transaction success.
-}).catch((error) => {
-    // Will run after transaction failure.
-});
-*/
-var editEntryData = null;
+
 var newEntry = null;
 var barcodeNumber;
 var isbn;
+var imageChanged;
 
 export function setupEditEntry(pageQuery) {
-    editEntryData = null;
     file = null;
-    newEntry = null;
     newEntry = (findURLValue(pageQuery, "new") == "true");
     barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
     isbn = findURLValue(pageQuery, "isbn", true);
+    imageChanged = false;
 
     if (barcodeNumber == "" && newEntry == false) {
         alert("The barcode that you are trying to edit is not valid.");
@@ -40,118 +25,18 @@ export function setupEditEntry(pageQuery) {
 
     if (!newEntry) {
         // If this is not a new entry, just get the content that exists in the database
-        if (!isNaN(barcodeNumber)) {
-            var document = Math.floor(barcodeNumber / 100) % 100;
-            if (document >= 100) {
-                document = "" + document;
-            } else if (document >= 10) {
-                document = "0" + document;
-            } else {
-                document = "00" + document;
-            }
-            getDoc(doc(db, "books/" + document)).then((docSnap) => {
-                var data = docSnap.data().books[barcodeNumber % 100];
-                editEntryData = data;
-                $('#barcode').html(barcodeNumber);
-                $("#book-title").val(data.title);
-                $("#book-subtitle").val(data.subtitle);
-
-                for (let i = 0; i < data.authors.length; i++) {
-                    $("#book-author-" + (i + 1) + "-last").val(data.authors[i].last);
-                    $("#book-author-" + (i + 1) + "-first").val(data.authors[i].first);
-                }
-
-                for (let i = 0; i < data.illustrators.length; i++) {
-                    $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].last);
-                    $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].first);
-                }
-
-                $("#book-medium").val(data.medium);
-
-                $("#book-cover-image").attr('src', data.coverImageLink);
-
-                for (let i = 0; i < data.subjects.length; i++) {
-                    addSubject();
-                    $("#book-subject-" + (i + 1)).val(data.subjects[i]);
-                }
-
-                $("#book-description").val(data.description);
-
-                $("#book-audience-children").prop("checked", data.audience[0]);
-                $("#book-audience-youth").prop("checked", data.audience[1]);
-                $("#book-audience-adult").prop("checked", data.audience[2]);
-                $("#book-audience-none").prop("checked", data.audience[3]);
-
-                $("#book-isbn-10").val(data.isbn10);
-                $("#book-isbn-13").val(data.isbn13);
-
-                if (data.isbn10 == "" && data.isbn13 == "") {
-                    $("#book-no-isbn").prop("checked", true);
-                    $("#book-isbn-10")[0].disabled = true;
-                    $("#book-isbn-13")[0].disabled = true;
-                }
-
-                $("#book-publisher-1").val(data.publishers[0]);
-                $("#book-publisher-2").val(data.publishers[1]);
-
-                if (data.publishDate != null) {
-                    $("#book-publish-month").val(data.publishDate.toDate().getMonth() + 1);
-                    $("#book-publish-day").val(data.publishDate.toDate().getDate());
-                    $("#book-publish-year").val(data.publishDate.toDate().getFullYear());
-                }
-
-                if (data.numberOfPages != -1) {
-                    $("#book-pages").val(data.numberOfPages);
-                    $("#book-unnumbered").prop("checked", false);
-                } else if (data.numberOfPages == -1) {
-                    $("#book-pages")[0].disabled = true;
-                    $("#book-unnumbered").prop("checked", true);
-                }
-
-                $("#book-dewey").val(data.ddc);
-
-                let temp = (data.canBeCheckedOut) ? "y":"";
-                $("#book-can-be-checked-out").val(temp);
-                temp = (data.isHidden) ? "y":"";
-                $("#book-is-hidden").val(temp);
-
-                if (data.purchaseDate != null) {
-                    $("#book-purchase-month").val(data.purchaseDate.toDate().getMonth() + 1);
-                    $("#book-purchase-day").val(data.purchaseDate.toDate().getDate());
-                    $("#book-purchase-year").val(data.purchaseDate.toDate().getFullYear());
-                }
-
-                $("#book-purchase-price").val(data.purchasePrice);
-                $("#book-vendor").val(data.vendor);
-
-                if (data.lastUpdated != null) {
-                    var lastUpdated = data.lastUpdated.toDate();
-                    $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
-                }
-            });
-
-            /* This should all be obsolete now
-            var coverImageLink;
-            listAll(ref(storage, "books/" + barcodeNumber)).then((result) => {
-                result.items.forEach((itemRef) => {
-                    // If we store more that just one image per book, this will probably break.
-                    coverImageLink = itemRef.getDownloadURL();
-                    $("#book-cover-image").attr('src', coverImageLink);
-                });
-            }).catch((error) => {
-                console.error(error);
-            });*/
-        }
-
+        populateEditEntryFromDatabase(barcodeNumber);
     } else {
         // If this is a new entry (and they are creating it for the first time) go get info from open library
         if (isbn.length >= 10) {
-            gatherExternalInformation(isbn).then((noISBN = false, bookObject, authorObject, worksObject) => {
+            gatherExternalInformation(isbn).then((returnValue) => {
                 // If this is a brand new entry...
-                loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject);
-            }).catch(() => {
+                // returnValue will be in the form of noISBN = false, bookObject, authorObject, worksObject
+                loadDataOnToEditEntryPage(returnValue[0], returnValue[1], returnValue[2], returnValue[3]);
+            }).catch((error) => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
                 alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
+                console.warn("Could not find an entry in open library for this isbn", error);
             });
         } else {
             loadDataOnToEditEntryPage(true);
@@ -187,10 +72,13 @@ export function setupEditEntry(pageQuery) {
     });
 
     // If the user attempts to leave, let them know if they have unsaved changes
-    // TO DO: Remove when the user leaves the page.
     $(window).on("beforeunload", function (event) {
-        event.preventDefault();
-        return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
+        if (changesDetected && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+            event.preventDefault();
+            return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
+        } else {
+            $(window).off("beforeunload");
+        }
     });
 
     $("#book-medium")[0].addEventListener("input", (event) => {
@@ -238,7 +126,7 @@ export function setupEditEntry(pageQuery) {
     });
 
     $("#delete-entry").on("click", () => {
-        editEntry(null, true);
+        editEntry(true);
     });
 
     $("#edit-entry-cancel").on("click", () => {
@@ -257,8 +145,261 @@ export function setupEditEntry(pageQuery) {
         addSubject();
     });
 
+    watchForChanges();
 }
 
+var changesDetected = false;
+function watchForChanges() {
+    changesDetected = false;
+    $("input, textarea").on("input", () => {
+        changesDetected = true;
+    });
+    $("select").on("change", () => {
+        changesDetected = true;
+    });
+    $("#book-cover-image-overlay").on("click", () => {
+        changesDetected = true;
+    });
+}
+
+function populateEditEntryFromDatabase(barcodeNumber) {
+    if (isNaN(barcodeNumber)) {
+        alert("We could not find an entry in the database with the barcode number that you entered.");
+        console.error("barcodeNumber is not a number", barcodeNumber);
+        return;
+    }
+
+    var document = Math.floor(barcodeNumber / 100) % 100;
+    if (document >= 100) {
+        document = "" + document;
+    } else if (document >= 10) {
+        document = "0" + document;
+    } else {
+        document = "00" + document;
+    }
+    getDoc(doc(db, "books/" + document)).then((docSnap) => {
+        var data = docSnap.data().books[barcodeNumber % 100];
+
+        if (!data) {
+            alert("We could not find any data for a book with barcode number " + barcodeNumber);
+            goToPage("admin/main");
+            return;
+        }
+
+        $('#barcode').html(barcodeNumber);
+        $("#book-title").val(data.title);
+        $("#book-subtitle").val(data.subtitle);
+
+        for (let i = 0; i < data.authors.length; i++) {
+            $("#book-author-" + (i + 1) + "-last").val(data.authors[i].last);
+            $("#book-author-" + (i + 1) + "-first").val(data.authors[i].first);
+        }
+
+        for (let i = 0; i < data.illustrators.length; i++) {
+            $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].last);
+            $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].first);
+        }
+
+        $("#book-medium").val(data.medium);
+
+        $("#book-cover-image").attr('src', data.coverImageLink);
+
+        for (let i = 0; i < data.subjects.length; i++) {
+            addSubject();
+            $("#book-subject-" + (i + 1)).val(data.subjects[i]);
+        }
+
+        $("#book-description").val(data.description);
+
+        $("#book-audience-children").prop("checked", data.audience[0]);
+        $("#book-audience-youth").prop("checked", data.audience[1]);
+        $("#book-audience-adult").prop("checked", data.audience[2]);
+        $("#book-audience-none").prop("checked", data.audience[3]);
+
+        $("#book-isbn-10").val(data.isbn10);
+        $("#book-isbn-13").val(data.isbn13);
+
+        if (data.isbn10 == "" && data.isbn13 == "") {
+            $("#book-no-isbn").prop("checked", true);
+            $("#book-isbn-10")[0].disabled = true;
+            $("#book-isbn-13")[0].disabled = true;
+        }
+
+        $("#book-publisher-1").val(data.publishers[0]);
+        $("#book-publisher-2").val(data.publishers[1]);
+
+        if (data.publishDate != null) {
+            $("#book-publish-month").val(data.publishDate.toDate().getMonth() + 1);
+            $("#book-publish-day").val(data.publishDate.toDate().getDate());
+            $("#book-publish-year").val(data.publishDate.toDate().getFullYear());
+        }
+
+        if (data.numberOfPages != -1) {
+            $("#book-pages").val(data.numberOfPages);
+            $("#book-unnumbered").prop("checked", false);
+        } else if (data.numberOfPages == -1) {
+            $("#book-pages")[0].disabled = true;
+            $("#book-unnumbered").prop("checked", true);
+        }
+
+        $("#book-dewey").val(data.ddc);
+
+        let temp = (data.canBeCheckedOut) ? "y":"";
+        $("#book-can-be-checked-out").val(temp);
+        temp = (data.isHidden) ? "y":"";
+        $("#book-is-hidden").val(temp);
+
+        if (data.purchaseDate != null) {
+            $("#book-purchase-month").val(data.purchaseDate.toDate().getMonth() + 1);
+            $("#book-purchase-day").val(data.purchaseDate.toDate().getDate());
+            $("#book-purchase-year").val(data.purchaseDate.toDate().getFullYear());
+        }
+
+        $("#book-purchase-price").val(data.purchasePrice);
+        $("#book-vendor").val(data.vendor);
+
+        if (data.lastUpdated != null) {
+            var lastUpdated = data.lastUpdated.toDate();
+            $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
+        }
+    }).catch((error) => {
+        alert("There was an error retreiving this book information from the database");
+        console.error(error);
+    });
+}
+
+function gatherExternalInformation(isbn) {
+    return (new Promise(function(resolve) {
+        if (isbn == "") {
+            // In this case, the entry was created without an isbn
+            resolve(true);
+        }
+        lookupBook(isbn).then((bookObject) => {
+            lookupAuthor(bookObject).then((value) => {
+                let bookObject = value[0];
+                let authorObject = value[1];
+                lookupWorks(bookObject, authorObject).then((value) => {
+                    let bookObject = value[0];
+                    let authorObject = value[1];
+                    let worksObject = value[2];
+                    resolve([false, bookObject, authorObject, worksObject]);
+                }).catch((error) => {
+                    alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
+                    console.error(error);
+                    resolve([true]);
+                    return;
+                });
+            }).catch((error) => {
+                alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
+                console.error(error);
+                resolve([true]);
+                return;
+            });
+        }).catch((error) => {
+            alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
+            console.error(error);
+            resolve([true]);
+            return;
+        });
+    }));
+}
+
+
+function lookupBook(isbn) {
+    return new Promise(function (resolve, reject) {
+        let xhttp = new XMLHttpRequest();
+
+        xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
+        xhttp.onreadystatechange = function () {
+            if (this.status == 404 || this.status == 403 || this.status == 400) {
+                reject("Invalid Response");
+            }
+            if (this.readyState == 4 && this.status == 200) {
+                resolve(JSON.parse(xhttp.responseText));
+            }
+        };
+        xhttp.timeout = 5000;
+        xhttp.ontimeout = (event) => {
+            reject("Request Timed Out");
+            console.error(event);
+        };
+        xhttp.send();
+    });
+}
+
+function lookupAuthor(bookObject) {
+    console.log(bookObject);
+    return new Promise(function (resolve, reject) {
+        var total = 0;
+        if (bookObject.authors) {
+            for (let i = 0; i < bookObject.authors.length; i++) {
+                let xhttp = new XMLHttpRequest();
+                var authorLink = bookObject.authors[i].key;
+
+                xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
+
+                xhttp.timeout = 5000;
+                xhttp.ontimeout = (event) => {
+                    reject("Request Timed Out");
+                    console.error(event);
+                };
+                xhttp.send();
+
+                total++;
+                xhttp.onreadystatechange = function () {
+                    if (this.status == 404 || this.status == 403 || this.status == 400) {
+                        reject("Invalid Response");
+                    }
+                    if (this.readyState == 4 && this.status == 200) {
+                        var authorObject = [];
+                        authorObject[i] = JSON.parse(xhttp.responseText);
+                        // Only resolve if all of the xhttp requests have been completed
+                        if (i == total - 1) {
+                            resolve([bookObject, authorObject]);
+                        }
+                    }
+                };
+            }
+        } else {
+            resolve(true);
+        }
+    });
+}
+
+function lookupWorks(bookObject, authorObject) {
+    return new Promise(function (resolve, reject) {
+        var total = 0;
+        for (let i = 0; i < bookObject.works.length; i++) {
+            let xhttp = new XMLHttpRequest();
+            var worksLink = bookObject.works[i].key;
+
+            xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
+
+            xhttp.timeout = 5000;
+            xhttp.ontimeout = (event) => {
+                reject("Request Timed Out");
+                console.error(event);
+            };
+
+            xhttp.send();
+            total++;
+            xhttp.onreadystatechange = function () {
+                if (this.status == 404 || this.status == 403 || this.status == 400) {
+                    reject("Invalid Response");
+                }
+                if (this.readyState == 4 && this.status == 200) {
+                    var worksObject = [];
+                    worksObject[i] = JSON.parse(xhttp.responseText);
+                    if (i == total - 1) {
+                        resolve([bookObject, authorObject, worksObject]);
+                    }
+                }
+            };
+        }
+    });
+}
+
+// Run in the event of a new entry being created. It takes the information from Open Library.
 function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
     $('#barcode').html(barcodeNumber);
     if (noISBN) {
@@ -320,15 +461,13 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
 
     // Cover
     // THIS DOES NOT STORE IT IN STORAGE - That happens when they click save
-    // TODO: Make the above statement true. The commented out lines below probably need to be moved to the save button.
-    // Also at the save button, the image link should be stored in the database
     try {
         $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
-        // uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + bookObject.covers[0] + "-L.jpg");
+        imageChanged = true;
     } catch {
         try {
             $('#book-cover-image').attr('src', "https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
-            //uploadCoverImageFromExternal("https://covers.openlibrary.org/b/id/" + worksObject[0].covers[0] + "-L.jpg");
+            imageChanged = true;
         } catch {
             console.warn("A cover could not be found for either the book or the work");
             console.log(bookObject);
@@ -587,195 +726,88 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
     $("#last-updated").hide();
 }
 
-function gatherExternalInformation(isbn) {
-    return (new Promise(function(resolve) {
-        if (isbn == "") {
-            // In this case, the entry was created without an isbn
-            resolve(true);
-        }
-        lookupBook(isbn)
-        .then((bookObject) => {
-            lookupAuthor(bookObject)
-            .then((authorObject) => {
-                lookupWorks(bookObject, authorObject)
-                .then((bookObject, authorObject, worksObject) => {
-                    resolve(false, bookObject, authorObject, worksObject);
-                }).catch((error) => {
-                    alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
-                    console.error(error);
-                    resolve(true);
-                    return;
-                });
-            }).catch((error) => {
-                alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
-                console.error(error);
-                resolve(true);
-                return;
-            });
-        }).catch((error) => {
-            alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
-            console.error(error);
-            resolve(true);
-            return;
-        });
-    }));
-}
-
-
-function lookupBook(isbn) {
-    return new Promise(function (resolve, reject) {
-        let xhttp = new XMLHttpRequest();
-
-        xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
-        xhttp.send();
-        xhttp.onreadystatechange = function () {
-            if (this.status == 404 || this.status == 403 || this.status == 400) {
-                reject();
-            }
-            if (this.readyState == 4 && this.status == 200) {
-                resolve(JSON.parse(xhttp.responseText));
-            }
-        };
-    });
-}
-
-function lookupAuthor(bookObject) {
-    console.log(bookObject);
-    return new Promise(function (resolve, reject) {
-        var total = 0;
-        if (bookObject.authors) {
-            for (let i = 0; i < bookObject.authors.length; i++) {
-                let xhttp = new XMLHttpRequest();
-                var authorLink = bookObject.authors[i].key;
-
-                xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
-                xhttp.send();
-                total++;
-                xhttp.onreadystatechange = function () {
-                    if (this.status == 404 || this.status == 403 || this.status == 400) {
-                        reject();
-                    }
-                    if (this.readyState == 4 && this.status == 200) {
-                        var authorObject = [];
-                        authorObject[i] = JSON.parse(xhttp.responseText);
-                        if (i == total - 1) {
-                            resolve(authorObject);
-                        }
-                    }
-                };
-            }
-        } else {
-            resolve(true);
-        }
-    });
-}
-
-function lookupWorks(bookObject) {
-    return new Promise(function (resolve, reject) {
-        var total = 0;
-        for (let i = 0; i < bookObject.works.length; i++) {
-            let xhttp = new XMLHttpRequest();
-            var worksLink = bookObject.works[i].key;
-
-            xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
-            xhttp.send();
-            total++;
-            xhttp.onreadystatechange = function () {
-                if (this.status == 404 || this.status == 403 || this.status == 400) {
-                    reject();
-                }
-                if (this.readyState == 4 && this.status == 200) {
-                    var worksObject = [];
-                    worksObject[i] = JSON.parse(xhttp.responseText);
-                    if (i == total - 1) {
-                        resolve(worksObject);
-                    }
-                }
-            };
-        }
-    });
-}
-
 function addSubject() {
     var numberofSubjects = $(".subject-field").length;
     $("#book-subject-" + numberofSubjects).after("<input id=\"book-subject-" + (numberofSubjects + 1) + "\" placeholder=\"\" class=\"normal-form-input subject-field\">");
 }
 
-function saveImage() {
-    return new Promise(function (resolve) {
-        if ($("#book-medium")[0].value == "av") resolve(true);
-        if (file) {
-            resolve(storeImage(file));
-        } else {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', $("#book-cover-image").attr("src"), true);
-            xhr.responseType = 'blob';
-            xhr.onload = function() {
-                if (this.status == 200) {
-                    if (this.responseURL.substring(0, 5) != "https") {
-                        alert("This image was not able to be saved securely. Please download it and try again.");
-                        resolve(false);
-                    }
-                    file = this.response;
-                    resolve(storeImage(file));
-                }
-            };
-            xhr.send();
+// Run when the user clicks the "Save" button
+function editEntry(isDeletedValue = false) {
+    // Prevent the user from clicking the "Save" button again
+    $("#edit-entry-save")[0].disabled = true;
+    // Start the loading overlay
+    $("#loading-overlay").show();
+    // If an error occurs somewhere in this process, tell the user after 10 seconds
+    loadingTimer = window.setTimeout(() => {
+        $("#edit-entry-save")[0].disabled = false;
+        alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
+        $("#loading-overlay").hide();
+    }, 10000);
+
+    // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
+    if (isDeletedValue) {
+        storeData(true);
+        window.clearTimeout(loadingTimer);
+        return;
+    }
+
+    // Before validating the entry, auto convert between ISBN numbers if both are not already inputted.
+    var isbn10Value = $("#book-isbn-10").val();
+    var isbn13Value = $("#book-isbn-13").val();
+    var noISBN = $("#book-no-isbn")[0].checked;
+    if (!noISBN && isbn10Value.length == 10 && isbn13Value == "") {
+        $("#book-isbn-13").val(switchISBNformats(isbn10Value));
+    } else if (!noISBN && isbn13Value.length == 13 && isbn10Value == "") {
+        $("#book-isbn-10").val(switchISBNformats(isbn13Value));
+    }
+
+    validateEntry().then((valid) => {
+        // If the entry is invalid, stop the timer and put the page back to normal
+        if (valid == false || valid == null) {
+            window.clearTimeout(loadingTimer);
+            $("#edit-entry-save")[0].disabled = false;
+            $("#loading-overlay").hide();
+            return;
         }
-    });
-}
 
-function storeImage(file) {
-    if ($("#book-medium")[0].value == "av") return true;
-    var barcodeValue = parseInt($("#barcode").html());
-    if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
-        alert("There was a problem saving that image.");
-        return false;
-    }
-    var bookSpecificRef = ref(storage, "books");
-    var meta;
-    if (file.type == "image/jpg" || file.type == "image/jpeg") {
-        bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.jpg");
-        meta = {contentType: 'image/jpeg'};
-    } else if (file.type == "image/png") {
-        bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.png");
-        meta = {contentType: 'image/png'};
-    } else {
-        alert("That file type is not supported. Please upload a JPG or PNG file.");
-        return false;
-    }
-    return uploadBytes(bookSpecificRef, file, meta).then(() => {
-        console.log('Uploaded the file!');
-        return getDownloadURL(bookSpecificRef).then((url) => {
-            $('#book-cover-image').attr('src', url);
-            return url;
-        }).catch(function(error) {
-            alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
+        // If it's an audio visual item, skip the cover images
+        if ($("#book-medium")[0].value == "av") {
+            storeData(false, null, null, null);
+            return;
+        }
+
+        // If the image hasn't been changed, and the entry isn't new, skip the cover image upload
+        if (!newEntry && !imageChanged) {
+            console.log("Image hasn't been changed, so we're skipping the upload.");
+            storeData();
+            return;
+        }
+
+        // If it's not an audio visual item, process the cover images
+        processImages().then((images) => {
+            let coverImageLink = images[0];
+            let thumbnailImageLink = images[1];
+            let iconImageLink = images[2];
+            storeData(false, iconImageLink, thumbnailImageLink, coverImageLink);
+        }).catch((error) => {
+            alert("There was an error uploading the images for this book. Your changes have not been saved.");
+            alert(error);
             console.error(error);
+            window.clearTimeout(loadingTimer);
+            $("#edit-entry-save")[0].disabled = false;
+            $("#loading-overlay").hide();
+            return;
         });
+    }).catch((error) => {
+        alert("There was an error validating the entry. Your changes have not been saved.");
+        alert(error);
+        console.error(error);
+        window.clearTimeout(loadingTimer);
+        $("#edit-entry-save")[0].disabled = false;
+        $("#loading-overlay").hide();
+        return;
     });
 }
-
-var file;
-
-var loadFile = function(event) {
-    if (event.target.files[0]) {
-        file = event.target.files[0];
-        var output = document.getElementById('book-cover-image');
-        output.src = URL.createObjectURL(file);
-        output.onload = function() {
-            URL.revokeObjectURL(output.src); // free memory
-        };
-    }
-};
-/* No Longer needed (I think)
-function uploadCoverImageFromExternal(link) {
-    var ref = ref(storage, barcodeNumber + "/cover.jpg");
-
-    uploadBytes(ref, link, {contentType: 'image/jpeg'}).then((snapshot) => {
-        console.log("Image has been uploaded from the external source.");
-    });
-}*/
 
 var loadingTimer;
 function validateEntry() {
@@ -787,18 +819,9 @@ function validateEntry() {
         var mediumValue = $("#book-medium")[0].value;
         var coverLink = $("#book-cover-image").attr('src');
         var subjectValues = [];
-        var maxSubject = false;
-        for (let i = 1; !maxSubject; i++) {
-            if ($("#book-subject-" + i)[0]) {
-                if ($("#book-subject-" + i).val() != "") {
-                    subjectValues.push($("#book-subject-" + i).val());
-                } else {
-                    maxSubject = true;
-                }
-            } else {
-                maxSubject = true;
-            }
-        }
+        $("[id^=book-subject-]").each((index, input) => {
+            if (input.value != "") subjectValues.push(input.value);
+        });
         var descriptionValue = $("#book-description").val();
         var childrenValue = $("#book-audience-children")[0].checked;
         var youthValue = $("#book-audience-youth")[0].checked;
@@ -874,7 +897,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (subjectValues[0] == "" && mediumValue != "av") {
+        if (subjectValues.length == 0 && mediumValue != "av") {
             alert("Please enter at least one subject!");
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -916,25 +939,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (mediumValue != "av" && !noISBN && isbn10Value == "" && isbn13Value == "") {
-            alert("Please enter at least one ISBN number!");
-            let rect = $("#book-isbn-10")[0].getBoundingClientRect();
-            window.scrollBy(0, rect.top - 180);
-            $("#book-isbn-10")[0].style.borderColor = "red";
-            $("#book-isbn-13")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
-            $("#book-isbn-10")[0].onkeydown = function() {
-                $("#book-isbn-10")[0].style.borderColor = "";
-                $("#book-isbn-13")[0].style.borderColor = "";
-            };
-            $("#book-isbn-13")[0].onkeydown = function() {
-                $("#book-isbn-10")[0].style.borderColor = "";
-                $("#book-isbn-13")[0].style.borderColor = "";
-            };
-            resolve(false);
-            return;
-        }
-        if (!noISBN && !verifyISBN(isbn10Value) && isbn10Value != "" && mediumValue != "av") {
+        if (!noISBN && (!verifyISBN(isbn10Value) || isbn10Value.length != 10)) {
             alert("The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -946,7 +951,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!noISBN && !verifyISBN(isbn13Value) && isbn13Value != "" && mediumValue != "av") {
+        if (!noISBN && (!verifyISBN(isbn13Value) || isbn13Value.length != 13)) {
             alert("The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -996,7 +1001,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!unNumbered && (numPagesValue == "" || isNaN(parseInt(numPagesValue) || parseInt(numPagesValue) < 1)) && mediumValue != "av") {
+        if (!unNumbered && (isNaN(numPagesValue) || numPagesValue < 1)) {
             alert("Please enter a valid number of pages!");
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1059,94 +1064,8 @@ function validateEntry() {
             return;
         }
 
-
-        $("#edit-entry-save")[0].disabled = true;
-        $("#loading-overlay").show();
-        loadingTimer = window.setTimeout(() => {
-            $("#edit-entry-save")[0].disabled = false;
-            alert("An error has likely occurred, but we couldn't identify the problem. Your changes have not been saved.");
-            $("#loading-overlay").hide();
-        }, 10000);
-
-        if (mediumValue != "av") {
-            let input = $("#file-input")[0];
-            if (input.files.length > 0 || $("#book-cover-image").attr("src").indexOf("firebase") < 0) {
-                // If there's an image to upload...
-                saveImage().then((res) => {
-                    createAndUploadThumbnail().then((thumbnailLink) => {
-                        resolve([res, thumbnailLink]);
-                    }).catch((error) => {
-                        alert("The Thumbnail Image could not be generated.");
-                        console.error(error);
-                        resolve([res, undefined]);
-                    });
-                });
-            } else if ($("#book-cover-image").attr("src").indexOf("firebase") >= 0 && (newEntry || editEntryData.thumbnailImageLink == null) && $("#book-cover-image")[0].naturalHeight > 300) {
-                // If the link has firebase but doesn't have 300x300 we can assume that only one image exists
-                // and we need to upload the smaller version
-                createAndUploadThumbnail().then((thumbnailLink) => {
-                    resolve([undefined, thumbnailLink]);
-                }).catch((error) => {
-                    alert("The Thumbnail Image could not be generated.");
-                    console.error(error);
-                    resolve([undefined, undefined]);
-                });
-            } else {
-                resolve(true);
-            }
-        } else {
-            resolve(true);
-        }
-    });
-}
-
-function createAndUploadThumbnail() {
-    return new Promise(function (resolve, reject) {
-        if ($("#book-medium")[0].value == "av") resolve(true);
-        const canvas = document.createElement("canvas");
-        canvas.id = "thumbnail-canvas";
-        $(".book-cover-image-container")[0].appendChild(canvas);
-        var height = $("#book-cover-image").height();
-        var width = $("#book-cover-image").width();
-        var ratio = height / width;
-        $("#thumbnail-canvas")[0].height = 300;
-        $("#thumbnail-canvas")[0].width = Math.round(300 / ratio);
-        var ctx = $("#thumbnail-canvas")[0].getContext('2d');
-        var image = new Image($("#book-cover-image")[0].naturalWidth, $("#book-cover-image")[0].naturalHeight);
-        image.setAttribute("crossorigin", "anonymous");
-        image.onload = () => {
-            ctx.drawImage(image, 0, 0, 300 / ratio, 300);
-            $("#thumbnail-canvas")[0].toBlob((blob) => {
-                var file = new File([blob], "thumbnail", {type: blob.type});
-                var barcodeValue = parseInt($("#barcode").html());
-                if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
-                    alert("There was a problem saving that image.");
-                    reject(false);
-                }
-                var bookSpecificRef = ref(storage, "books");
-                var meta;
-                if (file.type == "image/jpg" || file.type == "image/jpeg") {
-                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-300px.jpg");
-                    meta = {contentType: 'image/jpeg'};
-                } else if (file.type == "image/png") {
-                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-300px.png");
-                    meta = {contentType: 'image/png'};
-                } else {
-                    alert("That file type is not supported. Please upload a JPG or PNG file.");
-                    reject(false);
-                }
-                uploadBytes(bookSpecificRef, file, meta).then(() => {
-                    console.log('Uploaded the file!');
-                    bookSpecificRef.getDownloadURL().then((url) => {
-                        resolve(url);
-                    }).catch(function(error) {
-                        alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
-                        console.error(error);
-                    });
-                });
-            }, "image/jpeg");
-        };
-        image.src = $("#book-cover-image")[0].src;
+        // If we made it all the way through the list, then we must have a valid entry.
+        resolve(true);
     });
 }
 
@@ -1171,81 +1090,48 @@ function isValidDate(m, d, y) {
     return true;
 }
 
-function editEntry(barcodeValue = null, isDeletedValue = false) {
-    // Gets the values of all the input elements
-    if (barcodeValue == null) {
-        barcodeValue = parseInt($("#barcode").html());
-    }
-    var titleValue = $("#book-title").val();
-    var subtitleValue = $("#book-subtitle").val();
-    var author1LastValue = $("#book-author-1-last").val();
-    var author1FirstValue = $("#book-author-1-first").val();
-    var author2LastValue = $("#book-author-2-last").val();
-    var author2FirstValue = $("#book-author-2-first").val();
-    var illustrator1LastValue = $("#book-illustrator-1-last").val();
-    var illustrator1FirstValue = $("#book-illustrator-1-first").val();
-    var illustrator2LastValue = $("#book-illustrator-2-last").val();
-    var illustrator2FirstValue = $("#book-illustrator-2-first").val();
-    var mediumValue = $("#book-medium")[0].value;
-    var coverLink = $("#book-cover-image").attr('src');
-    var subjectValues = [];
-    var maxSubject = false;
-    for (let i = 1; !maxSubject; i++) {
-        if ($("#book-subject-" + i)[0]) {
-            if ($("#book-subject-" + i).val() != "") {
-                subjectValues.push($("#book-subject-" + i).val());
-            } else {
-                maxSubject = true;
-            }
-        } else {
-            maxSubject = true;
-        }
-    }
-    var descriptionValue = $("#book-description").val();
-    var childrenValue = $("#book-audience-children")[0].checked;
-    var youthValue = $("#book-audience-youth")[0].checked;
-    var adultValue = $("#book-audience-adult")[0].checked;
-    var noneValue = $("#book-audience-none")[0].checked;
-    var isbn10Value = $("#book-isbn-10").val();
-    var isbn13Value = $("#book-isbn-13").val();
-    var noISBN = $("#book-no-isbn")[0].checked;
-    var publisher1Value = $("#book-publisher-1").val();
-    var publisher2Value = $("#book-publisher-2").val();
-    var publishMonthValue = $("#book-publish-month").val();
-    var publishDayValue = $("#book-publish-day").val();
-    var publishYearValue = $("#book-publish-year").val();
-    var numPagesValue = parseInt($("#book-pages").val());
-    var unNumbered = $("#book-unnumbered")[0].checked;
-    var ddcValue = $("#book-dewey").val();
-    var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
-    var isHiddenValue = !!$("#book-is-hidden")[0].value;
-    var purchaseMonthValue = $("#book-purchase-month").val();
-    var purchaseDayValue = $("#book-purchase-day").val();
-    var purchaseYearValue = $("#book-purchase-year").val();
-    var purchasePriceValue = $("#book-purchase-price").val();
-    var vendorValue = $("#book-vendor").val();
-
-    // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
-    var thumbnailLink = null;
-    validateEntry().then((valid) => {
-        if ((!isDeletedValue && valid == false) || valid == null) return;
-        if (valid != true) {
-            // There is information to be stored.
-            if (Array.isArray(valid)) {
-                if (valid.length == 1 && valid[0] != undefined) {
-                    coverLink = valid[0];
-                } else if (valid.length == 2) {
-                    if (valid[0] != undefined) {
-                        coverLink = valid[0];
-                    }
-                    if (valid[1] != undefined) {
-                        thumbnailLink = valid[1];
-                    }
-                }
-            } else {
-                coverLink = valid;
-            }
-        }
+function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, coverImageLink) {
+    return new Promise(function(resolve, reject) {
+        // Gets the values of all the input elements
+        var barcodeValue = parseInt($("#barcode").html());
+        var titleValue = $("#book-title").val();
+        var subtitleValue = $("#book-subtitle").val();
+        var author1LastValue = $("#book-author-1-last").val();
+        var author1FirstValue = $("#book-author-1-first").val();
+        var author2LastValue = $("#book-author-2-last").val();
+        var author2FirstValue = $("#book-author-2-first").val();
+        var illustrator1LastValue = $("#book-illustrator-1-last").val();
+        var illustrator1FirstValue = $("#book-illustrator-1-first").val();
+        var illustrator2LastValue = $("#book-illustrator-2-last").val();
+        var illustrator2FirstValue = $("#book-illustrator-2-first").val();
+        var mediumValue = $("#book-medium")[0].value;
+        var subjectValues = [];
+        $("[id^=book-subject-]").each((index, input) => {
+            if (input.value != "") subjectValues.push(input.value);
+        });
+        var descriptionValue = $("#book-description").val();
+        var childrenValue = $("#book-audience-children")[0].checked;
+        var youthValue = $("#book-audience-youth")[0].checked;
+        var adultValue = $("#book-audience-adult")[0].checked;
+        var noneValue = $("#book-audience-none")[0].checked;
+        var isbn10Value = $("#book-isbn-10").val();
+        var isbn13Value = $("#book-isbn-13").val();
+        var noISBN = $("#book-no-isbn")[0].checked;
+        var publisher1Value = $("#book-publisher-1").val();
+        var publisher2Value = $("#book-publisher-2").val();
+        var publishMonthValue = $("#book-publish-month").val();
+        var publishDayValue = $("#book-publish-day").val();
+        var publishYearValue = $("#book-publish-year").val();
+        var numPagesValue = parseInt($("#book-pages").val());
+        var unNumbered = $("#book-unnumbered")[0].checked;
+        var ddcValue = $("#book-dewey").val();
+        var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
+        var isHiddenValue = !!$("#book-is-hidden")[0].value;
+        var purchaseMonthValue = $("#book-purchase-month").val();
+        var purchaseDayValue = $("#book-purchase-day").val();
+        var purchaseYearValue = $("#book-purchase-year").val();
+        var purchasePriceValue = $("#book-purchase-price").val();
+        var vendorValue = $("#book-vendor").val();
 
         // Defines the paths of the the database collection
         var booksPath = collection(db, "books");
@@ -1323,13 +1209,40 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
         var lastUpdatedValue = new Date();
 
         // Updates the book with the information
-        runTransaction(db, (transaction) => {
-            let bookDoc = doc(booksPath, bookDocument);
-            return transaction.get(bookDoc).then((docSnap) => {
+        return runTransaction(db, (transaction) => {
+            let path = doc(booksPath, bookDocument);
+            return transaction.get(path).then((docSnap) => {
                 if (!docSnap.exists()) {
                     console.error("There was a large problem because the books doc doesn't exist anymore...");
                 }
-                var existingBooks = doc.data().books;
+
+                // Get the existing list of books
+                let existingBooks = docSnap.data().books;
+
+                // If a new link was not passed in, keep the old one. However, we are allowing null values for AV.
+                // Need strict inequality so that undefined and null are not treated as equal
+                if (!iconImageLink && iconImageLink !== null) {
+                    iconImageLink = docSnap.data().books[bookNumber].iconImageLink;
+                }
+                if (!thumbnailImageLink && thumbnailImageLink !== null) {
+                    thumbnailImageLink = docSnap.data().books[bookNumber].thumbnailImageLink;
+                }
+                if (!coverImageLink && coverImageLink !== null) {
+                    coverImageLink = docSnap.data().books[bookNumber].coverImageLink;
+                }
+
+                // If any of the images still have invalid values, set them to null
+                if (iconImageLink == undefined) {
+                    iconImageLink = null;
+                }
+                if (thumbnailImageLink == undefined) {
+                    thumbnailImageLink = null;
+                }
+                if (coverImageLink == undefined) {
+                    coverImageLink = null;
+                }
+
+                // Update the array with the new book information.
                 existingBooks[bookNumber] = {
                     barcodeNumber: barcodeValue,
                     title: titleValue,
@@ -1337,8 +1250,9 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                     authors: authorsValue,
                     illustrators: illustratorsValue,
                     medium: mediumValue,
-                    coverImageLink: coverLink,
-                    thumbnailImageLink: thumbnailLink,
+                    coverImageLink: coverImageLink,
+                    thumbnailImageLink: thumbnailImageLink,
+                    iconImageLink: iconImageLink,
                     subjects: subjectValues,
                     description: descriptionValue,
                     audience: [childrenValue, youthValue, adultValue, noneValue],
@@ -1357,29 +1271,227 @@ function editEntry(barcodeValue = null, isDeletedValue = false) {
                     isHidden: isHiddenValue,
                     lastUpdated: lastUpdatedValue
                 };
-                transaction.update(bookDoc, {
+
+                transaction.update(doc(booksPath, bookDocument), {
                     books: existingBooks
                 });
             });
         }).then(() => {
-            $("#loading-overlay").hide();
-            alert("Edits were made successfully");
-            clearTimeout(loadingTimer);
-            $(window).off("beforeunload");
-            goToPage('admin/main');
-        }).catch((err) => {
-            console.log(err);
-            alert("Your edits could not be saved. An error has occurred.");
+            console.log("Transaction completed successfully");
+            resolve();
+        }).catch((error) => {
+            console.error("Error updating book with transaction: ", error);
+            reject(error);
+        });
+    }).then(() => {
+        $("#loading-overlay").hide();
+        alert("Edits were made successfully");
+        setTimeLastSearched(null);
+        clearTimeout(loadingTimer);
+        $(window).off("beforeunload");
+        goToPage('admin/main');
+    }).catch((error) => {
+        alert("An error has occurred, but we couldn't identify the problem. Your changes have not been saved.");
+        console.error(error);
+        $("#loading-overlay").hide();
+        clearTimeout(loadingTimer);
+        $(window).off("beforeunload");
+    });
+}
+
+function processImages() {
+    return new Promise((resolve, reject) => {
+        // Gets the current image (uploaded or from open library) and stores it to the file variable
+        getImage().then((fileReturn) => {
+            // Clear out the old images in Firebase Storage
+            deleteOldImages().then(() => {
+                let promises = [];
+                promises[0] = uploadImageToStorage("original", fileReturn);
+                promises[1] = uploadImageToStorage("thumbnail", fileReturn);
+                promises[2] = uploadImageToStorage("icon", fileReturn);
+
+                Promise.all(promises).then((values) => {
+                    if (!Array.isArray(values) || !values[0] || !values[1] || !values[2]) {
+                        reject("Not all images were uploaded successfully");
+                        return;
+                    }
+                    resolve(values);
+                }).catch((error) => {
+                    reject(error);
+                });
+            }).catch((error) => {
+                reject(error);
+            });
+        }).catch((error) => {
+            reject(error);
         });
     });
 }
 
+function getImage() {
+    return new Promise(function (resolve, reject) {
+        if ($("#book-medium")[0].value == "av") {
+            console.warn("No need to get an image for an AV item...");
+            resolve(null);
+            return;
+        }
+        // If we already have a new file that has been uploaded (either from this function, or from the user uploading a file),
+        // we don't have to go get it again if we already have it
+        if (file) {
+            resolve(file);
+        } else {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', $("#book-cover-image").attr("src"), true);
+            xhr.responseType = 'blob';
+            xhr.onload = function() {
+                if (this.status == 200) {
+                    if (this.responseURL.substring(0, 5) != "https") {
+                        alert("This image was not able to be saved securely. Please download it from the interent, re-upload it on the edit entry page, and try again.");
+                        reject("Insecure Image URL");
+                    }
+                    file = this.response;
+                    resolve(file);
+                }
+
+                if (this.readyState == 4 && this.status != 200) {
+                    reject("Image Not Found. Please upload another image.");
+                }
+            };
+            xhr.send();
+        }
+    });
+}
+
+function deleteOldImages() {
+    // Delete firebase storage images for the book that is being edited
+    return new Promise((resolve, reject) => {
+        list(ref(storage, "books/" + $("#barcode").html()), {maxResults: 10}).then((result) => {
+            let promises = [];
+            result.items.forEach((image, index) => {
+                promises[index] = deleteObject(image);
+            });
+
+            Promise.all(promises).then(() => {
+                resolve();
+            }).catch((error) => {
+                console.error(error);
+                reject(error);
+            });
+        }).catch((error) => {
+            console.error(error);
+            reject(error);
+        });
+    });
+}
+
+function uploadImageToStorage(type = "original", file) {
+    return new Promise((resolve, reject) => {
+        // AV images are stored as null
+        if ($("#book-medium")[0].value == "av") {
+            console.warn("No need to upload an image for an AV item...");
+            resolve(null);
+            return;
+        }
+
+        let barcodeValue = parseInt($("#barcode").html());
+        if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
+            alert("There was a problem saving that image.");
+            reject(false);
+            return;
+        }
+
+        let maxHeight;
+        if (type == "original") {
+            maxHeight = 800;
+        } else if (type == "thumbnail") {
+            maxHeight = 400;
+        } else if (type == "icon") {
+            maxHeight = 250;
+        }
+
+
+        const canvas = document.createElement("canvas");
+        canvas.id = type + "-canvas";
+        $(".book-cover-image-container")[0].appendChild(canvas);
+
+        let height = $("#book-cover-image").height();
+        let width = $("#book-cover-image").width();
+        let ratio = height / width;
+
+        if (maxHeight && height > maxHeight) {
+            height = maxHeight;
+        }
+
+        $("#" + type + "-canvas")[0].height = maxHeight;
+        $("#" + type + "-canvas")[0].width = Math.round(maxHeight / ratio);
+
+        let ctx = $("#" + type + "-canvas")[0].getContext('2d');
+        let image = new Image();
+        image.setAttribute("crossorigin", "anonymous");
+        image.onload = () => {
+            ctx.drawImage(image, 0, 0, maxHeight / ratio, maxHeight);
+            $("#" + type + "-canvas")[0].toBlob((blob) => {
+                let file = new File([blob], "book" + type, {type: "image/jpeg"});
+
+                let bookSpecificRef = ref(storage, "books");
+                if (type == "original") {
+                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.jpg");
+                } else if (type == "thumbnail") {
+                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-400px.jpg");
+                } else if (type == "icon") {
+                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-250px.jpg");
+                } else {
+                    reject(false);
+                    return;
+                }
+
+                uploadBytes(bookSpecificRef, file, {contentType: 'image/jpeg'}).then(() => {
+                    console.log('Uploaded the file!');
+                    getDownloadURL(bookSpecificRef).then((url) => {
+                        $("#" + type + "-canvas")[0].remove();
+                        resolve(url);
+                    }).catch(function(error) {
+                        alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
+                        console.error(error);
+                    });
+                });
+            }, "image/jpeg");
+        };
+        image.src = URL.createObjectURL(file);
+    }).catch((error) => {
+        console.error(error);
+    });
+}
+
+var file;
+
+/**
+ * When a user uploads a file, this function is called.
+ * It sets the value of file to the file that was uploaded.
+ * It displays the newly updated image using a blob URL.
+ * @param {Event} event - The onchange event for the file input.
+ */
+function loadFile(event) {
+    if (event.target.files[0]) {
+        file = event.target.files[0];
+        var output = document.getElementById('book-cover-image');
+        output.src = URL.createObjectURL(file);
+        /* This is bad because then the canvas elements can't use the link
+        output.onload = function() {
+            URL.revokeObjectURL(output.src); // free memory
+        };*/
+        imageChanged = true;
+    }
+}
+
+// Run when the user clicks the "Cancel" button
 function cancelEditEntry() {
     $(window).off("beforeunload");
 
     window.history.back();
 }
 
+// Run when the user clicks the "Delete" button
 function deleteEntry() {
     $("#delete-alert").css("transition", "0.5s");
     $("#delete-alert-overlay").css("transition", "0.5s");
@@ -1418,13 +1530,6 @@ function cleanUpSearchTerm(searchArray) {
 
 function convertToUTC(date) {
     // TODO: Actually account for time shifts with Daylight Savings
-    console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
+    // console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));
     return new Date(date.valueOf() + 1000 * 60 * 60 * 5);
-}
-
-// Returns true if there are unsaved changes on the Edit Entry page
-export function unSavedChangesEditEntry() {
-    // TODO: Fix
-
-    return false;
 }
