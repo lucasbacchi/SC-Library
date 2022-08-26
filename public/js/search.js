@@ -260,7 +260,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
         for (let j = 0; j < 2; j++) {
             if (searchResultsArray[i].authors[j]) {
                 let authorString = searchResultsArray[i].authors[j]?.last + ", " + searchResultsArray[i].authors[j]?.first;
-                if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined") {
+                if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined" && authorString != ", ") {
                     searchResultsAuthorsArray.push(authorString);
                 }
             }
