@@ -69,6 +69,7 @@ export function setupSearch(searchResultsArray, pageQuery) {
     var queryFromURL = findURLValue(pageQuery, "query", true);
 
     $("#apply-filters-button").on("click", () => {
+        var queryFromURL = findURLValue(window.location.search, "query", true);
         applySearchFilters(queryFromURL);
     });
 
