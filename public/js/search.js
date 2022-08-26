@@ -189,7 +189,9 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
     } else {
         fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
     }
-    $(document).scrollTop(0);
+    setTimeout(() => {
+        $(document).scrollTop(0);
+    }, 100);
 }
 
 function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
