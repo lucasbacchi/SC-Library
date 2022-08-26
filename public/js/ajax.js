@@ -688,6 +688,15 @@ function initApp() {
                 if (user) {
                     // User is signed in.
                     console.log("User is now Signed In.");
+
+                    // If user has just signed in, don't bother updating info a second time
+                    // TODO: maybe add something to do with time since last page load?
+                    let millisecondsSinceSignup = new Date().getTime() - new Date(user.metadata.creationTime).getTime();
+                    if (millisecondsSinceSignup < 30000) {
+                        resolve();
+                        return;
+                    }
+
                     var date = new Date();
                     updateDoc(doc(db, "users", user.uid), {
                         lastSignIn: date
@@ -698,15 +707,6 @@ function initApp() {
                 } else {
                     // User is signed out.
                     console.log("User is now Signed Out.");
-                }
-                // If user has just signed in, don't bother updating info a second time
-                // TODO: maybe add something to do with time since last page load?
-                if (user) {
-                    let millisecondsSinceSignup = new Date().getTime() - new Date(user.metadata.creationTime).getTime();
-                    if (millisecondsSinceSignup < 30000) {
-                        resolve();
-                        return;
-                    }
                 }
                 updateUserAccountInfo().then(() => {
                     resolve();
