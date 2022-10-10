@@ -1,6 +1,6 @@
 If this is related to an active issue, Please list it here: 
 
-Please breifly describe changes requested:
+Please briefly describe the changes:
  - 
  -
  -
