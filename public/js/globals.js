@@ -161,9 +161,35 @@ export function setHistoryStack(newHistoryStack) {
     }
 }
 
-
-
 export class Book {
+    /**
+     * 
+     * @param {number} barcodeNumber 
+     * @param {string} title 
+     * @param {string} subtitle 
+     * @param {Person[]} authors 
+     * @param {Person[]} illustrators 
+     * @param {string} medium a string containing either "paperback", "hardcover", or "av"
+     * @param {string} coverImageLink 
+     * @param {string} thumbnailImageLink 
+     * @param {string[]} subjects 
+     * @param {string} description 
+     * @param {Audience} audience 
+     * @param {string} isbn10 
+     * @param {string} isbn13 
+     * @param {string[]} publishers 
+     * @param {Date} publishDate 
+     * @param {number} numberOfPages 
+     * @param {string} ddc dewey decimal classification
+     * @param {Date} purchaseDate 
+     * @param {number} purchasePrice 
+     * @param {string} vendor 
+     * @param {string[]} keywords array of important words from the description, used for searching
+     * @param {boolean} canBeCheckedOut 
+     * @param {boolean} isDeleted 
+     * @param {boolean} isHidden 
+     * @param {Date} lastUpdated 
+     */
     constructor(barcodeNumber, title, subtitle, authors, illustrators, medium, coverImageLink, thumbnailImageLink,
                 subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages, ddc,
                 purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
@@ -195,3 +221,87 @@ export class Book {
     }
 }
 
+export class Person {
+    /**
+     * 
+     * @param {string} firstName 
+     * @param {string} lastName 
+     */
+    constructor(firstName, lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+}
+
+export class Audience {
+    /**
+     * 
+     * @param {boolean} children 
+     * @param {boolean} youth 
+     * @param {boolean} adult 
+     */
+    constructor(children, youth, adult) {
+        this.children = children;
+        this.youth = youth;
+        this.adult = adult;
+    }
+
+    /**
+     * 
+     * @returns {boolean} 
+     */
+    isNone() {
+        return !(this.children || this.youth || this.adult);
+    }
+}
+
+export class User {
+    /**
+     * 
+     * @param {number} cardNumber 
+     * @param {string} firstName 
+     * @param {string} lastName 
+     * @param {string} emailAddress 
+     * @param {string} phoneNumber 
+     * @param {string} address 
+     * @param {string} pfpLink 
+     * @param {string} pfpIconLink 
+     * @param {Date} dateCreated 
+     * @param {Date} lastCheckoutTime 
+     * @param {Date} lastSignInTime 
+     * @param {string} uid the string that the auth object uses to represent a user
+     */
+    constructor(cardNumber, firstName, lastName, emailAddress, phoneNumber, address, pfpLink, pfpIconLink,
+                dateCreated, lastCheckoutTime, lastSignInTime, uid) {
+        this.cardNumber = cardNumber;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.emailAddress = emailAddress;
+        this.phoneNumber = phoneNumber;
+        this.address = address;
+        this.pfpLink = pfpLink;
+        this.pfpIconLink = pfpIconLink;
+        this.dateCreated = dateCreated;
+        this.lastCheckoutTime = lastCheckoutTime;
+        this.lastSignInTime = lastSignInTime;
+        this.uid = uid;
+    }
+}
+
+export class Checkout {
+    /**
+     * 
+     * @param {Book} book 
+     * @param {User} user 
+     * @param {Date} checkoutTime 
+     * @param {Date} dueDate 
+     */
+    constructor(book, user, checkoutTime, dueDate) {
+        this.book = book;
+        this.user = user;
+        this.checkoutTime = checkoutTime;
+        this.dueDate = dueDate;
+        this.checkinTime = null;
+        this.resolved = false;
+    }
+}
