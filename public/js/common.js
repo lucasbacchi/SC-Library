@@ -460,7 +460,7 @@ export function buildBookBox(obj, page, num = 0) {
 }
 
 function buildAudienceString(audience) {
-    var str = "", values = ["Children", "Youth", "Adult"];
+    let str = "", values = ["Children", "Youth", "Adult"];
     for (let i = 0; i < 3; i++) {
         if (audience[i]) {
             if (str != "") {
@@ -473,7 +473,7 @@ function buildAudienceString(audience) {
 }
 
 function listSubjects(subj) {
-    var str = "";
+    let str = "";
     for (let i = 0; i < subj.length; i++) {
         str += subj[i] + "; ";
     }
@@ -481,12 +481,13 @@ function listSubjects(subj) {
 }
 
 function shortenDescription(desc) {
-    var cutoff = desc.indexOf(". ", 300);
-    desc.replace(/\n/g, "<br>");
+    const MIN_LEN = 300;
+    let cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
+    //desc.replace("\n", "<br>");
     if (desc.length <= cutoff || cutoff == -1) {
         return desc;
     } else {
-        return desc.substring(0, cutoff) + ". ...";
+        return desc.substring(0, cutoff + MIN_LEN) + ". ...";
     }
 }
 

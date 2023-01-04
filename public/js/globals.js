@@ -146,7 +146,10 @@ export class HistoryStack {
     first(item) {
         if (this.stack.length == 0 && this.currentIndex == -1) {
             this.push(item);
-            window.history.replaceState({stack: this.stack, index: this.currentIndex}, "");
+            window.history.replaceState({
+                stack: this.stack,
+                index: this.currentIndex
+            }, "");
         }
     }
 }
@@ -191,19 +194,27 @@ export class Book {
      * @param {Date} lastUpdated 
      */
     constructor(barcodeNumber, title, subtitle, authors, illustrators, medium, coverImageLink, thumbnailImageLink,
-                subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages, ddc,
-                purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
+        subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages, ddc,
+        purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
         this.barcodeNumber = barcodeNumber;
         this.title = title;
         this.subtitle = subtitle;
-        this.authors = authors;
-        this.illustrators = illustrators;
+        this.authors = [];
+        this.illustrators = [];
+        for (let i = 0; i < 2; i++) {
+            if (authors[i]) {
+                this.authors.push(new Person(authors[i].firstName, authors[i].lastName));
+            }
+            if (illustrators[i]) {
+                this.illustrators.push(new Person(illustrators[i].firstName, illustrators[i].lastName));
+            }
+        }
         this.medium = medium;
         this.coverImageLink = coverImageLink;
         this.thumbnailImageLink = thumbnailImageLink;
         this.subjects = subjects;
         this.description = description;
-        this.audience = audience;
+        this.audience = new Audience(audience.children, audience.youth, audience.adult);
         this.isbn10 = isbn10;
         this.isbn13 = isbn13;
         this.publishers = publishers;
@@ -218,6 +229,32 @@ export class Book {
         this.isDeleted = isDeleted;
         this.isHidden = isHidden;
         this.lastUpdated = lastUpdated;
+    }
+
+    /**
+     * 
+     * @param {object} jsonObject a json object imported from firebase
+     * @returns a new Book object with all of that data in it
+     */
+    static createFromObject(jsonObject) {
+        let authors = [];
+        let illustrators = [];
+        for (let i = 0; i < 2; i++) {
+            if (jsonObject.authors[i]) {
+                authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
+            }
+            if (jsonObject.illustrators[i]) {
+                illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
+            }
+        }
+        return new Book(jsonObject.barcodeNumber, jsonObject.title, jsonObject.subtitle, authors, illustrators,
+            jsonObject.medium, jsonObject.coverImageLink, jsonObject.thumbnailImageLink, jsonObject.subjects,
+            jsonObject.description,
+            new Audience(jsonObject.audience.children, jsonObject.audience.youth, jsonObject.audience.adult),
+            jsonObject.isbn10, jsonObject.isbn13, jsonObject.publishers, jsonObject.publishDate,
+            jsonObject.numberOfPages, jsonObject.ddc, jsonObject.purchaseDate, jsonObject.purchasePrice,
+            jsonObject.vendor, jsonObject.keywords, jsonObject.canBeCheckedOut, jsonObject.isDeleted,
+            jsonObject.isHidden, jsonObject.lastUpdated);
     }
 }
 
@@ -272,7 +309,7 @@ export class User {
      * @param {string} uid the string that the auth object uses to represent a user
      */
     constructor(cardNumber, firstName, lastName, emailAddress, phoneNumber, address, pfpLink, pfpIconLink,
-                dateCreated, lastCheckoutTime, lastSignInTime, uid) {
+        dateCreated, lastCheckoutTime, lastSignInTime, uid) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -286,13 +323,24 @@ export class User {
         this.lastSignInTime = lastSignInTime;
         this.uid = uid;
     }
+
+    /**
+     * 
+     * @param {object} jsonObject a json object imported from firebase
+     * @returns a new User object with all of that data in it
+     */
+    static createFromObject(jsonObject) {
+        return new Book(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.emailAddress,
+            jsonObject.phoneNumber, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
+            jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid);
+    }
 }
 
 export class Checkout {
     /**
      * 
-     * @param {Book} book 
-     * @param {User} user 
+     * @param {number} book 
+     * @param {number} user 
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
      */
@@ -303,5 +351,14 @@ export class Checkout {
         this.dueDate = dueDate;
         this.checkinTime = null;
         this.resolved = false;
+    }
+
+    /**
+     * 
+     * @param {object} jsonObject a json object imported from firebase
+     * @returns a new Checkout object with all of that data in it
+     */
+    static createFromObject(jsonObject) {
+        return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate);
     }
 }
