@@ -11,7 +11,7 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyStack, setHistoryStack
+    currentQuery, historyStack, setHistoryStack, setCurrentHash, currentHash
 } from "./globals";
 import { findURLValue } from "./common";
 
@@ -224,11 +224,14 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         if (!currentQuery) {
             setCurrentQuery("");
         }
+        if (!currentHash) {
+            setCurrentHash("");
+        }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
         if (currentPage && ((pageName == currentPage && pageName != "search")
             || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
-            && (pageName + pageQuery == currentPage + currentQuery)) {
+            && (pageName + pageQuery + pageHash == currentPage + currentQuery + currentHash)) {
             reject("The user attempted to view the current page.");
             return;
         }
@@ -342,6 +345,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     reject(error);
                 });
                 setCurrentQuery(pageQuery);
+                setCurrentHash(pageHash);
                 if (goingBack == false) {
                     // Update the URL and History for all but the first page load
                     historyStack.push("account?" + pageQuery.substring(1));
@@ -396,11 +400,11 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     "admin/view": "View Database",
                     "admin/editUser": "Edit a User",
                     "admin/inventory": "Conduct Inventory",
+                    "admin/help": "Admin Help",
                     "404": "404 | File Not Found",
                     "about": "About Us",
                     "account": "Your Account",
                     "advancedSearch": "Advanced Search",
-                    "autogenindex": "LEAVE",
                     "help": "Help",
                     "login": "Login",
                     "main": "Home",
@@ -427,17 +431,6 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
 
 function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
     return new Promise((resolve) => {
-        // Scroll to a specific part of the page if needed
-        // If no hash, scroll to the top of the page.
-        if (pageHash) {
-            document.querySelector(pageHash).scrollIntoView();
-        } else {
-            if (currentPage != pageName) {
-                $(document).scrollTop(0); // Could change later if we don't like this behavior
-            }
-        }
-
-
         // Fire Additional Scripts based on Page
         // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
         if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
@@ -568,6 +561,16 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
+        if (pageName == "admin/help") {
+            import('../css/admin.css');
+            import('./admin').then(({ setupAdminHelp }) => {
+                setupAdminHelp();
+                resolve();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+        }
+
         if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
@@ -579,11 +582,22 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         setCurrentPage(pageName);
         setCurrentQuery(pageQuery);
+        setCurrentHash(pageHash);
     }).then(() => {
         // Page Content has now Loaded and setup is done
         // Start fading the page in
         if (currentPage != pageName) {
             $("#content").addClass("fade");
+        }
+
+        // Scroll to a specific part of the page if needed
+        // If no hash, scroll to the top of the page.
+        if (pageHash) {
+            $(document).scrollTop($(pageHash).offset().top - 85);
+        } else {
+            if (currentPage != pageName) {
+                $(document).scrollTop(0); // Could change later if we don't like this behavior
+            }
         }
     });
 }

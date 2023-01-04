@@ -68,11 +68,17 @@ export function setCurrentPage(newCurrentPage) {
 }
 
 
-
 export let currentQuery = null;
 
 export function setCurrentQuery(newCurrentQuery) {
     currentQuery = newCurrentQuery;
+}
+
+
+export let currentHash = null;
+
+export function setCurrentHash(newCurrentHash) {
+    currentHash = newCurrentHash;
 }
 
 
@@ -91,6 +97,7 @@ export let directory = [
     "admin/barcode",
     "admin/editEntry",
     "admin/editUser",
+    "admin/help",
     "admin/inventory",
     "admin/main",
     "admin/report",
@@ -283,6 +290,23 @@ export class Audience {
         this.adult = adult;
     }
 
+    toString() {
+        let str = "";
+        if (this.children) {
+            str += "Children";
+        }
+        if (this.youth) {
+            if (str != "") str += ", ";
+            str += "Youth";
+        }
+        if (this.adult) {
+            if (str != "") str += ", ";
+            str += "Adult";
+        }
+        if (str == "") str = "None";
+        return str;
+    }
+
     /**
      * 
      * @returns {boolean} 
@@ -339,8 +363,8 @@ export class User {
 export class Checkout {
     /**
      * 
-     * @param {number} book 
-     * @param {number} user 
+     * @param {number} book the book's barcode number
+     * @param {number} user the user's barcode number
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
      */
