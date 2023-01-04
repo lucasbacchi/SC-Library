@@ -4,6 +4,10 @@ import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } fr
 import { bookDatabase, db } from "./globals";
 
 export function setupAdminMain() {
+    $("#help-icon").on("click", () => {
+        goToPage("/admin/help");
+    });
+
     $("#edit-entry-input").on("keydown", (event) => {
         if (event.key === "Enter") {
             adminSearch();
@@ -756,6 +760,17 @@ function continueScanning() {
                 });
             }
         }
+    });
+}
+
+export function setupAdminHelp() {
+    $("#tableOfContents li").each((index, li) => {
+        $(li).on("click", () => {
+            goToPage("/admin/help/#section" + (index + 1));
+        });
+    });
+    $("#sections li").each((index, li) => {
+        $(li).attr("id", "section" + (index + 1));
     });
 }
 
