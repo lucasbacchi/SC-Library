@@ -182,6 +182,7 @@ export class Book {
      * @param {string} medium a string containing either "paperback", "hardcover", or "av"
      * @param {string} coverImageLink 
      * @param {string} thumbnailImageLink 
+     * @param {string} iconImageLink 
      * @param {string[]} subjects 
      * @param {string} description 
      * @param {Audience} audience 
@@ -201,17 +202,19 @@ export class Book {
      * @param {Date} lastUpdated 
      */
     constructor(barcodeNumber, title, subtitle, authors, illustrators, medium, coverImageLink, thumbnailImageLink,
-        subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages, ddc,
-        purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
+        iconImageLink, subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages,
+        ddc, purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
         this.barcodeNumber = barcodeNumber;
         this.title = title;
         this.subtitle = subtitle;
         this.authors = [];
-        this.illustrators = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < authors.length; i++) {
             if (authors[i]) {
                 this.authors.push(new Person(authors[i].firstName, authors[i].lastName));
             }
+        }
+        this.illustrators = [];
+        for (let i = 0; i < illustrators.length; i++) {
             if (illustrators[i]) {
                 this.illustrators.push(new Person(illustrators[i].firstName, illustrators[i].lastName));
             }
@@ -219,6 +222,7 @@ export class Book {
         this.medium = medium;
         this.coverImageLink = coverImageLink;
         this.thumbnailImageLink = thumbnailImageLink;
+        this.iconImageLink = iconImageLink;
         this.subjects = subjects;
         this.description = description;
         this.audience = new Audience(audience.children, audience.youth, audience.adult);
@@ -244,19 +248,26 @@ export class Book {
      * @returns a new Book object with all of that data in it
      */
     static createFromObject(jsonObject) {
+        if (jsonObject instanceof Book) {
+            console.warn("tried to pass a Book object into Book.createFromObject");
+            return jsonObject;
+        }
         let authors = [];
         let illustrators = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < jsonObject.authors.length; i++) {
             if (jsonObject.authors[i]) {
-                authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
+                this.authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
             }
+        }
+        this.illustrators = [];
+        for (let i = 0; i < jsonObject.illustrators.length; i++) {
             if (jsonObject.illustrators[i]) {
-                illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
+                this.illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
             }
         }
         return new Book(jsonObject.barcodeNumber, jsonObject.title, jsonObject.subtitle, authors, illustrators,
-            jsonObject.medium, jsonObject.coverImageLink, jsonObject.thumbnailImageLink, jsonObject.subjects,
-            jsonObject.description,
+            jsonObject.medium, jsonObject.coverImageLink, jsonObject.thumbnailImageLink,
+            jsonObject.iconImageLink, jsonObject.subjects, jsonObject.description,
             new Audience(jsonObject.audience.children, jsonObject.audience.youth, jsonObject.audience.adult),
             jsonObject.isbn10, jsonObject.isbn13, jsonObject.publishers, jsonObject.publishDate,
             jsonObject.numberOfPages, jsonObject.ddc, jsonObject.purchaseDate, jsonObject.purchasePrice,
@@ -354,7 +365,11 @@ export class User {
      * @returns a new User object with all of that data in it
      */
     static createFromObject(jsonObject) {
-        return new Book(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.emailAddress,
+        if (jsonObject instanceof User) {
+            console.warn("tried to pass a User object into User.createFromObject");
+            return jsonObject;
+        }
+        return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.emailAddress,
             jsonObject.phoneNumber, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
             jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid);
     }
@@ -364,7 +379,7 @@ export class Checkout {
     /**
      * 
      * @param {number} book the book's barcode number
-     * @param {number} user the user's barcode number
+     * @param {number} user the user's card number
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
      */
@@ -383,6 +398,10 @@ export class Checkout {
      * @returns a new Checkout object with all of that data in it
      */
     static createFromObject(jsonObject) {
+        if (jsonObject instanceof Checkout) {
+            console.warn("tried to pass a Checkout object into Checkout.createFromObject");
+            return jsonObject;
+        }
         return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate);
     }
 }
