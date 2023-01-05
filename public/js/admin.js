@@ -1,4 +1,4 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
 import { Book, bookDatabase, db, User } from "./globals";
@@ -96,16 +96,11 @@ function addEntry() {
         alert("The number you entered is not a valid ISBN Number.");
         return;
     }
-    createEntry().then((newBarcode) => {
-        // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
-        goToPage("admin/editEntry?new=true&isbn=" + isbn + "&id=" + newBarcode);
-    });
+    goToPage("admin/editEntry?new=true&isbn=" + isbn);
 }
 
 function addEntryWithoutISBN() {
-    createEntry().then((newBarcode) => {
-        goToPage("admin/editEntry?new=true&id=" + newBarcode);
-    });
+    goToPage("admin/editEntry?new=true");
 }
 
 function addEntryWithSpecificBarcodeNumber() {
@@ -159,149 +154,6 @@ function adminBookBoxes(objects) {
     }
 }
 
-
-
-function createEntry() {
-    return new Promise(function (resolve, reject) {
-        // Run a Transaction to ensure that the correct barcode is used.
-        // First, get the highest barcode number by loading the largest book document.
-        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
-            var topDoc;
-            querySnapshot.forEach((docSnap) => {
-                if (!docSnap.exists()) {
-                    throw "The books document doesn't exist";
-                }
-                topDoc = docSnap;
-            });
-
-            // Now that we have the highest document, we can get that document and create a new book within it.
-            runTransaction(db, (transaction) => {
-                return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
-                    if (!docSnap.exists()) {
-                        throw "Document does not exist!";
-                    }
-
-                    var order = docSnap.data().order;
-                    var numBooksInDoc = docSnap.data().books.length;
-
-                    // Let's make sure that there isn't another doc that has been created after this one already.
-                    try {
-                        var next = order + 1;
-                        if (next < 10) {
-                            next = "00" + (next);
-                        } else if (next < 100) {
-                            next = "0" + (next);
-                        }
-                        getDoc(doc(db, "books", next)).then((docSnap) => {
-                            if (docSnap.exists()) {
-                                console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
-                                throw "Something went wrong.";
-                            }
-                        }).catch((err) => {
-                            console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
-                        });
-                    } catch {
-                        console.warn("Something about the try catch failed....");
-                    }
-
-                    if (numBooksInDoc == 100) {
-                        // A new book doc has to be created...
-                        var newNumber = order + 1;
-                        if (newNumber < 10) {
-                            newNumber = "00" + newNumber;
-                        } else if (newNumber < 100) {
-                            newNumber = "0" + newNumber;
-                        }
-                        let barcode = "11711" + newNumber + "00";
-                        transaction.set(doc(db, "books", newNumber), {
-                            books: [{
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{ first: "", last: "" }],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                thumbnailImageLink: null,
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            }],
-                            order: order + 1
-                        });
-                        return barcode;
-                    } else {
-                        // We don't need to add a new book doc, so just add the book to the existing one.
-                        if (order < 10) {
-                            order = "00" + order;
-                        } else if (order < 100) {
-                            order = "0" + order;
-                        }
-
-                        let barcode;
-                        if (numBooksInDoc < 10) {
-                            barcode = "11711" + order + "0" + numBooksInDoc;
-                        } else {
-                            barcode = "11711" + order + numBooksInDoc;
-                        }
-                        transaction.update(doc(db, "books", order), {
-                            books: arrayUnion({
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{ first: "", last: "" }],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            })
-                        });
-                        return barcode;
-                    }
-                });
-            }).then((newBarcode) => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: " + newBarcode);
-                // editEntry(newBarcode);
-                resolve(newBarcode);
-            });
-        }).catch((err) => {
-            console.error(err);
-            reject(err);
-        });
-    });
-}
 
 var input;
 var input1;

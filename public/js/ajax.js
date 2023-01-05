@@ -150,9 +150,9 @@ function openNavMenu() {
     $("#close-button").css("opacity", "1");
 }
 
+let isAdmin;
 export function isAdminCheck(recheck = false) {
     return new Promise(function (resolve) {
-        let isAdmin;
         if (isAdmin == null || recheck) {
             getDoc(doc(db, "admin", "private_vars")).then(() => {
                 isAdmin = true;

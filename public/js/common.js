@@ -163,7 +163,7 @@ function performSearch(searchQuery, viewHidden = false) {
             setSearchCache(returnArray);
             resolve(returnArray);
         }).catch((error) => {
-            reject("Error in isAdminCheck", error);
+            reject("Error in isAdminCheck or search", error);
         });
     });
 }
