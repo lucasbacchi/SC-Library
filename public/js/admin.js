@@ -481,7 +481,7 @@ function addStats() {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
-                var book = Book.createFromObject(document.books[i]);
+                var book = document.books[i];
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
@@ -498,7 +498,7 @@ function viewMissingBarcodes() {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
-            var book = Book.createFromObject(document.books[i]);
+            var book = document.books[i];
             if (book.barcodeNumber == 1171100000 || (book.lastUpdated/* && !book.isDeleted (We decided not to write over deleted books)*/)) {
                 continue;
             }

@@ -126,7 +126,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                     }
                 } else {
                     values.push(random);
-                    browseResultsArray.push(Book.createFromObject(bookDatabase[rand].books[random]));
+                    browseResultsArray.push(bookDatabase[rand].books[random]);
                 }
             }
             setSearchCache(browseResultsArray);
@@ -589,8 +589,8 @@ export function setupResultPage(pageQuery) {
             content_type: "book_result",
             item_id: barcodeNumber
         });
-    }).catch((barcodeNumber) => {
-        alert("Error: No information could be found for that book. Could not find book with barcode number: " + barcodeNumber);
+    }).catch((error) => {
+        alert("Error: No information could be found for that book. " + error);
         goToPage("");
         return;
     });

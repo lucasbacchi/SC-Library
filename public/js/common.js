@@ -78,7 +78,7 @@ function performSearch(searchQuery, viewHidden = false) {
                 // Iterate through each of the 10-ish docs
                 for (let i = 0; i < document.books.length; i++) {
                     // Iterate through each of the 100 books in each doc
-                    let book = Book.createFromObject(document.books[i]);
+                    let book = document.books[i];
                     if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
                         continue;
                     }
@@ -515,7 +515,7 @@ export function getBookFromBarcode(barcodeNumber) {
             let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
             let bookNumber = barcodeNumber % 100;
             if (bookDatabase[documentNumber].books[bookNumber]) {
-                resolve(Book.createFromObject(bookDatabase[documentNumber].books[bookNumber]));
+                resolve(bookDatabase[documentNumber].books[bookNumber]);
             } else {
                 reject(barcodeNumber);
             }
