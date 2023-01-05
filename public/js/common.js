@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack, analytics } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack, analytics, Book} from "./globals";
 
 /************
 BEGIN SEARCH
@@ -14,10 +14,10 @@ BEGIN SEARCH
  * @param {Number} start The start place in the results list
  * @param {Number} end The end place in the results list
  * @param {Boolean} viewHidden Determines if the function returns hidden books
- * @returns {Promise<void>} An array of results
+ * @returns {Promise<Array>} An array of results
  */
 export function search(searchQuery, viewHidden = false) {
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
             // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
             setTimeLastSearched(new Date());
@@ -27,15 +27,24 @@ export function search(searchQuery, viewHidden = false) {
                 querySnapshot.forEach((doc) => {
                     if (!doc.exists()) {
                         console.error("books document does not exist");
+                        reject();
                         return;
                     }
-                    bookDatabase.push(doc.data());
+                    let documentObject = {
+                        books: [],
+                        order: doc.data().order
+                    };
+                    doc.data().books.forEach((book) => {
+                        documentObject.books.push(Book.createFromObject(book));
+                    });
+                    bookDatabase.push(documentObject);
                 });
                 performSearch(searchQuery, viewHidden).then((output) => {
                     resolve(output);
                 });
             }).catch((error) => {
                 console.error("Search function failed to query the database", error);
+                reject();
             });
         } else {
             // The bookDatabase cache is recent enough, just use that
@@ -69,7 +78,7 @@ function performSearch(searchQuery, viewHidden = false) {
                 // Iterate through each of the 10-ish docs
                 for (let i = 0; i < document.books.length; i++) {
                     // Iterate through each of the 100 books in each doc
-                    var book = document.books[i];
+                    let book = Book.createFromObject(document.books[i]);
                     if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
                         continue;
                     }
@@ -80,8 +89,8 @@ function performSearch(searchQuery, viewHidden = false) {
                     var score = 0;
                     // Authors
                     for (let j = 0; j < book.authors.length; j++) {
-                        let arr1 = book.authors[j].first.replace(/-/g, " ").split(" ");
-                        let arr2 = book.authors[j].last.replace(/-/g, " ").split(" ");
+                        let arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
+                        let arr2 = book.authors[j].lastName.replace(/-/g, " ").split(" ");
                         let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                         score += arr1Ratio * AUTHOR_WEIGHT;
                         let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
@@ -96,8 +105,8 @@ function performSearch(searchQuery, viewHidden = false) {
                     // Description? (as opposed to just keywords)
                     // Illustrators
                     for (let j = 0; j < book.illustrators.length; j++) {
-                        let arr1 = book.illustrators[j].first.replace(/-/g, " ").split(" ");
-                        let arr2 = book.illustrators[j].last.replace(/-/g, " ").split(" ");
+                        let arr1 = book.illustrators[j].firstName.replace(/-/g, " ").split(" ");
+                        let arr2 = book.illustrators[j].lastName.replace(/-/g, " ").split(" ");
                         let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                         score += arr1Ratio * ILLUSTRATOR_WEIGHT;
                         let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
@@ -357,7 +366,7 @@ export function buildBookBox(obj, page, num = 0) {
     var authorString = "";
     for (let i = 0; i < obj.authors.length; i++) {
         if (i == 1) { authorString += " & "; }
-        authorString += obj.authors[i].last + ", " + obj.authors[i].first;
+        authorString += obj.authors[i].lastName + ", " + obj.authors[i].firstName;
     }
     if (authorString == ", ") { authorString = ""; }
     author.appendChild(document.createTextNode(authorString));
@@ -422,7 +431,7 @@ export function buildBookBox(obj, page, num = 0) {
         div2.appendChild(medium);
         const audience = document.createElement("p");
         audience.classList.add("audience");
-        audience.appendChild(document.createTextNode(buildAudienceString(obj.audience)));
+        audience.appendChild(document.createTextNode(obj.audience.toString()));
         div2.appendChild(audience);
         const div3 = document.createElement("div");
         div3.classList.add("advanced-info");
@@ -459,19 +468,6 @@ export function buildBookBox(obj, page, num = 0) {
     return div;
 }
 
-function buildAudienceString(audience) {
-    let str = "", values = ["Children", "Youth", "Adult"];
-    for (let i = 0; i < 3; i++) {
-        if (audience[i]) {
-            if (str != "") {
-                str += ", ";
-            }
-            str += values[i];
-        }
-    }
-    return str;
-}
-
 function listSubjects(subj) {
     let str = "";
     for (let i = 0; i < subj.length; i++) {
@@ -498,29 +494,28 @@ BEGIN GET BOOK FROM BARCODE
 
 /**
  * 
- * @param {number} barcodeNumber - 1171100000 through 1171199999
- * @returns {Object} Book Object
+ * @param {number} barcodeNumber 1171100000 through 1171199999
+ * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */
 export function getBookFromBarcode(barcodeNumber) {
     return new Promise(function (resolve, reject) {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
         }
+
         if (!bookDatabase) {
             search("").then(() => {
-                var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
-                var bookNumber = barcodeNumber % 100;
-                if (bookDatabase[documentNumber].books[bookNumber]) {
-                    resolve(bookDatabase[documentNumber].books[bookNumber]);
-                } else {
-                    reject(barcodeNumber);
-                }
+                returnBook();
             });
         } else {
-            var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
-            var bookNumber = barcodeNumber % 100;
+            returnBook();
+        }
+
+        function returnBook() {
+            let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
+            let bookNumber = barcodeNumber % 100;
             if (bookDatabase[documentNumber].books[bookNumber]) {
-                resolve(bookDatabase[documentNumber].books[bookNumber]);
+                resolve(Book.createFromObject(bookDatabase[documentNumber].books[bookNumber]));
             } else {
                 reject(barcodeNumber);
             }

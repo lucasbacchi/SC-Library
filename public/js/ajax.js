@@ -32,7 +32,7 @@ $(() => {
             setHistoryStack(window.history.state);
             goToPage(fullExtension.substring(1), true);
             historyStack.first(fullExtension.substring(1));
-        }, function (error) {
+        }).catch((error) => {
             console.error(error);
         });
 });

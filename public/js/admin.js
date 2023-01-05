@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
-import { bookDatabase, db } from "./globals";
+import { Book, bookDatabase, db, User } from "./globals";
 
 export function setupAdminMain() {
     $("#help-icon").on("click", () => {
@@ -442,6 +442,7 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
 
 function recentlyCheckedOut() {
     var d = new Date(2021, 1, 1);
+    // TODO: I don't know if we're storing checkouts in the users doc yet...
     getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
         var bookTimes = [];
         querySnapshot.forEach((docSnapshot) => {
@@ -480,7 +481,7 @@ function addStats() {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
-                var book = document.books[i];
+                var book = Book.createFromObject(document.books[i]);
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
@@ -497,8 +498,8 @@ function viewMissingBarcodes() {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
-            var book = document.books[i];
-            if (book.barcodeNumber == 1171100000 || (book.lastUpdated && !book.isDeleted)) {
+            var book = Book.createFromObject(document.books[i]);
+            if (book.barcodeNumber == 1171100000 || (book.lastUpdated/* && !book.isDeleted (We decided not to write over deleted books)*/)) {
                 continue;
             }
             missingArray.push(book);
@@ -671,7 +672,7 @@ function getAllUsers() {
                     console.error("user document does not exist");
                     return;
                 }
-                userDatabase.push(docSnap.data());
+                userDatabase.push(User.createFromObject(docSnap.data()));
             });
             resolve();
         });
@@ -691,9 +692,12 @@ function restartInventory() {
     }
     setDoc(doc(db, "admin", "inventory"), {
         books: []
+    }).then(() => {
+        alert("The Inventory Progress has been reset.");
+        window.location.reload();
+    }).catch((error) => {
+        alert("Error resetting inventory: " + error);
     });
-    alert("The Inventory Progress has been reset.");
-    window.location.reload();
 }
 
 export function setupInventory() {
@@ -702,6 +706,8 @@ export function setupInventory() {
             var current = $("#recent-scans").html();
             $("#recent-scans").html(current + "<br>" + barcode);
         });
+    }).catch((error) => {
+        alert("Error loading inventory: " + error);
     });
 
     $("#restart-inventory").on("click", () => {
@@ -723,14 +729,19 @@ export function setupInventory() {
 
 var cachedInventory = [];
 function loadInventory() {
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
                 return;
             }
-            cachedInventory = docSnap.data().books;
+            cachedInventory = [];
+            docSnap.data().books.forEach((book) => {
+                cachedInventory.push(Book.createFromObject(book));
+            });
             resolve();
+        }).catch((error) => {
+            reject(error);
         });
     });
 }

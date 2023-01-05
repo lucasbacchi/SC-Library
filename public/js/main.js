@@ -1,4 +1,4 @@
-import { bookDatabase, db } from "./globals";
+import { Book, bookDatabase, db } from "./globals";
 import { goToPage } from "./ajax";
 import { buildBookBox, search } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
@@ -35,7 +35,7 @@ function homeBookBoxes() {
         for (let i = 0; i < 9; i++) {
             var rand1 = Math.floor(Math.random() * bookDatabase.length);
             var rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
-            var bookNumber = rand2 + rand1 * 100;
+            var bookNumber = rand1 * 100 + rand2;
             // TODO: Prevent duplicate books (with different barcode numbers)
             if (values.indexOf(rand2) > -1 || bookDatabase[rand1].books[rand2].isDeleted || bookDatabase[rand1].books[rand2].isHidden) {
                 i--;
@@ -49,11 +49,11 @@ function homeBookBoxes() {
             }
         }
         for (let i = 0; i < 9; i++) {
-            var book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
+            var book = Book.createFromObject(bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100]);
             $('div#books')[0].appendChild(buildBookBox(book, "main"));
         }
     } else {
-        // Got get the largest doc to figure out how many total books there are.
+        // Get the largest doc to figure out how many total books there are.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
             querySnapshot.forEach((docSnap) => {
                 if (!docSnap.exists()) {
@@ -89,7 +89,7 @@ function homeBookBoxes() {
                         }
                     }
                     for (let i = 0; i < 9; i++) {
-                        var book = docSnap.data().books[values[i]];
+                        var book = Book.createFromObject(docSnap.data().books[values[i]]);
                         $('div#books')[0].appendChild(buildBookBox(book, "main"));
                     }
                 }).catch((error) => {
