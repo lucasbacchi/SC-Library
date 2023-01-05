@@ -179,7 +179,7 @@ export class Book {
      * @param {string} subtitle 
      * @param {Person[]} authors 
      * @param {Person[]} illustrators 
-     * @param {string} medium a string containing either "paperback", "hardcover", or "av"
+     * @param {string} medium - a string containing either "paperback", "hardcover", or "av"
      * @param {string} coverImageLink 
      * @param {string} thumbnailImageLink 
      * @param {string} iconImageLink 
@@ -191,19 +191,22 @@ export class Book {
      * @param {string[]} publishers 
      * @param {Date} publishDate 
      * @param {number} numberOfPages 
-     * @param {string} ddc dewey decimal classification
+     * @param {string} ddc - dewey decimal classification
      * @param {Date} purchaseDate 
      * @param {number} purchasePrice 
      * @param {string} vendor 
-     * @param {string[]} keywords array of important words from the description, used for searching
+     * @param {string[]} keywords - array of important words from the description, used for searching
      * @param {boolean} canBeCheckedOut 
      * @param {boolean} isDeleted 
      * @param {boolean} isHidden 
      * @param {Date} lastUpdated 
      */
-    constructor(barcodeNumber, title, subtitle, authors, illustrators, medium, coverImageLink, thumbnailImageLink,
-        iconImageLink, subjects, description, audience, isbn10, isbn13, publishers, publishDate, numberOfPages,
-        ddc, purchaseDate, purchasePrice, vendor, keywords, canBeCheckedOut, isDeleted, isHidden, lastUpdated) {
+    constructor(barcodeNumber = null, title = null, subtitle = null, authors = null, illustrators = null,
+        medium = null, coverImageLink = null, thumbnailImageLink = null, iconImageLink = null,
+        subjects = null, description = null, audience = null, isbn10 = null, isbn13 = null,
+        publishers = null, publishDate = null, numberOfPages = null, ddc = null, purchaseDate = null,
+        purchasePrice = null, vendor = null, keywords = null, canBeCheckedOut = null, isDeleted = null,
+        isHidden = null, lastUpdated = null) {
         this.barcodeNumber = barcodeNumber;
         this.title = title;
         this.subtitle = subtitle;
@@ -244,7 +247,7 @@ export class Book {
 
     /**
      * 
-     * @param {object} jsonObject a json object imported from firebase
+     * @param {object} jsonObject - a json object imported from firebase
      * @returns a new Book object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -256,13 +259,12 @@ export class Book {
         let illustrators = [];
         for (let i = 0; i < jsonObject.authors.length; i++) {
             if (jsonObject.authors[i]) {
-                this.authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
+                authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
             }
         }
-        this.illustrators = [];
         for (let i = 0; i < jsonObject.illustrators.length; i++) {
             if (jsonObject.illustrators[i]) {
-                this.illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
+                illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
             }
         }
         return new Book(jsonObject.barcodeNumber, jsonObject.title, jsonObject.subtitle, authors, illustrators,
@@ -282,7 +284,7 @@ export class Person {
      * @param {string} firstName 
      * @param {string} lastName 
      */
-    constructor(firstName, lastName) {
+    constructor(firstName = null, lastName = null) {
         this.firstName = firstName;
         this.lastName = lastName;
     }
@@ -295,7 +297,7 @@ export class Audience {
      * @param {boolean} youth 
      * @param {boolean} adult 
      */
-    constructor(children, youth, adult) {
+    constructor(children = null, youth = null, adult = null) {
         this.children = children;
         this.youth = youth;
         this.adult = adult;
@@ -341,10 +343,11 @@ export class User {
      * @param {Date} dateCreated 
      * @param {Date} lastCheckoutTime 
      * @param {Date} lastSignInTime 
-     * @param {string} uid the string that the auth object uses to represent a user
+     * @param {string} uid - the string that the auth object uses to represent a user
      */
-    constructor(cardNumber, firstName, lastName, emailAddress, phoneNumber, address, pfpLink, pfpIconLink,
-        dateCreated, lastCheckoutTime, lastSignInTime, uid) {
+    constructor(cardNumber = null, firstName = null, lastName = null, emailAddress = null, phoneNumber = null,
+        address = null, pfpLink = null, pfpIconLink = null, dateCreated = null, lastCheckoutTime = null,
+        lastSignInTime = null, uid = null) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -361,7 +364,7 @@ export class User {
 
     /**
      * 
-     * @param {object} jsonObject a json object imported from firebase
+     * @param {object} jsonObject - a json object imported from firebase
      * @returns a new User object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -378,12 +381,12 @@ export class User {
 export class Checkout {
     /**
      * 
-     * @param {number} book the book's barcode number
-     * @param {number} user the user's card number
+     * @param {number} book - the book's barcode number
+     * @param {number} user - the user's card number
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
      */
-    constructor(book, user, checkoutTime, dueDate) {
+    constructor(book = null, user = null, checkoutTime = null, dueDate = null) {
         this.book = book;
         this.user = user;
         this.checkoutTime = checkoutTime;
@@ -394,7 +397,7 @@ export class Checkout {
 
     /**
      * 
-     * @param {object} jsonObject a json object imported from firebase
+     * @param {object} jsonObject - a json object imported from firebase
      * @returns a new Checkout object with all of that data in it
      */
     static createFromObject(jsonObject) {
