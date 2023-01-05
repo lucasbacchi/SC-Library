@@ -930,7 +930,8 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (pageData.coverImageLink == "../img/favicon.ico" && pageData.medium != "av") {
+        // The pageData.coverImageLink will now be null during this check, so we'll read it off the page manually
+        if ($("#book-cover-image").attr('src') == "../img/favicon.ico" && pageData.medium != "av") {
             alert("Cover image is required!");
             let rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1157,6 +1158,13 @@ function storeData(isDeletedValue = false, skipImages = false) {
             }
             bookNumber = bookNumber % 100;
 
+            // If the book is being deleted, set the deleted value to true
+            if (isDeletedValue) {
+                pageData.isDeleted = true;
+            } else {
+                pageData.isDeleted = false;
+            }
+
             // Updates the book with the information
             return runTransaction(db, (transaction) => {
                 let path = doc(booksPath, bookDocument);
@@ -1167,32 +1175,29 @@ function storeData(isDeletedValue = false, skipImages = false) {
                         return;
                     }
 
-                    // If the book is being deleted, set the deleted value to true
-                    if (isDeletedValue) {
-                        pageData.isDeleted = true;
-                    } else {
-                        pageData.isDeleted = false;
-                    }
-
                     // Get the existing list of books
                     let existingBooks = docSnap.data().books;
 
                     // Update the array with the new book information.
                     existingBooks[bookNumber] = pageData;
 
-                    if (!skipImages) {
-                        processImages(pageData.barcodeNumber).then(() => {
-                            transaction.update(doc(booksPath, bookDocument), {
-                                books: existingBooks
-                            });
-                        }).catch((error) => {
-                            reject(error);
-                        });
-                    } else {
+                    // If we are skipping the images, then just update the book and return
+                    if (skipImages) {
                         transaction.update(doc(booksPath, bookDocument), {
                             books: existingBooks
                         });
+                        resolve();
+                        return;
                     }
+
+                    // Otherwise, process the images and then update the book
+                    processImages(pageData.barcodeNumber).then(() => {
+                        transaction.update(doc(booksPath, bookDocument), {
+                            books: existingBooks
+                        });
+                    }).catch((error) => {
+                        reject(error);
+                    });
                 });
             }).then(() => {
                 console.log("Transaction completed successfully");
@@ -1258,10 +1263,11 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             $("#barcode").html(barcode);
                             getBookDataFromPage();
 
-                            processImages(barcode).then((results) => {
+                            processImages(barcode).then((/*results*/) => {
+                                /* this shouldn't be needed since the images now the image links are created by the Book Class
                                 pageData.iconImageLink = results.iconImageLink;
                                 pageData.thumbnailImageLink = results.thumbnailImageLink;
-                                pageData.coverImageLink = results.coverImageLink;
+                                pageData.coverImageLink = results.coverImageLink;*/
 
                                 transaction.set(doc(db, "books", newNumber), {
                                     books: [pageData],
@@ -1290,10 +1296,11 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             $("#barcode").html(barcode);
                             getBookDataFromPage();
 
-                            processImages(barcode).then((results) => {
+                            processImages(barcode).then((/*results*/) => {
+                                /* this shouldn't be needed since the images now the image links are created by the Book Class
                                 pageData.iconImageLink = results.iconImageLink;
                                 pageData.thumbnailImageLink = results.thumbnailImageLink;
-                                pageData.coverImageLink = results.coverImageLink;
+                                pageData.coverImageLink = results.coverImageLink;*/
 
                                 transaction.update(doc(db, "books", order), {
                                     books: arrayUnion(pageData)
@@ -1567,7 +1574,7 @@ function deleteEntry() {
         alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
         $("#loading-overlay").hide();
     }, 10000);
-    storeData(true);
+    storeData(true, true);
 }
 
 
