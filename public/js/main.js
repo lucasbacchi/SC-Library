@@ -49,7 +49,7 @@ function homeBookBoxes() {
             }
         }
         for (let i = 0; i < 9; i++) {
-            var book = Book.createFromObject(bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100]);
+            var book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
             $('div#books')[0].appendChild(buildBookBox(book, "main"));
         }
     } else {
