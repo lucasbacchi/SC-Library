@@ -1,8 +1,8 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
-import { Audience, Book, db, Person, setTimeLastSearched, storage } from "./globals";
-import { collection, doc, getDoc, runTransaction } from "firebase/firestore";
-import { deleteObject, getDownloadURL, list, ref, uploadBytes } from "firebase/storage";
+import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
+import { deleteObject, getDownloadURL, getStorage, list, ref, uploadBytes } from "firebase/storage";
 
 
 var newEntry = null;
@@ -17,7 +17,7 @@ export function setupEditEntry(pageQuery) {
     isbn = findURLValue(pageQuery, "isbn", true);
     imageChanged = false;
 
-    if (barcodeNumber == "" && newEntry == false) {
+    if (newEntry == false && (barcodeNumber < 1171100000 || barcodeNumber > 1171199999)) {
         alert("The barcode that you are trying to edit is not valid.");
         goToPage("admin/main");
         return;
@@ -28,7 +28,7 @@ export function setupEditEntry(pageQuery) {
         populateEditEntryFromDatabase(barcodeNumber);
     } else {
         // If this is a new entry (and they are creating it for the first time) go get info from open library
-        if (isbn.length >= 10) {
+        if (isbn.length == 10 || isbn.length == 13) {
             gatherExternalInformation(isbn).then((returnValue) => {
                 // If this is a brand new entry...
                 // returnValue will be in the form of noISBN = false, bookObject, authorObject, worksObject
@@ -126,7 +126,7 @@ export function setupEditEntry(pageQuery) {
     });
 
     $("#delete-entry").on("click", () => {
-        editEntry(true);
+        deleteEntry();
     });
 
     $("#edit-entry-cancel").on("click", () => {
@@ -134,11 +134,11 @@ export function setupEditEntry(pageQuery) {
     });
 
     $("#edit-entry-delete").on("click", () => {
-        deleteEntry();
+        toggleDeletePopup();
     });
 
     $("#delete-cancel").on("click", () => {
-        deleteEntry();
+        toggleDeletePopup();
     });
 
     $("#add-subject").on("click", () => {
@@ -402,7 +402,7 @@ function lookupWorks(bookObject, authorObject) {
 
 // Run in the event of a new entry being created. It takes the information from Open Library.
 function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
-    $('#barcode').html(barcodeNumber);
+    $('#barcode').html("Not Assigned");
     if (noISBN) {
         return;
     }
@@ -724,6 +724,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
             console.log(worksObject);
         }
     }
+    // It's new, so we can hide this
     $("#last-updated").hide();
 }
 
@@ -734,7 +735,7 @@ function addSubject() {
 
 var loadingTimer;
 // Run when the user clicks the "Save" button
-function editEntry(isDeletedValue = false) {
+function editEntry() {
     // Prevent the user from clicking the "Save" button again
     $("#edit-entry-save")[0].disabled = true;
     // Start the loading overlay
@@ -745,13 +746,6 @@ function editEntry(isDeletedValue = false) {
         alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
         $("#loading-overlay").hide();
     }, 10000);
-
-    // Validate inputs (unless it's gonna be deleted, in which case don't bother lol)
-    if (isDeletedValue) {
-        storeData(true);
-        window.clearTimeout(loadingTimer);
-        return;
-    }
 
     // Before validating the entry, auto convert between ISBN numbers if both are not already inputted.
     var isbn10Value = $("#book-isbn-10").val();
@@ -772,34 +766,14 @@ function editEntry(isDeletedValue = false) {
             return;
         }
 
-        // If it's an audio visual item, skip the cover images
-        if ($("#book-medium")[0].value == "av") {
-            storeData(false, null, null, null);
-            return;
-        }
-
         // If the image hasn't been changed, and the entry isn't new, skip the cover image upload
         if (!newEntry && !imageChanged) {
             console.log("Image hasn't been changed, so we're skipping the upload.");
-            storeData();
+            storeData(false, true);
             return;
         }
 
-        // If it's not an audio visual item, process the cover images
-        processImages().then((images) => {
-            let coverImageLink = images[0];
-            let thumbnailImageLink = images[1];
-            let iconImageLink = images[2];
-            storeData(false, iconImageLink, thumbnailImageLink, coverImageLink);
-        }).catch((error) => {
-            alert("There was an error uploading the images for this book. Your changes have not been saved.");
-            alert(error);
-            console.error(error);
-            window.clearTimeout(loadingTimer);
-            $("#edit-entry-save")[0].disabled = false;
-            $("#loading-overlay").hide();
-            return;
-        });
+        storeData();
     }).catch((error) => {
         alert("There was an error validating the entry. Your changes have not been saved.");
         alert(error);
@@ -813,6 +787,11 @@ function editEntry(isDeletedValue = false) {
 
 // Gets the values of all the input elements
 function getBookDataFromPage() {
+    let barcode = parseInt($("#barcode").html());
+    if (isNaN(barcode)) {
+        barcode = null;
+    }
+
     let authors = [];
     if ($("#book-author-1-last").val() || $("#book-author-1-first").val()) {
         authors.push(new Person($("#book-author-1-first").val(), $("#book-author-1-last").val()));
@@ -886,12 +865,12 @@ function getBookDataFromPage() {
         purchaseDate = convertToUTC(purchaseDate);
     }
 
-    /*  This WON'T have the thumbnail/icon image link, because that's not on the page yet
+    /*  This WON'T have the image links, because that is auto-generated by the Book class
         It also WON'T have a value for isDeleted, since that's not on the page
         these will be added when the data is stored in the database
         lastUpdated will be created when this function is called*/
-    let bookDataFromPage = new Book(parseInt($("#barcode").html()), $("#book-title").val(), $("#book-subtitle").val(), authors,
-        illustrators, $("#book-medium")[0].value, $("#book-cover-image").attr('src'), null, null, subjects,
+    let bookDataFromPage = new Book(barcode, $("#book-title").val(), $("#book-subtitle").val(), authors,
+        illustrators, $("#book-medium")[0].value, null, null, null, subjects,
         $("#book-description").val(), new Audience($("#book-audience-children")[0].checked,
         $("#book-audience-youth")[0].checked, $("#book-audience-adult")[0].checked), $("#book-isbn-10").val(),
         $("#book-isbn-13").val(), publishers, publishDate, numberOfPages, $("#book-dewey").val(), purchaseDate,
@@ -1157,7 +1136,7 @@ function isValidDate(y, m, d) {
     return true;
 }
 
-function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, coverImageLink) {
+function storeData(isDeletedValue = false, skipImages = false) {
     return new Promise(function(resolve, reject) {
         // Gets the values of all the input elements
         let pageData = getBookDataFromPage();
@@ -1165,72 +1144,178 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
         // Defines the paths of the the database collection
         var booksPath = collection(db, "books");
 
-        var bookNumber = pageData.barcodeValue - 1171100000;
-        var bookDocument = Math.floor(bookNumber / 100);
-        if (bookDocument >= 100) {
-            bookDocument = "" + bookDocument;
-        } else if (bookDocument >= 10) {
-            bookDocument = "0" + bookDocument;
-        } else {
-            bookDocument = "00" + bookDocument;
-        }
-        bookNumber = bookNumber % 100;
+        // If this is not a new entry, so update the existing entry using the known barcode number
+        if (!newEntry) {
+            var bookNumber = pageData.barcodeValue - 1171100000;
+            var bookDocument = Math.floor(bookNumber / 100);
+            if (bookDocument >= 100) {
+                bookDocument = "" + bookDocument;
+            } else if (bookDocument >= 10) {
+                bookDocument = "0" + bookDocument;
+            } else {
+                bookDocument = "00" + bookDocument;
+            }
+            bookNumber = bookNumber % 100;
 
-        // Updates the book with the information
-        return runTransaction(db, (transaction) => {
-            let path = doc(booksPath, bookDocument);
-            return transaction.get(path).then((docSnap) => {
-                if (!docSnap.exists()) {
-                    console.error("There was a large problem because the books doc doesn't exist anymore...");
-                }
+            // Updates the book with the information
+            return runTransaction(db, (transaction) => {
+                let path = doc(booksPath, bookDocument);
+                return transaction.get(path).then((docSnap) => {
+                    if (!docSnap.exists()) {
+                        console.error("There was a large problem because the books doc doesn't exist anymore...");
+                        reject();
+                        return;
+                    }
 
-                // Get the existing list of books
-                let existingBooks = docSnap.data().books;
+                    // If the book is being deleted, set the deleted value to true
+                    if (isDeletedValue) {
+                        pageData.isDeleted = true;
+                    } else {
+                        pageData.isDeleted = false;
+                    }
 
-                // If a new link was not passed in, keep the old one. However, we are allowing null values for AV.
-                // Need strict inequality so that undefined and null are not treated as equal
-                if (!iconImageLink && iconImageLink !== null) {
-                    pageData.iconImageLink = docSnap.data().books[bookNumber].iconImageLink;
-                }
-                if (!thumbnailImageLink && thumbnailImageLink !== null) {
-                    pageData.thumbnailImageLink = docSnap.data().books[bookNumber].thumbnailImageLink;
-                }
-                if (!coverImageLink && coverImageLink !== null) {
-                    pageData.coverImageLink = docSnap.data().books[bookNumber].coverImageLink;
-                }
+                    // Get the existing list of books
+                    let existingBooks = docSnap.data().books;
 
-                // If any of the images still have invalid values, set them to null
-                if (iconImageLink == undefined) {
-                    pageData.iconImageLink = null;
-                }
-                if (thumbnailImageLink == undefined) {
-                    pageData.thumbnailImageLink = null;
-                }
-                if (coverImageLink == undefined) {
-                    pageData.coverImageLink = null;
-                }
+                    // Update the array with the new book information.
+                    existingBooks[bookNumber] = pageData;
 
-                // If the book is being deleted, set the deleted value to true
-                if (isDeletedValue) {
-                    pageData.isDeleted = true;
-                } else {
-                    pageData.isDeleted = false;
-                }
-
-                // Update the array with the new book information.
-                existingBooks[bookNumber] = pageData;
-
-                transaction.update(doc(booksPath, bookDocument), {
-                    books: existingBooks
+                    if (!skipImages) {
+                        processImages(pageData.barcodeNumber).then(() => {
+                            transaction.update(doc(booksPath, bookDocument), {
+                                books: existingBooks
+                            });
+                        }).catch((error) => {
+                            reject(error);
+                        });
+                    } else {
+                        transaction.update(doc(booksPath, bookDocument), {
+                            books: existingBooks
+                        });
+                    }
                 });
+            }).then(() => {
+                console.log("Transaction completed successfully");
+                resolve();
+            }).catch((error) => {
+                console.error("Error updating book with transaction: ", error);
+                reject(error);
             });
-        }).then(() => {
-            console.log("Transaction completed successfully");
-            resolve();
-        }).catch((error) => {
-            console.error("Error updating book with transaction: ", error);
-            reject(error);
-        });
+        } else {
+            // Create a new entry from scratch and get a new barcode number
+            // Run a Transaction to ensure that the correct barcode is used.
+            // First, get the highest barcode number by loading the largest book document.
+            getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+                var topDoc;
+                querySnapshot.forEach((docSnap) => {
+                    if (!docSnap.exists()) {
+                        throw "The books document doesn't exist";
+                    }
+                    topDoc = docSnap;
+                });
+
+                // Now that we have the highest document, we can get that document and create a new book within it.
+                runTransaction(db, (transaction) => {
+                    return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
+                        if (!docSnap.exists()) {
+                            throw "Document does not exist!";
+                        }
+
+                        var order = docSnap.data().order;
+                        var numBooksInDoc = docSnap.data().books.length;
+
+                        // Let's make sure that there isn't another doc that has been created after this one already.
+                        try {
+                            var next = order + 1;
+                            if (next < 10) {
+                                next = "00" + (next);
+                            } else if (next < 100) {
+                                next = "0" + (next);
+                            }
+                            getDoc(doc(db, "books", next)).then((docSnap) => {
+                                if (docSnap.exists()) {
+                                    console.error("A new book doc was created, it shouldn't have been, so abort!");
+                                    alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
+                                    throw "Something went wrong.";
+                                }
+                            }).catch((err) => {
+                                console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
+                            });
+                        } catch {
+                            console.warn("Something about the try catch failed....");
+                        }
+
+                        if (numBooksInDoc == 100) {
+                            // A new book doc has to be created...
+                            var newNumber = order + 1;
+                            if (newNumber < 10) {
+                                newNumber = "00" + newNumber;
+                            } else if (newNumber < 100) {
+                                newNumber = "0" + newNumber;
+                            }
+                            let barcode = "11711" + newNumber + "00";
+
+                            $("#barcode").html(barcode);
+                            getBookDataFromPage();
+
+                            processImages(barcode).then((results) => {
+                                pageData.iconImageLink = results.iconImageLink;
+                                pageData.thumbnailImageLink = results.thumbnailImageLink;
+                                pageData.coverImageLink = results.coverImageLink;
+
+                                transaction.set(doc(db, "books", newNumber), {
+                                    books: [pageData],
+                                    order: order + 1
+                                });
+                                return barcode;
+                            }).catch((err) => {
+                                console.error("Error processing images: ", err);
+                                reject();
+                            });
+                        } else {
+                            // We don't need to add a new book doc, so just add the book to the existing one.
+                            if (order < 10) {
+                                order = "00" + order;
+                            } else if (order < 100) {
+                                order = "0" + order;
+                            }
+
+                            let barcode;
+                            if (numBooksInDoc < 10) {
+                                barcode = "11711" + order + "0" + numBooksInDoc;
+                            } else {
+                                barcode = "11711" + order + numBooksInDoc;
+                            }
+
+                            $("#barcode").html(barcode);
+                            getBookDataFromPage();
+
+                            processImages(barcode).then((results) => {
+                                pageData.iconImageLink = results.iconImageLink;
+                                pageData.thumbnailImageLink = results.thumbnailImageLink;
+                                pageData.coverImageLink = results.coverImageLink;
+
+                                transaction.update(doc(db, "books", order), {
+                                    books: arrayUnion(pageData)
+                                });
+                                return barcode;
+                            }).catch((err) => {
+                                console.error("Error processing images: ", err);
+                                reject();
+                            });
+                        }
+                    });
+                }).then((newBarcode) => {
+                    // After both writes complete, send the user to the edit page and take it from there.
+                    console.log("New Entry Created with barcode: " + newBarcode);
+                    alert("New book created successfully. Please take note of your new barcode number: " + newBarcode);
+                    resolve(newBarcode);
+                });
+            }).catch((err) => {
+                console.error(err);
+                reject(err);
+            });
+        }
     }).then(() => {
         $("#loading-overlay").hide();
         alert("Edits were made successfully");
@@ -1247,16 +1332,16 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
     });
 }
 
-function processImages() {
+function processImages(barcodeNumber) {
     return new Promise((resolve, reject) => {
         // Gets the current image (uploaded or from open library) and stores it to the file variable
         getImage().then((fileReturn) => {
             // Clear out old images in Firebase Storage (if there are any)
-            deleteOldImages().then(() => {
+            deleteOldImages(barcodeNumber).then(() => {
                 let promises = [];
-                promises[0] = uploadImageToStorage("original", fileReturn);
-                promises[1] = uploadImageToStorage("thumbnail", fileReturn);
-                promises[2] = uploadImageToStorage("icon", fileReturn);
+                promises[0] = uploadImageToStorage(barcodeNumber, "original", fileReturn);
+                promises[1] = uploadImageToStorage(barcodeNumber, "thumbnail", fileReturn);
+                promises[2] = uploadImageToStorage(barcodeNumber, "icon", fileReturn);
 
                 Promise.all(promises).then((values) => {
                     if (!Array.isArray(values) || !values[0] || !values[1] || !values[2]) {
@@ -1273,6 +1358,14 @@ function processImages() {
         }).catch((error) => {
             reject(error);
         });
+    }).catch((error) => {
+        alert("There was an error uploading the images for this book. Your changes have not been saved.");
+        alert(error);
+        console.error(error);
+        window.clearTimeout(loadingTimer);
+        $("#edit-entry-save")[0].disabled = false;
+        $("#loading-overlay").hide();
+        return;
     });
 }
 
@@ -1310,10 +1403,11 @@ function getImage() {
     });
 }
 
-function deleteOldImages() {
+function deleteOldImages(barcodeNumber) {
     // Delete firebase storage images for the book that is being edited
     return new Promise((resolve, reject) => {
-        list(ref(storage, "books/" + $("#barcode").html()), {maxResults: 10}).then((result) => {
+        let publicStorage = getStorage(app, "gs://south-church-library");
+        list(ref(publicStorage, "books/" + barcodeNumber), {maxResults: 10}).then((result) => {
             let promises = [];
             result.items.forEach((image, index) => {
                 promises[index] = deleteObject(image);
@@ -1332,8 +1426,7 @@ function deleteOldImages() {
     });
 }
 
-// TODO: Make sure this can run if there isn't a barcode assigned yet
-function uploadImageToStorage(type = "original", file) {
+function uploadImageToStorage(barcodeNumber, type = "original", file) {
     return new Promise((resolve, reject) => {
         // AV images are stored as null
         if ($("#book-medium")[0].value == "av") {
@@ -1342,8 +1435,7 @@ function uploadImageToStorage(type = "original", file) {
             return;
         }
 
-        let barcodeValue = parseInt($("#barcode").html());
-        if (isNaN(barcodeValue) || barcodeValue.toString().substring(0, 5) != "11711") {
+        if (isNaN(barcodeNumber) || barcodeNumber.toString().substring(0, 5) != "11711" || barcodeNumber.toString().length != 10) {
             alert("There was a problem saving that image.");
             reject(false);
             return;
@@ -1382,13 +1474,14 @@ function uploadImageToStorage(type = "original", file) {
             $("#" + type + "-canvas")[0].toBlob((blob) => {
                 let file = new File([blob], "book" + type, {type: "image/jpeg"});
 
-                let bookSpecificRef = ref(storage, "books");
+                let publicStorage = getStorage(app, "gs://south-church-library");
+                let bookSpecificRef = ref(publicStorage, "books");
                 if (type == "original") {
-                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover.jpg");
+                    bookSpecificRef = ref(bookSpecificRef, barcodeNumber + "/cover.jpg");
                 } else if (type == "thumbnail") {
-                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-400px.jpg");
+                    bookSpecificRef = ref(bookSpecificRef, barcodeNumber + "/cover-400px.jpg");
                 } else if (type == "icon") {
-                    bookSpecificRef = ref(bookSpecificRef, barcodeValue + "/cover-250px.jpg");
+                    bookSpecificRef = ref(bookSpecificRef, barcodeNumber + "/cover-250px.jpg");
                 } else {
                     reject(false);
                     return;
@@ -1402,6 +1495,7 @@ function uploadImageToStorage(type = "original", file) {
                     }).catch(function(error) {
                         alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
                         console.error(error);
+                        reject();
                     });
                 });
             }, "image/jpeg");
@@ -1441,7 +1535,11 @@ function cancelEditEntry() {
 }
 
 // Run when the user clicks the "Delete" button
-function deleteEntry() {
+function toggleDeletePopup() {
+    if (newEntry) {
+        alert("You can't delete a book that hasn't been saved yet. If you'd like to disregard this book, click the \"Cancel\" button.");
+        return;
+    }
     $("#delete-alert").css("transition", "0.5s");
     $("#delete-alert-overlay").css("transition", "0.5s");
     if ($("#delete-alert").css("opacity") == "0") {
@@ -1455,6 +1553,21 @@ function deleteEntry() {
         $("#delete-alert").delay(500).hide(0);
         $("#delete-alert-overlay").delay(500).hide(0);
     }
+}
+
+// Run when the user clicks the "Delete" button on the delete popup
+function deleteEntry() {
+    // Prevent the user from clicking the "Delete" button again
+    $("#delete-entry")[0].disabled = true;
+    // Start the loading overlay
+    $("#loading-overlay").show();
+    // If an error occurs somewhere in this process, tell the user after 10 seconds
+    loadingTimer = window.setTimeout(() => {
+        $("#edit-entry-save")[0].disabled = false;
+        alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
+        $("#loading-overlay").hide();
+    }, 10000);
+    storeData(true);
 }
 
 
