@@ -390,11 +390,29 @@ function importFile(event) {
     });
 }
 
-function setUploadDatabase() {
-    importFile.then((file) => {
-        var dataToUpload = JSON.parse(JSON.stringify(file));
-        console.log(dataToUpload);
-        alert("The database wasn't uploaded, because this function didn't get finished.");
+function setUploadDatabase(event) {
+    importFile(event).then((file) => {
+        file.text().then((text) => {
+            let dataToUpload = JSON.parse(text);
+            console.log(dataToUpload);
+            let newDatabase = [], modified = 0;
+            for (let i = 0; i < dataToUpload.length; i++) {
+                let newDoc = [];
+                for (let j = 0; j < dataToUpload[i].books.length; j++) {
+                    let newBook = Book.createFromObject(dataToUpload[i].books[j]);
+                    newDoc.push(newBook);
+                    if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
+                        modified++;
+                    }
+                }
+                newDatabase.push(newDoc);
+            }
+            let ndlen = newDatabase.length, bdlen = bookDatabase.length;
+            let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
+            alert(((diff > 0) ? diff : 0) + " books added\n" + ((diff < 0) ? -1 * diff : 0) + " books deleted\n"
+                + modified + " books modified\nAre you sure you want to continue?");
+            alert("The database wasn't uploaded, because this function didn't get finished.");
+        });
     });
 }
 
