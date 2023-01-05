@@ -1,6 +1,6 @@
 import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
-import { db, setTimeLastSearched, storage } from "./globals";
+import { Audience, Book, db, Person, setTimeLastSearched, storage } from "./globals";
 import { collection, doc, getDoc, runTransaction } from "firebase/firestore";
 import { deleteObject, getDownloadURL, list, ref, uploadBytes } from "firebase/storage";
 
@@ -35,8 +35,8 @@ export function setupEditEntry(pageQuery) {
                 loadDataOnToEditEntryPage(returnValue[0], returnValue[1], returnValue[2], returnValue[3]);
             }).catch((error) => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
-                alert("The ISBN number that you entered (" + isbn + ") is a valid number, but we did not find a listing for it in the external database. You will need to create an entry manually.");
-                console.warn("Could not find an entry in open library for this isbn", error);
+                alert("The ISBN number that you entered (" + isbn + ") appears to be a valid number, but we did not find a listing for it in Open Library. You will need to create an entry manually.");
+                console.warn("Could not find an entry in Open Library for this isbn", error);
             });
         } else {
             loadDataOnToEditEntryPage(true);
@@ -178,7 +178,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         document = "00" + document;
     }
     getDoc(doc(db, "books/" + document)).then((docSnap) => {
-        var data = docSnap.data().books[barcodeNumber % 100];
+        var data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
 
         if (!data) {
             alert("We could not find any data for a book with barcode number " + barcodeNumber);
@@ -191,13 +191,13 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         $("#book-subtitle").val(data.subtitle);
 
         for (let i = 0; i < data.authors.length; i++) {
-            $("#book-author-" + (i + 1) + "-last").val(data.authors[i].last);
-            $("#book-author-" + (i + 1) + "-first").val(data.authors[i].first);
+            $("#book-author-" + (i + 1) + "-last").val(data.authors[i].lastName);
+            $("#book-author-" + (i + 1) + "-first").val(data.authors[i].firstName);
         }
 
         for (let i = 0; i < data.illustrators.length; i++) {
-            $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].last);
-            $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].first);
+            $("#book-illustrator-" + (i + 1) + "-last").val(data.illustrators[i].lastName);
+            $("#book-illustrator-" + (i + 1) + "-first").val(data.illustrators[i].firstName);
         }
 
         $("#book-medium").val(data.medium);
@@ -211,10 +211,10 @@ function populateEditEntryFromDatabase(barcodeNumber) {
 
         $("#book-description").val(data.description);
 
-        $("#book-audience-children").prop("checked", data.audience[0]);
-        $("#book-audience-youth").prop("checked", data.audience[1]);
-        $("#book-audience-adult").prop("checked", data.audience[2]);
-        $("#book-audience-none").prop("checked", data.audience[3]);
+        $("#book-audience-children").prop("checked", data.audience.children);
+        $("#book-audience-youth").prop("checked", data.audience.youth);
+        $("#book-audience-adult").prop("checked", data.audience.adult);
+        $("#book-audience-none").prop("checked", data.audience.isNone());
 
         $("#book-isbn-10").val(data.isbn10);
         $("#book-isbn-13").val(data.isbn13);
@@ -273,6 +273,7 @@ function gatherExternalInformation(isbn) {
         if (isbn == "") {
             // In this case, the entry was created without an isbn
             resolve(true);
+            return;
         }
         lookupBook(isbn).then((bookObject) => {
             lookupAuthor(bookObject).then((value) => {
@@ -731,6 +732,7 @@ function addSubject() {
     $("#book-subject-" + numberofSubjects).after("<input id=\"book-subject-" + (numberofSubjects + 1) + "\" placeholder=\"\" class=\"normal-form-input subject-field\">");
 }
 
+var loadingTimer;
 // Run when the user clicks the "Save" button
 function editEntry(isDeletedValue = false) {
     // Prevent the user from clicking the "Save" button again
@@ -809,41 +811,105 @@ function editEntry(isDeletedValue = false) {
     });
 }
 
-var loadingTimer;
+// Gets the values of all the input elements
+function getBookDataFromPage() {
+    let authors = [];
+    if ($("#book-author-1-last").val() || $("#book-author-1-first").val()) {
+        authors.push(new Person($("#book-author-1-first").val(), $("#book-author-1-last").val()));
+    }
+    if ($("#book-author-2-last").val() || $("#book-author-2-first").val()) {
+        authors.push(new Person($("#book-author-2-first").val(), $("#book-author-2-last").val()));
+    }
+
+    let illustrators = [];
+    if ($("#book-illustrator-1-last").val() || $("#book-illustrator-1-first").val()) {
+        illustrators.push(new Person($("#book-illustrator-1-first").val(), $("#book-illustrator-1-last").val()));
+    }
+    if ($("#book-illustrator-2-last").val() || $("#book-illustrator-2-first").val()) {
+        illustrators.push(new Person($("#book-illustrator-2-first").val(), $("#book-illustrator-2-last").val()));
+    }
+
+    var subjects = [];
+    $("[id^=book-subject-]").each((index, input) => {
+        if (input.value != "") subjects.push(input.value);
+    });
+
+    var publishers = [];
+    if ($("#book-publisher-1").val()) {
+        publishers.push($("#book-publisher-1").val());
+    }
+    if ($("#book-publisher-2").val()) {
+        publishers.push($("#book-publisher-2").val());
+    }
+
+    // Create a list of keywords from the description
+    var keywords = $("#book-description").val().replace(/-/g , " ").split(" ");
+    keywords = cleanUpSearchTerm(keywords);
+
+    let unNumbered = $("#book-unnumbered")[0].checked;
+    let numberOfPages = parseInt($("#book-pages").val());
+    if (unNumbered) {
+        numberOfPages = -1;
+    }
+
+    let publishDate = null;
+    let publishYearValue = $("#book-publish-year").val();
+    let publishMonthValue = $("#book-publish-month").val();
+    let publishDayValue = $("#book-publish-day").val();
+    if (!isValidDate(publishYearValue, publishMonthValue, publishDayValue)) {
+        console.warn("Invalid publish date: " + publishYearValue + "-" + publishMonthValue + "-" + publishDayValue);
+    } else if (publishMonthValue != "" && publishDayValue != "") {
+        publishDate = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
+    } else if (publishMonthValue != "") {
+        publishDate = new Date(publishYearValue, publishMonthValue-1);
+    } else if (publishYearValue != "") {
+        publishDate = new Date(publishYearValue);
+    }
+    if (publishDate) {
+        publishDate = convertToUTC(publishDate);
+    }
+
+    let purchaseDate = null;
+    let purchaseYearValue = $("#book-purchase-year").val();
+    let purchaseMonthValue = $("#book-purchase-month").val();
+    let purchaseDayValue = $("#book-purchase-day").val();
+    if (!isValidDate(purchaseYearValue, purchaseMonthValue, purchaseDayValue)) {
+        console.warn("Invalid purchase date: " + purchaseYearValue + "-" + purchaseMonthValue + "-" + purchaseDayValue);
+    } else if (purchaseMonthValue != "" && purchaseDayValue != "") {
+        purchaseDate = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
+    } else if (purchaseMonthValue != "") {
+        purchaseDate = new Date(purchaseYearValue, purchaseMonthValue-1);
+    } else if (purchaseYearValue != "") {
+        purchaseDate = new Date(purchaseYearValue);
+    }
+    if (purchaseDate) {
+        purchaseDate = convertToUTC(purchaseDate);
+    }
+
+    /*  This WON'T have the thumbnail/icon image link, because that's not on the page yet
+        It also WON'T have a value for isDeleted, since that's not on the page
+        these will be added when the data is stored in the database
+        lastUpdated will be created when this function is called*/
+    let bookDataFromPage = new Book(parseInt($("#barcode").html()), $("#book-title").val(), $("#book-subtitle").val(), authors,
+        illustrators, $("#book-medium")[0].value, $("#book-cover-image").attr('src'), null, null, subjects,
+        $("#book-description").val(), new Audience($("#book-audience-children")[0].checked,
+        $("#book-audience-youth")[0].checked, $("#book-audience-adult")[0].checked), $("#book-isbn-10").val(),
+        $("#book-isbn-13").val(), publishers, publishDate, numberOfPages, $("#book-dewey").val(), purchaseDate,
+        $("#book-purchase-price").val(), $("#book-vendor").val(), keywords, !!$("#book-can-be-checked-out")[0].value,
+        null, !!$("#book-is-hidden")[0].value, new Date());
+    return bookDataFromPage;
+}
+
 function validateEntry() {
     return new Promise((resolve) => {
-        // Gets the values of all the input elements
-        var titleValue = $("#book-title").val();
-        var author1LastValue = $("#book-author-1-last").val();
-        var author1FirstValue = $("#book-author-1-first").val();
-        var mediumValue = $("#book-medium")[0].value;
-        var coverLink = $("#book-cover-image").attr('src');
-        var subjectValues = [];
-        $("[id^=book-subject-]").each((index, input) => {
-            if (input.value != "") subjectValues.push(input.value);
-        });
-        var descriptionValue = $("#book-description").val();
-        var childrenValue = $("#book-audience-children")[0].checked;
-        var youthValue = $("#book-audience-youth")[0].checked;
-        var adultValue = $("#book-audience-adult")[0].checked;
-        var noneValue = $("#book-audience-none")[0].checked;
-        var isbn10Value = $("#book-isbn-10").val();
-        var isbn13Value = $("#book-isbn-13").val();
-        var noISBN = $("#book-no-isbn")[0].checked;
-        var publisher1Value = $("#book-publisher-1").val();
-        var publishMonthValue = $("#book-publish-month").val();
-        var publishDayValue = $("#book-publish-day").val();
-        var publishYearValue = $("#book-publish-year").val();
-        var numPagesValue = parseInt($("#book-pages").val());
-        var unNumbered = $("#book-unnumbered")[0].checked;
-        var ddcValue = $("#book-dewey").val();
-        var purchaseMonthValue = $("#book-purchase-month").val();
-        var purchaseDayValue = $("#book-purchase-day").val();
-        var purchaseYearValue = $("#book-purchase-year").val();
-        var purchasePriceValue = $("#book-purchase-price").val();
+        let pageData = getBookDataFromPage();
+
+        let noneValue = $("#book-audience-none")[0].checked;
+        let noISBN = $("#book-no-isbn")[0].checked;
+        let unNumbered = $("#book-unnumbered")[0].checked;
 
         // Validate inputs
-        if (titleValue == "") {
+        if (pageData.title == "") {
             alert("Title is required!");
             let rect = $("#book-title")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -855,7 +921,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (author1LastValue == "" && author1FirstValue == "" && mediumValue != "av") {
+        if (pageData.authors[0].lastName == "" && pageData.authors[0].firstName == "" && pageData.medium != "av") {
             alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
             let rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -873,7 +939,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (mediumValue == "") {
+        if (pageData.medium == "") {
             alert("Medium is required!");
             let rect = $("#book-medium")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -885,7 +951,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (coverLink == "../img/favicon.ico" && mediumValue != "av") {
+        if (pageData.coverImageLink == "../img/favicon.ico" && pageData.medium != "av") {
             alert("Cover image is required!");
             let rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -897,7 +963,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (subjectValues.length == 0 && mediumValue != "av") {
+        if (pageData.subjects.length == 0 && pageData.medium != "av") {
             alert("Please enter at least one subject!");
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -909,7 +975,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (descriptionValue == "" && mediumValue != "av") {
+        if (pageData.description == "" && pageData.medium != "av") {
             alert("Description is required!");
             let rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -921,7 +987,8 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if ((!childrenValue && !youthValue && !adultValue && !noneValue) || (noneValue && (childrenValue || youthValue || adultValue))) {
+        if ((!pageData.audience.children && !pageData.audience.youth && !pageData.audience.adult && !noneValue) ||
+            (noneValue && (pageData.audience.children || pageData.audience.youth || pageData.audience.adult))) {
             alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
             let rect = $("#book-audience-children")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -939,7 +1006,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!noISBN && (!verifyISBN(isbn10Value) || isbn10Value.length != 10)) {
+        if (!noISBN && (!verifyISBN(pageData.isbn10) || pageData.isbn10.length != 10)) {
             alert("The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -951,7 +1018,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!noISBN && (!verifyISBN(isbn13Value) || isbn13Value.length != 13)) {
+        if (!noISBN && (!verifyISBN(pageData.isbn13) || pageData.isbn13.length != 13)) {
             alert("The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -963,7 +1030,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (publisher1Value == "" && mediumValue != "av") {
+        if (pageData.publishers[0] == "" && pageData.medium != "av") {
             alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
             let rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -975,7 +1042,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!isValidDate(publishMonthValue, publishDayValue, publishYearValue) && mediumValue != "av") {
+        if (pageData.publishDate && pageData.publishDate instanceof Date && pageData.medium != "av") {
             alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1001,7 +1068,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!unNumbered && (isNaN(numPagesValue) || numPagesValue < 1)) {
+        if (!unNumbered && (isNaN(pageData.numPages) || pageData.numPages < 1)) {
             alert("Please enter a valid number of pages!");
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1013,7 +1080,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (ddcValue == "" || (ddcValue != "FIC" && isNaN(parseFloat(ddcValue)))) {
+        if (pageData.ddc == "" || (pageData.ddc != "FIC" && isNaN(parseFloat(pageData.ddc)))) {
             alert("Please enter a valid Dewey Decimal Classification!");
             let rect = $("#book-dewey")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1025,7 +1092,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if ((purchaseMonthValue != "" || purchaseDayValue != "" || purchaseYearValue != "") && !isValidDate(purchaseMonthValue, purchaseDayValue, purchaseYearValue)) {
+        if (pageData.purchaseDate && pageData.purchaseDate instanceof Date) {
             alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-purchase-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1051,7 +1118,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (purchasePriceValue != "" && (isNaN(parseFloat(purchasePriceValue)) || parseFloat(purchasePriceValue) < 0)) {
+        if (pageData.purchasePrice != "" && (isNaN(parseFloat(pageData.purchasePrice)) || parseFloat(pageData.purchasePrice) < 0)) {
             alert("Please enter a valid purchase price!");
             let rect = $("#book-purchase-price")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1069,7 +1136,7 @@ function validateEntry() {
     });
 }
 
-function isValidDate(m, d, y) {
+function isValidDate(y, m, d) {
     var year = parseInt(y);
     if (isNaN(year)) return false;
     if (year < 100) return false;
@@ -1093,55 +1160,12 @@ function isValidDate(m, d, y) {
 function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, coverImageLink) {
     return new Promise(function(resolve, reject) {
         // Gets the values of all the input elements
-        var barcodeValue = parseInt($("#barcode").html());
-        var titleValue = $("#book-title").val();
-        var subtitleValue = $("#book-subtitle").val();
-        var author1LastValue = $("#book-author-1-last").val();
-        var author1FirstValue = $("#book-author-1-first").val();
-        var author2LastValue = $("#book-author-2-last").val();
-        var author2FirstValue = $("#book-author-2-first").val();
-        var illustrator1LastValue = $("#book-illustrator-1-last").val();
-        var illustrator1FirstValue = $("#book-illustrator-1-first").val();
-        var illustrator2LastValue = $("#book-illustrator-2-last").val();
-        var illustrator2FirstValue = $("#book-illustrator-2-first").val();
-        var mediumValue = $("#book-medium")[0].value;
-        var subjectValues = [];
-        $("[id^=book-subject-]").each((index, input) => {
-            if (input.value != "") subjectValues.push(input.value);
-        });
-        var descriptionValue = $("#book-description").val();
-        var childrenValue = $("#book-audience-children")[0].checked;
-        var youthValue = $("#book-audience-youth")[0].checked;
-        var adultValue = $("#book-audience-adult")[0].checked;
-        var noneValue = $("#book-audience-none")[0].checked;
-        var isbn10Value = $("#book-isbn-10").val();
-        var isbn13Value = $("#book-isbn-13").val();
-        var noISBN = $("#book-no-isbn")[0].checked;
-        var publisher1Value = $("#book-publisher-1").val();
-        var publisher2Value = $("#book-publisher-2").val();
-        var publishMonthValue = $("#book-publish-month").val();
-        var publishDayValue = $("#book-publish-day").val();
-        var publishYearValue = $("#book-publish-year").val();
-        var numPagesValue = parseInt($("#book-pages").val());
-        var unNumbered = $("#book-unnumbered")[0].checked;
-        var ddcValue = $("#book-dewey").val();
-        var canBeCheckedOutValue = !!$("#book-can-be-checked-out")[0].value;
-        var isHiddenValue = !!$("#book-is-hidden")[0].value;
-        var purchaseMonthValue = $("#book-purchase-month").val();
-        var purchaseDayValue = $("#book-purchase-day").val();
-        var purchaseYearValue = $("#book-purchase-year").val();
-        var purchasePriceValue = $("#book-purchase-price").val();
-        var vendorValue = $("#book-vendor").val();
+        let pageData = getBookDataFromPage();
 
         // Defines the paths of the the database collection
         var booksPath = collection(db, "books");
 
-        // Create a list of keywords from the description
-        var keywordsValue = descriptionValue.replace(/-/g , " ").split(" ");
-
-        keywordsValue = cleanUpSearchTerm(keywordsValue);
-
-        var bookNumber = barcodeValue - 1171100000;
+        var bookNumber = pageData.barcodeValue - 1171100000;
         var bookDocument = Math.floor(bookNumber / 100);
         if (bookDocument >= 100) {
             bookDocument = "" + bookDocument;
@@ -1151,62 +1175,6 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
             bookDocument = "00" + bookDocument;
         }
         bookNumber = bookNumber % 100;
-
-        var authorsValue = [{last: author1LastValue, first: author1FirstValue}];
-        if (author2FirstValue != "" || author2LastValue != "") {
-            authorsValue.push({last: author2LastValue, first: author2FirstValue});
-        }
-
-        var illustratorsValue = [];
-        if (illustrator1FirstValue != "" || illustrator1LastValue != "") {
-            illustratorsValue.push({last: illustrator1LastValue, first: illustrator1FirstValue});
-        }
-        if (illustrator2FirstValue != "" || illustrator2LastValue != "") {
-            illustratorsValue.push({last: illustrator2LastValue, first: illustrator2FirstValue});
-        }
-
-        var publishersValue = [];
-        if (publisher1Value != "") {
-            publishersValue.push(publisher1Value);
-        }
-        if (publisher2Value != "") {
-            publishersValue.push(publisher2Value);
-        }
-
-        if (noISBN) {
-            isbn10Value = "";
-            isbn13Value = "";
-        }
-
-        if (unNumbered) {
-            numPagesValue = -1;
-        }
-
-        var publishDateValue = null;
-        if (publishMonthValue != "" && publishDayValue != "") {
-            publishDateValue = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
-        } else if (publishMonthValue != "") {
-            publishDateValue = new Date(publishYearValue, publishMonthValue-1);
-        } else if (publishYearValue != "") {
-            publishDateValue = new Date(publishYearValue);
-        }
-        if (publishDateValue) {
-            publishDateValue = convertToUTC(publishDateValue);
-        }
-
-        var purchaseDateValue = null;
-        if (purchaseMonthValue != "" && purchaseDayValue != "") {
-            purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
-        } else if (purchaseMonthValue != "") {
-            purchaseDateValue = new Date(purchaseYearValue, purchaseMonthValue-1);
-        } else if (purchaseYearValue != "") {
-            purchaseDateValue = new Date(purchaseYearValue);
-        }
-        if (purchaseDateValue) {
-            purchaseDateValue = convertToUTC(purchaseDateValue);
-        }
-
-        var lastUpdatedValue = new Date();
 
         // Updates the book with the information
         return runTransaction(db, (transaction) => {
@@ -1222,55 +1190,35 @@ function storeData(isDeletedValue = false, iconImageLink, thumbnailImageLink, co
                 // If a new link was not passed in, keep the old one. However, we are allowing null values for AV.
                 // Need strict inequality so that undefined and null are not treated as equal
                 if (!iconImageLink && iconImageLink !== null) {
-                    iconImageLink = docSnap.data().books[bookNumber].iconImageLink;
+                    pageData.iconImageLink = docSnap.data().books[bookNumber].iconImageLink;
                 }
                 if (!thumbnailImageLink && thumbnailImageLink !== null) {
-                    thumbnailImageLink = docSnap.data().books[bookNumber].thumbnailImageLink;
+                    pageData.thumbnailImageLink = docSnap.data().books[bookNumber].thumbnailImageLink;
                 }
                 if (!coverImageLink && coverImageLink !== null) {
-                    coverImageLink = docSnap.data().books[bookNumber].coverImageLink;
+                    pageData.coverImageLink = docSnap.data().books[bookNumber].coverImageLink;
                 }
 
                 // If any of the images still have invalid values, set them to null
                 if (iconImageLink == undefined) {
-                    iconImageLink = null;
+                    pageData.iconImageLink = null;
                 }
                 if (thumbnailImageLink == undefined) {
-                    thumbnailImageLink = null;
+                    pageData.thumbnailImageLink = null;
                 }
                 if (coverImageLink == undefined) {
-                    coverImageLink = null;
+                    pageData.coverImageLink = null;
+                }
+
+                // If the book is being deleted, set the deleted value to true
+                if (isDeletedValue) {
+                    pageData.isDeleted = true;
+                } else {
+                    pageData.isDeleted = false;
                 }
 
                 // Update the array with the new book information.
-                existingBooks[bookNumber] = {
-                    barcodeNumber: barcodeValue,
-                    title: titleValue,
-                    subtitle: subtitleValue,
-                    authors: authorsValue,
-                    illustrators: illustratorsValue,
-                    medium: mediumValue,
-                    coverImageLink: coverImageLink,
-                    thumbnailImageLink: thumbnailImageLink,
-                    iconImageLink: iconImageLink,
-                    subjects: subjectValues,
-                    description: descriptionValue,
-                    audience: [childrenValue, youthValue, adultValue, noneValue],
-                    isbn10: isbn10Value,
-                    isbn13: isbn13Value,
-                    publishers: publishersValue,
-                    publishDate: publishDateValue,
-                    numberOfPages: numPagesValue,
-                    ddc: ddcValue,
-                    purchaseDate: purchaseDateValue,
-                    purchasePrice: purchasePriceValue,
-                    vendor: vendorValue,
-                    keywords: keywordsValue,
-                    canBeCheckedOut: canBeCheckedOutValue,
-                    isDeleted: isDeletedValue,
-                    isHidden: isHiddenValue,
-                    lastUpdated: lastUpdatedValue
-                };
+                existingBooks[bookNumber] = pageData;
 
                 transaction.update(doc(booksPath, bookDocument), {
                     books: existingBooks
@@ -1303,7 +1251,7 @@ function processImages() {
     return new Promise((resolve, reject) => {
         // Gets the current image (uploaded or from open library) and stores it to the file variable
         getImage().then((fileReturn) => {
-            // Clear out the old images in Firebase Storage
+            // Clear out old images in Firebase Storage (if there are any)
             deleteOldImages().then(() => {
                 let promises = [];
                 promises[0] = uploadImageToStorage("original", fileReturn);
@@ -1384,6 +1332,7 @@ function deleteOldImages() {
     });
 }
 
+// TODO: Make sure this can run if there isn't a barcode assigned yet
 function uploadImageToStorage(type = "original", file) {
     return new Promise((resolve, reject) => {
         // AV images are stored as null

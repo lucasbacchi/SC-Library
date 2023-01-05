@@ -349,6 +349,8 @@ function sendPasswordReset() {
             alert(errorMessage);
         } else if (errorCode == 'auth/user-not-found') {
             alert(errorMessage);
+        } else {
+            alert("Your password reset email could not be sent. Please contact the librarian for help.");
         }
         console.error(error);
     });

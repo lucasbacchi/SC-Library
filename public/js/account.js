@@ -3,7 +3,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { buildBookBox, sendEmailVerificationToUser } from "./common";
-import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
+import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
 $(window).on("resize", function () {
@@ -26,7 +26,6 @@ const observerOptions = {
     subtree: true
 };
 
-var heightCheck = 500;
 // Use the height of the main column to stretch the height of the menu column.
 function alignMenuColumn() {
     if ($(".main-column").length == 0) {
@@ -34,13 +33,13 @@ function alignMenuColumn() {
     }
 
     // Get the padding above and below the column.
-    var paddingStr = $(".menu-column").css("padding-top");
-    var padding = parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
+    let paddingStr = $(".menu-column").css("padding-top");
+    let padding = parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
     paddingStr = $(".menu-column").css("padding-bottom");
     padding += parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
 
-    var mainColumnHeight = $(".main-column").height();
-    var menuColumnFullHeight = $(".menu-column").height() + padding;
+    let mainColumnHeight = $(".main-column").height();
+    let menuColumnFullHeight = $(".menu-column").height() + padding;
 
     // Set the height of the column. If it is smaller than the content, then it can use default heights.
     if (mainColumnHeight <= menuColumnFullHeight) {
@@ -53,7 +52,8 @@ function alignMenuColumn() {
         $(".menu-column").height(mainColumnHeight - padding);
     }
 
-    var interval = setInterval(() => {
+    let heightCheck = 500;
+    let interval = setInterval(() => {
         if ($(".menu-column").height() > heightCheck) {
             heightCheck += 10;
             alignMenuColumn();
@@ -63,22 +63,11 @@ function alignMenuColumn() {
     }, 50);
 }
 
-var firstName;
-var lastName;
-var cardNumber;
 // Load correct info for account
 export function setupAccountPage(pageQuery) {
-    var user = auth.currentUser;
+    let user = auth.currentUser;
     if (user) {
-        var email = user.email;
-        email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
-        $("#account-page-email").text(email);
-        updateAccountPageFromDatabase();
-        if (user.photoURL != null) {
-            $("#account-page-image").attr("src", user.photoURL);
-        } else {
-            $("#account-page-image").attr("src", "/img/default-user.jpg");
-        }
+        updateAccountPageInfo();
     } else {
         $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link'>here</a>.");
         $("#no-user-sign-in-link").on("click", () => {
@@ -87,9 +76,9 @@ export function setupAccountPage(pageQuery) {
     }
 
     if (pageQuery.substring(1) != "" && directory.includes("account/" + pageQuery.substring(1))) {
-        goToSettingsPanel(pageQuery.substring(1), true);
+        goToSettingsPanel(pageQuery.substring(1));
     } else {
-        goToSettingsPanel("overview", true);
+        goToSettingsPanel("overview");
     }
 
     // Create an "Event Listener" for mutations to the settings column
@@ -145,6 +134,48 @@ export function setupAccountPage(pageQuery) {
     });
 }
 
+function updateAccountPageInfo() {
+    getAccountInfoFromDatabase().then((userObject) => {
+        $("#account-page-name").text(userObject.firstName + " " + userObject.lastName);
+
+        let email = userObject.email;
+        email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
+        $("#account-page-email").text(email);
+
+        if (userObject.pfpLink != null) {
+            $("#account-page-image").attr("src", userObject.pfpLink);
+        } else {
+            $("#account-page-image").attr("src", "/img/default-user.jpg");
+        }
+    }).catch((error) => {
+        console.log(error);
+    });
+}
+
+/**
+ * 
+ * @returns {Promise<User>} The user object from the database
+ */
+function getAccountInfoFromDatabase() {
+    return new Promise(function (resolve, reject) {
+        let user = auth.currentUser;
+        // Get the stored data from the database
+        getDoc(doc(db, "users", user.uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("The user document could not be found.");
+                reject(null);
+                return;
+            }
+            let userObject = User.createFromObject(docSnap.data());
+
+            resolve(userObject);
+        }).catch((error) => {
+            console.log("Failed to get the database file for this user", error);
+            reject(null);
+        });
+    });
+}
+
 function setupAccountOverview(firstName, lastName, email, cardNumber) {
     fillAccountOverviewFields(firstName, lastName, email, cardNumber);
 
@@ -158,17 +189,20 @@ function setupAccountOverview(firstName, lastName, email, cardNumber) {
 
     // If the user attempts to leave, let them know if they have unsaved changes
     $(window).on("beforeunload", (event) => {
-        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-            event.preventDefault();
-            return "You have unsaved changes! Please save changes before leaving!";
-        } else {
-            $(window).off("beforeunload");
-        }
+        checkForChangedFields().then((answer) => {
+            if (answer && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+                event.preventDefault();
+                return "You have unsaved changes! Please save changes before leaving!";
+            } else {
+                $(window).off("beforeunload");
+            }
+        }).catch((error) => {
+            console.error(error);
+        });
     });
 }
 
 function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
-    var user = auth.currentUser;
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
     }
@@ -178,31 +212,14 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     if (email && email != "") {
         $("#setting-email").val(email);
     }
-    if (!user.emailVerified) {
+    if (!auth.currentUser.emailVerified) {
         $("#email-verified").show();
     }
+    cardNumber = cardNumber.toString();
+    cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
     if (cardNumber && cardNumber != "") {
         $("#setting-card-number").val(cardNumber);
     }
-}
-
-function updateAccountPageFromDatabase() {
-    var user = auth.currentUser;
-    // Get the stored first and last name from the database
-    getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-        if (!docSnap.exists()) {
-            console.error("The user document could not be found.");
-            return;
-        }
-        firstName = docSnap.data().firstName;
-        lastName = docSnap.data().lastName;
-        cardNumber = docSnap.data().cardNumber.toString();
-        cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
-        fillAccountOverviewFields(firstName, lastName, user.email, cardNumber);
-        $("#account-page-name").text(firstName + " " + lastName);
-    }).catch((error) => {
-        console.log("Failed to get the database file for this user", error);
-    });
 }
 
 function setupAccountCheckouts() {
@@ -248,58 +265,59 @@ function createCheckouts(books, str) {
 // Runs when the user clicks the Save button on the account page
 function updateAccount() {
     var user = auth.currentUser;
-    if (!checkForChangedFields()) {
-        alert("There are no changes to save.");
-    } else {
-        // If the names were changed, update them.
-        if (($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined) || ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)) {
-            updateDoc(doc(db, "users", user.uid), {
-                firstName: $("#setting-first-name").val(),
-                lastName: $("#setting-last-name").val()
-            }).then(() => {
-                // Assuming there was no problem with the update, set the new values.
-                firstName = $("#setting-first-name").val();
-                lastName = $("#setting-last-name").val();
-                updateUserAccountInfo();
-                updateAccountPageFromDatabase();
-                alert("Your name was saved successfully.");
-            }).catch((error) => {
-                alert("An error has occured. Please try again later.");
-                console.error(error);
-            });
-        }
-        // If the email was changed update it.
-        if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined) {
-            let newEmail = $("#setting-email").val().toString();
-            updateEmail(user, newEmail).then(() => {
+    checkForChangedFields().then((answer, userObject) => {
+        if (!answer) {
+            alert("There are no changes to save.");
+        } else {
+            // If the names were changed, update them.
+            if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
+                ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
                 updateDoc(doc(db, "users", user.uid), {
-                    email: newEmail
+                    firstName: $("#setting-first-name").val(),
+                    lastName: $("#setting-last-name").val()
                 }).then(() => {
-                    let email = user.email;
-                    if (!user.emailVerified) {
-                        $("#email-verified").show();
-                    }
-                    updateEmailinUI(email);
-                    updateAccountPageFromDatabase();
-                    alert("Your email was saved successfully.");
+                    // Assuming there was no problem with the update, set the new values on the index page.
+                    updateUserAccountInfo();
+                    updateAccountPageInfo();
+                    alert("Your name was saved successfully.");
                 }).catch((error) => {
-                    alert("There was an error updating your email. Please try again later.");
-                    console.error(error);
-                });
-            }).catch((error) => {
-                // If the user needs to reauthenticate:
-                if (error.code == "auth/requires-recent-login") {
-                    alert("Please re-enter your password to complete this operation.");
-                    goToPage("login?redirect=account&email=" + $("#setting-email").val().toString(), null, null, true);
-                } else if (error.code == "auth/email-already-in-use") {
-                    alert("This email is already associated with another account. Please sign into that account, or try a different email.");
-                } else {
                     alert("An error has occured. Please try again later.");
                     console.error(error);
-                }
-            });
+                });
+            }
+            // If the email was changed update it.
+            if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
+                let newEmail = $("#setting-email").val().toString();
+                updateEmail(user, newEmail).then(() => {
+                    updateDoc(doc(db, "users", user.uid), {
+                        email: newEmail
+                    }).then(() => {
+                        let email = user.email;
+                        if (!user.emailVerified) {
+                            $("#email-verified").show();
+                        }
+                        updateEmailinUI(email);
+                        updateAccountPageInfo();
+                        alert("Your email was saved successfully.");
+                    }).catch((error) => {
+                        alert("There was an error updating your email. Please try again later.");
+                        console.error(error);
+                    });
+                }).catch((error) => {
+                    // If the user needs to reauthenticate:
+                    if (error.code == "auth/requires-recent-login") {
+                        alert("Please re-enter your password to complete this operation.");
+                        goToPage("login?redirect=account&email=" + $("#setting-email").val().toString(), null, null, true);
+                    } else if (error.code == "auth/email-already-in-use") {
+                        alert("This email is already associated with another account. Please sign into that account, or try a different email.");
+                    } else {
+                        alert("An error has occured. Please try again later.");
+                        console.error(error);
+                    }
+                });
+            }
         }
-    }
+    });
 }
 
 function deleteAccount() {
@@ -313,8 +331,6 @@ function deleteAccount() {
 const xhttp = new XMLHttpRequest();
 export function goToSettingsPanel(newPanel) {
     return new Promise((resolve, reject) => {
-        var user = auth.currentUser;
-
         $("#settings-column").removeClass("fade");
 
         if (newPanel == currentPanel) {
@@ -341,7 +357,15 @@ export function goToSettingsPanel(newPanel) {
                 document.getElementById("settings-column").style.height = "";
 
                 if (newPanel == "overview") {
-                    setupAccountOverview(firstName, lastName, user.email, cardNumber);
+                    let userObject;
+                    if (userObject) {
+                        setupAccountOverview(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
+                    } else {
+                        getAccountInfoFromDatabase().then((userObject) => {
+                            userObject = this.userObject;
+                            setupAccountOverview(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
+                        });
+                    }
                 } if (newPanel == "checkouts") {
                     setupAccountCheckouts();
                 } if (newPanel == "notifications") {
@@ -367,16 +391,20 @@ export function goToSettingsPanel(newPanel) {
 
 // Returns true if the user has unsaved changes, otherwise, returns false
 function checkForChangedFields() {
-    var answer = false;
-    var user = auth.currentUser;
-
-    if ($("#setting-first-name").val() != firstName && $("#setting-first-name").val() != undefined)
-        answer = true;
-    if ($("#setting-last-name").val() != lastName && $("#setting-last-name").val() != undefined)
-        answer = true;
-    if ($("#setting-email").val() != user.email && $("#setting-email").val() != undefined)
-        answer = true;
-    return answer;
+    return new Promise((resolve, reject) => {
+        var answer = false;
+        getAccountInfoFromDatabase().then((userObject) => {
+            if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
+                answer = true;
+            if ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)
+                answer = true;
+            if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined)
+                answer = true;
+            resolve(answer, userObject);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
 }
 
 function changePassword() {
@@ -466,7 +494,7 @@ function processAccountImage() {
             // Update Database
             updateDoc(doc(db, "users", user.uid), {
                 pfpLink: values[0],
-                pfpIconLink: values [1]
+                pfpIconLink: values[1]
             }).then(() => {
                 console.log("New PFP updated in database");
             }).catch((error) => {

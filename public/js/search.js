@@ -1,7 +1,7 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
-import { analytics, auth, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -126,7 +126,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                     }
                 } else {
                     values.push(random);
-                    browseResultsArray.push(bookDatabase[rand].books[random]);
+                    browseResultsArray.push(Book.createFromObject(bookDatabase[rand].books[random]));
                 }
             }
             setSearchCache(browseResultsArray);
@@ -166,7 +166,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                                 }
                             } else {
                                 values.push(random);
-                                browseResultsArray.push(data.books[random]);
+                                browseResultsArray.push(Book.createFromObject(data.books[random]));
                             }
                         }
                         setSearchCache(browseResultsArray);
@@ -260,7 +260,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
     for (let i = 0; i < searchResultsArray.length; i++) {
         for (let j = 0; j < 2; j++) {
             if (searchResultsArray[i].authors[j]) {
-                let authorString = searchResultsArray[i].authors[j]?.last + ", " + searchResultsArray[i].authors[j]?.first;
+                let authorString = searchResultsArray[i].authors[j]?.lastName + ", " + searchResultsArray[i].authors[j]?.firstName;
                 if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined" && authorString != ", ") {
                     searchResultsAuthorsArray.push(authorString);
                 }
@@ -431,15 +431,15 @@ export function setupResultPage(pageQuery) {
             $("#result-page-isbn-number").html("None");
         }
         var callNumberAnswer = "";
-        if (bookObject.audience[0] == true) {
+        if (bookObject.audience.children == true) {
             callNumberAnswer += "J";
-        } else if (bookObject.audience[1] == true) {
+        } else if (bookObject.audience.youth == true) {
             callNumberAnswer += "Y";
         } else if (bookObject.canBeCheckedOut == false) {
             callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
-        callNumberAnswer += "<br>" + bookObject.authors[0].last.toUpperCase().substring(0, 3);
+        callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
         $("#result-page-call-number").html(callNumberAnswer);
         var mediumAnswer = "";
         if (bookObject.medium == "paperback") {
@@ -453,19 +453,17 @@ export function setupResultPage(pageQuery) {
         }
         $("#result-page-medium").html(mediumAnswer);
         var audienceAnswer = "";
-        for (let i = 0; i < 4; i++) {
-            var temp = bookObject.audience[i];
-            if (temp) {
-                if (i == 0) {
-                    audienceAnswer += "Children, ";
-                } else if (i == 1) {
-                    audienceAnswer += "Youth, ";
-                } else if (i == 2) {
-                    audienceAnswer += "Adult, ";
-                } else if (i == 3) {
-                    audienceAnswer += "None, ";
-                }
-            }
+        if (bookObject.audience.children == true) {
+            audienceAnswer += "Children, ";
+        }
+        if (bookObject.audience.youth == true) {
+            audienceAnswer += "Youth, ";
+        }
+        if (bookObject.audience.adult == true) {
+            audienceAnswer += "Adult, ";
+        }
+        if (bookObject.audience.isNone() == true) {
+            audienceAnswer = "None, ";
         }
         audienceAnswer = audienceAnswer.substring(0, audienceAnswer.lastIndexOf(","));
         $("#result-page-audience").html(audienceAnswer);
@@ -548,20 +546,20 @@ export function setupResultPage(pageQuery) {
             $("#result-page-author-header").html("Authors");
             var authorAnswer = "";
             bookObject.authors.forEach((item) => {
-                authorAnswer += item.last + ", " + item.first + "<br>";
+                authorAnswer += item.lastName + ", " + item.firstName + "<br>";
             });
             $("#result-page-author").html(authorAnswer);
         } else {
-            if (bookObject.authors[0].first == "" && bookObject.authors[0].last == "") {
+            if (bookObject.authors[0].firstName == "" && bookObject.authors[0].lastName == "") {
                 $("#result-page-author").html("None");
             } else {
-                $("#result-page-author").html(bookObject.authors[0].last + ", " + bookObject.authors[0].first);
+                $("#result-page-author").html(bookObject.authors[0].lastName + ", " + bookObject.authors[0].firstName);
             }
         }
         if (bookObject.illustrators.length > 0) {
             var illustratorAnswer = "";
             bookObject.illustrators.forEach((item) => {
-                illustratorAnswer += item.last + ", " + item.first + "<br>";
+                illustratorAnswer += item.lastName + ", " + item.firstName + "<br>";
             });
             $("#result-page-illustrator").html(illustratorAnswer);
             if (bookObject.illustrators.length > 1) {
@@ -744,9 +742,9 @@ function searchWithFilters(filters, items, results) {
             for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Author") {
                     if (passesFilter ||
-                        items[j][k] == searchCache[i].authors[0].last + ", " + searchCache[i].authors[0].first
+                        items[j][k] == searchCache[i].authors[0].lastName + ", " + searchCache[i].authors[0].firstName
                         || (searchCache[i].authors[1] &&
-                            items[j][k] == searchCache[i].authors[1].last + ", " + searchCache[i].authors[1].first)) {
+                            items[j][k] == searchCache[i].authors[1].lastName + ", " + searchCache[i].authors[1].firstName)) {
                         passesFilter = true;
                     }
                 } else if (filters[j] == "Medium") {
