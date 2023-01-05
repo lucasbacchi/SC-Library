@@ -223,9 +223,21 @@ export class Book {
             }
         }
         this.medium = medium;
-        this.coverImageLink = coverImageLink;
-        this.thumbnailImageLink = thumbnailImageLink;
-        this.iconImageLink = iconImageLink;
+        if (coverImageLink == null && barcodeNumber) {
+            this.coverImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover.jpg";
+        } else {
+            this.coverImageLink = coverImageLink;
+        }
+        if (thumbnailImageLink == null && barcodeNumber) {
+            this.thumbnailImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-400px.jpg";
+        } else {
+            this.thumbnailImageLink = thumbnailImageLink;
+        }
+        if (iconImageLink == null && barcodeNumber) {
+            this.iconImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-250px.jpg";
+        } else {
+            this.iconImageLink = iconImageLink;
+        }
         this.subjects = subjects;
         this.description = description;
         this.audience = new Audience(audience.children, audience.youth, audience.adult);

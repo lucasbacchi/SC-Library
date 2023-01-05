@@ -538,11 +538,13 @@ function importFile(event) {
     });
 }
 
-function setUploadDatabase() {
-    importFile.then((file) => {
-        var dataToUpload = JSON.parse(JSON.stringify(file));
-        console.log(dataToUpload);
-        alert("The database wasn't uploaded, because this function didn't get finished.");
+function setUploadDatabase(event) {
+    importFile(event).then((file) => {
+        file.text().then((text) => {
+            var dataToUpload = JSON.parse(text);
+            console.log(dataToUpload);
+            alert("The database wasn't uploaded, because this function didn't get finished.");
+        });
     });
 }
 
