@@ -288,6 +288,63 @@ export class Book {
             jsonObject.vendor, jsonObject.keywords, jsonObject.canBeCheckedOut, jsonObject.isDeleted,
             jsonObject.isHidden, jsonObject.lastUpdated);
     }
+
+    /**
+     * 
+     * @param {Book} book1 
+     * @param {Book} book2 
+     * @returns true iff the books are exactly the same in every aspect
+     */
+    static equals(book1, book2) {
+        if (book1 && !book2 || !book1 && book2) {
+            return false;
+        }
+        if (!book1 && !book2) {
+            return true;
+        }
+        for (let key in book1) {
+            if ((book1[key] && !book2[key]) || (!book1[key] && book2[key])) {
+                return false;
+            }
+            if (!book1[key] && !book2[key]) {
+                continue;
+            }
+            if (key == "authors" || key == "illustrators") {
+                if (book1[key].length != book2[key].length) {
+                    return false;
+                }
+                for (let i = 0; i < book1[key].length; i++) {
+                    if (book1[key][i].firstName != book2[key][i].firstName ||
+                        book1[key][i].lastName != book2[key][i].lastName) {
+                        return false;
+                    }
+                }
+            } else if (key == "audience") {
+                if (book1[key].children != book2[key].children || book1[key].youth != book2[key].youth ||
+                    book1[key].adult != book2[key].adult) {
+                    return false;
+                }
+            } else if (key == "subjects" || key == "publishers" || key == "keywords") {
+                if (book1[key].length != book2[key].length) {
+                    return false;
+                }
+                for (let i = 0; i < book1[key].length; i++) {
+                    if (book1[key][i] != book2[key][i]) {
+                        return false;
+                    }
+                }
+            } else if (key == "publishDate" || key == "purchaseDate" || key == "lastUpdated") {
+                if (book1[key].seconds != book2[key].seconds) {
+                    return false;
+                }
+            } else {
+                if (book1[key] != book2[key]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
 
 export class Person {
