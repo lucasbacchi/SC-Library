@@ -42,7 +42,23 @@
         <p><a id="barcode-link">Generate New Barcodes</a></p>
         <h3>Download or upload to the Database</h3>
         <p><a id="import-link">Import</a></p>
-        <input id="import-input" type="file" style="display: none;">
+        <input id="import-input" type="file" accept="application/json" style="display: none;">
         <p><a id="export-link">Export</a></p>
+    </div>
+
+    <div id="import-alert" style="display: none;">
+        <p><span id="import-added">0</span> books added</p>
+        <p><span id="import-deleted">0</span> books deleted</p>
+        <p><span id="import-modified">0</span> books modified</p>
+        <p>Are you sure you want to overwrite the entire books database?</p>
+        <button id="import-cancel">No, take me back</button>
+        <button id="import-entry">Yes, import this data</button>
+    </div>
+    <div id="import-alert-overlay" style="display: none;"></div>
+    <div id="import-loading-overlay" style="display: none;">
+        <div id="import-loading-overlay-box">
+            <h3>Loading...</h3>
+            <p>This may take a while. Please do not close this window or navigate to a new page.</p>
+        </div>
     </div>
 </div>
