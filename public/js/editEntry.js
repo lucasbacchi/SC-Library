@@ -169,14 +169,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         return;
     }
 
-    var document = Math.floor(barcodeNumber / 100) % 100;
-    if (document >= 100) {
-        document = "" + document;
-    } else if (document >= 10) {
-        document = "0" + document;
-    } else {
-        document = "00" + document;
-    }
+    var document = (Math.floor(barcodeNumber / 100) % 100).toString().padStart(3, "0");
     getDoc(doc(db, "books/" + document)).then((docSnap) => {
         var data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
 
@@ -229,9 +222,9 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         $("#book-publisher-2").val(data.publishers[1]);
 
         if (data.publishDate != null) {
-            $("#book-publish-month").val(data.publishDate.toDate().getMonth() + 1);
-            $("#book-publish-day").val(data.publishDate.toDate().getDate());
-            $("#book-publish-year").val(data.publishDate.toDate().getFullYear());
+            $("#book-publish-month").val(data.publishDate.getMonth() + 1);
+            $("#book-publish-day").val(data.publishDate.getDate());
+            $("#book-publish-year").val(data.publishDate.getFullYear());
         }
 
         if (data.numberOfPages != -1) {
@@ -250,16 +243,16 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         $("#book-is-hidden").val(temp);
 
         if (data.purchaseDate != null) {
-            $("#book-purchase-month").val(data.purchaseDate.toDate().getMonth() + 1);
-            $("#book-purchase-day").val(data.purchaseDate.toDate().getDate());
-            $("#book-purchase-year").val(data.purchaseDate.toDate().getFullYear());
+            $("#book-purchase-month").val(data.purchaseDate.getMonth() + 1);
+            $("#book-purchase-day").val(data.purchaseDate.getDate());
+            $("#book-purchase-year").val(data.purchaseDate.getFullYear());
         }
 
         $("#book-purchase-price").val(data.purchasePrice);
         $("#book-vendor").val(data.vendor);
 
         if (data.lastUpdated != null) {
-            var lastUpdated = data.lastUpdated.toDate();
+            var lastUpdated = data.lastUpdated;
             $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
         }
     }).catch((error) => {
@@ -1148,14 +1141,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
         // If this is not a new entry, so update the existing entry using the known barcode number
         if (!newEntry) {
             var bookNumber = pageData.barcodeValue - 1171100000;
-            var bookDocument = Math.floor(bookNumber / 100);
-            if (bookDocument >= 100) {
-                bookDocument = "" + bookDocument;
-            } else if (bookDocument >= 10) {
-                bookDocument = "0" + bookDocument;
-            } else {
-                bookDocument = "00" + bookDocument;
-            }
+            var bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
             bookNumber = bookNumber % 100;
 
             // If the book is being deleted, set the deleted value to true
@@ -1231,12 +1217,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         // Let's make sure that there isn't another doc that has been created after this one already.
                         try {
-                            var next = order + 1;
-                            if (next < 10) {
-                                next = "00" + (next);
-                            } else if (next < 100) {
-                                next = "0" + (next);
-                            }
+                            var next = (order + 1).toString().padStart(3, "0");
                             getDoc(doc(db, "books", next)).then((docSnap) => {
                                 if (docSnap.exists()) {
                                     console.error("A new book doc was created, it shouldn't have been, so abort!");
@@ -1252,12 +1233,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         if (numBooksInDoc == 100) {
                             // A new book doc has to be created...
-                            var newNumber = order + 1;
-                            if (newNumber < 10) {
-                                newNumber = "00" + newNumber;
-                            } else if (newNumber < 100) {
-                                newNumber = "0" + newNumber;
-                            }
+                            var newNumber = (order + 1).toString().padStart(3, "0");
                             let barcode = "11711" + newNumber + "00";
 
                             $("#barcode").html(barcode);
@@ -1280,11 +1256,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             });
                         } else {
                             // We don't need to add a new book doc, so just add the book to the existing one.
-                            if (order < 10) {
-                                order = "00" + order;
-                            } else if (order < 100) {
-                                order = "0" + order;
-                            }
+                            order.toString().padStart(3, "0");
 
                             let barcode;
                             if (numBooksInDoc < 10) {

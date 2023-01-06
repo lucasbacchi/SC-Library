@@ -279,6 +279,15 @@ export class Book {
                 illustrators.push(new Person(jsonObject.illustrators[i].firstName, jsonObject.illustrators[i].lastName));
             }
         }
+        if (jsonObject.publishDate) {
+            jsonObject.publishDate = new Date(jsonObject.publishDate.seconds * 1000);
+        }
+        if (jsonObject.purchaseDate) {
+            jsonObject.purchaseDate = new Date(jsonObject.purchaseDate.seconds * 1000);
+        }
+        if (jsonObject.lastUpdated) {
+            jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
+        }
         return new Book(jsonObject.barcodeNumber, jsonObject.title, jsonObject.subtitle, authors, illustrators,
             jsonObject.medium, jsonObject.coverImageLink, jsonObject.thumbnailImageLink,
             jsonObject.iconImageLink, jsonObject.subjects, jsonObject.description,
@@ -287,6 +296,49 @@ export class Book {
             jsonObject.numberOfPages, jsonObject.ddc, jsonObject.purchaseDate, jsonObject.purchasePrice,
             jsonObject.vendor, jsonObject.keywords, jsonObject.canBeCheckedOut, jsonObject.isDeleted,
             jsonObject.isHidden, jsonObject.lastUpdated);
+    }
+
+    /**
+     * @returns a vanilla JSON object representing a Book
+     */
+    toObject() {
+        let authors = [];
+        for (let i = 0; i < this.authors.length; i++) {
+            authors.push(this.authors[i].toObject());
+        }
+        let illustrators = [];
+        for (let i = 0; i < this.illustrators.length; i++) {
+            illustrators.push(this.illustrators[i].toObject());
+        }
+        let audience = this.audience.toObject();
+        return {
+            barcodeNumber: this.barcodeNumber,
+            title: this.title,
+            subtitle: this.subtitle,
+            authors: authors,
+            illustrators: illustrators,
+            medium: this.medium,
+            coverImageLink: this.coverImageLink,
+            thumbnailImageLink: this.thumbnailImageLink,
+            iconImageLink: this.iconImageLink,
+            subjects: this.subjects,
+            description: this.description,
+            audience: audience,
+            isbn10: this.isbn10,
+            isbn13: this.isbn13,
+            publishers: this.publishers,
+            publishDate: this.publishDate,
+            numberOfPages: this.numberOfPages,
+            ddc: this.ddc,
+            purchaseDate: this.purchaseDate,
+            purchasePrice: this.purchasePrice,
+            vendor: this.vendor,
+            keywords: this.keywords,
+            canBeCheckedOut: this.canBeCheckedOut,
+            isDeleted: this.isDeleted,
+            isHidden: this.isHidden,
+            lastUpdated: this.lastUpdated
+        };
     }
 
     /**
@@ -357,6 +409,16 @@ export class Person {
         this.firstName = firstName;
         this.lastName = lastName;
     }
+
+    /**
+     * @returns a vanilla JSON object representing a Person
+     */
+    toObject() {
+        return {
+            firstName: this.firstName,
+            lastName: this.lastName
+        };
+    }
 }
 
 export class Audience {
@@ -395,6 +457,17 @@ export class Audience {
      */
     isNone() {
         return !(this.children || this.youth || this.adult);
+    }
+
+    /**
+     * @returns a vanilla JSON object representing an Audience
+     */
+    toObject() {
+        return {
+            children: this.children,
+            youth: this.youth,
+            adult: this.adult
+        };
     }
 }
 
@@ -445,6 +518,26 @@ export class User {
             jsonObject.phoneNumber, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
             jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid);
     }
+
+    /**
+     * @returns a vanilla JSON object representing a User
+     */
+    toObject() {
+        return {
+            cardNumber: this.cardNumber,
+            firstName: this.firstName,
+            lastName: this.lastName,
+            emailAddress: this.emailAddress,
+            phoneNumber: this.phoneNumber,
+            address: this.address,
+            pfpLink: this.pfpLink,
+            pfpIconLink: this.pfpIconLink,
+            dateCreated: this.dateCreated,
+            lastCheckoutTime: this.lastCheckoutTime,
+            lastSignInTime: this.lastSignInTime,
+            uid: this.uid
+        };
+    }
 }
 
 export class Checkout {
@@ -475,5 +568,19 @@ export class Checkout {
             return jsonObject;
         }
         return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate);
+    }
+
+    /**
+     * @returns a vanilla JSON object representing a Checkout
+     */
+    toObject() {
+        return {
+            book: this.book,
+            user: this.user,
+            checkoutTime: this.checkoutTime,
+            dueDate: this.dueDate,
+            checkinTime: this.checkinTime,
+            resolved: this.resolved
+        };
     }
 }

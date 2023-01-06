@@ -475,7 +475,7 @@ export function setupResultPage(pageQuery) {
         if (publishersAnswer == "") publishersAnswer = "None";
         $("#result-page-publisher").html(publishersAnswer);
         if (bookObject.publishDate) {
-            var d = bookObject.publishDate.toDate();
+            var d = bookObject.publishDate;
             if (d.getMonth() != 0 && d.getDate() != 1) {
                 $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
             } else if (d.getMonth() != 0) {
@@ -648,14 +648,7 @@ function scanCheckout() {
                         if ($("#checkout-security-barcode").val() != "") {
                             // At this point, they must have scanned both, so we check it out to them.
                             var bookNumber = barcodeNumber - 1171100000;
-                            var bookDocument = Math.floor(bookNumber / 100);
-                            if (bookDocument >= 100) {
-                                bookDocument = "" + bookDocument;
-                            } else if (bookDocument >= 10) {
-                                bookDocument = "0" + bookDocument;
-                            } else {
-                                bookDocument = "00" + bookDocument;
-                            }
+                            var bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
                             bookNumber = bookNumber % 100;
 
                             var d = new Date(2020);
