@@ -102,6 +102,7 @@ function updateAccountPageInfo() {
     });
 }
 
+var userObject;
 /**
  * @description Gets the user's account information from the database
  * @returns {Promise<User>} The user object from the database
@@ -109,6 +110,11 @@ function updateAccountPageInfo() {
 function getAccountInfoFromDatabase() {
     return new Promise(function (resolve, reject) {
         let user = auth.currentUser;
+
+        // If the user object has already been loaded, return it, then load the data for the next time.
+        if (userObject) {
+            resolve(userObject);
+        }
         // Get the stored data from the database
         getDoc(doc(db, "users", user.uid)).then((docSnap) => {
             if (!docSnap.exists()) {
@@ -116,7 +122,7 @@ function getAccountInfoFromDatabase() {
                 reject();
                 return;
             }
-            let userObject = User.createFromObject(docSnap.data());
+            userObject = User.createFromObject(docSnap.data());
 
             resolve(userObject);
         }).catch((error) => {
@@ -147,16 +153,12 @@ function setupAccountOverview() {
 
     // If the user attempts to leave, let them know if they have unsaved changes
     $(window).on("beforeunload", (event) => {
-        checkForChangedFields().then((answer) => {
-            if (answer && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-                event.preventDefault();
-                return "You have unsaved changes! Please save changes before leaving!";
-            } else {
-                $(window).off("beforeunload");
-            }
-        }).catch((error) => {
-            console.error(error);
-        });
+        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
+            event.preventDefault();
+            return "You have unsaved changes! Please save changes before leaving!";
+        } else {
+            $(window).off("beforeunload");
+        }
     });
 }
 
@@ -249,62 +251,65 @@ function createCheckouts(books, str) {
  */
 function updateAccount() {
     let user = auth.currentUser;
-    checkForChangedFields().then((answer, userObject) => {
-        if (!answer) {
-            alert("There are no changes to save.");
-            return;
-        }
+    if (!checkForChangedFields()) {
+        alert("There are no changes to save.");
+        return;
+    }
 
-        // If the names were changed, update them.
-        if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
-            ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
+    // If the names were changed, update them.
+    if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
+        ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
+        updateDoc(doc(db, "users", user.uid), {
+            firstName: $("#setting-first-name").val(),
+            lastName: $("#setting-last-name").val(),
+            lastUpdated: new Date()
+        }).then(() => {
+            // Assuming there was no problem with the update, set the new values on the index page and the account page.
+            updateUserAccountInfo();
+            updateAccountPageInfo();
+            alert("Your name was saved successfully.");
+        }).catch((error) => {
+            alert("An error has occured. Please try again later.");
+            console.error(error);
+        });
+    }
+
+    // If the email was changed update it.
+    if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
+        let newEmail = $("#setting-email").val().toString();
+        updateEmail(user, newEmail).then(() => {
             updateDoc(doc(db, "users", user.uid), {
-                firstName: $("#setting-first-name").val(),
-                lastName: $("#setting-last-name").val()
+                email: newEmail,
+                lastUpdated: new Date()
             }).then(() => {
+                let email = user.email;
+                if (!user.emailVerified) {
+                    $("#email-verified").show(); // The new email will likely not be verified
+                }
                 // Assuming there was no problem with the update, set the new values on the index page and the account page.
-                updateUserAccountInfo();
+                updateEmailinUI(email);
                 updateAccountPageInfo();
-                alert("Your name was saved successfully.");
+                alert("Your email was saved successfully.");
             }).catch((error) => {
-                alert("An error has occured. Please try again later.");
+                alert("There was an error updating your email. Please try again later.");
                 console.error(error);
             });
-        }
+        }).catch((error) => {
+            // If the user needs to reauthenticate:
+            if (error.code == "auth/requires-recent-login") {
+                alert("Please re-enter your password to complete this operation.");
+                goToPage("login?redirect=account&email=" + newEmail, null, null, true);
+            } else if (error.code == "auth/email-already-in-use") {
+                alert("This email is already associated with another account. Please sign into that account, or try a different email.");
+            } else {
+                alert("An error has occured when trying to update your email. Please try again later.");
+                console.error(error);
+            }
+        });
+    }
 
-        // If the email was changed update it.
-        if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-            let newEmail = $("#setting-email").val().toString();
-            updateEmail(user, newEmail).then(() => {
-                updateDoc(doc(db, "users", user.uid), {
-                    email: newEmail
-                }).then(() => {
-                    let email = user.email;
-                    if (!user.emailVerified) {
-                        $("#email-verified").show(); // The new email will likely not be verified
-                    }
-                    // Assuming there was no problem with the update, set the new values on the index page and the account page.
-                    updateEmailinUI(email);
-                    updateAccountPageInfo();
-                    alert("Your email was saved successfully.");
-                }).catch((error) => {
-                    alert("There was an error updating your email. Please try again later.");
-                    console.error(error);
-                });
-            }).catch((error) => {
-                // If the user needs to reauthenticate:
-                if (error.code == "auth/requires-recent-login") {
-                    alert("Please re-enter your password to complete this operation.");
-                    goToPage("login?redirect=account&email=" + newEmail, null, null, true);
-                } else if (error.code == "auth/email-already-in-use") {
-                    alert("This email is already associated with another account. Please sign into that account, or try a different email.");
-                } else {
-                    alert("An error has occured when trying to update your email. Please try again later.");
-                    console.error(error);
-                }
-            });
-        }
-    });
+    // Prevent the cached data from being used again.
+    userObject = null;
 }
 
 /**
@@ -377,23 +382,17 @@ export function goToSettingsPanel(newPanel) {
 
 /**
  * @description Returns true if the user has unsaved changes on the overview panel, otherwise, returns false
- * @returns {Promise<Array<Boolean, User>>} An array containing a boolean value indicating whether or not the user has unsaved changes, and the user object.
+ * @returns {Boolean} A boolean value indicating whether or not the user has unsaved changes.
  */
 function checkForChangedFields() {
-    return new Promise((resolve, reject) => {
-        let answer = false;
-        getAccountInfoFromDatabase().then((userObject) => {
-            if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
-                answer = true;
-            if ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)
-                answer = true;
-            if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined)
-                answer = true;
-            resolve([answer, userObject]);
-        }).catch((error) => {
-            reject(error);
-        });
-    });
+    let answer = false;
+    if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
+        answer = true;
+    if ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)
+        answer = true;
+    if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined)
+        answer = true;
+    return answer;
 }
 
 /**
