@@ -3,6 +3,9 @@ import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
 import { Book, bookDatabase, db, User } from "./globals";
 
+/**
+ * @description Sets up the main page for the admin including all the event listeners.
+ */
 export function setupAdminMain() {
     $("#help-icon").on("click", () => {
         goToPage("/admin/help");
@@ -84,14 +87,19 @@ export function setupAdminMain() {
     addStats();
 }
 
+/**
+ * @description Sets up the page for editing a user.
+ */
 export function setupEditUser() {
     console.error("TODO: Write this function");
 }
 
-
+/**
+ * @description Called when the user adds an entry using an ISBN number.
+ */
 function addEntry() {
-    var isbn = $("#add-entry-isbn").val();
-    var check = verifyISBN(isbn);
+    let isbn = $("#add-entry-isbn").val();
+    let check = verifyISBN(isbn);
     if (!check) {
         alert("The number you entered is not a valid ISBN Number.");
         return;
@@ -99,18 +107,25 @@ function addEntry() {
     goToPage("admin/editEntry?new=true&isbn=" + isbn);
 }
 
+/**
+ * @description Called when the user adds an entry without an ISBN number.
+ */
 function addEntryWithoutISBN() {
     goToPage("admin/editEntry?new=true");
 }
 
+/**
+ * @description Called when the user adds an entry with a specific barcode number.
+ */
+// TODO: Remove this function once the system rework is complete.
 function addEntryWithSpecificBarcodeNumber() {
-    var isbn = $("#add-entry-isbn").val();
-    var check = verifyISBN(isbn);
+    let isbn = $("#add-entry-isbn").val();
+    let check = verifyISBN(isbn);
     if (!check && isbn != "") {
         alert("The number you entered is not a valid ISBN Number.");
         return;
     }
-    var specificBarcode = $("#add-entry-with-specific-barcode-number").val();
+    let specificBarcode = $("#add-entry-with-specific-barcode-number").val();
     getBookFromBarcode(specificBarcode).then((book) => {
         if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
             const a = document.createElement("a");
@@ -130,8 +145,11 @@ function addEntryWithSpecificBarcodeNumber() {
     });
 }
 
+/**
+ * @description Called when the user searches for a book to edit on the admin dashboard.
+ */
 function adminSearch() {
-    var searchQuery = $("#edit-entry-input").val();
+    let searchQuery = $("#edit-entry-input").val();
 
     if (searchQuery) {
         $("#edit-entry-search-results").show();
@@ -148,6 +166,10 @@ function adminSearch() {
     }
 }
 
+/**
+ * @description A helper function for adminSearch(). Calls buildBookBox() for each book in the array.
+ * @param {Books[]} objects The books to display in the edit entry search results.
+ */
 function adminBookBoxes(objects) {
     for (let i = 0; i < objects.length; i++) {
         $("div#edit-entry-search-results")[0].appendChild(buildBookBox(objects[i], "edit-entry"));
@@ -160,22 +182,29 @@ var input1;
 var input2;
 var canvas;
 var ctx;
+/**
+ * @description Sets up the page for creating barcodes.
+ */
 export function setupBarcodePage() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
 
     $("#merge-one-barcode").on("click", () => {
-        mergeBarcodes();
+        createBarcode();
     });
 
     $("#merge-multiple-barcodes").on("click", () => {
-        mergeBarcodes(true);
+        createBarcode(true);
     });
 }
 
-function mergeBarcodes(multiple = false) {
-    var numberOfBarcodes;
-    var currentBarcode;
+/**
+ * @description Reads the values off of the page in order to create barcodes using a canvas.
+ * @param {Boolean} multiple A boolean that represents whether or not the user is creating multiple barcodes.
+ */
+function createBarcode(multiple = false) {
+    let numberOfBarcodes;
+    let currentBarcode;
     if (!multiple) {
         numberOfBarcodes = 1;
         input = document.getElementById("barcode-single-input").value;
@@ -206,13 +235,14 @@ function mergeBarcodes(multiple = false) {
         numberOfBarcodes = parseInt(input2) - parseInt(input1) + 1;
         currentBarcode = parseInt(input1);
     }
+    // Loop through each barcode
     for (let i = 0; i < numberOfBarcodes; i++) {
         if (i != 0) {
             currentBarcode++;
         }
-        var imageObjArray = [];
-        var imageObjLoadedArray = [];
-        var delay = i * 1500 + (Math.floor(i / 5) * 2000);
+        let imageObjArray = [];
+        let imageObjLoadedArray = [];
+        let delay = i * 1500 + (Math.floor(i / 5) * 2000);
         setTimeout((currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
             if (i == numberOfBarcodes - 1) {
                 setTimeout(() => {
@@ -223,9 +253,9 @@ function mergeBarcodes(multiple = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = "bold 60px Poppins";
             ctx.textAlign = "center";
-            // var textWidth = ctx.measureText("South Church Library");
+            // let textWidth = ctx.measureText("South Church Library");
             ctx.fillText("South Church Library", (canvas.width / 2), 60);
-            var barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
+            let barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
             ctx.font = "bold 78px Poppins";
             // textWidth = ctx.measureText(barcodeStyled);
             ctx.fillText(barcodeStyled, (canvas.width / 2), 350);
@@ -253,24 +283,31 @@ function mergeBarcodes(multiple = false) {
             imageObjArray[0].src = "/img/barcode-parts/A.png";
             imageObjArray[11].src = "/img/barcode-parts/B.png";
             for (let i = 1; i < 11; i++) {
-                var temp = currentBarcodeString.substring(i - 1, i);
+                let temp = currentBarcodeString.substring(i - 1, i);
                 imageObjArray[i].src = "/img/barcode-parts/" + temp + ".png";
             }
         }, delay, currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes);
     }
 }
 
+/**
+ * @description Loads the 12 individual images into the canvas. Once all are loaded, it renders the canvas to a png and downloads it.
+ * @param {Number} num the number of the image 0-11 which is being loaded. 0 is the first bar, 11 is the last bar.
+ * @param {Image[]} imageObjArray The array contianing the image objects.
+ * @param {Boolean[]} imageObjLoadedArray An array containing a boolean that represents whether the image has loaded or not.
+ * @param {String} currentBarcodeString The current barcode string.
+ */
 function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
     imageObjArray[num].onload = function () {
         // console.log("Image #" + num + " has loaded");
         ctx.globalAlpha = 1;
-        var position = 110 * 0.6 * num + 160;
+        let position = 110 * 0.6 * num + 160;
         if (num != 0) {
             position += 10;
         }
         ctx.drawImage(imageObjArray[num], position, 95, imageObjArray[num].width * 0.6, imageObjArray[num].height * 0.6);
         imageObjLoadedArray[num] = true;
-        var allLoaded = true;
+        let allLoaded = true;
         for (let i = 0; i < 12; i++) {
             if (imageObjLoadedArray[i]) {
                 continue;
@@ -280,8 +317,8 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
         }
         if (allLoaded) {
             canvas.toBlob((blob) => {
-                var url = window.URL.createObjectURL(blob);
-                var a = document.getElementById("link");
+                let url = window.URL.createObjectURL(blob);
+                let a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
                 a.click();
@@ -292,13 +329,16 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
 
 }
 
+/**
+ * @description Displays the list of recently checked out books on the admin dashboard.
+ */
 function recentlyCheckedOut() {
-    var d = new Date(2021, 1, 1);
+    let d = new Date(2021, 1, 1);
     // TODO: I don't know if we're storing checkouts in the users doc yet...
     getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
-        var bookTimes = [];
+        let bookTimes = [];
         querySnapshot.forEach((docSnapshot) => {
-            var co = docSnapshot.data().checkouts;
+            let co = docSnapshot.data().checkouts;
             for (let i = 0; i < co.length; i++) {
                 bookTimes.push({ book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut });
                 if (bookTimes.length == 6) {
@@ -309,7 +349,7 @@ function recentlyCheckedOut() {
         });
         for (let i = 0; i < bookTimes.length; i++) {
             /* TODO: Implement Checkout System
-            var currentBook = bookTimes[i];
+            let currentBook = bookTimes[i];
             getDoc(currentBook.book).then((docSnap) => {
                 if (!docSnap.exists()) {
                     // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
@@ -326,6 +366,9 @@ function recentlyCheckedOut() {
     });
 }
 
+/**
+ * @description Updates the number of books in the database on the admin dashboard.
+ */
 function addStats() {
     let count = 0;
     search("").then(() => {
@@ -333,7 +376,7 @@ function addStats() {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
-                var book = document.books[i];
+                let book = document.books[i];
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
@@ -344,29 +387,36 @@ function addStats() {
     });
 }
 
+/**
+ * @description Called when the user clicks the "View Missing Barcodes" link.
+ */
+// TODO: Remove this function after the system is fully updated to prevent wholes.
 function viewMissingBarcodes() {
-    var missingArray = [];
+    let missingArray = [];
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
-            var book = document.books[i];
+            let book = document.books[i];
             if (book.barcodeNumber == 1171100000 || (book.lastUpdated/* && !book.isDeleted (We decided not to write over deleted books)*/)) {
                 continue;
             }
             missingArray.push(book);
         }
     });
-    var message = "The following Barcodes have been created, but they have never been updated:\n";
+    let message = "The following Barcodes have been created, but they have never been updated:\n";
     missingArray.forEach((book) => {
         message += book.barcodeNumber + "\n";
     });
     alert(message);
 }
 
+/**
+ * @description Called when the user clicks the "Export" link. Downloads the database as a JSON file.
+ */
 function downloadDatabase() {
     search("", true).then(() => {
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
         a.id = "download-database-link";
@@ -380,16 +430,28 @@ function downloadDatabase() {
     });
 }
 
+/**
+ * @description Called when the user clicks the "Import" link. Clicks on the input element to open a file selector.
+ */
 function uploadDatabase() {
     $("#import-input").trigger("click");
 }
 
+/**
+ * @description Uploads a file from the user's computer.
+ * @param {InputEvent} event The onchange event that is generated when the user selects a file.
+ * @returns {Promise<File>} A promise that resolves to the file that the user selected.
+ */
 function importFile(event) {
     return new Promise(function (resolve) {
         resolve(event.target.files[0]);
     });
 }
 
+/**
+ * @description Called when the user selects a file to upload. Processes the data and uploads it to the database.
+ * @param {InputEvent} event the onchange event that is generated when the user selects a file.
+ */
 function setUploadDatabase(event) {
     importFile(event).then((file) => {
         file.text().then((text) => {
@@ -416,8 +478,12 @@ function setUploadDatabase(event) {
     });
 }
 
+/**
+ * @description The setup function for the view page. It will load all books or all users depending on the type parameter in the URL.
+ * @param {String} pageQuery The query string from the URL.
+ */
 export function setupView(pageQuery) {
-    var type = findURLValue(pageQuery, "type");
+    let type = findURLValue(pageQuery, "type");
     if (type == "books") {
         search("", true).then(() => {
             bookDatabase.forEach((doc) => {
@@ -438,6 +504,13 @@ export function setupView(pageQuery) {
     }
 }
 
+/**
+ * @description Builds a box that contains the information for a user so it can be displayed on the page.
+ * @param {User} obj The user object to build the box for.
+ * @param {String} page A string that represents the page that this is being built for.
+ * @param {Number} num The result number if this is created for a search result.
+ * @returns {HTMLDivElement} A div element that contains the user information.
+ */
 function buildUserBox(obj, page, num = 0) {
     const div = document.createElement("div");
     switch (page) {
@@ -525,14 +598,23 @@ function buildUserBox(obj, page, num = 0) {
     return div;
 }
 
+/**
+ * @description Formats a date object into a string.
+ * @param {Date} date The date object to format.
+ * @returns {String} The formatted date string.
+ */
 function formatDate(date) {
     if (!date) {
         return "N/A";
     }
-    return date.toDate().toLocaleString("en-US");
+    return date.toLocaleString("en-US");
 }
 
 var userDatabase = [];
+/**
+ * @description Gets all the users from the database and stores them in the userDatabase array.
+ * @returns {Promise<void>} A promise that resolves when the userDatabase is loaded.
+ */
 function getAllUsers() {
     return new Promise(function (resolve) {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
@@ -551,6 +633,9 @@ function getAllUsers() {
 
 
 var inventoryCheck = false;
+/**
+ * @description Restarts the inventory progress.
+ */
 function restartInventory() {
     if (!inventoryCheck) {
         alert("Are you sure you want to restart? This will delete your current progress. If you do, you must click the restart button again to confirm.");
@@ -570,10 +655,13 @@ function restartInventory() {
     });
 }
 
+/**
+ * @description Sets up the inventory page including the event listeners.
+ */
 export function setupInventory() {
     loadInventory().then(() => {
         cachedInventory.forEach((barcode) => {
-            var current = $("#recent-scans").html();
+            let current = $("#recent-scans").html();
             $("#recent-scans").html(current + "<br>" + barcode);
         });
     }).catch((error) => {
@@ -598,6 +686,10 @@ export function setupInventory() {
 }
 
 var cachedInventory = [];
+/**
+ * @description Loads the inventory from the database.
+ * @returns {Promise<void>} A promise that resolves when the inventory is loaded from the database.
+ */
 function loadInventory() {
     return new Promise(function (resolve, reject) {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
@@ -616,11 +708,17 @@ function loadInventory() {
     });
 }
 
+/**
+ * @description Cancels the inventory process and hides the popup.
+ */
 function cancelInventory() {
     $("#inventory-book-barcode").off("blur");
     $("#inventory-popup").hide();
 }
 
+/**
+ * @description Continues the inventory process from where it left off.
+ */
 function continueScanning() {
     search("", true);
     $("#inventory-popup").show();
@@ -644,6 +742,9 @@ function continueScanning() {
     });
 }
 
+/**
+ * @description Sets up the admin help page.
+ */
 export function setupAdminHelp() {
     $("#tableOfContents li").each((index, li) => {
         $(li).on("click", () => {

@@ -6,85 +6,31 @@ import { buildBookBox, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
-$(window).on("resize", function () {
-    alignMenuColumn();
-});
-
-// Set up a mutation observer to resize the menu column whenver content changes.
-const observer = new MutationObserver(function (mutationList) {
-    mutationList.forEach(function (mutation) {
-        if (mutation.type != "attributes" || (!$(".menu-column")[0].contains(mutation.target) && mutation.target != $(".menu-column")[0])) {
-            alignMenuColumn();
-        }
-    });
-});
-const observerOptions = {
-    childList: true,
-    attributes: true,
-
-    // Omit (or set to false) to observe only changes to the parent node
-    subtree: true
-};
-
-// Use the height of the main column to stretch the height of the menu column.
-function alignMenuColumn() {
-    if ($(".main-column").length == 0) {
-        return;
-    }
-
-    // Get the padding above and below the column.
-    let paddingStr = $(".menu-column").css("padding-top");
-    let padding = parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
-    paddingStr = $(".menu-column").css("padding-bottom");
-    padding += parseInt(paddingStr.substring(0, paddingStr.indexOf("px")));
-
-    let mainColumnHeight = $(".main-column").height();
-    let menuColumnFullHeight = $(".menu-column").height() + padding;
-
-    // Set the height of the column. If it is smaller than the content, then it can use default heights.
-    if (mainColumnHeight <= menuColumnFullHeight) {
-        $(".menu-column").css("height", "");
-    }
-    menuColumnFullHeight = $(".menu-column").height() + padding;
-    mainColumnHeight = $(".main-column").height();
-
-    if (mainColumnHeight > menuColumnFullHeight) {
-        $(".menu-column").height(mainColumnHeight - padding);
-    }
-
-    let heightCheck = 500;
-    let interval = setInterval(() => {
-        if ($(".menu-column").height() > heightCheck) {
-            heightCheck += 10;
-            alignMenuColumn();
-        } else {
-            clearInterval(interval);
-        }
-    }, 50);
-}
-
-// Load correct info for account
+/**
+ * @param {String} pageQuery The query string of the page from goToPage() 
+ * @description Sets up the account page. This includes loading the user's information from the database and setting up the event listeners for the page.
+ */
 export function setupAccountPage(pageQuery) {
     let user = auth.currentUser;
-    if (user) {
-        updateAccountPageInfo();
-    } else {
+    if (!user) {
         $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link'>here</a>.");
         $("#no-user-sign-in-link").on("click", () => {
             goToPage("login");
         });
+        return;
     }
 
+    // Load user data onto the page from the database (only the outer frame)
+    updateAccountPageInfo();
+
+    // Sends the user to the correct panel based on the query string
     if (pageQuery.substring(1) != "" && directory.includes("account/" + pageQuery.substring(1))) {
         goToSettingsPanel(pageQuery.substring(1));
     } else {
         goToSettingsPanel("overview");
     }
 
-    // Create an "Event Listener" for mutations to the settings column
-    observer.observe($(".main-column")[0], observerOptions);
-
-    // Create Event Listeners to handle PFP changes
+    // Create Event Listeners to handle changes to the user's profile picture
     // All are required to handle leaving the element and coming back again
     $("#account-page-image").on("mouseover", () => {
         showAccountImageOverlay();
@@ -134,6 +80,9 @@ export function setupAccountPage(pageQuery) {
     });
 }
 
+/**
+ * @description Updates the account page (outer frame) with the user's information from the database
+ */
 function updateAccountPageInfo() {
     getAccountInfoFromDatabase().then((userObject) => {
         $("#account-page-name").text(userObject.firstName + " " + userObject.lastName);
@@ -148,12 +97,13 @@ function updateAccountPageInfo() {
             $("#account-page-image").attr("src", "/img/default-user.jpg");
         }
     }).catch((error) => {
+        alert("There was an error getting your account information from the database. Please try again later.");
         console.log(error);
     });
 }
 
 /**
- * 
+ * @description Gets the user's account information from the database
  * @returns {Promise<User>} The user object from the database
  */
 function getAccountInfoFromDatabase() {
@@ -163,7 +113,7 @@ function getAccountInfoFromDatabase() {
         getDoc(doc(db, "users", user.uid)).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("The user document could not be found.");
-                reject(null);
+                reject();
                 return;
             }
             let userObject = User.createFromObject(docSnap.data());
@@ -171,13 +121,21 @@ function getAccountInfoFromDatabase() {
             resolve(userObject);
         }).catch((error) => {
             console.log("Failed to get the database file for this user", error);
-            reject(null);
+            reject();
         });
     });
 }
 
-function setupAccountOverview(firstName, lastName, email, cardNumber) {
-    fillAccountOverviewFields(firstName, lastName, email, cardNumber);
+/**
+ * @description Sets up the account overview panel including filling the fields with the user's information and creating event listeners.
+ */
+function setupAccountOverview() {
+    getAccountInfoFromDatabase().then((user) => {
+        fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
+    }).catch((error) => {
+        console.error(error);
+        alert("There was an error getting your account information from the database. Please try again later.");
+    });
 
     $(".save-button").on("click", () => {
         updateAccount();
@@ -202,6 +160,13 @@ function setupAccountOverview(firstName, lastName, email, cardNumber) {
     });
 }
 
+/**
+ * @param {String} firstName the user's first name
+ * @param {String} lastName the user's last name
+ * @param {String} email the user's email address
+ * @param {Number} cardNumber the user's card number
+ * @description Fills the account overview fields with the user's information.
+ */
 function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     if (firstName && firstName != "") {
         $("#setting-first-name").val(firstName);
@@ -222,17 +187,26 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     }
 }
 
+/**
+ * @description Sets up the account checkouts page
+ */
 function setupAccountCheckouts() {
-    var checkouts = getCheckouts();
+    let checkouts = getCheckouts();
     createCheckouts(checkouts, "checkouts");
 }
 
+/**
+ * @description Sets up the account notifications page
+ */
 function setupAccountNotifications() {
     $(".save-button").on("click", () => {
         updateAccount();
     });
 }
 
+/**
+ * @description Sets up the account security page
+ */
 function setupAccountSecurity() {
     $("#change-password").on("click", () => {
         changePassword();
@@ -243,11 +217,19 @@ function setupAccountSecurity() {
     });
 }
 
-// The following two comments are there because they are in the wrong format and were causing errors
+/**
+ * @description Gets the user's checked out books from the database
+ * @returns {Array<Book>} The user's checked out history.
+ */
 function getCheckouts() {
-    return [/*{photoURL: "img/favicon.ico", title: "The Bible", author: "Jesus, I guess", due: 4}*/];
+    return [];
 }
 
+/**
+ * @param {Array<Book>} books the array of books to create HTML elements for
+ * @param {String} str Used to determine which page the elements are being created for
+ * @description Creates the HTML elements for a checkout listing.
+ */
 function createCheckouts(books, str) {
     if (books.length == 0) {
         if (str == "checkouts") {
@@ -262,64 +244,72 @@ function createCheckouts(books, str) {
     }
 }
 
-// Runs when the user clicks the Save button on the account page
+/**
+ * @description Updates the user's account information in the database if it has changed. Runs when the user clicks the Save button on the account page.
+ */
 function updateAccount() {
-    var user = auth.currentUser;
+    let user = auth.currentUser;
     checkForChangedFields().then((answer, userObject) => {
         if (!answer) {
             alert("There are no changes to save.");
-        } else {
-            // If the names were changed, update them.
-            if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
-                ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
+            return;
+        }
+
+        // If the names were changed, update them.
+        if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
+            ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
+            updateDoc(doc(db, "users", user.uid), {
+                firstName: $("#setting-first-name").val(),
+                lastName: $("#setting-last-name").val()
+            }).then(() => {
+                // Assuming there was no problem with the update, set the new values on the index page and the account page.
+                updateUserAccountInfo();
+                updateAccountPageInfo();
+                alert("Your name was saved successfully.");
+            }).catch((error) => {
+                alert("An error has occured. Please try again later.");
+                console.error(error);
+            });
+        }
+
+        // If the email was changed update it.
+        if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
+            let newEmail = $("#setting-email").val().toString();
+            updateEmail(user, newEmail).then(() => {
                 updateDoc(doc(db, "users", user.uid), {
-                    firstName: $("#setting-first-name").val(),
-                    lastName: $("#setting-last-name").val()
+                    email: newEmail
                 }).then(() => {
-                    // Assuming there was no problem with the update, set the new values on the index page.
-                    updateUserAccountInfo();
+                    let email = user.email;
+                    if (!user.emailVerified) {
+                        $("#email-verified").show(); // The new email will likely not be verified
+                    }
+                    // Assuming there was no problem with the update, set the new values on the index page and the account page.
+                    updateEmailinUI(email);
                     updateAccountPageInfo();
-                    alert("Your name was saved successfully.");
+                    alert("Your email was saved successfully.");
                 }).catch((error) => {
-                    alert("An error has occured. Please try again later.");
+                    alert("There was an error updating your email. Please try again later.");
                     console.error(error);
                 });
-            }
-            // If the email was changed update it.
-            if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-                let newEmail = $("#setting-email").val().toString();
-                updateEmail(user, newEmail).then(() => {
-                    updateDoc(doc(db, "users", user.uid), {
-                        email: newEmail
-                    }).then(() => {
-                        let email = user.email;
-                        if (!user.emailVerified) {
-                            $("#email-verified").show();
-                        }
-                        updateEmailinUI(email);
-                        updateAccountPageInfo();
-                        alert("Your email was saved successfully.");
-                    }).catch((error) => {
-                        alert("There was an error updating your email. Please try again later.");
-                        console.error(error);
-                    });
-                }).catch((error) => {
-                    // If the user needs to reauthenticate:
-                    if (error.code == "auth/requires-recent-login") {
-                        alert("Please re-enter your password to complete this operation.");
-                        goToPage("login?redirect=account&email=" + $("#setting-email").val().toString(), null, null, true);
-                    } else if (error.code == "auth/email-already-in-use") {
-                        alert("This email is already associated with another account. Please sign into that account, or try a different email.");
-                    } else {
-                        alert("An error has occured. Please try again later.");
-                        console.error(error);
-                    }
-                });
-            }
+            }).catch((error) => {
+                // If the user needs to reauthenticate:
+                if (error.code == "auth/requires-recent-login") {
+                    alert("Please re-enter your password to complete this operation.");
+                    goToPage("login?redirect=account&email=" + newEmail, null, null, true);
+                } else if (error.code == "auth/email-already-in-use") {
+                    alert("This email is already associated with another account. Please sign into that account, or try a different email.");
+                } else {
+                    alert("An error has occured when trying to update your email. Please try again later.");
+                    console.error(error);
+                }
+            });
         }
     });
 }
 
+/**
+ * @description Deletes/Disables (?) the user's account from the auth system, marks them as deleted in the database, removes their images from storage, and signs them out.
+ */
 function deleteAccount() {
     // TODO: Write this function
     alert("Not implemented. If you'd like to delete your account, contact the librarian.");
@@ -328,8 +318,13 @@ function deleteAccount() {
 
 
 
-const xhttp = new XMLHttpRequest();
+/**
+ * @param {String} newPanel the path to the panel to load.
+ * @returns {Promise<void>}
+ * @description Changes the account panel to the one specified by newPanel
+ */
 export function goToSettingsPanel(newPanel) {
+    const xhttp = new XMLHttpRequest();
     return new Promise((resolve, reject) => {
         $("#settings-column").removeClass("fade");
 
@@ -346,7 +341,7 @@ export function goToSettingsPanel(newPanel) {
         xhttp.send();
 
         // Set the content of the page
-        xhttp.onreadystatechange = function () {
+        xhttp.onreadystatechange = () => {
             if (this.readyState == 4 && this.status == 200) {
                 if (currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
@@ -356,25 +351,16 @@ export function goToSettingsPanel(newPanel) {
                 // Remove Placeholder Height
                 document.getElementById("settings-column").style.height = "";
 
+                // Fire additional scripts based on the panel that has just loaded.
                 if (newPanel == "overview") {
-                    let userObject;
-                    if (userObject) {
-                        setupAccountOverview(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
-                    } else {
-                        getAccountInfoFromDatabase().then((userObject) => {
-                            userObject = this.userObject;
-                            setupAccountOverview(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
-                        });
-                    }
-                } if (newPanel == "checkouts") {
+                    setupAccountOverview();
+                } else if (newPanel == "checkouts") {
                     setupAccountCheckouts();
-                } if (newPanel == "notifications") {
+                } else if (newPanel == "notifications") {
                     setupAccountNotifications();
-                } if (newPanel == "security") {
+                } else if (newPanel == "security") {
                     setupAccountSecurity();
                 }
-
-                alignMenuColumn();
 
                 setCurrentPanel(newPanel);
                 resolve();
@@ -389,10 +375,13 @@ export function goToSettingsPanel(newPanel) {
     });
 }
 
-// Returns true if the user has unsaved changes, otherwise, returns false
+/**
+ * @description Returns true if the user has unsaved changes on the overview panel, otherwise, returns false
+ * @returns {Promise<Array<Boolean, User>>} An array containing a boolean value indicating whether or not the user has unsaved changes, and the user object.
+ */
 function checkForChangedFields() {
     return new Promise((resolve, reject) => {
-        var answer = false;
+        let answer = false;
         getAccountInfoFromDatabase().then((userObject) => {
             if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
                 answer = true;
@@ -400,13 +389,16 @@ function checkForChangedFields() {
                 answer = true;
             if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined)
                 answer = true;
-            resolve(answer, userObject);
+            resolve([answer, userObject]);
         }).catch((error) => {
             reject(error);
         });
     });
 }
 
+/**
+ * @description Changes the user's password.
+ */
 function changePassword() {
     let currentPassword = $("#current-password").val().toString();
     let newPassword = $("#new-password").val().toString();
@@ -416,7 +408,7 @@ function changePassword() {
         $("#new-password").val("");
         $("#confirm-new-password").val("");
     } else if (newPassword.length >= 4) {
-        var user = auth.currentUser;
+        let user = auth.currentUser;
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         reauthenticateWithCredential(user, credential).then(() => {
             // User re-authenticated.
@@ -429,8 +421,8 @@ function changePassword() {
             });
         }).catch((error) => {
             // An error happened.
-            var errorCode = error.code;
-            var errorMessage = error.message;
+            let errorCode = error.code;
+            let errorMessage = error.message;
             if (errorCode === "auth/wrong-password") {
                 alert("The current password that you entered was incorrect.");
             } else {
@@ -449,13 +441,17 @@ function changePassword() {
     }
 }
 
+/**
+ * @description Runs when a new file is selected in the account image upload input. The file is used to create
+ *              both image sizes, they are uploaded to storage, and then they are updated in the database.
+ */
 function processAccountImage() {
     let user = auth.currentUser;
     new Promise((resolve, reject) => {
         let fileInput = $("#file-input")[0];
         const file = fileInput.files[0];
         if (file) {
-            var output = document.getElementById('account-page-image');
+            let output = document.getElementById('account-page-image');
             output.src = URL.createObjectURL(file);
             /* This is bad because then the canvas elements can't use the link
             output.onload = function() {
@@ -479,26 +475,33 @@ function processAccountImage() {
                 return;
             }
 
-            // Update UI with new PFP
+            // Update UI with new Profile Picture
             $("#account-page-image").attr("src", values[0]);
             $("#large-account-image").attr("src", values[1]);
             $("#small-account-image").attr("src", values[1]);
 
             // Update Auth object
-            updateProfile(user, {
+            let authPromise = updateProfile(user, {
                 photoURL: values[0]
             }).catch((error) => {
                 console.error(error);
             });
 
             // Update Database
-            updateDoc(doc(db, "users", user.uid), {
+            let databasePromise = updateDoc(doc(db, "users", user.uid), {
                 pfpLink: values[0],
                 pfpIconLink: values[1]
             }).then(() => {
                 console.log("New PFP updated in database");
             }).catch((error) => {
                 alert(error);
+                console.error(error);
+            });
+
+            Promise.all([authPromise, databasePromise]).then(() => {
+                console.log("Auth and Database updated successfully.");
+            }).catch((error) => {
+                alert("There was an issue saving your profile image. You may need to reupload it. " + error);
                 console.error(error);
             });
         }).catch((error) => {
@@ -508,6 +511,12 @@ function processAccountImage() {
     });
 }
 
+/**
+ * @description Handles the resizing of the images (using a canvas) and uploading them to storage.
+ * @param {String} type The size of the image to be uploaded. "original" or "icon"
+ * @param {File} file The uploaded file to be converted into an image
+ * @returns {Promise<String>} A promise that resolves with the download URL of the uploaded image.
+ */
 function uploadAccountImage(type = "original", file) {
     return new Promise((resolve, reject) => {
         let user = auth.currentUser;
@@ -517,7 +526,7 @@ function uploadAccountImage(type = "original", file) {
         } else if (type == "icon") {
             maxHeight = 200;
         } else {
-            reject();
+            reject("Invalid type");
             return;
         }
 
@@ -550,7 +559,7 @@ function uploadAccountImage(type = "original", file) {
                 ctx.drawImage(image, 0, 0, square / ratio, square);
             }
             $("#" + type + "-canvas")[0].toBlob((blob) => {
-                let file = new File([blob], "pfp" + type, {type: "image/jpeg"});
+                let file = new File([blob], "pfp " + type, {type: "image/jpeg"});
 
                 let userSpecificRef = ref(storage, "users");
                 if (type == "original") {
@@ -558,10 +567,11 @@ function uploadAccountImage(type = "original", file) {
                 } else if (type == "icon") {
                     userSpecificRef = ref(userSpecificRef, user.uid + "/pfp-200px.jpg");
                 } else {
-                    reject(false);
+                    reject("Invalid type");
                     return;
                 }
 
+                // Upload the file to storage and get the download URL
                 uploadBytes(userSpecificRef, file, {contentType: 'image/jpeg'}).then(() => {
                     console.log('Uploaded the file!');
                     getDownloadURL(userSpecificRef).then((url) => {

@@ -68,9 +68,9 @@ const ISBN_WEIGHT = 50;
 
 function performSearch(searchQuery, viewHidden = false) {
     return new Promise(function (resolve, reject) {
-        var searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
+        let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
 
-        var scoresArray = [];
+        let scoresArray = [];
 
         isAdminCheck().then((isAdmin) => {
             // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
@@ -86,7 +86,7 @@ function performSearch(searchQuery, viewHidden = false) {
                         scoresArray.push({book: book, score: Math.random() * 99 + 1}); // puts the books in a random order so that it's not the same every time
                         continue;
                     }
-                    var score = 0;
+                    let score = 0;
                     // Authors
                     for (let j = 0; j < book.authors.length; j++) {
                         let arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
@@ -97,7 +97,7 @@ function performSearch(searchQuery, viewHidden = false) {
                         score += arr2Ratio * AUTHOR_WEIGHT;
                     }
                     // Barcode Number
-                    var barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+                    let barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
                     score += barcodeRatio * BARCODE_WEIGHT;
                     // DDC?
                     // Number of Pages?
@@ -113,11 +113,11 @@ function performSearch(searchQuery, viewHidden = false) {
                         score += arr2Ratio * ILLUSTRATOR_WEIGHT;
                     }
                     // ISBN 10 and ISBN 13
-                    var ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
+                    let ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
                     score += ISBNRatio * ISBN_WEIGHT;
                     // Keywords
                     if (book.keywords.length != 0) {
-                        var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
+                        let keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
                         score += keywordsRatio * KEYWORDS_WEIGHT;
                     }
                     // Publishers
@@ -144,7 +144,7 @@ function performSearch(searchQuery, viewHidden = false) {
                 return b.score - a.score;
             });
 
-            var returnArray = [];
+            let returnArray = [];
             console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
                 if (item.score < 1) { return; }
@@ -169,7 +169,7 @@ function performSearch(searchQuery, viewHidden = false) {
 }
 
 function countInArray(arr, searchQueryArray, strict = false) {
-    var count = 0;
+    let count = 0;
     for (let i = 0; i < arr.length; i++) {
         if (strict) {
             if (searchQueryArray.includes(arr[i])) {
@@ -187,11 +187,11 @@ function countInArray(arr, searchQueryArray, strict = false) {
 function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
-    var max = Math.max(a.length, b.length);
+    let max = Math.max(a.length, b.length);
     if (max == 0) {
         return 0;
     }
-    var similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+    let similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
     // This threshold seems pretty good, it prevents things from showing up if they share one or two letters.
     if (similarity < 0.7) {
         return 0;
@@ -203,14 +203,14 @@ function searchCompare(a, b) {
 
 /**
  * Calculates the Damerau-Levenshtein distance between two strings.
- * author: Isaac Sukin
- * source: https://gist.github.com/IceCreamYou/8396172
+ * @author Isaac Sukin
+ * @link Source: https://gist.github.com/IceCreamYou/8396172
  */
 function distance(source, target) {
     if (!source) { return target ? target.length : 0; }
     else if (!target) { return source.length; }
 
-    var m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
+    let m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
     for (let i = 0; i < m + 2; i++) { score[i] = new Array(n + 2); }
     score[0][0] = INF;
     for (let i = 0; i <= m; i++) {
@@ -225,9 +225,9 @@ function distance(source, target) {
     }
 
     for (let i = 1; i <= m; i++) {
-        var DB = 0;
+        let DB = 0;
         for (let j = 1; j <= n; j++) {
-            var i1 = sd[target[j - 1]],
+            let i1 = sd[target[j - 1]],
                 j1 = DB;
             if (source[i - 1] === target[j - 1]) {
                 score[i + 1][j + 1] = score[i][j];
@@ -255,8 +255,8 @@ BEGIN URL VALUE
  * @returns {String} The value from string that matches key
  */
 export function findURLValue(string, key, mightReturnEmpty = false) {
-    var value;
-    var keyNameIsNotComplete = (string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0);
+    let value;
+    let keyNameIsNotComplete = (string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0);
     if (string.indexOf(key) < 0 || keyNameIsNotComplete || key == "") {
         if (!mightReturnEmpty) {
             console.warn("The key (\"" + key + "\") could not be found in the URL.");
@@ -264,7 +264,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
         return "";
     }
 
-    var position = string.indexOf(key);
+    let position = string.indexOf(key);
     if (string.substring(position).indexOf("&") > -1) {
         value = string.substring(string.indexOf("=", position) + 1, string.indexOf("&", position));
     } else {
@@ -276,12 +276,12 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
 
 
 export function setURLValue(param, value, append = true) {
-    var string = window.location.href;
+    let string = window.location.href;
     // may also be able to use currentQuery for above
-    var answer = "";
+    let answer = "";
     // does param already exist?
     if (append && string.indexOf("?") != -1) {
-        var paramAlreadyExists = (string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0);
+        let paramAlreadyExists = (string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0);
         if (paramAlreadyExists) {
             // Edit it and return it.
             if (string.indexOf("?" + param + "=") >= 0) {
@@ -363,7 +363,7 @@ export function buildBookBox(obj, page, num = 0) {
     title.appendChild(document.createTextNode(obj.title));
     const author = document.createElement("p");
     author.classList.add("author");
-    var authorString = "";
+    let authorString = "";
     for (let i = 0; i < obj.authors.length; i++) {
         if (i == 1) { authorString += " & "; }
         authorString += obj.authors[i].lastName + ", " + obj.authors[i].firstName;
@@ -391,7 +391,7 @@ export function buildBookBox(obj, page, num = 0) {
         });
     }
     if (page == "account") {
-        var frontstr = "", boldstr = "" + num, backstr = "";
+        let frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
             boldstr = "Overdue";
         }
@@ -535,19 +535,19 @@ BEGIN ISBN UTILS
  */
 export function calculateISBNCheckDigit(number) {
     number = number.toString();
-    var length = number.length;
+    let length = number.length;
     if (length == 13 || length == 10) {
         console.warn("The ISBN number already has a check digit");
         return;
     }
 
+    let digits = [];
+    let total = 0;
     if (length == 12) {
-        var digits = [];
         for (let i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
         }
 
-        var total = 0;
         for (let i = 0; i < digits.length; i++) {
             if (i % 2 == 0) {
                 total += digits[i];
@@ -557,18 +557,15 @@ export function calculateISBNCheckDigit(number) {
         }
         return (10 - (total % 10)).toString();
     } else if (length == 9) {
-        digits = [];
-        total = 0;
         for (let i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
         }
-
 
         for (let i = 0; i < digits.length; i++) {
             total += digits[i] * (10 - i);
         }
 
-        var answer = (11 - (total % 11)) % 11;
+        let answer = (11 - (total % 11)) % 11;
         if (answer == 10) {
             answer = "X";
         }
@@ -651,7 +648,7 @@ BEGIN AUTH
  * Sends an email verification to the user.
  */
 export function sendEmailVerificationToUser() {
-    var user = auth.currentUser;
+    let user = auth.currentUser;
     sendEmailVerification(user).then(() => {
         alert("Email Verification Sent! Please check your email!");
     });

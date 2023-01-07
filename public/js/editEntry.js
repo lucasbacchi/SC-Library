@@ -10,6 +10,10 @@ var barcodeNumber;
 var isbn;
 var imageChanged;
 
+/**
+ * @description This function sets up the edit entry page, and starts the process of getting the data from the database or Open Library.
+ * @param {String} pageQuery The query string from the URL
+ */
 export function setupEditEntry(pageQuery) {
     file = null;
     newEntry = (findURLValue(pageQuery, "new") == "true");
@@ -149,6 +153,9 @@ export function setupEditEntry(pageQuery) {
 }
 
 var changesDetected = false;
+/**
+ * @description Watches for changes to the input fields and sets changesDetected to true if any changes are detected
+ */
 function watchForChanges() {
     changesDetected = false;
     $("input, textarea").on("input", () => {
@@ -162,6 +169,10 @@ function watchForChanges() {
     });
 }
 
+/**
+ * @description Reads from the database and fills in the edit entry page with the data from the entry with the given barcode number.
+ * @param {Number} barcodeNumber The barcode number of the entry to load
+ */
 function populateEditEntryFromDatabase(barcodeNumber) {
     if (isNaN(barcodeNumber)) {
         alert("We could not find an entry in the database with the barcode number that you entered.");
@@ -169,7 +180,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         return;
     }
 
-    var document = Math.floor(barcodeNumber / 100) % 100;
+    let document = Math.floor(barcodeNumber / 100) % 100;
     if (document >= 100) {
         document = "" + document;
     } else if (document >= 10) {
@@ -178,7 +189,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         document = "00" + document;
     }
     getDoc(doc(db, "books/" + document)).then((docSnap) => {
-        var data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
+        let data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
 
         if (!data) {
             alert("We could not find any data for a book with barcode number " + barcodeNumber);
@@ -229,9 +240,9 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         $("#book-publisher-2").val(data.publishers[1]);
 
         if (data.publishDate != null) {
-            $("#book-publish-month").val(data.publishDate.toDate().getMonth() + 1);
-            $("#book-publish-day").val(data.publishDate.toDate().getDate());
-            $("#book-publish-year").val(data.publishDate.toDate().getFullYear());
+            $("#book-publish-month").val(data.publishDate.getMonth() + 1);
+            $("#book-publish-day").val(data.publishDate.getDate());
+            $("#book-publish-year").val(data.publishDate.getFullYear());
         }
 
         if (data.numberOfPages != -1) {
@@ -250,16 +261,16 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         $("#book-is-hidden").val(temp);
 
         if (data.purchaseDate != null) {
-            $("#book-purchase-month").val(data.purchaseDate.toDate().getMonth() + 1);
-            $("#book-purchase-day").val(data.purchaseDate.toDate().getDate());
-            $("#book-purchase-year").val(data.purchaseDate.toDate().getFullYear());
+            $("#book-purchase-month").val(data.purchaseDate.getMonth() + 1);
+            $("#book-purchase-day").val(data.purchaseDate.getDate());
+            $("#book-purchase-year").val(data.purchaseDate.getFullYear());
         }
 
         $("#book-purchase-price").val(data.purchasePrice);
         $("#book-vendor").val(data.vendor);
 
         if (data.lastUpdated != null) {
-            var lastUpdated = data.lastUpdated.toDate();
+            let lastUpdated = data.lastUpdated;
             $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
         }
     }).catch((error) => {
@@ -268,6 +279,12 @@ function populateEditEntryFromDatabase(barcodeNumber) {
     });
 }
 
+/**
+ * @description Gets the book information from Open Library
+ * @param {String} isbn The ISBN number to search for.
+ * @returns {Promise<Array<Boolean, Object, Object, Object>>} An array containing any information found in Open Library.
+ *          Ideally, noISBN, the book object, the author object, and the works object.
+ */
 function gatherExternalInformation(isbn) {
     return (new Promise(function(resolve) {
         if (isbn == "") {
@@ -305,7 +322,11 @@ function gatherExternalInformation(isbn) {
     }));
 }
 
-
+/**
+ * @description Looks up the book object from Open Library.
+ * @param {String} isbn The ISBN number to search for.
+ * @returns {Promise<Object>} The book object from Open Library. It is not an instance of the Book class.
+ */
 function lookupBook(isbn) {
     return new Promise(function (resolve, reject) {
         let xhttp = new XMLHttpRequest();
@@ -328,14 +349,19 @@ function lookupBook(isbn) {
     });
 }
 
+/**
+ * @description Looks up the Author object from Open Library.
+ * @param {Object} bookObject The book object to be used to find the author object. It is also passed through.
+ * @returns {Promise<Array<Object, Object>>} An array containing the book object and the author object.
+ */
 function lookupAuthor(bookObject) {
     console.log(bookObject);
     return new Promise(function (resolve, reject) {
-        var total = 0;
+        let total = 0;
         if (bookObject.authors) {
             for (let i = 0; i < bookObject.authors.length; i++) {
                 let xhttp = new XMLHttpRequest();
-                var authorLink = bookObject.authors[i].key;
+                let authorLink = bookObject.authors[i].key;
 
                 xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
 
@@ -352,7 +378,7 @@ function lookupAuthor(bookObject) {
                         reject("Invalid Response");
                     }
                     if (this.readyState == 4 && this.status == 200) {
-                        var authorObject = [];
+                        let authorObject = [];
                         authorObject[i] = JSON.parse(xhttp.responseText);
                         // Only resolve if all of the xhttp requests have been completed
                         if (i == total - 1) {
@@ -367,12 +393,18 @@ function lookupAuthor(bookObject) {
     });
 }
 
+/**
+ * @description Looks up the works object from Open Library.
+ * @param {Object} bookObject The book object to be used to find the works object. It is also passed through.
+ * @param {Object} authorObject The author object is also passed through.
+ * @returns {Promise<Array<Object, Object, Object>>} Returns a promise with an array containing the book object, the author object, and the works object.
+ */
 function lookupWorks(bookObject, authorObject) {
     return new Promise(function (resolve, reject) {
-        var total = 0;
+        let total = 0;
         for (let i = 0; i < bookObject.works.length; i++) {
             let xhttp = new XMLHttpRequest();
-            var worksLink = bookObject.works[i].key;
+            let worksLink = bookObject.works[i].key;
 
             xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
 
@@ -389,7 +421,7 @@ function lookupWorks(bookObject, authorObject) {
                     reject("Invalid Response");
                 }
                 if (this.readyState == 4 && this.status == 200) {
-                    var worksObject = [];
+                    let worksObject = [];
                     worksObject[i] = JSON.parse(xhttp.responseText);
                     if (i == total - 1) {
                         resolve([bookObject, authorObject, worksObject]);
@@ -401,6 +433,13 @@ function lookupWorks(bookObject, authorObject) {
 }
 
 // Run in the event of a new entry being created. It takes the information from Open Library.
+/**
+ * @description Runs in the event of a new entry being created. It takes the information from Open Library and loads it onto the page.
+ * @param {Boolean} noISBN A boolean representing whether or not the book had an ISBN number when we searched for it.
+ * @param {Object} bookObject The book object from Open Library.
+ * @param {Object} authorObject The author object from Open Library.
+ * @param {Object} worksObject The works object from Open Library.
+ */
 function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject) {
     $('#barcode').html("Not Assigned");
     if (noISBN) {
@@ -426,9 +465,9 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
     // Author
     try {
         for (let i = 0; i < authorObject.length; i++) {
-            var fullName = authorObject[i].name;
-            var lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
-            var firstName = fullName.substring(0, fullName.lastIndexOf(' '));
+            let fullName = authorObject[i].name;
+            let lastName = fullName.substring(fullName.lastIndexOf(' ') + 1, fullName.length);
+            let firstName = fullName.substring(0, fullName.lastIndexOf(' '));
             $('#book-author-' + (i + 1) + '-last').val(lastName);
             $('#book-author-' + (i + 1) + '-first').val(firstName);
         }
@@ -728,13 +767,18 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
     $("#last-updated").hide();
 }
 
+/**
+ * @description Adds a new subject input field to the page.
+ */
 function addSubject() {
-    var numberofSubjects = $(".subject-field").length;
+    let numberofSubjects = $(".subject-field").length;
     $("#book-subject-" + numberofSubjects).after("<input id=\"book-subject-" + (numberofSubjects + 1) + "\" placeholder=\"\" class=\"normal-form-input subject-field\">");
 }
 
 var loadingTimer;
-// Run when the user clicks the "Save" button
+/**
+ * @description Run when the user clicks the "Save" button. Saves the changes made to the entry. It will also validate the entry before saving.
+ */
 function editEntry() {
     // Prevent the user from clicking the "Save" button again
     $("#edit-entry-save")[0].disabled = true;
@@ -748,9 +792,9 @@ function editEntry() {
     }, 10000);
 
     // Before validating the entry, auto convert between ISBN numbers if both are not already inputted.
-    var isbn10Value = $("#book-isbn-10").val();
-    var isbn13Value = $("#book-isbn-13").val();
-    var noISBN = $("#book-no-isbn")[0].checked;
+    let isbn10Value = $("#book-isbn-10").val();
+    let isbn13Value = $("#book-isbn-13").val();
+    let noISBN = $("#book-no-isbn")[0].checked;
     if (!noISBN && isbn10Value.length == 10 && isbn13Value == "") {
         $("#book-isbn-13").val(switchISBNformats(isbn10Value));
     } else if (!noISBN && isbn13Value.length == 13 && isbn10Value == "") {
@@ -785,7 +829,10 @@ function editEntry() {
     });
 }
 
-// Gets the values of all the input elements
+/**
+ * @description Gets the values of all the input elements and returns them as a Book object.
+ * @returns {Book} The book object that was created from the input elements.
+ */
 function getBookDataFromPage() {
     let barcode = parseInt($("#barcode").html());
     if (isNaN(barcode)) {
@@ -808,12 +855,12 @@ function getBookDataFromPage() {
         illustrators.push(new Person($("#book-illustrator-2-first").val(), $("#book-illustrator-2-last").val()));
     }
 
-    var subjects = [];
+    let subjects = [];
     $("[id^=book-subject-]").each((index, input) => {
         if (input.value != "") subjects.push(input.value);
     });
 
-    var publishers = [];
+    let publishers = [];
     if ($("#book-publisher-1").val()) {
         publishers.push($("#book-publisher-1").val());
     }
@@ -822,7 +869,7 @@ function getBookDataFromPage() {
     }
 
     // Create a list of keywords from the description
-    var keywords = $("#book-description").val().replace(/-/g , " ").split(" ");
+    let keywords = $("#book-description").val().replace(/-/g , " ").split(" ");
     keywords = cleanUpSearchTerm(keywords);
 
     let unNumbered = $("#book-unnumbered")[0].checked;
@@ -879,6 +926,10 @@ function getBookDataFromPage() {
     return bookDataFromPage;
 }
 
+/**
+ * @description Validates the entry on the page. Calls getBookDataFromPage() to get the data from the page.
+ * @returns {Promise<Boolean>} Resolves when the entry is validated. Resolves true if the entry is valid, false otherwise.
+ */
 function validateEntry() {
     return new Promise((resolve) => {
         let pageData = getBookDataFromPage();
@@ -1116,13 +1167,20 @@ function validateEntry() {
     });
 }
 
+/**
+ * @description Checks if a date is valid.
+ * @param {String} y The year.
+ * @param {String} m The month.
+ * @param {String} d The day.
+ * @returns {Boolean} True if the date is valid, false otherwise.
+ */
 function isValidDate(y, m, d) {
-    var year = parseInt(y);
+    let year = parseInt(y);
     if (isNaN(year)) return false;
     if (year < 100) return false;
-    var month = parseInt(m) - 1;
+    let month = parseInt(m) - 1;
     if (isNaN(month) && m != "") return false;
-    var day = parseInt(d);
+    let day = parseInt(d);
     if (isNaN(day) && d != "") return false;
     if (m == "" && d != "") return false;
     if ((month > 11 || month < 0) && m != "") return false;
@@ -1130,25 +1188,31 @@ function isValidDate(y, m, d) {
     if (day == 31 & (month == 3 || month == 5 || month == 8 || month == 10)) return false;
     if (month == 1 && day > 29) return false;
     if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 1 && day == 29) return false;
-    var date = new Date(year, month, day);
+    let date = new Date(year, month, day);
     if (date.getTime() > Date.now()) return false;
-    var founded = new Date(1711, 9, 17);
+    let founded = new Date(1711, 9, 17);
     if (date.getTime() < founded.getTime()) return false;
     return true;
 }
 
+/**
+ * @description This function goes through the process of actually storing the data in the database.
+ * @param {Boolean} isDeletedValue Represents if the book is about to be deleted or not.
+ * @param {Boolean} skipImages Represents if the image upload process should be skipped or not.
+ * @returns {Promise<void>} A Promise that resolves when the data is stored.
+ */
 function storeData(isDeletedValue = false, skipImages = false) {
     return new Promise(function(resolve, reject) {
         // Gets the values of all the input elements
         let pageData = getBookDataFromPage();
 
         // Defines the paths of the the database collection
-        var booksPath = collection(db, "books");
+        let booksPath = collection(db, "books");
 
         // If this is not a new entry, so update the existing entry using the known barcode number
         if (!newEntry) {
-            var bookNumber = pageData.barcodeValue - 1171100000;
-            var bookDocument = Math.floor(bookNumber / 100);
+            let bookNumber = pageData.barcodeValue - 1171100000;
+            let bookDocument = Math.floor(bookNumber / 100);
             if (bookDocument >= 100) {
                 bookDocument = "" + bookDocument;
             } else if (bookDocument >= 10) {
@@ -1211,7 +1275,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
             // Run a Transaction to ensure that the correct barcode is used.
             // First, get the highest barcode number by loading the largest book document.
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
-                var topDoc;
+                let topDoc;
                 querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
                         throw "The books document doesn't exist";
@@ -1226,12 +1290,12 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             throw "Document does not exist!";
                         }
 
-                        var order = docSnap.data().order;
-                        var numBooksInDoc = docSnap.data().books.length;
+                        let order = docSnap.data().order;
+                        let numBooksInDoc = docSnap.data().books.length;
 
                         // Let's make sure that there isn't another doc that has been created after this one already.
                         try {
-                            var next = order + 1;
+                            let next = order + 1;
                             if (next < 10) {
                                 next = "00" + (next);
                             } else if (next < 100) {
@@ -1252,7 +1316,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         if (numBooksInDoc == 100) {
                             // A new book doc has to be created...
-                            var newNumber = order + 1;
+                            let newNumber = order + 1;
                             if (newNumber < 10) {
                                 newNumber = "00" + newNumber;
                             } else if (newNumber < 100) {
@@ -1339,6 +1403,13 @@ function storeData(isDeletedValue = false, skipImages = false) {
     });
 }
 
+/**
+ * @description First, this function will get the image from an external source if needed.
+ *              Then it will delete all of the old images from Firebase Storage.
+ *              Finally, it will upload the new images to Firebase Storage and return the links. 
+ * @param {Number} barcodeNumber The barcode number of the book that we are saving images for.
+ * @returns {Promise<String[]>} An promise representing the 3 image links
+ */
 function processImages(barcodeNumber) {
     return new Promise((resolve, reject) => {
         // Gets the current image (uploaded or from open library) and stores it to the file variable
@@ -1376,6 +1447,10 @@ function processImages(barcodeNumber) {
     });
 }
 
+/**
+ * @description This function will get the image from an external source if a new file wasn't uploaded by the user.
+ * @returns {Promise<File>} A promise representing the image file
+ */
 function getImage() {
     return new Promise(function (resolve, reject) {
         if ($("#book-medium")[0].value == "av") {
@@ -1388,7 +1463,7 @@ function getImage() {
         if (file) {
             resolve(file);
         } else {
-            var xhr = new XMLHttpRequest();
+            let xhr = new XMLHttpRequest();
             xhr.open('GET', $("#book-cover-image").attr("src"), true);
             xhr.responseType = 'blob';
             xhr.onload = function() {
@@ -1410,6 +1485,11 @@ function getImage() {
     });
 }
 
+/**
+ * @description This function will delete the old images from Firebase Storage.
+ * @param {Number} barcodeNumber The barcode number of the book that we are deleting images for.
+ * @returns {Promise<void>} A promise representing the progress of the deletion of the images
+ */
 function deleteOldImages(barcodeNumber) {
     // Delete firebase storage images for the book that is being edited
     return new Promise((resolve, reject) => {
@@ -1433,6 +1513,13 @@ function deleteOldImages(barcodeNumber) {
     });
 }
 
+/**
+ * @description This function will handle the process of creating the 3 separate image sizes using the canvas element.
+ * @param {Number} barcodeNumber The barcode number of the book that we are creating images for.
+ * @param {String} type The type of image that we are creating (original, thumbnail, or icon)
+ * @param {File} file The image file that we are creating the image sizes from
+ * @returns {Promise<String>} A promise representing the link to the image
+ */
 function uploadImageToStorage(barcodeNumber, type = "original", file) {
     return new Promise((resolve, reject) => {
         // AV images are stored as null
@@ -1516,15 +1603,14 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
 var file;
 
 /**
- * When a user uploads a file, this function is called.
- * It sets the value of file to the file that was uploaded.
- * It displays the newly updated image using a blob URL.
+ * @description When a user uploads a file, this function is called. It sets the value of file to the file that was uploaded.
+ *              It displays the newly updated image using a blob URL.
  * @param {Event} event - The onchange event for the file input.
  */
 function loadFile(event) {
     if (event.target.files[0]) {
         file = event.target.files[0];
-        var output = document.getElementById('book-cover-image');
+        let output = document.getElementById('book-cover-image');
         output.src = URL.createObjectURL(file);
         /* This is bad because then the canvas elements can't use the link
         output.onload = function() {
@@ -1534,14 +1620,19 @@ function loadFile(event) {
     }
 }
 
-// Run when the user clicks the "Cancel" button
+/**
+ * @description This function will run when the user clicks the "Cancel" button.
+ */
 function cancelEditEntry() {
     $(window).off("beforeunload");
 
     window.history.back();
 }
 
-// Run when the user clicks the "Delete" button
+/**
+ * @description This function will run when the user clicks the "Delete" button on the edit page, or
+ *              the "Cancel" button on the popup window. It toggles the popup.
+ */
 function toggleDeletePopup() {
     if (newEntry) {
         alert("You can't delete a book that hasn't been saved yet. If you'd like to disregard this book, click the \"Cancel\" button.");
@@ -1562,7 +1653,9 @@ function toggleDeletePopup() {
     }
 }
 
-// Run when the user clicks the "Delete" button on the delete popup
+/**
+ * @description This function will run when the user clicks the "Delete" button on the popup window.
+ */
 function deleteEntry() {
     // Prevent the user from clicking the "Delete" button again
     $("#delete-entry")[0].disabled = true;
@@ -1577,12 +1670,16 @@ function deleteEntry() {
     storeData(true, true);
 }
 
-
+/**
+ * @description This function will clean up the keywords list by removing common words.
+ * @param {String[]} searchArray An array of keywords to be cleaned up
+ * @returns {String[]} The cleaned up array of keywords
+ */
 function cleanUpSearchTerm(searchArray) {
     // List of words to remove from the keywords list
     // eslint-disable-next-line max-len
-    var meaninglessWords = ["the", "is", "it", "an", "to", "on", "a", "in", "than", "and", "as", "they'll", "also", "for", "more", "here", "with", "without", "within", "most", "about", "almost", "any", "at", "be", "but", "by", "can", "come", "could", "do", "else", "if", "few", "get", "go", "he", "she", "they", "them", "him", "her", "his", "hers", "theirs", "there", "i", "", "into", "it", "its", "itself", "let", "lots", "me", "much", "must", "my", "oh", "yes", "no", "none", "nor", "not", "now", "of", "ok", "or", "our", "out", "own", "per", "put", "say", "see", "set", "so", "some", "soon", "still", "stay", "such", "sure", "tell", "then", "that", "these", "thing", "this", "those", "too", "try", "us", "use", "we", "what", "where", "when", "why", "how", "who", "whom", "you", "your"];
-    // Itterate through each word
+    let meaninglessWords = ["the", "is", "it", "an", "to", "on", "a", "in", "than", "and", "as", "they'll", "also", "for", "more", "here", "with", "without", "within", "most", "about", "almost", "any", "at", "be", "but", "by", "can", "come", "could", "do", "else", "if", "few", "get", "go", "he", "she", "they", "them", "him", "her", "his", "hers", "theirs", "there", "i", "", "into", "it", "its", "itself", "let", "lots", "me", "much", "must", "my", "oh", "yes", "no", "none", "nor", "not", "now", "of", "ok", "or", "our", "out", "own", "per", "put", "say", "see", "set", "so", "some", "soon", "still", "stay", "such", "sure", "tell", "then", "that", "these", "thing", "this", "those", "too", "try", "us", "use", "we", "what", "where", "when", "why", "how", "who", "whom", "you", "your"];
+    // Iterate through each word
     for (let i = 0; i < searchArray.length; i++) {
         // Remove all punctuation and make it lowercase
         searchArray[i] = searchArray[i].replace(/-/g , " ");
@@ -1597,6 +1694,11 @@ function cleanUpSearchTerm(searchArray) {
     return searchArray;
 }
 
+/**
+ * @description Converts a date to UTC time by adding 5 hours to it.
+ * @param {Date} date The date to convert to UTC
+ * @returns {Date} A new date object with the converted date
+ */
 function convertToUTC(date) {
     // TODO: Actually account for time shifts with Daylight Savings
     // console.log("The date that was just saved was: " + new Date(date.valueOf() + 1000 * 60 * 60 * 5));

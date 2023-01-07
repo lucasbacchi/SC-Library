@@ -1,94 +1,229 @@
+/**
+ * @global
+ * @type {FirebaseApp}
+ * @description The global variable app which stores the Firebase App instance.
+ */
 export let app = null;
 
+/**
+ * @global
+ * @param {FirebaseApp} newApp The app instance to set
+ * @description Sets the global variable app to the new FirebaseApp instance.
+ */
 export function setApp(newApp) {
     app = newApp;
 }
 
 
+/**
+ * @global
+ * @type {Firestore}
+ * @description The global variable db which stores the Firebase Firestore instance.
+ */
 export let db = null;
 
+/**
+ * @global
+ * @param {Firestore} newDb The Firestore instance to set
+ * @description Sets the global variable db to the new Firestore instance.
+ */
 export function setDb(newDb) {
     db = newDb;
 }
 
 
+/**
+ * @global
+ * @type {Analytics}
+ * @description The global variable analytics which stores the Firebase Analytics instance.
+ */
 export let analytics = null;
 
+/**
+ * @global
+ * @param {Analytics} newAnalytics The Analytics instance to set
+ * @description Sets the global variable analytics to the new Analytics instance.
+ */
 export function setAnalytics(newAnalytics) {
     analytics = newAnalytics;
 }
 
 
+/**
+ * @global
+ * @type {Auth}
+ * @description The global variable auth which stores the Firebase Authentication instance.
+ */
 export let auth = null;
 
+/**
+ * @global
+ * @param {Auth} newAuth The Auth instance to set
+ * @description Sets the global variable auth to the new Auth instance.
+ */
 export function setAuth(newAuth) {
     auth = newAuth;
 }
 
 
+/**
+ * @global
+ * @type {Performance}
+ * @description The global variable performance which stores the Firebase Performance instance.
+ */
 export let performance = null;
 
+/**
+ * @global
+ * @param {Performance} newPerformance The Performance instance to set
+ * @description Sets the global variable performance to the new Firebase Performance instance.
+ */
 export function setPerformance(newPerformance) {
     performance = newPerformance;
 }
 
 
+/**
+ * @global
+ * @type {FirebaseStorage}
+ * @description The global variable storage which stores the Firebase Storage instance.
+ */
 export let storage = null;
 
+/**
+ * @global
+ * @param {FirebaseStorage} newStorage The FirebaseStorage instance to set
+ * @description Sets the global variable storage to the new Firebase Storage instance.
+ */
 export function setStorage(newStorage) {
     storage = newStorage;
 }
 
 
+/**
+ * @global
+ * @type {Book[][]} Specifically, an array of Book Documents each of which is an array of Book objects. The nested arrays have a maximum size of 100.
+ * @description A global variable which stores the books in the database for the purposes of caching and searching.
+ */
 export let bookDatabase = null;
 
+/**
+ * @global
+ * @param {Book[][]} newBookDatabase The book database to set
+ * @description Sets the global variable bookDatabase to the new copy of the database.
+ */
 export function setBookDatabase(newBookDatabase) {
     bookDatabase = newBookDatabase;
 }
 
 
+/**
+ * @global
+ * @type {Book[]}
+ * @description A global variable which stores the books in order of the best match to the most recent search. This is used to display the search results.
+ */
 export let searchCache = null;
 
+/**
+ * @global
+ * @param {Book[]} newSearchCache The search cache to set
+ * @description Sets the global variable searchCache to the new array of results.
+ */
 export function setSearchCache(newSearchCache) {
     searchCache = newSearchCache;
 }
 
 
+/**
+ * @global
+ * @type {Date}
+ * @description The global variable timeLastSearched which stores the last time a search was performed. This is used to determine whether or not to update the search cache.
+ */
 export let timeLastSearched = null;
 
+/**
+ * @global
+ * @param {Date} newTimeLastSearched The time to set
+ * @description Sets the global variable timeLastSearched to the new time.
+ */
 export function setTimeLastSearched(newTimeLastSearched) {
     timeLastSearched = newTimeLastSearched;
 }
 
 
+/**
+ * @global
+ * @type {String}
+ * @description The global variable currentPage which stores the name of the current page.
+ */
 export let currentPage = null;
 
+/**
+ * @global
+ * @param {String} newCurrentPage The page to set
+ * @description Sets the global variable currentPage to the new page name.
+ */
 export function setCurrentPage(newCurrentPage) {
     currentPage = newCurrentPage;
 }
 
 
+/**
+ * @global
+ * @type {String}
+ * @description The global variable currentQuery which stores the current query string from the URL.
+ */
 export let currentQuery = null;
 
+/**
+ * @global
+ * @param {String} newCurrentQuery The query to set
+ * @description Sets the global variable currentQuery to the new query value.
+ */
 export function setCurrentQuery(newCurrentQuery) {
     currentQuery = newCurrentQuery;
 }
 
 
+/**
+ * @global
+ * @type {String}
+ * @description The global variable currentHash which stores the current hash string from the URL.
+ */
 export let currentHash = null;
 
+/**
+ * @global
+ * @param {String} newCurrentHash The hash to set
+ * @description Sets the global variable currentHash to the new hash value.
+ */
 export function setCurrentHash(newCurrentHash) {
     currentHash = newCurrentHash;
 }
 
 
+/**
+ * @global
+ * @type {String}
+ * @description The global variable currentPanel which stores the current panel string from the URL. This stores the current subpage of the current page.
+ */
 export let currentPanel = null;
 
+/**
+ * @global
+ * @param {String} newcurrentPanel The panel to set
+ * @description Sets the global variable currentPanel to the new panel name.
+ */
 export function setCurrentPanel(newCurrentPanel) {
     currentPanel = newCurrentPanel;
 }
 
 
+/**
+ * @global
+ * @type {String[]}
+ * @description A global variable which stores the list of valid pages on the site. Used to determine whether or not to redirect to the 404 page.
+ */
 export let directory = [
     "account/overview",
     "account/notifications",
@@ -117,15 +252,28 @@ export let directory = [
 ];
 
 
-
+/**
+ * @global
+ * @class
+ * @classdesc A class which represents a stack of pages which can be navigated through using the browswer history.
+ */
 export class HistoryStack {
     stack = [];
     currentIndex = -1;
+
+    /**
+     * @param {HistoryPage[]} stack A list of objects which contain the page extensions in the order that they have been visitied since the first page load, and optionally custom data.
+     * @param {Number} currentIndex The index of the current page in the stack. Useful for stepping back and forth through the stack.
+     */
     constructor(stack, currentIndex) {
         this.stack = stack;
         this.currentIndex = currentIndex;
     }
 
+    /**
+     * @param {HistoryPage} item 
+     * @description Adds a new page to the stack and sets it as the current page using the currentIndex.
+     */
     push(item) {
         if (this.currentIndex < this.stack.length - 1) {
             this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
@@ -134,15 +282,29 @@ export class HistoryStack {
         this.currentIndex++;
     }
 
+    /**
+     * @description Removes the top page from the stack and sets the previous page as the current page using the currentIndex.
+     * @returns {HistoryPage} The current page in the stack.
+     */
     pop() {
         this.currentIndex--;
         return this.stack.pop();
     }
 
+    /**
+     * @param {HistoryPage} item The item to insert into the stack.
+     * @param {Number} index The index to insert the item at.
+     * @description Inserts an item into the stack at the specified index.
+     */
     insert(item, index) {
         this.stack.splice(index, 0, item);
     }
 
+    /**
+     * @param {Number} index The index of the item to remove.
+     * @param {Number} count The number fo entries you want to remove. Defaults to 1.
+     * @description Removes a number items from the stack at the specified index.
+     */
     remove(index, count = 1) {
         this.stack.splice(index, count);
         if (this.currentIndex >= index) {
@@ -150,6 +312,10 @@ export class HistoryStack {
         }
     }
 
+    /**
+     * @param {HistoryPage} item The item to add to the stack.
+     * @description Used to add the first item to the stack.
+     */
     first(item) {
         if (this.stack.length == 0 && this.currentIndex == -1) {
             this.push(item);
@@ -161,8 +327,18 @@ export class HistoryStack {
     }
 }
 
+/**
+ * @global
+ * @type {HistoryStack}
+ * @description The global variable historyStack which stores the stack of history events.
+ */
 export let historyStack = null;
 
+/**
+ * @global
+ * @param {HistoryStack} newHistoryStack the history stack to set
+ * @description Sets the global variable historyStack to the new stack.
+ */
 export function setHistoryStack(newHistoryStack) {
     if (newHistoryStack == undefined) {
         historyStack = new HistoryStack([], -1);
@@ -171,15 +347,38 @@ export function setHistoryStack(newHistoryStack) {
     }
 }
 
-export class Book {
+/**
+ * @global
+ * @class
+ * @classdesc A class which represents an entry in the history which can be navigated through using the browswer.
+ */
+export class HistoryPage {
+    name = "";
+    customData = null;
     /**
      * 
+     * @param {String} name A string containing the path of the page.
+     * @param {Object} customData An object containing any custom data that should be stored with the page.
+     */
+    constructor(name, customData) {
+        this.name = name;
+        this.customData = customData;
+    }
+}
+
+/**
+ * @global
+ * @class
+ * @classdesc A class which represents a Book.
+ */
+export class Book {
+    /**
      * @param {number} barcodeNumber 
      * @param {string} title 
      * @param {string} subtitle 
      * @param {Person[]} authors 
      * @param {Person[]} illustrators 
-     * @param {string} medium - a string containing either "paperback", "hardcover", or "av"
+     * @param {string} medium a string containing either "paperback", "hardcover", or "av"
      * @param {string} coverImageLink 
      * @param {string} thumbnailImageLink 
      * @param {string} iconImageLink 
@@ -191,11 +390,11 @@ export class Book {
      * @param {string[]} publishers 
      * @param {Date} publishDate 
      * @param {number} numberOfPages 
-     * @param {string} ddc - dewey decimal classification
+     * @param {string} ddc dewey decimal classification
      * @param {Date} purchaseDate 
      * @param {number} purchasePrice 
      * @param {string} vendor 
-     * @param {string[]} keywords - array of important words from the description, used for searching
+     * @param {string[]} keywords array of important words from the description, used for searching
      * @param {boolean} canBeCheckedOut 
      * @param {boolean} isDeleted 
      * @param {boolean} isHidden 
@@ -258,8 +457,7 @@ export class Book {
     }
 
     /**
-     * 
-     * @param {object} jsonObject - a json object imported from firebase
+     * @param {object} jsonObject a json object imported from firebase
      * @returns a new Book object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -290,7 +488,6 @@ export class Book {
     }
 
     /**
-     * 
      * @param {Book} book1 
      * @param {Book} book2 
      * @returns true iff the books are exactly the same in every aspect
@@ -347,9 +544,13 @@ export class Book {
     }
 }
 
+/**
+ * @global
+ * @class
+ * @classdesc A person, such as an author or illustrator
+ */
 export class Person {
     /**
-     * 
      * @param {string} firstName 
      * @param {string} lastName 
      */
@@ -359,6 +560,11 @@ export class Person {
     }
 }
 
+/**
+ * @global
+ * @class
+ * @classdesc The audience for a book
+ */
 export class Audience {
     /**
      * 
@@ -391,16 +597,20 @@ export class Audience {
 
     /**
      * 
-     * @returns {boolean} 
+     * @returns {boolean} A boolean representing whether or not the audience is specified.
      */
     isNone() {
         return !(this.children || this.youth || this.adult);
     }
 }
 
+/**
+ * @global
+ * @class
+ * @classdesc A user of the library
+ */
 export class User {
     /**
-     * 
      * @param {number} cardNumber 
      * @param {string} firstName 
      * @param {string} lastName 
@@ -412,11 +622,16 @@ export class User {
      * @param {Date} dateCreated 
      * @param {Date} lastCheckoutTime 
      * @param {Date} lastSignInTime 
-     * @param {string} uid - the string that the auth object uses to represent a user
+     * @param {string} uid the string that the auth object uses to represent a user
+     * @param {boolean} canCheckOutBooks indicates if the user is authorized to check out books
+     * @param {boolean} isDeleted
+     * @param {boolean} isHidden
+     * @param {Date} lastUpdated
      */
     constructor(cardNumber = null, firstName = null, lastName = null, emailAddress = null, phoneNumber = null,
         address = null, pfpLink = null, pfpIconLink = null, dateCreated = null, lastCheckoutTime = null,
-        lastSignInTime = null, uid = null) {
+        lastSignInTime = null, uid = null, canCheckOutBooks = null, isDeleted = null, isHidden = null,
+        lastUpdated = null) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -429,11 +644,14 @@ export class User {
         this.lastCheckoutTime = lastCheckoutTime;
         this.lastSignInTime = lastSignInTime;
         this.uid = uid;
+        this.canCheckOutBooks = canCheckOutBooks;
+        this.isDeleted = isDeleted;
+        this.isHidden = isHidden;
+        this.lastUpdated = lastUpdated;
     }
 
     /**
-     * 
-     * @param {object} jsonObject - a json object imported from firebase
+     * @param {object} jsonObject a json object imported from firebase
      * @returns a new User object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -443,30 +661,36 @@ export class User {
         }
         return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.emailAddress,
             jsonObject.phoneNumber, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
-            jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid);
+            jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid,
+            jsonObject.canCheckOutBooks, jsonObject.isDeleted, jsonObject.isHidden, jsonObject.lastUpdated);
     }
 }
 
+/**
+ * @global
+ * @class
+ * @classdesc An object representing a checkout event and its status.
+ */
 export class Checkout {
     /**
-     * 
-     * @param {number} book - the book's barcode number
-     * @param {number} user - the user's card number
+     * @param {number} book the book's barcode number
+     * @param {number} user the user's card number
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
+     * @param {Date} checkinTime
+     * @param {boolean} resolved
      */
-    constructor(book = null, user = null, checkoutTime = null, dueDate = null) {
+    constructor(book = null, user = null, checkoutTime = null, dueDate = null, checkinTime = null, resolved = false) {
         this.book = book;
         this.user = user;
         this.checkoutTime = checkoutTime;
         this.dueDate = dueDate;
-        this.checkinTime = null;
-        this.resolved = false;
+        this.checkinTime = checkinTime;
+        this.resolved = resolved;
     }
 
     /**
-     * 
-     * @param {object} jsonObject - a json object imported from firebase
+     * @param {object} jsonObject a json object imported from firebase
      * @returns a new Checkout object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -474,6 +698,7 @@ export class Checkout {
             console.warn("tried to pass a Checkout object into Checkout.createFromObject");
             return jsonObject;
         }
-        return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate);
+        return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate,
+            jsonObject.checkinTime, jsonObject.resolved);
     }
 }
