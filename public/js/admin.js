@@ -1,4 +1,4 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
@@ -337,8 +337,9 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
  * @description Displays the list of recently checked out books on the admin dashboard.
  */
 function recentlyCheckedOut() {
+    /* TODO: Implement Checkout System
     let d = new Date(2021, 1, 1);
-    // TODO: I don't know if we're storing checkouts in the users doc yet...
+    // I don't know if we're storing checkouts in the users doc yet...
     getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
         let bookTimes = [];
         querySnapshot.forEach((docSnapshot) => {
@@ -352,7 +353,6 @@ function recentlyCheckedOut() {
             }
         });
         for (let i = 0; i < bookTimes.length; i++) {
-            /* TODO: Implement Checkout System
             let currentBook = bookTimes[i];
             getDoc(currentBook.book).then((docSnap) => {
                 if (!docSnap.exists()) {
@@ -365,9 +365,9 @@ function recentlyCheckedOut() {
                         $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
                     }
                 }
-            });*/
+            });
         }
-    });
+    });*/
 }
 
 /**

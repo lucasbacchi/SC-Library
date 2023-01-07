@@ -373,31 +373,31 @@ export class HistoryPage {
  */
 export class Book {
     /**
-     * @param {number} barcodeNumber 
-     * @param {string} title 
-     * @param {string} subtitle 
+     * @param {Number} barcodeNumber 
+     * @param {String} title 
+     * @param {String} subtitle 
      * @param {Person[]} authors 
      * @param {Person[]} illustrators 
-     * @param {string} medium a string containing either "paperback", "hardcover", or "av"
-     * @param {string} coverImageLink 
-     * @param {string} thumbnailImageLink 
-     * @param {string} iconImageLink 
-     * @param {string[]} subjects 
-     * @param {string} description 
+     * @param {String} medium a string containing either "paperback", "hardcover", or "av"
+     * @param {String} coverImageLink 
+     * @param {String} thumbnailImageLink 
+     * @param {String} iconImageLink 
+     * @param {String[]} subjects 
+     * @param {String} description 
      * @param {Audience} audience 
-     * @param {string} isbn10 
-     * @param {string} isbn13 
-     * @param {string[]} publishers 
+     * @param {String} isbn10 
+     * @param {String} isbn13 
+     * @param {String[]} publishers 
      * @param {Date} publishDate 
-     * @param {number} numberOfPages 
-     * @param {string} ddc dewey decimal classification
+     * @param {Number} numberOfPages 
+     * @param {String} ddc dewey decimal classification
      * @param {Date} purchaseDate 
-     * @param {number} purchasePrice 
-     * @param {string} vendor 
-     * @param {string[]} keywords array of important words from the description, used for searching
-     * @param {boolean} canBeCheckedOut 
-     * @param {boolean} isDeleted 
-     * @param {boolean} isHidden 
+     * @param {Number} purchasePrice 
+     * @param {String} vendor 
+     * @param {String[]} keywords array of important words from the description, used for searching
+     * @param {Boolean} canBeCheckedOut 
+     * @param {Boolean} isDeleted 
+     * @param {Boolean} isHidden 
      * @param {Date} lastUpdated 
      */
     constructor(barcodeNumber = null, title = null, subtitle = null, authors = null, illustrators = null,
@@ -457,7 +457,7 @@ export class Book {
     }
 
     /**
-     * @param {object} jsonObject a json object imported from firebase
+     * @param {Object} jsonObject a json object imported from firebase
      * @returns a new Book object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -603,8 +603,8 @@ export class Book {
  */
 export class Person {
     /**
-     * @param {string} firstName 
-     * @param {string} lastName 
+     * @param {String} firstName 
+     * @param {String} lastName 
      */
     constructor(firstName = null, lastName = null) {
         this.firstName = firstName;
@@ -630,9 +630,9 @@ export class Person {
 export class Audience {
     /**
      * 
-     * @param {boolean} children 
-     * @param {boolean} youth 
-     * @param {boolean} adult 
+     * @param {Boolean} children 
+     * @param {Boolean} youth 
+     * @param {Boolean} adult 
      */
     constructor(children = null, youth = null, adult = null) {
         this.children = children;
@@ -659,14 +659,14 @@ export class Audience {
 
     /**
      * 
-     * @returns {boolean} A boolean representing whether or not the audience is specified.
+     * @returns {Boolean} A boolean representing whether or not the audience is specified.
      */
     isNone() {
         return !(this.children || this.youth || this.adult);
     }
 
     /**
-     * @returns a vanilla JSON object representing an Audience
+     * @returns {Object} a vanilla JSON object representing an Audience
      */
     toObject() {
         return {
@@ -684,32 +684,33 @@ export class Audience {
  */
 export class User {
     /**
-     * @param {number} cardNumber 
-     * @param {string} firstName 
-     * @param {string} lastName 
-     * @param {string} emailAddress 
-     * @param {string} phoneNumber 
-     * @param {string} address 
-     * @param {string} pfpLink 
-     * @param {string} pfpIconLink 
+     * @param {Number} cardNumber 
+     * @param {String} firstName 
+     * @param {String} lastName 
+     * @param {String} email 
+     * @param {String} phone 
+     * @param {String} address 
+     * @param {String} pfpLink 
+     * @param {String} pfpIconLink 
      * @param {Date} dateCreated 
      * @param {Date} lastCheckoutTime 
      * @param {Date} lastSignInTime 
-     * @param {string} uid the string that the auth object uses to represent a user
-     * @param {boolean} canCheckOutBooks indicates if the user is authorized to check out books
-     * @param {boolean} isDeleted
-     * @param {boolean} isHidden
+     * @param {String} uid the string that the auth object uses to represent a user
+     * @param {Boolean} canCheckOutBooks indicates if the user is authorized to check out books
+     * @param {Boolean} isDeleted
+     * @param {Boolean} isHidden
      * @param {Date} lastUpdated
+     * @param {Boolean} notificationsOn
      */
-    constructor(cardNumber = null, firstName = null, lastName = null, emailAddress = null, phoneNumber = null,
+    constructor(cardNumber = null, firstName = null, lastName = null, email = null, phone = null,
         address = null, pfpLink = null, pfpIconLink = null, dateCreated = null, lastCheckoutTime = null,
         lastSignInTime = null, uid = null, canCheckOutBooks = null, isDeleted = null, isHidden = null,
-        lastUpdated = null) {
+        lastUpdated = null, notificationsOn = null) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.emailAddress = emailAddress;
-        this.phoneNumber = phoneNumber;
+        this.email = email;
+        this.phone = phone;
         this.address = address;
         this.pfpLink = pfpLink;
         this.pfpIconLink = pfpIconLink;
@@ -721,10 +722,11 @@ export class User {
         this.isDeleted = isDeleted;
         this.isHidden = isHidden;
         this.lastUpdated = lastUpdated;
+        this.notificationsOn = notificationsOn;
     }
 
     /**
-     * @param {object} jsonObject a json object imported from firebase
+     * @param {Object} jsonObject a json object imported from firebase
      * @returns a new User object with all of that data in it
      */
     static createFromObject(jsonObject) {
@@ -732,30 +734,35 @@ export class User {
             console.warn("tried to pass a User object into User.createFromObject");
             return jsonObject;
         }
-        return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.emailAddress,
-            jsonObject.phoneNumber, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
+        return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.email,
+            jsonObject.phone, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
             jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid,
             jsonObject.canCheckOutBooks, jsonObject.isDeleted, jsonObject.isHidden, jsonObject.lastUpdated,
-            jsonObject.canCheckOutBooks, jsonObject.isDeleted, jsonObject.isHidden, jsonObject.lastUpdated);
+            jsonObject.notificationsOn);
     }
 
     /**
-     * @returns a vanilla JSON object representing a User
+     * @returns {Object} a vanilla JSON object representing a User
      */
     toObject() {
         return {
             cardNumber: this.cardNumber,
             firstName: this.firstName,
             lastName: this.lastName,
-            emailAddress: this.emailAddress,
-            phoneNumber: this.phoneNumber,
+            email: this.email,
+            phone: this.phone,
             address: this.address,
             pfpLink: this.pfpLink,
             pfpIconLink: this.pfpIconLink,
             dateCreated: this.dateCreated,
             lastCheckoutTime: this.lastCheckoutTime,
             lastSignInTime: this.lastSignInTime,
-            uid: this.uid
+            uid: this.uid,
+            canCheckOutBooks: this.canCheckOutBooks,
+            isDeleted: this.isDeleted,
+            isHidden: this.isHidden,
+            lastUpdated: this.lastUpdated,
+            notificationsOn: this.notificationsOn
         };
     }
 }
@@ -767,12 +774,12 @@ export class User {
  */
 export class Checkout {
     /**
-     * @param {number} book the book's barcode number
-     * @param {number} user the user's card number
+     * @param {Number} book the book's barcode number
+     * @param {Number} user the user's card number
      * @param {Date} checkoutTime 
      * @param {Date} dueDate 
      * @param {Date} checkinTime
-     * @param {boolean} resolved
+     * @param {Boolean} resolved
      */
     constructor(book = null, user = null, checkoutTime = null, dueDate = null, checkinTime = null, resolved = false) {
         this.book = book;
