@@ -318,13 +318,13 @@ function deleteAccount() {
 
 
 
+const xhttp = new XMLHttpRequest();
 /**
  * @param {String} newPanel the path to the panel to load.
  * @returns {Promise<void>}
  * @description Changes the account panel to the one specified by newPanel
  */
 export function goToSettingsPanel(newPanel) {
-    const xhttp = new XMLHttpRequest();
     return new Promise((resolve, reject) => {
         $("#settings-column").removeClass("fade");
 
@@ -341,7 +341,7 @@ export function goToSettingsPanel(newPanel) {
         xhttp.send();
 
         // Set the content of the page
-        xhttp.onreadystatechange = () => {
+        xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 if (currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
