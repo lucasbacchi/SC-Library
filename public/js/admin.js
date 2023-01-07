@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
-import { Book, bookDatabase, db, setBookDatabase, User } from "./globals";
+import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 export function setupAdminMain() {
     $("#help-icon").on("click", () => {
@@ -404,21 +404,20 @@ function setUploadDatabase(event) {
         file.text().then((text) => {
             try {
                 let dataToUpload = JSON.parse(text);
-                console.log(dataToUpload);
                 let newDatabase = [], modified = 0;
                 for (let i = 0; i < dataToUpload.length; i++) {
                     let newDoc = [];
                     for (let j = 0; j < dataToUpload[i].books.length; j++) {
                         let newBook = Book.createFromObject(dataToUpload[i].books[j]);
                         newDoc.push(newBook);
-                        /*if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
+                        if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
                             modified++;
-                        }*/
+                        }
                     }
                     newDatabase.push(newDoc);
                 }
-                //let ndlen = newDatabase.length, bdlen = bookDatabase.length;
-                let diff = 100;// * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
+                let ndlen = newDatabase.length, bdlen = bookDatabase.length;
+                let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
                 toggleImportPopup(newDatabase, diff, modified);
             } catch (error) {
                 console.error(error);
@@ -429,22 +428,25 @@ function setUploadDatabase(event) {
 }
 
 function toggleImportPopup(database = null, diff = 0, modified = 0) {
-    if (diff > 0) {
-        $("#import-added").innerHTML = diff;
-    } else {
-        $("#import-deleted").innerHTML = 0 - diff;
-    }
-    $("#import-modified").innerHTML = modified;
     $("#import-alert").css("transition", "0.5s");
     $("#import-alert-overlay").css("transition", "0.5s");
     if ($("#import-alert").css("opacity") == "0") {
+        if (diff > 0) {
+            $("#import-added")[0].innerHTML = diff;
+            $("#import-deleted")[0].innerHTML = 0;
+        } else {
+            $("#import-deleted")[0].innerHTML = 0 - diff;
+            $("#import-added")[0].innerHTML = 0;
+        }
+        $("#import-modified")[0].innerHTML = modified;
         $("#import-alert").show();
         $("#import-alert-overlay").show();
         $("#import-alert").css("opacity", "100%");
         $("#import-alert-overlay").css("opacity", "50%");
         $("#import-entry").on("click", () => {
             importDatabase(database).then(() => {
-                setBookDatabase(database);
+                setBookDatabase(null);
+                setTimeLastSearched(null);
                 alert("Database updated successfully!");
             }).catch((error) => {
                 console.error(error);
@@ -483,22 +485,24 @@ function importDatabase(database) {
                 }
                 // Set each doc for deletion
                 batch.delete(docSnap.ref);
+            });
+            for (let i = 0; i < database.length; i++) {
                 // Create a new doc and add all the books to be imported into it
                 let newDoc = [];
-                for (let i = 0; i < database[parseInt(docSnap.id)].length; i++) {
-                    let newBook = database[parseInt(docSnap.id)][i].toObject();
+                for (let j = 0; j < database[i].length; j++) {
+                    let newBook = database[i][j].toObject();
                     // temporarily renaming things to old scheme
-                    for (let i = 0; i < 2; i++) {
-                        if (newBook.authors[i]) {
-                            newBook.authors[i] = {
-                                first: newBook.authors[i].firstName,
-                                last: newBook.authors[i].lastName
+                    for (let k = 0; k < 2; k++) {
+                        if (newBook.authors[k]) {
+                            newBook.authors[k] = {
+                                first: newBook.authors[k].firstName,
+                                last: newBook.authors[k].lastName
                             };
                         }
-                        if (newBook.illustrators[i]) {
-                            newBook.illustrators[i] = {
-                                first: newBook.illustrators[i].firstName,
-                                last: newBook.illustrators[i].lastName
+                        if (newBook.illustrators[k]) {
+                            newBook.illustrators[k] = {
+                                first: newBook.illustrators[k].firstName,
+                                last: newBook.illustrators[k].lastName
                             };
                         }
                     }
@@ -507,11 +511,11 @@ function importDatabase(database) {
                     newDoc.push(newBook);
                 }
                 // Set the new doc for addition
-                batch.set(doc(db, "books", docSnap.id), {
+                batch.set(doc(db, "books", i.toString().padStart(3, "0")), {
                     books: newDoc,
-                    order: parseInt(docSnap.id)
+                    order: i
                 });
-            });
+            }
             // Commit all the staged writes
             batch.commit().then(() => {
                 resolve();
