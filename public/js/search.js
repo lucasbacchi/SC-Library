@@ -22,15 +22,20 @@ $(window).on("resize", () => {
     }
 });
 
-// Set Initial window layout.
-if ($(window).width() > 786) {
-    $('.sort-section').show();
-}
-if ($(window).width() <= 786) {
-    $('.sort-section').hide();
-}
-
+/**
+ * @description Sets up the search page event listeners then starts the process of displaying books.
+ * @param {Book[]} searchResultsArray The array of books to display if a search already happened.
+ * @param {String} pageQuery The page query from the URL.
+ */
 export function setupSearch(searchResultsArray, pageQuery) {
+    // Set Initial window layout.
+    if ($(window).width() > 786) {
+        $('.sort-section').show();
+    }
+    if ($(window).width() <= 786) {
+        $('.sort-section').hide();
+    }
+
     // Create Sort Dropdown Event Listener
     $('#sort-main-title').on("click", () => {
         if (window.innerWidth < 787) {
@@ -66,10 +71,10 @@ export function setupSearch(searchResultsArray, pageQuery) {
         searchPageSearch();
     });
 
-    var queryFromURL = findURLValue(pageQuery, "query", true);
+    let queryFromURL = findURLValue(pageQuery, "query", true);
 
     $("#apply-filters-button").on("click", () => {
-        var queryFromURL = findURLValue(window.location.search, "query", true);
+        queryFromURL = findURLValue(window.location.search, "query", true);
         applySearchFilters(queryFromURL);
     });
 
@@ -89,8 +94,11 @@ export function setupSearch(searchResultsArray, pageQuery) {
     }
 }
 
+/**
+ * @description Handles new searches from the search page.
+ */
 function searchPageSearch() {
-    var searchQuery = $('#search-page-input').val();
+    let searchQuery = $('#search-page-input').val();
     setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
@@ -98,17 +106,23 @@ function searchPageSearch() {
     });
 }
 
+/**
+ * @description Creates the browse page of randomly selected books.
+ * @param {Book[]} browseResultsArray The array of books to list on the browse page.
+ * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ * @param {Number} page The current results page.
+ */
 function browse(browseResultsArray = [], docsUsed = [], page = 1) {
     return new Promise((resolve, reject) => {
         changePageTitle("Browse", false);
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
             // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
-            var docs = bookDatabase.length;
+            let docs = bookDatabase.length;
             if (docsUsed.length == docs) {
                 resolve(true); // lets createSearchResultsPage know that the end is nigh
                 return;
             }
-            var rand = Math.floor(Math.random() * docs);
+            let rand = Math.floor(Math.random() * docs);
             while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
             docsUsed.push(rand);
             if (!bookDatabase[rand]) {
@@ -116,9 +130,9 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                 reject();
                 return;
             }
-            var values = [], invalidBookIndices = [];
+            let values = [], invalidBookIndices = [];
             while (values.length < bookDatabase[rand].books.length - invalidBookIndices.length) {
-                var random = Math.floor(Math.random() * bookDatabase[rand].books.length);
+                let random = Math.floor(Math.random() * bookDatabase[rand].books.length);
                 if (values.indexOf(random) > -1) continue;
                 if (bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
                     if (!invalidBookIndices.includes(random)) {
@@ -140,12 +154,12 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                         reject();
                         return;
                     }
-                    var docs = docSnap.data().order + 1;
+                    let docs = docSnap.data().order + 1;
                     if (docsUsed.length == docs) {
                         resolve(true); // lets createSearchResultsPage know that the end is nigh
                         return;
                     }
-                    var rand = Math.floor(Math.random() * docs);
+                    let rand = Math.floor(Math.random() * docs);
                     while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
                     docsUsed.push(rand);
                     rand = "0" + rand;
@@ -156,9 +170,9 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                             reject();
                             return;
                         }
-                        var values = [], invalidBookIndices = [], data = docSnap.data();
+                        let values = [], invalidBookIndices = [], data = docSnap.data();
                         while (values.length < data.books.length - invalidBookIndices.length) {
-                            var random = Math.floor(Math.random() * data.books.length);
+                            let random = Math.floor(Math.random() * data.books.length);
                             if (values.includes(random)) continue;
                             if (data.books[random].isDeleted || data.books[random].isHidden) {
                                 if (!invalidBookIndices.includes(random)) {
@@ -178,6 +192,15 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
     });
 }
 
+/**
+ * @description Creates a search results page. Most information is passed into fillSearchResultsPage().
+ * @param {Book[]} searchResultsArray The array of books to list on the search results page.
+ * @param {Number} page The page number of the results page.
+ * @param {String[]} filters The catagories you can filter by.
+ * @param {String[][]} items The selected items in each filter catagory.
+ * @param {Boolean} isBrowse A boolean representing if the user is browsing or searching.
+ * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ */
 function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
     if (isBrowse && (page + 2) * 20 > searchResultsArray.length) {
         browse(searchResultsArray, docsUsed, page).then((allDocsUsed) => {
@@ -195,6 +218,15 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
     }, 100);
 }
 
+/**
+ * @description This function does the actual work of creating the search results page and evaluating filters.
+ * @param {Book[]} searchResultsArray The array of books to list on the search results page.
+ * @param {Number} page The page number of the results page.
+ * @param {String[]} filters The catagories you can filter by.
+ * @param {String[][]} items The selected items in each filter catagory.
+ * @param {Boolean} isBrowse A boolean representing if the user is browsing or searching.
+ * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ */
 function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
     $('div#search-results-container').empty();
     if (searchResultsArray.length == 0 || (page - 1) * 20 >= searchResultsArray.length) {
@@ -249,6 +281,12 @@ function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items
 
 var searchResultsAuthorsArray = [];
 var searchResultsSubjectsArray = [];
+/**
+ * @description Creates the HTML elements for the filter lists on the side of the search results page.
+ * @param {Book[]} searchResultsArray The array of books to list on the search results page.
+ * @param {String[]} filters The catagories you can filter by.
+ * @param {String[][]} items The selected items in each filter catagory.
+ */
 function createFilterList(searchResultsArray, filters = [], items = [[]]) {
     // TODO: This function should also order each of the lists by occurances.
     searchResultsAuthorsArray = [];
@@ -385,8 +423,12 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
     }
 }
 
+/**
+ * @description Sets up the individiual result page and starts the process of getting the book's information.
+ * @param {String} pageQuery The query string from the URL.
+ */
 export function setupResultPage(pageQuery) {
-    var barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
+    let barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
         alert("Error: A valid barcode was not provided.");
         goToPage("");
@@ -430,7 +472,7 @@ export function setupResultPage(pageQuery) {
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
             $("#result-page-isbn-number").html("None");
         }
-        var callNumberAnswer = "";
+        let callNumberAnswer = "";
         if (bookObject.audience.children == true) {
             callNumberAnswer += "J";
         } else if (bookObject.audience.youth == true) {
@@ -441,7 +483,7 @@ export function setupResultPage(pageQuery) {
         callNumberAnswer += bookObject.ddc;
         callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
         $("#result-page-call-number").html(callNumberAnswer);
-        var mediumAnswer = "";
+        let mediumAnswer = "";
         if (bookObject.medium == "paperback") {
             mediumAnswer = "Paperback";
         } else if (bookObject.medium == "hardcover") {
@@ -452,7 +494,7 @@ export function setupResultPage(pageQuery) {
             console.warn("There is a case that is not covered for: " + bookObject.medium);
         }
         $("#result-page-medium").html(mediumAnswer);
-        var audienceAnswer = "";
+        let audienceAnswer = "";
         if (bookObject.audience.children == true) {
             audienceAnswer += "Children, ";
         }
@@ -467,7 +509,7 @@ export function setupResultPage(pageQuery) {
         }
         audienceAnswer = audienceAnswer.substring(0, audienceAnswer.lastIndexOf(","));
         $("#result-page-audience").html(audienceAnswer);
-        var publishersAnswer = "";
+        let publishersAnswer = "";
         bookObject.publishers.forEach((item) => {
             publishersAnswer += (item + ", ");
         });
@@ -475,11 +517,11 @@ export function setupResultPage(pageQuery) {
         if (publishersAnswer == "") publishersAnswer = "None";
         $("#result-page-publisher").html(publishersAnswer);
         if (bookObject.publishDate) {
-            var d = bookObject.publishDate.toDate();
+            let d = bookObject.publishDate;
             if (d.getMonth() != 0 && d.getDate() != 1) {
                 $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
             } else if (d.getMonth() != 0) {
-                var month;
+                let month;
                 switch (d.getMonth()) {
                     case 0:
                         month = "Jan";
@@ -544,7 +586,7 @@ export function setupResultPage(pageQuery) {
         }
         if (bookObject.authors.length > 1) {
             $("#result-page-author-header").html("Authors");
-            var authorAnswer = "";
+            let authorAnswer = "";
             bookObject.authors.forEach((item) => {
                 authorAnswer += item.lastName + ", " + item.firstName + "<br>";
             });
@@ -557,7 +599,7 @@ export function setupResultPage(pageQuery) {
             }
         }
         if (bookObject.illustrators.length > 0) {
-            var illustratorAnswer = "";
+            let illustratorAnswer = "";
             bookObject.illustrators.forEach((item) => {
                 illustratorAnswer += item.lastName + ", " + item.firstName + "<br>";
             });
@@ -575,7 +617,7 @@ export function setupResultPage(pageQuery) {
         } else if (bookObject.subjects.length == 1) {
             $("#result-page-subjects-header").html("Subject");
         }
-        var subjectsAnswer = "";
+        let subjectsAnswer = "";
         for (let i = 0; i < bookObject.subjects.length; i++) {
             subjectsAnswer += bookObject.subjects[i];
             if (i != bookObject.subjects.length - 1) {
@@ -610,6 +652,10 @@ export function setupResultPage(pageQuery) {
     });
 }
 
+/**
+ * @description Checks out a book. This function starts the process when the user clicks the checkout button on the result page.
+ * @param {Number} barcodeNumber The barcode number of the book to be checked out.
+ */
 function checkout(barcodeNumber) {
     if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
         alert("There was an error checking out this book.");
@@ -622,16 +668,23 @@ function checkout(barcodeNumber) {
     $("#checkout-next-button").show();
 }
 
+/**
+ * @description Cancels the checkout process.
+ */
 function cancelCheckout() {
     $("#checkout-popup").hide();
 }
 
+/**
+ * @description After the user has verfied their account, this starts the process of scanning the barcode on the book.
+ *              Then it uploads the checkout event to the database.
+ */
 function scanCheckout() {
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
     $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
     $("#checkout-book-barcode").trigger("focus");
-    var barcodeNumber = $("#result-page-barcode-number").html();
+    let barcodeNumber = $("#result-page-barcode-number").html();
     $("#checkout-book-barcode").off("keydown");
     $("#checkout-book-barcode").on("keydown", (event) => {
         if (event.key === "Enter") {
@@ -647,8 +700,8 @@ function scanCheckout() {
                         // TODO: Change to something else
                         if ($("#checkout-security-barcode").val() != "") {
                             // At this point, they must have scanned both, so we check it out to them.
-                            var bookNumber = barcodeNumber - 1171100000;
-                            var bookDocument = Math.floor(bookNumber / 100);
+                            let bookNumber = barcodeNumber - 1171100000;
+                            let bookDocument = Math.floor(bookNumber / 100);
                             if (bookDocument >= 100) {
                                 bookDocument = "" + bookDocument;
                             } else if (bookDocument >= 10) {
@@ -658,7 +711,7 @@ function scanCheckout() {
                             }
                             bookNumber = bookNumber % 100;
 
-                            var d = new Date(2020);
+                            let d = new Date(2020);
                             getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d),
                                 where("checkouts", "array-contains", barcodeNumber),
                                 orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
@@ -678,12 +731,12 @@ function scanCheckout() {
                                         return;
                                     }
 
-                                    var bookObject = docSnap.data().books[bookNumber];
+                                    let bookObject = docSnap.data().books[bookNumber];
                                     if (bookObject.canBeCheckedOut == false) {
                                         alert("We're sorry, but this is a reference book, and it may not be checked out.");
                                         return;
                                     }
-                                    var currentTime = Date.now();
+                                    let currentTime = Date.now();
                                     // TODO: Rethink how this is all stored. Sub collection? Root collection?
                                     transaction.update(doc(db, "users", auth.currentUser.uid), {
                                         checkouts: arrayUnion({
@@ -709,8 +762,12 @@ function scanCheckout() {
     });
 }
 
+/**
+ * @description Goes through the list of filters on the page and creates arrays of the filters and the items that are checked.
+ * @param {String} queryFromURL The query from the URL. This handles the case for Browse.
+ */
 function applySearchFilters(queryFromURL) {
-    var filters = [], items = [], results = [];
+    let filters = [], items = [];
     for (let i = 0; i < $(".sort-section").length; i++) {
         filters.push($(".sort-section")[i].children[0].innerHTML);
         items.push([]);
@@ -727,18 +784,24 @@ function applySearchFilters(queryFromURL) {
     }
     if (queryFromURL == "") {
         search("").then(() => {
-            searchWithFilters(filters, items, results);
+            searchWithFilters(filters, items);
         });
     } else {
-        searchWithFilters(filters, items, results);
+        searchWithFilters(filters, items);
     }
 }
 
-function searchWithFilters(filters, items, results) {
+/**
+ * @description Iterates through the search cache and filters out the items that don't match the filters.
+ * @param {String[]} filters 
+ * @param {String[][]} items 
+ */
+function searchWithFilters(filters, items) {
+    let results = [];
     for (let i = 0; i < searchCache.length; i++) {
         let passesAllFilters = true;
         for (let j = 0; j < filters.length && passesAllFilters; j++) {
-            var passesFilter = false;
+            let passesFilter = false;
             for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Author") {
                     if (passesFilter ||
