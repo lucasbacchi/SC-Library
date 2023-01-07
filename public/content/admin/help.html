@@ -1,28 +1,118 @@
-<div style="width:30%;">
-<h2>Table of Contents</h2>
-<ol id="tableOfContents" style="margin: 0 auto;">
-    <li><a>Add a Book</a></li>
-    <li><a>Edit A Book</a></li>
-    <li><a>Inventory</a></li>
-</ol>
-</div>
-<div style="width:70%">
-<ol id="sections">
-    <li>
-        <h3>Add a Book</h3>
-        <p>Put in an ISBN number (or scan the book if you have a barcode scanner nearby), then click the button
-            and fill out the resulting form.
-        </p>
-    </li>
-    
-    <li>
-        <h3>Edit a Book</h3>
-        <p>Search for the book you want to edit, then click on it and edit the resulting form.</p>
-    </li>
-    
-    <li>
-        <h3>Inventory</h3>
-        <p>Scan each book as its barcode number appears on your screen.</p>
-    </li>
-</ol>
+<div style="width:70%;" class="help">
+    <h2 class="help" style="margin-left:25px;">Table of Contents</h2>
+    <ol id="tableOfContents" class="help">
+        <li><a>Add a New Book</a></li>
+        <li><a>Edit a Book</a></li>
+        <!--<li><a>Inventory Report</a></li>-->
+        <li><a>Print Out Barcodes</a></li>
+        <li><a>Export the Database</a></li>
+        <li><a>Import the Database</a></li>
+    </ol>
+    <ol id="sections" class="help h3">
+        <li>
+            <h3 class="help">Add a New Book</h3>
+            <ul class="help">
+                <li>Enter the book's ISBN number. If you have a barcode scanner at hand, click into the text box
+                    and then scan the book. If you don't have a scanner, you'll have to type it manually and then
+                    click "Add Entry". The code should recognize both ISBN10 and ISBN13, but if one doesn't work,
+                    try the other. If your book does not have an ISBN, there is a link below that field to enter
+                    a book manually.
+                </li>
+                <li>You should now be directed to a form. If you entered an ISBN number, then many of the fields
+                    will be filled out for you. It's still a good idea to double-check this data before submitting
+                    the form. You'll also need to add any information that is missing (including SC specific data
+                    like purchase date and price).
+                </li>
+                <li>Once you've filled out the form with all of the required data, click the "Save" button at the
+                    bottom of the page. Once you do that, you'll get a barcode number for the book. If you need to
+                    print out a new barcode, see "Print Out Barcodes" below.
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+        <li>
+            <h3 class="help">Edit a Book</h3>
+            <ul class="help">
+                <li>Enter a search query in the text box below "Search for an entry to edit below:", then click the
+                    "Search" button below. You should see a list of books that match that search query. Click on
+                    the book you wish to edit. (Tip: You can also get to the edit entry form by clicking the small
+                    pencil icon in the upper-right-hand corner, assuming you're logged in as an admin.)
+                </li>
+                <li>You should now be directed to a form. The existing data for the book you clicked on should be
+                    filled in. Make the changes you wish to make, then click the "Save" button at the bottom of the
+                    form.
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+        <!--
+        <li>
+            <h3 class="help">Inventory Report</h3>
+            <ul class="help">
+                <li>In the reports section in the bottom-right-hand corner of the admin dashboard, click
+                    "Inventory." You will be directed to a new page ...
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+        -->
+        <li>
+            <h3 class="help">Print Out Barcodes</h3>
+            <ul class="help">
+                <li>In the reports section in the bottom-right-hand corner of the admin dashboard, click "Generate
+                    New Barcodes." You will be directed to a new page with instructions on how to create barcodes.
+                </li>
+                <li>To generate a single barcode, enter the last five digits of the barcode number in the first
+                    text box. Your browser will then download a PNG image file with the barcode on it.
+                </li>
+                <li>To generate a range of barcodes, enter the last five digits of the first barcode number in the
+                    range in the first text box and the last five digits of the last barcode number in the range in
+                    the second text box. Your browser will then download a PNG image file with each barcode on it.
+                </li>
+                <li>To print out your barcode(s), follow the instructions given for the label paper you're using.
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+        <li>
+            <h3 class="help">Export the Database</h3>
+            <ul class="help">
+                <li>In the reports section in the bottom-right-hand corner of the admin dashboard, click "Export."
+                    Your browser will then download a JSON file. Save this file somewhere you'll be able to find
+                    it later in case you need it.
+                </li>
+                <li>You should download a backup copy of the database several times a year, and especially after
+                    any major edits or additions, so that you always have a copy that's reasonably up-to-date just
+                    in case the website breaks.
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+        <li>
+            <h3 class="help">Import the Database</h3>
+            <ul class="help">
+                <li>In the reports section in the bottom-right-hand corner of the admin dashboard, click "Import."
+                    This will then bring up a file selection window. Locate your most recent copy of the database
+                    - it should be a file called "database [date].json" - and select it to upload it to the website.
+                </li>
+                <li>This will then pop up a dialog window with some stats about what will change from the existing
+                    version of the database. If there is a large discrepancy between the existing copy and your
+                    backup, please be very careful about overwriting the database! If you want to keep the database
+                    as is, click the button that says "No, take me back."
+                </li>
+                <li>If you do want to overwrite the existing database with your backup, click the button that says
+                    "Yes, import this data." The upload process may take up to 15-20 seconds, so be patient (though
+                    it will time out if it takes longer than 30 seconds). When it finishes, you should see a popup
+                    telling you that the database has been uploaded successfully.
+                </li>
+                <li class="back-to-top"><a>Back to Top</a></li>
+            </ul>
+        </li>
+        <br>
+    </ol>
 </div>

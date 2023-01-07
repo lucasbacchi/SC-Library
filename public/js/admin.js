@@ -758,8 +758,13 @@ export function setupAdminHelp() {
             goToPage("/admin/help/#section" + (index + 1));
         });
     });
-    $("#sections li").each((index, li) => {
+    $("#sections > li").each((index, li) => {
         $(li).attr("id", "section" + (index + 1));
+    });
+    $(".back-to-top").each((index, li) => {
+        $(li).children().on("click", () => {
+            $(document).scrollTop(0);
+        });
     });
 }
 
