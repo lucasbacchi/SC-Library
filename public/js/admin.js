@@ -1,7 +1,7 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
-import { Book, bookDatabase, db, User } from "./globals";
+import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
@@ -81,6 +81,10 @@ export function setupAdminMain() {
 
     $("#edit-entry-search").on("click", () => {
         adminSearch();
+    });
+
+    $("#import-cancel").on("click", () => {
+        toggleImportPopup();
     });
 
     recentlyCheckedOut();
@@ -420,7 +424,8 @@ function downloadDatabase() {
         const a = document.createElement("a");
         a.style.display = "none";
         a.id = "download-database-link";
-        a.download = "database.json";
+        let dateString = new Date().toLocaleDateString("en-CA"); // it's canadian because they use yyyy-mm-dd format
+        a.download = "database " + dateString + ".json";
         a.href = dataStr;
         a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
@@ -454,26 +459,129 @@ function importFile(event) {
  */
 function setUploadDatabase(event) {
     importFile(event).then((file) => {
+        if (file.type != "application/json") {
+            alert("File type not recognized. Please upload a JSON file.");
+            return;
+        }
         file.text().then((text) => {
-            let dataToUpload = JSON.parse(text);
-            console.log(dataToUpload);
-            let newDatabase = [], modified = 0;
-            for (let i = 0; i < dataToUpload.length; i++) {
-                let newDoc = [];
-                for (let j = 0; j < dataToUpload[i].books.length; j++) {
-                    let newBook = Book.createFromObject(dataToUpload[i].books[j]);
-                    newDoc.push(newBook);
-                    if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
-                        modified++;
+            try {
+                let dataToUpload = JSON.parse(text);
+                let newDatabase = [], modified = 0;
+                for (let i = 0; i < dataToUpload.length; i++) {
+                    let newDoc = [];
+                    for (let j = 0; j < dataToUpload[i].books.length; j++) {
+                        let newBook = Book.createFromObject(dataToUpload[i].books[j]);
+                        newDoc.push(newBook);
+                        if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
+                            modified++;
+                        }
                     }
+                    newDatabase.push(newDoc);
                 }
-                newDatabase.push(newDoc);
+                let ndlen = newDatabase.length, bdlen = bookDatabase.length;
+                let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
+                toggleImportPopup(newDatabase, diff, modified);
+            } catch (error) {
+                console.error(error);
+                alert("Something went wrong. Please check the file you are trying to import.");
             }
-            let ndlen = newDatabase.length, bdlen = bookDatabase.length;
-            let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
-            alert(((diff > 0) ? diff : 0) + " books added\n" + ((diff < 0) ? -1 * diff : 0) + " books deleted\n"
-                + modified + " books modified\nAre you sure you want to continue?");
-            alert("The database wasn't uploaded, because this function didn't get finished.");
+        });
+    });
+}
+
+function toggleImportPopup(database = null, diff = 0, modified = 0) {
+    $("#import-alert").css("transition", "0.5s");
+    $("#import-alert-overlay").css("transition", "0.5s");
+    if ($("#import-alert").css("opacity") == "0") {
+        if (diff > 0) {
+            $("#import-added")[0].innerHTML = diff;
+            $("#import-deleted")[0].innerHTML = 0;
+        } else {
+            $("#import-deleted")[0].innerHTML = 0 - diff;
+            $("#import-added")[0].innerHTML = 0;
+        }
+        $("#import-modified")[0].innerHTML = modified;
+        $("#import-alert").show();
+        $("#import-alert-overlay").show();
+        $("#import-alert").css("opacity", "100%");
+        $("#import-alert-overlay").css("opacity", "50%");
+        $("#import-entry").on("click", () => {
+            importDatabase(database).then(() => {
+                setBookDatabase(null);
+                setTimeLastSearched(null);
+                alert("Database updated successfully!");
+            }).catch((error) => {
+                console.error(error);
+                alert("There was an error and your data was not updated.");
+            }).finally(() => {
+                window.clearTimeout(loadingTimer);
+                $("#import-loading-overlay").hide();
+                $("#import-loading-overlay-box").hide();
+            });
+        });
+    } else {
+        $("#import-alert").css("opacity", "0");
+        $("#import-alert-overlay").css("opacity", "0");
+        $("#import-alert").delay(500).hide(0);
+        $("#import-alert-overlay").delay(500).hide(0);
+        $("#import-entry").off("click");
+    }
+}
+
+var loadingTimer;
+function importDatabase(database) {
+    toggleImportPopup();
+    $("#import-loading-overlay").show();
+    // If an error occurs somewhere in this process, tell the user after 10 seconds
+    loadingTimer = window.setTimeout(() => {
+        alert("We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
+        $("#import-loading-overlay").hide();
+    }, 30000);
+    return new Promise(function(resolve) {
+        // Get a new write batch
+        let batch = writeBatch(db);
+        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
+                    throw "The books document doesn't exist";
+                }
+                // Set each doc for deletion
+                batch.delete(docSnap.ref);
+            });
+            for (let i = 0; i < database.length; i++) {
+                // Create a new doc and add all the books to be imported into it
+                let newDoc = [];
+                for (let j = 0; j < database[i].length; j++) {
+                    let newBook = database[i][j].toObject();
+                    // temporarily renaming things to old scheme
+                    for (let k = 0; k < 2; k++) {
+                        if (newBook.authors[k]) {
+                            newBook.authors[k] = {
+                                first: newBook.authors[k].firstName,
+                                last: newBook.authors[k].lastName
+                            };
+                        }
+                        if (newBook.illustrators[k]) {
+                            newBook.illustrators[k] = {
+                                first: newBook.illustrators[k].firstName,
+                                last: newBook.illustrators[k].lastName
+                            };
+                        }
+                    }
+                    newBook.audience = [newBook.audience.children, newBook.audience.youth, newBook.audience.adult,
+                        !(newBook.audience.children || newBook.audience.youth || newBook.audience.adult)];
+                    newDoc.push(newBook);
+                }
+                // Set the new doc for addition
+                batch.set(doc(db, "books", i.toString().padStart(3, "0")), {
+                    books: newDoc,
+                    order: i
+                });
+            }
+            // Commit all the staged writes
+            batch.commit().then(() => {
+                resolve();
+            });
         });
     });
 }
@@ -751,8 +859,13 @@ export function setupAdminHelp() {
             goToPage("/admin/help/#section" + (index + 1));
         });
     });
-    $("#sections li").each((index, li) => {
+    $("#sections > li").each((index, li) => {
         $(li).attr("id", "section" + (index + 1));
+    });
+    $(".back-to-top").each((index, li) => {
+        $(li).children().on("click", () => {
+            $(document).scrollTop(0);
+        });
     });
 }
 

@@ -180,14 +180,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         return;
     }
 
-    let document = Math.floor(barcodeNumber / 100) % 100;
-    if (document >= 100) {
-        document = "" + document;
-    } else if (document >= 10) {
-        document = "0" + document;
-    } else {
-        document = "00" + document;
-    }
+    let document = (Math.floor(barcodeNumber / 100) % 100).toString().padStart(3, "0");
     getDoc(doc(db, "books/" + document)).then((docSnap) => {
         let data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
 
@@ -1212,14 +1205,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
         // If this is not a new entry, so update the existing entry using the known barcode number
         if (!newEntry) {
             let bookNumber = pageData.barcodeValue - 1171100000;
-            let bookDocument = Math.floor(bookNumber / 100);
-            if (bookDocument >= 100) {
-                bookDocument = "" + bookDocument;
-            } else if (bookDocument >= 10) {
-                bookDocument = "0" + bookDocument;
-            } else {
-                bookDocument = "00" + bookDocument;
-            }
+            let bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
             bookNumber = bookNumber % 100;
 
             // If the book is being deleted, set the deleted value to true
@@ -1295,12 +1281,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         // Let's make sure that there isn't another doc that has been created after this one already.
                         try {
-                            let next = order + 1;
-                            if (next < 10) {
-                                next = "00" + (next);
-                            } else if (next < 100) {
-                                next = "0" + (next);
-                            }
+                            let next = (order + 1).toString().padStart(3, "0");
                             getDoc(doc(db, "books", next)).then((docSnap) => {
                                 if (docSnap.exists()) {
                                     console.error("A new book doc was created, it shouldn't have been, so abort!");
@@ -1316,12 +1297,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         if (numBooksInDoc == 100) {
                             // A new book doc has to be created...
-                            let newNumber = order + 1;
-                            if (newNumber < 10) {
-                                newNumber = "00" + newNumber;
-                            } else if (newNumber < 100) {
-                                newNumber = "0" + newNumber;
-                            }
+                            let newNumber = (order + 1).toString().padStart(3, "0");
                             let barcode = "11711" + newNumber + "00";
 
                             $("#barcode").html(barcode);
@@ -1344,11 +1320,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             });
                         } else {
                             // We don't need to add a new book doc, so just add the book to the existing one.
-                            if (order < 10) {
-                                order = "00" + order;
-                            } else if (order < 100) {
-                                order = "0" + order;
-                            }
+                            order.toString().padStart(3, "0");
 
                             let barcode;
                             if (numBooksInDoc < 10) {

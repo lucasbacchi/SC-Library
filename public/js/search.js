@@ -701,14 +701,7 @@ function scanCheckout() {
                         if ($("#checkout-security-barcode").val() != "") {
                             // At this point, they must have scanned both, so we check it out to them.
                             let bookNumber = barcodeNumber - 1171100000;
-                            let bookDocument = Math.floor(bookNumber / 100);
-                            if (bookDocument >= 100) {
-                                bookDocument = "" + bookDocument;
-                            } else if (bookDocument >= 10) {
-                                bookDocument = "0" + bookDocument;
-                            } else {
-                                bookDocument = "00" + bookDocument;
-                            }
+                            let bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
                             bookNumber = bookNumber % 100;
 
                             let d = new Date(2020);
