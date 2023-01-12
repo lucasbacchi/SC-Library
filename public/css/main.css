@@ -477,11 +477,16 @@ button.save-button {
     bottom: 16px;
 }
 
+.page-hidden {
+    opacity: 0;
+}
+
 .fade {
     -webkit-animation-name: fade;
-    -webkit-animation-duration: 0.5s;
+    -webkit-animation-duration: 0.8s;
     animation-name: fade;
-    animation-duration: 0.5s;
+    animation-duration: 0.8s;
+    transition: opacity 0.8s;
 }
 
 .fade-out {

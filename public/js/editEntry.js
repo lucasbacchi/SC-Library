@@ -1310,7 +1310,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                                 pageData.coverImageLink = results.coverImageLink;*/
 
                                 transaction.set(doc(db, "books", newNumber), {
-                                    books: [pageData],
+                                    books: [pageData.toObject()],
                                     order: order + 1
                                 });
                                 return barcode;
@@ -1339,7 +1339,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                                 pageData.coverImageLink = results.coverImageLink;*/
 
                                 transaction.update(doc(db, "books", order), {
-                                    books: arrayUnion(pageData)
+                                    books: arrayUnion(pageData.toObject())
                                 });
                                 return barcode;
                             }).catch((err) => {

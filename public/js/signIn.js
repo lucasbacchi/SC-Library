@@ -1,9 +1,10 @@
 import { logEvent } from "firebase/analytics";
-import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
+         reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
 import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { findURLValue, sendEmailVerificationToUser } from "./common";
-import { analytics, auth, currentPage, db } from "./globals";
+import { analytics, auth, currentPage, db, User } from "./globals";
 
 /**
  * @description Sets up the sign in page.
@@ -88,7 +89,7 @@ function authRedirect(pageQuery) {
 
         let user = auth.currentUser;
         // Attempt to update the account
-        updateEmail(user, newEmail).then(function() {
+        updateEmail(user, newEmail).then(function () {
             updateDoc(doc(db, "users", user.uid), {
                 email: newEmail
             }).then(() => {
@@ -125,25 +126,36 @@ function signInSubmit(pageQuery = "") {
     } else {
         reAuth = false;
     }
-    if (currentPage == 'login') {
-        signIn(reAuth).then(function() {
-            if (reAuth) {
-                authRedirect(pageQuery);
-            } else {
-                goToPage("");
-            }
-        }).catch(() => {});
-    } else if (currentPage == 'signup') {
-        handleSignUp().then(function() {
-            if (reAuth) {
-                authRedirect(pageQuery);
-            } else {
-                goToPage("");
-            }
-        }).catch(() => {
-            console.warn("Signup failed (likely because the user failed validation)");
-        });
+    let persistancePromise;
+    if (!reAuth) {
+        // Sets the persistance state in Firebase
+        let persistance = $("#remember-me").prop("checked");
+        if (persistance) {
+            persistancePromise = setPersistence(auth, browserLocalPersistence);
+        } else {
+            persistancePromise = setPersistence(auth, browserSessionPersistence);
+        }
+    } else {
+        // If this is a reauthentication, we don't need to change the persistance state
+        persistancePromise = Promise.resolve();
     }
+    persistancePromise.then(() => {
+        let authPromise;
+        if (currentPage == 'login') {
+            authPromise = signIn(reAuth);
+        } else if (currentPage == 'signup') {
+            authPromise = handleSignUp();
+        }
+        authPromise.then(() => {
+            if (reAuth) {
+                authRedirect(pageQuery);
+            } else {
+                goToPage("");
+            }
+        }).catch((error) => {
+            console.error(error);
+        });
+    });
 }
 
 /**
@@ -151,7 +163,7 @@ function signInSubmit(pageQuery = "") {
  * @param {Boolean} reAuth Whether or not this is a reauthentication.
  */
 function signIn(reAuth = false) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         let user = auth.currentUser;
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
@@ -169,7 +181,7 @@ function signIn(reAuth = false) {
                 reject();
             }
             if (!reAuth) {
-                // Sign in with email and pass.
+                // Sign in with email and password
                 signInWithEmailAndPassword(auth, email, password).then(() => {
                     user = auth.currentUser;
                     logEvent(analytics, "login", {
@@ -177,7 +189,7 @@ function signIn(reAuth = false) {
                         userId: user.uid
                     });
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     // Handle Errors here.
                     let errorCode = error.code;
                     let errorMessage = error.message;
@@ -194,10 +206,10 @@ function signIn(reAuth = false) {
             } else {
                 // Reauthenticate
                 const credential = EmailAuthProvider.credential(email, password);
-                reauthenticateWithCredential(user, credential).then(function() {
+                reauthenticateWithCredential(user, credential).then(function () {
                     // User re-authenticated.
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     // An error happened.
                     let errorCode = error.code;
                     let errorMessage = error.message;
@@ -284,7 +296,7 @@ function handleSignUp() {
         }
         let signUpError = false;
         // Create user with email and pass, then logs them in.
-        createUserWithEmailAndPassword(auth, email, password).catch(function(error) {
+        createUserWithEmailAndPassword(auth, email, password).catch(function (error) {
             // Handle Errors here.
             signUpError = true;
             let errorCode = error.code;
@@ -298,9 +310,10 @@ function handleSignUp() {
             }
             console.error(error);
             reject();
-        }).then(function() {
+        }).then(function () {
             if (!signUpError) {
                 let user = auth.currentUser;
+                let userObject;
                 // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
                 runTransaction(db, (transaction) => {
                     let cloudVarsPath = doc(db, "config/writable_vars");
@@ -311,23 +324,12 @@ function handleSignUp() {
                         }
                         // Save the max value and incriment it by one.
                         let newCardNumber = docSnap.data().maxCardNumber + 1;
-                        let dateCreated = new Date();
+                        // Create a new user object
+                        userObject = new User(newCardNumber, firstName, lastName, email, phone,
+                            address + ", " + town + ", " + state + " " + zip, null, null, new Date(), null,
+                            new Date(), user.uid, false, false, false, new Date(), true);
                         // Set the document to exist in the users path
-                        transaction.set(doc(db, "users", user.uid), {
-                            firstName: firstName,
-                            lastName: lastName,
-                            address: address + ", " + town + ", " + state + " " + zip,
-                            phone: phone,
-                            email: email,
-                            cardNumber: newCardNumber,
-                            pfpLink: null,
-                            pfpIconLink: null,
-                            checkouts: [],
-                            notificationsOn: true,
-                            dateCreated: dateCreated,
-                            lastSignIn: dateCreated,
-                            lastCheckoutTime: null
-                        });
+                        transaction.set(doc(db, "users", user.uid), userObject.toObject());
                         // Update the cloud variable to contain the next card number value
                         transaction.update(cloudVarsPath, {
                             maxCardNumber: newCardNumber
@@ -341,13 +343,7 @@ function handleSignUp() {
                     sendEmailVerificationToUser();
                     logEvent(analytics, "sign_up", {
                         method: "email",
-                        userId: user.uid,
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: email,
-                        phone: phone,
-                        address: address + ", " + town + ", " + state + " " + zip,
-                        cardNumber: newCardNumber
+                        userObject: userObject
                     });
                     resolve();
                 }).catch((err) => {
@@ -364,13 +360,13 @@ function handleSignUp() {
  */
 function sendPasswordReset() {
     let email = document.getElementById('email').value;
-    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')){
+    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')) {
         alert("Please enter a valid email into the Email box above. Then try again.");
         return;
     }
-    sendPasswordResetEmail(auth, email).then(function() {
+    sendPasswordResetEmail(auth, email).then(function () {
         alert('Password Reset Email Sent!');
-    }).catch(function(error) {
+    }).catch(function (error) {
         // Handle Errors here.
         let errorCode = error.code;
         let errorMessage = error.message;

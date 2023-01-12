@@ -686,10 +686,10 @@ function buildUserBox(obj, page, num = 0) {
         dateCreated.classList.add("subjects");
         dateCreated.appendChild(document.createTextNode("Date Created: " + formatDate(obj.dateCreated)));
         div3.appendChild(dateCreated);
-        const lastSignIn = document.createElement("p");
-        lastSignIn.classList.add("subjects");
-        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignIn)));
-        div3.appendChild(lastSignIn);
+        const lastSignInTime = document.createElement("p");
+        lastSignInTime.classList.add("subjects");
+        lastSignInTime.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignInTime)));
+        div3.appendChild(lastSignInTime);
         const lastCheckoutTime = document.createElement("p");
         lastCheckoutTime.classList.add("subjects");
         lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + formatDate(obj.lastCheckoutTime)));
