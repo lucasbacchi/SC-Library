@@ -743,6 +743,30 @@ export class User {
             console.warn("tried to pass a User object into User.createFromObject");
             return jsonObject;
         }
+        if (jsonObject.dateCreated) {
+            if (jsonObject.dateCreated.seconds)
+                jsonObject.dateCreated = new Date(jsonObject.dateCreated.seconds * 1000);
+            else
+                jsonObject.dateCreated = new Date(jsonObject.dateCreated);
+        }
+        if (jsonObject.lastCheckoutTime) {
+            if (jsonObject.lastCheckoutTime.seconds)
+                jsonObject.lastCheckoutTime = new Date(jsonObject.lastCheckoutTime.seconds * 1000);
+            else
+                jsonObject.lastCheckoutTime = new Date(jsonObject.lastCheckoutTime);
+        }
+        if (jsonObject.lastSignInTime) {
+            if (jsonObject.lastSignInTime.seconds)
+                jsonObject.lastSignInTime = new Date(jsonObject.lastSignInTime.seconds * 1000);
+            else
+                jsonObject.lastSignInTime = new Date(jsonObject.lastSignInTime);
+        }
+        if (jsonObject.lastUpdated) {
+            if (jsonObject.lastUpdated.seconds)
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
+            else
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated);
+        }
         return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.email,
             jsonObject.phone, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
             jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid,
