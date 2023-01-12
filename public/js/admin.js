@@ -696,11 +696,8 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(lastCheckoutTime);
         const checkouts = document.createElement("p");
         checkouts.classList.add("description");
-        if (obj.checkouts.length > 0) {
-            checkouts.appendChild(document.createTextNode("Last Checked Out Book: " + obj.checkouts[0].title + " (Barcode: " + obj.checkouts[0].barcodeNumber + ")"));
-        } else {
-            checkouts.appendChild(document.createTextNode("Last Checked Out Book: N/A"));
-        }
+        // TODO: Implement this.
+        checkouts.appendChild(document.createTextNode("Last Checked Out Book: Not Implemented Yet"));
         div3.appendChild(checkouts);
     }
     return div;

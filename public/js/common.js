@@ -151,7 +151,7 @@ function performSearch(searchQuery, viewHidden = false) {
             });
 
             let returnArray = [];
-            console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
+            // console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
                 if (item.score < 1) { return; }
                 if (isNaN(item.score)) {
