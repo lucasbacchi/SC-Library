@@ -224,6 +224,7 @@ function setupAccountSecurity() {
  * @returns {Array<Book>} The user's checked out history.
  */
 function getCheckouts() {
+    // TODO: Get the user's checked out books from the database
     return [];
 }
 

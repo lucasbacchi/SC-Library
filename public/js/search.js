@@ -2,7 +2,7 @@
 import { changePageTitle, goToPage } from './ajax';
 import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
 import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 // Doesn't have to be setup because the window element doesn't change.
@@ -680,6 +680,10 @@ function cancelCheckout() {
  *              Then it uploads the checkout event to the database.
  */
 function scanCheckout() {
+    // TODO: Delete after implementing
+    alert("This feature is not yet implemented.");
+    return;
+    /*
     $("#checkout-next-button").hide();
     $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
     $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
@@ -753,6 +757,7 @@ function scanCheckout() {
             }
         }
     });
+    */
 }
 
 /**
