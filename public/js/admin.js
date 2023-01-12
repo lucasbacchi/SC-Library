@@ -448,8 +448,11 @@ function uploadDatabase() {
  * @returns {Promise<File>} A promise that resolves to the file that the user selected.
  */
 function importFile(event) {
-    return new Promise(function (resolve) {
-        resolve(event.target.files[0]);
+    return new Promise(function (resolve, reject) {
+        if (event.target.files[0])
+            resolve(event.target.files[0]);
+        else
+            reject();
     });
 }
 
@@ -486,6 +489,8 @@ function setUploadDatabase(event) {
                 alert("Something went wrong. Please check the file you are trying to import.");
             }
         });
+    }).catch(() => {
+        console.log("The user did not upload a valid file.");
     });
 }
 
@@ -554,22 +559,22 @@ function importDatabase(database) {
                 for (let j = 0; j < database[i].length; j++) {
                     let newBook = database[i][j].toObject();
                     // temporarily renaming things to old scheme
-                    for (let k = 0; k < 2; k++) {
-                        if (newBook.authors[k]) {
-                            newBook.authors[k] = {
-                                first: newBook.authors[k].firstName,
-                                last: newBook.authors[k].lastName
-                            };
-                        }
-                        if (newBook.illustrators[k]) {
-                            newBook.illustrators[k] = {
-                                first: newBook.illustrators[k].firstName,
-                                last: newBook.illustrators[k].lastName
-                            };
-                        }
-                    }
-                    newBook.audience = [newBook.audience.children, newBook.audience.youth, newBook.audience.adult,
-                        !(newBook.audience.children || newBook.audience.youth || newBook.audience.adult)];
+                    // for (let k = 0; k < 2; k++) {
+                    //     if (newBook.authors[k]) {
+                    //         newBook.authors[k] = {
+                    //             first: newBook.authors[k].firstName,
+                    //             last: newBook.authors[k].lastName
+                    //         };
+                    //     }
+                    //     if (newBook.illustrators[k]) {
+                    //         newBook.illustrators[k] = {
+                    //             first: newBook.illustrators[k].firstName,
+                    //             last: newBook.illustrators[k].lastName
+                    //         };
+                    //     }
+                    // }
+                    // newBook.audience = [newBook.audience.children, newBook.audience.youth, newBook.audience.adult,
+                    //     !(newBook.audience.children || newBook.audience.youth || newBook.audience.adult)];
                     newDoc.push(newBook);
                 }
                 // Set the new doc for addition

@@ -478,13 +478,22 @@ export class Book {
             }
         }
         if (jsonObject.publishDate) {
-            jsonObject.publishDate = new Date(jsonObject.publishDate.seconds * 1000);
+            if (jsonObject.publishDate.seconds)
+                jsonObject.publishDate = new Date(jsonObject.publishDate.seconds * 1000);
+            else
+                jsonObject.publishDate = new Date(jsonObject.publishDate);
         }
         if (jsonObject.purchaseDate) {
-            jsonObject.purchaseDate = new Date(jsonObject.purchaseDate.seconds * 1000);
+            if (jsonObject.purchaseDate.seconds)
+                jsonObject.purchaseDate = new Date(jsonObject.purchaseDate.seconds * 1000);
+            else
+                jsonObject.purchaseDate = new Date(jsonObject.purchaseDate);
         }
         if (jsonObject.lastUpdated) {
-            jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
+            if (jsonObject.lastUpdated.seconds)
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
+            else
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated);
         }
         return new Book(jsonObject.barcodeNumber, jsonObject.title, jsonObject.subtitle, authors, illustrators,
             jsonObject.medium, jsonObject.coverImageLink, jsonObject.thumbnailImageLink,
