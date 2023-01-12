@@ -820,8 +820,8 @@ function searchWithFilters(filters, items) {
                     }
                 } else if (filters[j] == "Type") {
                     if (passesFilter ||
-                        items[j][k] == "Non-fiction" && searchCache[i].ddc == "FIC" ||
-                        items[j][k] == "Fiction" && searchCache[i].ddc != "FIC") {
+                        items[j][k] == "Non-fiction" && searchCache[i].ddc != "FIC" ||
+                        items[j][k] == "Fiction" && searchCache[i].ddc == "FIC") {
                         passesFilter = true;
                     }
                 }
