@@ -765,7 +765,7 @@ function initApp() {
 
                     let date = new Date();
                     updateDoc(doc(db, "users", user.uid), {
-                        lastSignIn: date
+                        lastSignInTime: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
                         if (error) console.warn(error);
