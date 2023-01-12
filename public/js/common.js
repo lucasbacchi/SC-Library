@@ -41,6 +41,9 @@ export function search(searchQuery, viewHidden = false) {
                 });
                 performSearch(searchQuery, viewHidden).then((output) => {
                     resolve(output);
+                }).catch((error) => {
+                    console.error("Search function failed to perform search", error);
+                    reject();
                 });
             }).catch((error) => {
                 console.error("Search function failed to query the database", error);
@@ -50,6 +53,9 @@ export function search(searchQuery, viewHidden = false) {
             // The bookDatabase cache is recent enough, just use that
             performSearch(searchQuery, viewHidden).then((output) => {
                 resolve(output);
+            }).catch((error) => {
+                console.error("Search function failed to perform search", error);
+                reject();
             });
         }
     });

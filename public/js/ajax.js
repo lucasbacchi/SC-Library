@@ -96,7 +96,7 @@ function setupIndex() {
         // If the click is not contained in the account panel or is the event panel itself
         // and isn't the small account container (Which will toggle itself), close it
         if ((!($.contains($("#large-account-container")[0], event.target) ||
-            event.target == $("#large-account-container")[0])) && !($.contains($("#small-account-container")[0], event.target))) {
+            event.target == $("#large-account-container")[0])) && (!($.contains($("#small-account-container")[0], event.target) || event.target == $("#small-account-container")[0]))) {
             closeLargeAccount();
         }
 
@@ -267,8 +267,15 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 
             if (cancelEvent) {
                 reject("Cancelled by BeforeUnload Event");
+                $("#content").removeClass("page-hidden");
                 return;
             }
+        }
+
+        // Temporarily hide the content while the page is loading
+        // Don't hide the content if the user is going between two account pages.
+        if (currentPage && !(currentPage.includes("account") && pageName.includes("account"))) {
+            $("#content").addClass("page-hidden");
         }
 
         // Prevent the user from visiting admin pages if they are not an admin
@@ -609,15 +616,14 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
                 console.error("Problem importing", error);
             });
         }
-
-        setCurrentPage(pageName);
-        setCurrentQuery(pageQuery);
-        setCurrentHash(pageHash);
     }).then(() => {
         // Page Content has now Loaded and setup is done
         // Start fading the page in
         if (currentPage != pageName) {
-            $("#content").addClass("fade");
+            window.setTimeout(() => {
+                $("#content").removeClass("page-hidden");
+                $("#content").addClass("fade");
+            }, 200);
         }
 
         // Scroll to a specific part of the page if needed
@@ -629,6 +635,10 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
                 $(document).scrollTop(0); // Could change later if we don't like this behavior
             }
         }
+
+        setCurrentPage(pageName);
+        setCurrentQuery(pageQuery);
+        setCurrentHash(pageHash);
     });
 }
 
@@ -795,7 +805,10 @@ function sendToFirebase({ name, delta, entries }) {
     };
 
     const startTime = Date.now();
-    const value = Math.round(name === 'CLS' ? delta * 1000 : delta);
+    let value = Math.round(name === 'CLS' ? delta * 1000 : delta);
+    if (value == 0) {
+        value = 1;
+    }
 
     entries.forEach(() => {
         trace(performance, metricNameMap[name]).record(
