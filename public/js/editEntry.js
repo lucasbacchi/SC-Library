@@ -1638,14 +1638,15 @@ function toggleDeletePopup() {
  */
 function deleteEntry() {
     // Prevent the user from clicking the "Delete" button again
-    $("#delete-entry")[0].disabled = true;
+    $("#delete-alert").hide();
+    $("#delete-alert-overlay").hide();
     // Start the loading overlay
-    $("#loading-overlay").show();
+    $("#delete-loading-overlay").show();
     // If an error occurs somewhere in this process, tell the user after 10 seconds
     loadingTimer = window.setTimeout(() => {
         $("#edit-entry-save")[0].disabled = false;
         alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
-        $("#loading-overlay").hide();
+        $("#delete-loading-overlay").hide();
     }, 10000);
     storeData(true, true);
 }

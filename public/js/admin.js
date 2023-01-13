@@ -1,6 +1,6 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -25,10 +25,6 @@ export function setupAdminMain() {
 
     $("#add-entry-without-isbn").on("click", () => {
         addEntryWithoutISBN();
-    });
-
-    $("#add-entry-with-specific-barcode-number-button").on("click", () => {
-        addEntryWithSpecificBarcodeNumber();
     });
 
     $("#circulation-report-link").on("click", () => {
@@ -116,37 +112,6 @@ function addEntry() {
  */
 function addEntryWithoutISBN() {
     goToPage("admin/editEntry?new=true");
-}
-
-/**
- * @description Called when the user adds an entry with a specific barcode number.
- */
-// TODO: Remove this function once the system rework is complete.
-function addEntryWithSpecificBarcodeNumber() {
-    let isbn = $("#add-entry-isbn").val();
-    let check = verifyISBN(isbn);
-    if (!check && isbn != "") {
-        alert("The number you entered is not a valid ISBN Number.");
-        return;
-    }
-    let specificBarcode = $("#add-entry-with-specific-barcode-number").val();
-    getBookFromBarcode(specificBarcode).then((book) => {
-        if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
-            const a = document.createElement("a");
-            if (isbn == "") {
-                a.href = "/admin/editEntry?new=true&id=" + encodeURI(specificBarcode);
-            } else {
-                a.href = "/admin/editEntry?new=true&isbn=" + encodeURI(isbn) + "&id=" + encodeURI(specificBarcode);
-            }
-            a.innerHTML = "Click here to overwrite the barcode above.";
-            $("#add-entry")[0].appendChild(a);
-        } else {
-            alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
-            return;
-        }
-    }).catch((barcodeNumber) => {
-        alert("Could not find a valid book at: " + barcodeNumber);
-    });
 }
 
 /**
