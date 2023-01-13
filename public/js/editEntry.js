@@ -876,7 +876,8 @@ function getBookDataFromPage() {
     let publishMonthValue = $("#book-publish-month").val();
     let publishDayValue = $("#book-publish-day").val();
     if (!isValidDate(publishYearValue, publishMonthValue, publishDayValue)) {
-        console.warn("Invalid publish date: " + publishYearValue + "-" + publishMonthValue + "-" + publishDayValue);
+        if (publishYearValue != "")
+            console.warn("Invalid publish date: " + publishYearValue + "-" + publishMonthValue + "-" + publishDayValue);
     } else if (publishMonthValue != "" && publishDayValue != "") {
         publishDate = new Date(publishYearValue, publishMonthValue-1, publishDayValue);
     } else if (publishMonthValue != "") {
@@ -893,6 +894,7 @@ function getBookDataFromPage() {
     let purchaseMonthValue = $("#book-purchase-month").val();
     let purchaseDayValue = $("#book-purchase-day").val();
     if (!isValidDate(purchaseYearValue, purchaseMonthValue, purchaseDayValue)) {
+        if (purchaseYearValue != "")
         console.warn("Invalid purchase date: " + purchaseYearValue + "-" + purchaseMonthValue + "-" + purchaseDayValue);
     } else if (purchaseMonthValue != "" && purchaseDayValue != "") {
         purchaseDate = new Date(purchaseYearValue, purchaseMonthValue-1, purchaseDayValue);
@@ -1066,7 +1068,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (pageData.publishDate && pageData.publishDate instanceof Date && pageData.medium != "av") {
+        if (!(pageData.publishDate && pageData.publishDate instanceof Date) && pageData.medium != "av") {
             alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1092,7 +1094,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (!unNumbered && (isNaN(pageData.numPages) || pageData.numPages < 1)) {
+        if (!unNumbered && (isNaN(pageData.numberOfPages) || pageData.numberOfPages < 1)) {
             alert("Please enter a valid number of pages!");
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1116,7 +1118,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (pageData.purchaseDate && pageData.purchaseDate instanceof Date) {
+        if (pageData.purchaseDate && !(pageData.purchaseDate instanceof Date)) {
             alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-purchase-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1178,10 +1180,16 @@ function isValidDate(y, m, d) {
     if (m == "" && d != "") return false;
     if ((month > 11 || month < 0) && m != "") return false;
     if ((day > 31 || day < 1) && d != "") return false;
-    if (day == 31 & (month == 3 || month == 5 || month == 8 || month == 10)) return false;
+    if (day == 31 && (month == 3 || month == 5 || month == 8 || month == 10)) return false;
     if (month == 1 && day > 29) return false;
     if ((year % 4 != 0 || (year % 100 == 0 && year % 400 != 0)) && month == 1 && day == 29) return false;
-    let date = new Date(year, month, day);
+    let date;
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day))
+    date = new Date(year, month, day);
+    else if (!isNaN(year) && !isNaN(month))
+    date = new Date(year, month);
+    else
+    date = new Date(year);
     if (date.getTime() > Date.now()) return false;
     let founded = new Date(1711, 9, 17);
     if (date.getTime() < founded.getTime()) return false;
@@ -1204,7 +1212,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
         // If this is not a new entry, so update the existing entry using the known barcode number
         if (!newEntry) {
-            let bookNumber = pageData.barcodeValue - 1171100000;
+            let bookNumber = pageData.barcodeNumber - 1171100000;
             let bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
             bookNumber = bookNumber % 100;
 
@@ -1216,20 +1224,18 @@ function storeData(isDeletedValue = false, skipImages = false) {
             }
 
             // Updates the book with the information
-            return runTransaction(db, (transaction) => {
+            runTransaction(db, (transaction) => {
                 let path = doc(booksPath, bookDocument);
                 return transaction.get(path).then((docSnap) => {
                     if (!docSnap.exists()) {
-                        console.error("There was a large problem because the books doc doesn't exist anymore...");
-                        reject();
-                        return;
+                        throw "There was a large problem because the books doc doesn't exist anymore...";
                     }
 
                     // Get the existing list of books
                     let existingBooks = docSnap.data().books;
 
                     // Update the array with the new book information.
-                    existingBooks[bookNumber] = pageData;
+                    existingBooks[bookNumber] = pageData.toObject();
 
                     // If we are skipping the images, then just update the book and return
                     if (skipImages) {
@@ -1245,8 +1251,6 @@ function storeData(isDeletedValue = false, skipImages = false) {
                         transaction.update(doc(booksPath, bookDocument), {
                             books: existingBooks
                         });
-                    }).catch((error) => {
-                        reject(error);
                     });
                 });
             }).then(() => {
@@ -1260,7 +1264,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
             // Create a new entry from scratch and get a new barcode number
             // Run a Transaction to ensure that the correct barcode is used.
             // First, get the highest barcode number by loading the largest book document.
-            getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
+            return getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
                 let topDoc;
                 querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
@@ -1270,7 +1274,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                 });
 
                 // Now that we have the highest document, we can get that document and create a new book within it.
-                runTransaction(db, (transaction) => {
+                return runTransaction(db, (transaction) => {
                     return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
                         if (!docSnap.exists()) {
                             throw "Document does not exist!";
@@ -1301,14 +1305,9 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             let barcode = "11711" + newNumber + "00";
 
                             $("#barcode").html(barcode);
-                            getBookDataFromPage();
+                            pageData = getBookDataFromPage();
 
-                            processImages(barcode).then((/*results*/) => {
-                                /* this shouldn't be needed since the images now the image links are created by the Book Class
-                                pageData.iconImageLink = results.iconImageLink;
-                                pageData.thumbnailImageLink = results.thumbnailImageLink;
-                                pageData.coverImageLink = results.coverImageLink;*/
-
+                            return processImages(barcode).then(() => {
                                 transaction.set(doc(db, "books", newNumber), {
                                     books: [pageData.toObject()],
                                     order: order + 1
@@ -1316,11 +1315,11 @@ function storeData(isDeletedValue = false, skipImages = false) {
                                 return barcode;
                             }).catch((err) => {
                                 console.error("Error processing images: ", err);
-                                reject();
+                                reject(err);
                             });
                         } else {
                             // We don't need to add a new book doc, so just add the book to the existing one.
-                            order.toString().padStart(3, "0");
+                            order = order.toString().padStart(3, "0");
 
                             let barcode;
                             if (numBooksInDoc < 10) {
@@ -1330,48 +1329,42 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             }
 
                             $("#barcode").html(barcode);
-                            getBookDataFromPage();
+                            pageData = getBookDataFromPage();
 
-                            processImages(barcode).then((/*results*/) => {
-                                /* this shouldn't be needed since the images now the image links are created by the Book Class
-                                pageData.iconImageLink = results.iconImageLink;
-                                pageData.thumbnailImageLink = results.thumbnailImageLink;
-                                pageData.coverImageLink = results.coverImageLink;*/
-
+                            return processImages(barcode).then(() => {
                                 transaction.update(doc(db, "books", order), {
                                     books: arrayUnion(pageData.toObject())
                                 });
                                 return barcode;
                             }).catch((err) => {
                                 console.error("Error processing images: ", err);
-                                reject();
+                                reject(err);
                             });
                         }
                     });
                 }).then((newBarcode) => {
                     // After both writes complete, send the user to the edit page and take it from there.
-                    console.log("New Entry Created with barcode: " + newBarcode);
-                    alert("New book created successfully. Please take note of your new barcode number: " + newBarcode);
-                    resolve(newBarcode);
+                    if (newBarcode) {
+                        console.log("New Entry Created with barcode: " + newBarcode);
+                        alert("New book created successfully. Please take note of your new barcode number: " + newBarcode);
+                        resolve(newBarcode);
+                    } else {
+                        reject("No barcode was returned from the transaction.");
+                    }
                 });
-            }).catch((err) => {
-                console.error(err);
-                reject(err);
             });
         }
     }).then(() => {
-        $("#loading-overlay").hide();
+        $(window).off("beforeunload");
         alert("Edits were made successfully");
         setTimeLastSearched(null);
-        clearTimeout(loadingTimer);
-        $(window).off("beforeunload");
         goToPage('admin/main');
-    }).catch((error) => {
+    }).catch(() => {
         alert("An error has occurred, but we couldn't identify the problem. Your changes have not been saved.");
-        console.error(error);
+    }).finally(() => {
         $("#loading-overlay").hide();
         clearTimeout(loadingTimer);
-        $(window).off("beforeunload");
+        $("#edit-entry-save")[0].disabled = false;
     });
 }
 
@@ -1406,16 +1399,14 @@ function processImages(barcodeNumber) {
                 reject(error);
             });
         }).catch((error) => {
+            alert("There was an error uploading the images for this book. Your changes have not been saved.");
+            alert(error);
+            console.error(error);
+            window.clearTimeout(loadingTimer);
+            $("#edit-entry-save")[0].disabled = false;
+            $("#loading-overlay").hide();
             reject(error);
         });
-    }).catch((error) => {
-        alert("There was an error uploading the images for this book. Your changes have not been saved.");
-        alert(error);
-        console.error(error);
-        window.clearTimeout(loadingTimer);
-        $("#edit-entry-save")[0].disabled = false;
-        $("#loading-overlay").hide();
-        return;
     });
 }
 
@@ -1502,8 +1493,7 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
         }
 
         if (isNaN(barcodeNumber) || barcodeNumber.toString().substring(0, 5) != "11711" || barcodeNumber.toString().length != 10) {
-            alert("There was a problem saving that image.");
-            reject(false);
+            reject("Invalid barcode number");
             return;
         }
 
