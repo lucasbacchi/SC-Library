@@ -214,7 +214,7 @@ function createBarcode(multiple = false) {
         input = document.getElementById("barcode-single-input").value;
         input = "11711" + input;
         currentBarcode = parseInt(input);
-        if (input.length != 10 || input.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input)) {
             alert("That barcode is not valid");
             return;
         }
@@ -224,11 +224,11 @@ function createBarcode(multiple = false) {
         input1 = "11711" + input1;
         input2 = document.getElementById("barcode-multiple-input-end").value;
         input2 = "11711" + input2;
-        if (input1.length != 10 || input1.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input1)) {
             alert("The starting barcode is not valid");
             return;
         }
-        if (input2.length != 10 || input2.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input2)) {
             alert("The ending barcode is not valid");
             return;
         }
