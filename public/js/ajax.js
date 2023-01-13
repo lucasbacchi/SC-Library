@@ -176,11 +176,7 @@ export function isAdminCheck(recheck = false) {
                 resolve(false);
             });
         } else {
-            if (isAdmin) {
-                resolve(true);
-            } else {
-                resolve(false);
-            }
+            resolve(isAdmin);
         }
     });
 }

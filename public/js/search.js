@@ -814,9 +814,9 @@ function searchWithFilters(filters, items) {
                     }
                 } else if (filters[j] == "Audience") {
                     if (passesFilter ||
-                        items[j][k] == "Children" && searchCache[i].audience[0] ||
-                        items[j][k] == "Youth" && searchCache[i].audience[1] ||
-                        items[j][k] == "Adult" && searchCache[i].audience[2]) {
+                        items[j][k] == "Children" && searchCache[i].audience.children ||
+                        items[j][k] == "Youth" && searchCache[i].audience.youth ||
+                        items[j][k] == "Adult" && searchCache[i].audience.adult) {
                         passesFilter = true;
                     }
                 } else if (filters[j] == "Subject") {
