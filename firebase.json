@@ -28,9 +28,14 @@
       }
     ]
   },
-  "storage": {
-    "rules": "storage.rules"
+  "storage": [{
+    "rules": "storage.rules",
+    "bucket": "south-church-library.appspot.com"
   },
+  {
+    "rules": "public-storage.rules",
+    "bucket": "south-church-library"
+  }],
   "emulators": {
     "auth": {
       "port": 9099
