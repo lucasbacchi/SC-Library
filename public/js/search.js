@@ -481,7 +481,11 @@ export function setupResultPage(pageQuery) {
             callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
-        callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
+        if (bookObject.authors.length != 0) {
+            callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
+        } else {
+            callNumberAnswer += "<br>" + bookObject.title.toUpperCase().substring(0, 3);
+        }
         $("#result-page-call-number").html(callNumberAnswer);
         let mediumAnswer = "";
         if (bookObject.medium == "paperback") {
@@ -592,7 +596,7 @@ export function setupResultPage(pageQuery) {
             });
             $("#result-page-author").html(authorAnswer);
         } else {
-            if (bookObject.authors[0].firstName == "" && bookObject.authors[0].lastName == "") {
+            if (bookObject.authors.length == 0 || (bookObject.authors[0].firstName == "" && bookObject.authors[0].lastName == "")) {
                 $("#result-page-author").html("None");
             } else {
                 $("#result-page-author").html(bookObject.authors[0].lastName + ", " + bookObject.authors[0].firstName);

@@ -946,7 +946,7 @@ function validateEntry() {
             resolve(false);
             return;
         }
-        if (pageData.authors[0].lastName == "" && pageData.authors[0].firstName == "" && pageData.medium != "av") {
+        if (pageData.medium != "av" && pageData.authors[0].lastName == "" && pageData.authors[0].firstName == "") {
             alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
             let rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
@@ -1206,6 +1206,9 @@ function storeData(isDeletedValue = false, skipImages = false) {
     return new Promise(function(resolve, reject) {
         // Gets the values of all the input elements
         let pageData = getBookDataFromPage();
+        if (pageData.medium == "av") {
+            skipImages = true;
+        }
 
         // Defines the paths of the the database collection
         let booksPath = collection(db, "books");
@@ -1307,6 +1310,14 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             $("#barcode").html(barcode);
                             pageData = getBookDataFromPage();
 
+                            if (skipImages) {
+                                transaction.set(doc(db, "books", newNumber), {
+                                    books: [pageData.toObject()],
+                                    order: order + 1
+                                });
+                                return barcode;
+                            }
+
                             return processImages(barcode).then(() => {
                                 transaction.set(doc(db, "books", newNumber), {
                                     books: [pageData.toObject()],
@@ -1330,6 +1341,13 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                             $("#barcode").html(barcode);
                             pageData = getBookDataFromPage();
+
+                            if (skipImages) {
+                                transaction.update(doc(db, "books", order), {
+                                    books: arrayUnion(pageData.toObject())
+                                });
+                                return barcode;
+                            }
 
                             return processImages(barcode).then(() => {
                                 transaction.update(doc(db, "books", order), {
