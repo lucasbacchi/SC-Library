@@ -22,3 +22,4 @@ updates:
     # Add reviewers
     reviewers:
       - "FunMan22"
+    target-branch: "dev"
