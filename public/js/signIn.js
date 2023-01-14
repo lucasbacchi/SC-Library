@@ -259,17 +259,17 @@ function handleSignUp() {
             reject();
             return;
         }
-        if (phone < 10) {
+        if (!/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(phone)) {
             alert('Please enter a valid phone number');
             reject();
             return;
         }
-        if (address < 6) {
+        if (address.length < 6) {
             alert('Please enter a valid address');
             reject();
             return;
         }
-        if (town < 3) {
+        if (town.length < 3) {
             alert('Please enter a valid address');
             reject();
             return;

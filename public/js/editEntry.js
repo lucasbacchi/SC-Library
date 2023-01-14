@@ -2,7 +2,7 @@ import { goToPage } from "./ajax";
 import { findURLValue, switchISBNformats, verifyISBN } from "./common";
 import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
-import { deleteObject, getDownloadURL, getStorage, list, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
 
 
 var newEntry = null;
@@ -1254,11 +1254,11 @@ function storeData(isDeletedValue = false, skipImages = false) {
                         transaction.update(doc(booksPath, bookDocument), {
                             books: existingBooks
                         });
+                        resolve();
                     });
                 });
             }).then(() => {
                 console.log("Transaction completed successfully");
-                resolve();
             }).catch((error) => {
                 console.error("Error updating book with transaction: ", error);
                 reject(error);
@@ -1404,12 +1404,8 @@ function processImages(barcodeNumber) {
                 promises[1] = uploadImageToStorage(barcodeNumber, "thumbnail", fileReturn);
                 promises[2] = uploadImageToStorage(barcodeNumber, "icon", fileReturn);
 
-                Promise.all(promises).then((values) => {
-                    if (!Array.isArray(values) || !values[0] || !values[1] || !values[2]) {
-                        reject("Not all images were uploaded successfully");
-                        return;
-                    }
-                    resolve(values);
+                Promise.all(promises).then(() => {
+                    resolve();
                 }).catch((error) => {
                     reject(error);
                 });
@@ -1450,7 +1446,7 @@ function getImage() {
             xhr.onload = function() {
                 if (this.status == 200) {
                     if (this.responseURL.substring(0, 5) != "https") {
-                        alert("This image was not able to be saved securely. Please download it from the interent, re-upload it on the edit entry page, and try again.");
+                        alert("This image was not able to be saved securely. Please download it from the internet, re-upload it on the edit entry page, and try again.");
                         reject("Insecure Image URL");
                     }
                     file = this.response;
@@ -1563,14 +1559,8 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
 
                 uploadBytes(bookSpecificRef, file, {contentType: 'image/jpeg'}).then(() => {
                     console.log('Uploaded the file!');
-                    getDownloadURL(bookSpecificRef).then((url) => {
-                        $("#" + type + "-canvas")[0].remove();
-                        resolve(url);
-                    }).catch(function(error) {
-                        alert("ERROR: There was a problem storing the book cover image. Your book information has not been saved.");
-                        console.error(error);
-                        reject();
-                    });
+                    $("#" + type + "-canvas")[0].remove();
+                    resolve();
                 });
             }, "image/jpeg");
         };
