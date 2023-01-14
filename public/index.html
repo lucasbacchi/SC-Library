@@ -62,6 +62,13 @@
     <div id="cover"
         style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">
     </div>
+
+    <div id="logout-overlay" style="display: none; opacity: 0;">
+        <div id="logout-overlay-box" style="width: 40%;">
+            <h3 style="text-align: center; margin: 0; padding: 8px;">It appears you are inactive.</h3>
+            <p style="padding: 8px;">To protect your account, you will be logged out in <span id="logout-time-remaining">5:00</span> unless you interact with the page.</p>
+        </div>
+    </div>
     <!-- Required to make sure the footer doesn't overlay on other content. -->
     <div id="footer-spacer" style="clear: both; height: 200px;"></div>
     <footer>

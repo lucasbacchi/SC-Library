@@ -110,6 +110,23 @@ function setupIndex() {
             $("header").css("box-shadow", "");
         }
     });
+
+    // Sets event listeners for the logout timer
+    $(window).on("mousemove", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("keypress", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("click", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("scroll", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("touchmove", () => {
+        resetLogoutTimer(); // This is for mobile
+    });
 }
 
 /**
@@ -303,21 +320,8 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             // At this point, we have decided that we are going to a new page that doesn't require admin access
             getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
                 // Run the setup function for whichever page has loaded.
-                let pageSetupPromise = pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery);
-
-                // Recheck the admin status if needed and then add the admin link if appropriate.
-                let isAdminCheckPromise = isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
-                    console.error(error);
-                }).then((result) => {
-                    if (result && $("#admin-link").html() == "") {
-                        $("#admin-link").html("Admin Dashboard");
-                    }
-                });
-
-                Promise.all([pageSetupPromise, isAdminCheckPromise]).then(() => {
+                pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
                     resolve();
-                }).catch((error) => {
-                    console.error(error);
                 });
             });
         }
@@ -329,10 +333,6 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
     }).catch((error) => {
         if (error == "Cancelled by BeforeUnload Event") {
             console.log("goToPage function cancelled by BeforeUnload Event");
-            // Trigger catch in the history function
-            if (goingBack) {
-                return Promise.reject();
-            }
         } else if (error == "User is already logged in.") {
             console.log("goToPage function cancelled because the user is already logged in.");
         } else if (error == "User is not an admin.") {
@@ -341,6 +341,11 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             console.log("goToPage function cancelled because the user attempted to view the current page.");
         } else {
             console.error("goToPage function failed: " + error);
+        }
+
+        // Trigger catch in the history function
+        if (goingBack) {
+            return Promise.reject();
         }
     });
 }
@@ -766,9 +771,22 @@ function initApp() {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
                         if (error) console.warn(error);
                     });
+
+                    // Check if the user is an admin and add the Admin Dashboard link if they are
+                    isAdminCheck(true).then((result) => {
+                        if (result && $("#admin-link").html() == "") {
+                            $("#admin-link").html("Admin Dashboard");
+                        }
+                    });
+
+                    // If remember me was not checked, start a timer to detect inactivity
+                    if (user.auth.persistenceManager.persistence.type == "SESSION") {
+                        startLogoutTimer();
+                    }
                 } else {
                     // User is signed out.
                     console.log("User is now Signed Out.");
+                    stopLogoutTimer();
                 }
                 updateUserAccountInfo().then(() => {
                     resolve();
@@ -783,6 +801,56 @@ function initApp() {
             reject(err);
         }
     });
+}
+
+// TODO: Make sure the countdown continues even if the user is on a different tab
+var logoutTimer;
+var logoutCountdown;
+/**
+ * @description Starts a timer to log the user out after inactivity (if "Remember me" was not checked).
+ */
+function startLogoutTimer() {
+    // If the user is not active for 20 minutes, log them out
+    logoutTimer = setTimeout(() => {
+        let timeRemaining = 2 * 60;
+        $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+        $("#logout-overlay").show();
+        $("#logout-overlay").css("opacity", "1");
+        clearInterval(logoutCountdown);
+        logoutCountdown = setInterval(() => {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+            } else {
+                signOut(auth).then(() => {
+                    window.location.href = "/";
+                });
+            }
+        }, 1000);
+    }, 3 * 60 * 1000);
+}
+
+/**
+ * @description Stops the logout timer.
+ */
+function stopLogoutTimer() {
+    clearTimeout(logoutTimer);
+    clearInterval(logoutCountdown);
+}
+
+/**
+ * @description Resets the logout timer.
+ */
+function resetLogoutTimer() {
+    if (!auth.currentUser) {
+        return;
+    }
+    stopLogoutTimer();
+    startLogoutTimer();
+    if ($("#logout-overlay")[0].style.opacity == "1") {
+        $("#logout-overlay").delay(500).hide(0);
+    }
+    $("#logout-overlay").css("opacity", "0");
 }
 
 /**
