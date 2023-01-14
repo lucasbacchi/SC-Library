@@ -110,23 +110,6 @@ function setupIndex() {
             $("header").css("box-shadow", "");
         }
     });
-
-    // Sets event listeners for the logout timer
-    $(window).on("mousemove", () => {
-        resetLogoutTimer();
-    });
-    $(window).on("keypress", () => {
-        resetLogoutTimer();
-    });
-    $(window).on("click", () => {
-        resetLogoutTimer();
-    });
-    $(window).on("scroll", () => {
-        resetLogoutTimer();
-    });
-    $(window).on("touchmove", () => {
-        resetLogoutTimer(); // This is for mobile
-    });
 }
 
 /**
@@ -783,6 +766,22 @@ function initApp() {
                     // If remember me was not checked, start a timer to detect inactivity
                     if (user.auth.persistenceManager.persistence.type == "SESSION") {
                         startLogoutTimer();
+                        // Sets event listeners for the logout timer
+                        $(window).on("mousemove", () => {
+                            resetLogoutTimer();
+                        });
+                        $(window).on("keypress", () => {
+                            resetLogoutTimer();
+                        });
+                        $(window).on("click", () => {
+                            resetLogoutTimer();
+                        });
+                        $(window).on("scroll", () => {
+                            resetLogoutTimer();
+                        });
+                        $(window).on("touchmove", () => {
+                            resetLogoutTimer(); // This is for mobile
+                        });
                     }
                 } else {
                     // User is signed out.
