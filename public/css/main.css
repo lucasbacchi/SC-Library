@@ -525,7 +525,7 @@ img.icon {
     top: 0;
     right: 0;
     margin: 5px;
-    z-index: 49;
+    z-index: 29;
     max-height: 32px;
     max-width: 32px;
     opacity: 0.15;
@@ -763,17 +763,18 @@ img.icon:hover {
     right: 0;
 }
 
-#loading-overlay, #import-loading-overlay {
+#loading-overlay, #import-loading-overlay, #logout-overlay {
     width: 100%;
     height: 100%;
     position: fixed;
-    z-index: 20;
+    z-index: 60;
     top: 0;
     left: 0;
     background-color: #c4d86d67;
+    transition: 0.5s opacity;
 }
 
-#loading-overlay-box, #import-loading-overlay-box {
+#loading-overlay-box, #import-loading-overlay-box, #logout-overlay-box {
     min-width: 20%;
     width: 300px;
     background-color: white;
