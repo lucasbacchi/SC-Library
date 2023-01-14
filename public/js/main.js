@@ -1,9 +1,12 @@
-import { bookDatabase, db } from "./globals";
+import { Book, bookDatabase, db } from "./globals";
 import { goToPage } from "./ajax";
 import { buildBookBox, search } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 
+/**
+ * @description Sets up the main page event listeners.
+ */
 export function setupMain() {
     homeBookBoxes();
     $("#search-input").on("keydown", (event) => {
@@ -17,25 +20,29 @@ export function setupMain() {
     });
 }
 
-
+/**
+ * @description Runs when the user searches from the home page. Searches for a book and goes to the search page.
+ */
 function homePageSearch() {
-    var searchQuery = $('#search-input').val();
+    let searchQuery = $('#search-input').val();
 
     search(searchQuery).then((searchResultsArray) => {
         goToPage('search?query=' + searchQuery, false, searchResultsArray);
     });
 }
 
-
+/**
+ * @description Generates the book boxes on the home page by randomly selecting books from the database.
+ */
 function homeBookBoxes() {
     if (bookDatabase) {
         // Don't wait for the database and save ourselves a read request
-        var values = [];
+        let values = [];
         let count = 0;
         for (let i = 0; i < 9; i++) {
-            var rand1 = Math.floor(Math.random() * bookDatabase.length);
-            var rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
-            var bookNumber = rand2 + rand1 * 100;
+            let rand1 = Math.floor(Math.random() * bookDatabase.length);
+            let rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
+            let bookNumber = rand1 * 100 + rand2;
             // TODO: Prevent duplicate books (with different barcode numbers)
             if (values.indexOf(rand2) > -1 || bookDatabase[rand1].books[rand2].isDeleted || bookDatabase[rand1].books[rand2].isHidden) {
                 i--;
@@ -49,22 +56,22 @@ function homeBookBoxes() {
             }
         }
         for (let i = 0; i < 9; i++) {
-            var book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
+            let book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
             $('div#books')[0].appendChild(buildBookBox(book, "main"));
         }
     } else {
-        // Got get the largest doc to figure out how many total books there are.
+        // Get the largest doc to figure out how many total books there are.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
             querySnapshot.forEach((docSnap) => {
                 if (!docSnap.exists()) {
                     console.error("books document does not exist");
                     return;
                 }
-                var docs = docSnap.data().order;
+                let docs = docSnap.data().order;
                 if (docSnap.data().books.length < 25 && docSnap.data().order != 0) {
                     docs--;
                 }
-                var rand = Math.floor(Math.random() * docs);
+                let rand = Math.floor(Math.random() * docs);
                 rand = "0" + rand;
                 if (rand.length == 2) rand = "0" + rand;
                 getDoc(doc(db, "books", rand)).then((docSnap) => {
@@ -72,10 +79,10 @@ function homeBookBoxes() {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
-                    var values = [];
+                    let values = [];
                     let count = 0;
                     for (let i = 0; i < 9; i++) {
-                        var random = Math.floor(Math.random() * docSnap.data().books.length);
+                        let random = Math.floor(Math.random() * docSnap.data().books.length);
                         // TODO: Prevent duplicate books (with different barcode numbers)
                         if (values.indexOf(random) > -1 || docSnap.data().books[random].isDeleted || docSnap.data().books[random].isHidden) {
                             i--;
@@ -89,7 +96,7 @@ function homeBookBoxes() {
                         }
                     }
                     for (let i = 0; i < 9; i++) {
-                        var book = docSnap.data().books[values[i]];
+                        let book = Book.createFromObject(docSnap.data().books[values[i]]);
                         $('div#books')[0].appendChild(buildBookBox(book, "main"));
                     }
                 }).catch((error) => {

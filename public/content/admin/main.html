@@ -5,7 +5,8 @@
     <p><a onclick="javascript:goToPage('admin/report');">Generate a Report</a></p>
 </div>-->
 
-<h2>Database Management</h2>
+<h2>Admin Dashboard</h2>
+<a id="help-icon" style="position: absolute; top: 100px; right: 30px;"><img src="../../img/help.svg" height="30px" width="30px"></a>
 <div id="management-grid">
     <div class="mgmt" id="add-entry">
         <h3>There are currently <span id="number-of-books">???</span> books in the database</h3>
@@ -14,10 +15,6 @@
         <button id="add-entry-button">Add Entry</button>
         <a id="add-entry-without-isbn" style="display: block;">I don't have an ISBN number. Create a blank entry for
             me.</a>
-        <p>Enter an ISBN number above and also enter a barcode below to overrite that barcode. Please enter both of
-            these <b>manually</b>.</p>
-        <input id="add-entry-with-specific-barcode-number">
-        <button id="add-entry-with-specific-barcode-number-button">Change this Barcode</button>
     </div>
     <div class="mgmt" id="edit-entry">
         <h3>Search for an entry to edit below:</h3>
@@ -41,7 +38,23 @@
         <p><a id="barcode-link">Generate New Barcodes</a></p>
         <h3>Download or upload to the Database</h3>
         <p><a id="import-link">Import</a></p>
-        <input id="import-input" type="file" style="display: none;">
+        <input id="import-input" type="file" accept="application/json" style="display: none;">
         <p><a id="export-link">Export</a></p>
+    </div>
+
+    <div id="import-alert" style="display: none;">
+        <p><span id="import-added">0</span> books added</p>
+        <p><span id="import-deleted">0</span> books deleted</p>
+        <p><span id="import-modified">0</span> books modified</p>
+        <p>Are you sure you want to overwrite the entire books database?</p>
+        <button id="import-cancel">No, take me back</button>
+        <button id="import-entry">Yes, import this data</button>
+    </div>
+    <div id="import-alert-overlay" style="display: none;"></div>
+    <div id="import-loading-overlay" style="display: none;">
+        <div id="import-loading-overlay-box">
+            <h3>Loading...</h3>
+            <p>This may take a while. Please do not close this window or navigate to a new page.</p>
+        </div>
     </div>
 </div>

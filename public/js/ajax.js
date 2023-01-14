@@ -1,17 +1,18 @@
 // Imports for Firebase version 9
 import { initializeApp } from "firebase/app";
-import { getPerformance } from "firebase/performance";
+import { getPerformance, trace } from "firebase/performance";
 import { getAnalytics, logEvent } from "firebase/analytics";
 import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
 
 
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyStack, setHistoryStack
+    currentQuery, historyStack, setHistoryStack, setCurrentHash, currentHash, performance, User
 } from "./globals";
 import { findURLValue } from "./common";
 
@@ -24,21 +25,22 @@ var hash = window.location.hash;
 var fullExtension = path + query + hash;
 
 
-// Go to the correct page when the page loads
+// This is the first thing to run. It initializes everything and goes to the correct page when the page loads
 $(() => {
-    initApp()
-        .then(() => {
-            setupIndex();
-            setHistoryStack(window.history.state);
-            goToPage(fullExtension.substring(1), true);
-            historyStack.first(fullExtension.substring(1));
-        }, function (error) {
-            console.error(error);
-        });
+    initApp().then(() => {
+        setupIndex();
+        setHistoryStack(window.history.state);
+        goToPage(fullExtension.substring(1), true);
+        historyStack.first(fullExtension.substring(1));
+    }).catch((error) => {
+        console.error(error);
+    });
 });
 
 
-// Runs on the first load of all pages to handle nav links
+/**
+ * @description This sets up all the eventlisteners for the page frame.
+ */
 function setupIndex() {
     // Set up on click for log out button
     $("div#log-out").on("click", () => {
@@ -80,9 +82,7 @@ function setupIndex() {
     // Manage Account Panel and animation
     $("#small-account-container").on("click", () => {
         if ($("#large-account-container").css("display") == "none") {
-            setTimeout(function () {
-                largeAccountOpen = true;
-            }, 20);
+            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
             $("#large-account-container").show(0).delay(10);
             $("#large-account-container").css("right", "0%");
         } else {
@@ -93,33 +93,53 @@ function setupIndex() {
 
     // Watch for clicks outside of the account panel
     $(window).on("click", (event) => {
-        // Added to fix dupe input bug
-        event.stopPropagation();
-        if (!($.contains($("#large-account-container")[0], event.target) || event.target == $("#large-account-container")[0])) {
-            if (largeAccountOpen) {
-                closeLargeAccount();
-            }
+        // If the click is not contained in the account panel or is the event panel itself
+        // and isn't the small account container (Which will toggle itself), close it
+        if ((!($.contains($("#large-account-container")[0], event.target) ||
+            event.target == $("#large-account-container")[0])) && (!($.contains($("#small-account-container")[0], event.target) || event.target == $("#small-account-container")[0]))) {
+            closeLargeAccount();
         }
 
     });
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
-    $(window).on("scroll", function () {
+    $(window).on("scroll", () => {
         if ($(document).scrollTop() > 0) {
             $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
         } else {
             $("header").css("box-shadow", "");
         }
     });
+
+    // Sets event listeners for the logout timer
+    $(window).on("mousemove", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("keypress", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("click", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("scroll", () => {
+        resetLogoutTimer();
+    });
+    $(window).on("touchmove", () => {
+        resetLogoutTimer(); // This is for mobile
+    });
 }
 
-var largeAccountOpen = false;
-export function closeLargeAccount() {
-    largeAccountOpen = false;
+/**
+ * @description Closes the large account panel
+ */
+function closeLargeAccount() {
     $("#large-account-container").delay(400).hide(0);
     $("#large-account-container").css("right", "-500%");
 }
 
+/**
+ * @description This function converts all the data tags on the HTML elements to onclick event listeners.
+ */
 export function convertDataTagsToLinks() {
     // Iterate through all the links and set an onclick
     document.querySelectorAll("a, div, button").forEach(element => {
@@ -132,6 +152,9 @@ export function convertDataTagsToLinks() {
     });
 }
 
+/**
+ * @description This function closes the mobile nav menu.
+ */
 function closeNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("0");
@@ -141,6 +164,9 @@ function closeNavMenu() {
     $("nav > li > a").delay(400).hide(0);
 }
 
+/**
+ * @description This function opens the mobile nav menu.
+ */
 function openNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("60%");
@@ -150,9 +176,14 @@ function openNavMenu() {
     $("#close-button").css("opacity", "1");
 }
 
+let isAdmin;
+/**
+ * @description This function checks if the user is an admin. It returns a promise that resolves to true if the user is an admin and false if they are not.
+ * @param {Boolean} recheck If true, the function will recheck if the user is an admin using the database. If false, the function will return the cached value.
+ * @returns {Promise<Boolean>} A promise that resolves to true if the user is an admin and false if they are not.
+ */
 export function isAdminCheck(recheck = false) {
     return new Promise(function (resolve) {
-        let isAdmin;
         if (isAdmin == null || recheck) {
             getDoc(doc(db, "admin", "private_vars")).then(() => {
                 isAdmin = true;
@@ -162,11 +193,7 @@ export function isAdminCheck(recheck = false) {
                 resolve(false);
             });
         } else {
-            if (isAdmin) {
-                resolve(true);
-            } else {
-                resolve(false);
-            }
+            resolve(isAdmin);
         }
     });
 }
@@ -174,16 +201,16 @@ export function isAdminCheck(recheck = false) {
 /**
  * Called every time the user wants to go to a new page. The function checks if the page change is valid.
  * If the page change is valid, the function will go to the new page by calling getPage().
- * @param {String} pageName - The name of the page to go to.
- * @param {Boolean} goingBack - Whether the user is going forward or backward in the history. (Prevents new history entries)
- * @param {Array<Book>} searchResultsArray - The array of books to display in the search results page.
- * @param {Boolean} bypassUnload - Whether to bypass the unload event.
- * @returns 
+ * @param {String} pageName The name of the page to go to.
+ * @param {Boolean} goingBack Whether the user is going forward or backward in the history. (Prevents new history entries)
+ * @param {Array<Book>} searchResultsArray The array of books to display in the search results page.
+ * @param {Boolean} bypassUnload Whether to bypass the unload event.
+ * @returns {Promise<void>} A promise representing the loading progress of the page.
  */
 export function goToPage(pageName, goingBack = false, searchResultsArray = null, bypassUnload = false) {
     return new Promise(function (resolve, reject) {
-        var pageHash = "";
-        var pageQuery = "";
+        let pageHash = "";
+        let pageQuery = "";
 
         // This removes the hash if one was passed in and stores it to a separate variable.
         if (pageName.includes("#")) {
@@ -224,11 +251,14 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         if (!currentQuery) {
             setCurrentQuery("");
         }
+        if (!currentHash) {
+            setCurrentHash("");
+        }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
         if (currentPage && ((pageName == currentPage && pageName != "search")
             || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
-            && (pageName + pageQuery == currentPage + currentQuery)) {
+            && (pageName + pageQuery + pageHash == currentPage + currentQuery + currentHash)) {
             reject("The user attempted to view the current page.");
             return;
         }
@@ -250,8 +280,15 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 
             if (cancelEvent) {
                 reject("Cancelled by BeforeUnload Event");
+                $("#content").removeClass("page-hidden");
                 return;
             }
+        }
+
+        // Temporarily hide the content while the page is loading
+        // Don't hide the content if the user is going between two account pages.
+        if (currentPage && currentPage != pageName && !(currentPage.includes("account") && pageName.includes("account"))) {
+            $("#content").addClass("page-hidden");
         }
 
         // Prevent the user from visiting admin pages if they are not an admin
@@ -259,7 +296,7 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             isAdminCheck(true).then((isAdmin) => {
                 if (isAdmin) {
                     // Normal exit for all admin pages
-                    getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
+                    getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
                         pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
                             resolve();
                         });
@@ -281,23 +318,10 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             return;
         } else {
             // At this point, we have decided that we are going to a new page that doesn't require admin access
-            getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
+            getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
                 // Run the setup function for whichever page has loaded.
-                let pageSetupPromise = pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery);
-
-                // Recheck the admin status if needed and then add the admin link if appropriate.
-                let isAdminCheckPromise = isAdminCheck(currentPage == "/login" ? true : false).catch((error) => {
-                    console.error(error);
-                }).then((result) => {
-                    if (result && $("#admin-link").html() == "") {
-                        $("#admin-link").html("Admin Dashboard");
-                    }
-                });
-
-                Promise.all([pageSetupPromise, isAdminCheckPromise]).then(() => {
+                pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
                     resolve();
-                }).catch((error) => {
-                    console.error(error);
                 });
             });
         }
@@ -309,10 +333,6 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
     }).catch((error) => {
         if (error == "Cancelled by BeforeUnload Event") {
             console.log("goToPage function cancelled by BeforeUnload Event");
-            // Trigger catch in the history function
-            if (goingBack) {
-                return Promise.reject();
-            }
         } else if (error == "User is already logged in.") {
             console.log("goToPage function cancelled because the user is already logged in.");
         } else if (error == "User is not an admin.") {
@@ -322,10 +342,23 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         } else {
             console.error("goToPage function failed: " + error);
         }
+
+        // Trigger catch in the history function
+        if (goingBack) {
+            return Promise.reject();
+        }
     });
 }
 
-function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
+/**
+ * @description This function loads the page content and handles titles and history.
+ * @param {String} pageName The name of the page to load.
+ * @param {Boolean} goingBack A boolean that determines if the user is going back in the history.
+ * @param {String} pageHash The hash of the page to load.
+ * @param {String} pageQuery The query of the page to load.
+ * @returns {Promise<void>} A promise that represents the loading prgress of the page.
+ */
+function getPage(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve, reject) => {
         // Prepare the page for loading
         $("#content").removeClass("fade");
@@ -342,6 +375,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     reject(error);
                 });
                 setCurrentQuery(pageQuery);
+                setCurrentHash(pageHash);
                 if (goingBack == false) {
                     // Update the URL and History for all but the first page load
                     historyStack.push("account?" + pageQuery.substring(1));
@@ -372,7 +406,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
         // Set the content of the page
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                var pageUrl = "/" + pageName;
+                let pageUrl = "/" + pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
                     pageUrl = "/";
                 }
@@ -388,7 +422,7 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                 $("#content").css("height", "100%");
 
                 // Set Title Correctly
-                var titleList = {
+                let titleList = {
                     "admin/editEntry": "Edit an Entry",
                     "admin/main": "Admin Console",
                     "admin/report": "Run a Report",
@@ -396,11 +430,11 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
                     "admin/view": "View Database",
                     "admin/editUser": "Edit a User",
                     "admin/inventory": "Conduct Inventory",
+                    "admin/help": "Admin Help",
                     "404": "404 | File Not Found",
                     "about": "About Us",
                     "account": "Your Account",
                     "advancedSearch": "Advanced Search",
-                    "autogenindex": "LEAVE",
                     "help": "Help",
                     "login": "Login",
                     "main": "Home",
@@ -425,20 +459,17 @@ function getPage(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
     });
 }
 
+/**
+ * @description This function fires additional scripts based on the page that was loaded.
+ * @param {String} pageName The name of the page.
+ * @param {Boolean} goingBack A boolean that represents if the user is going back in the history.
+ * @param {Array} searchResultsArray The array of search results (for the search page).
+ * @param {String} pageHash The hash of the page.
+ * @param {String} pageQuery The query of the page.
+ * @returns {Promise<void>} A promise that represents the setup progress of the page.
+ */
 function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
     return new Promise((resolve) => {
-        // Scroll to a specific part of the page if needed
-        // If no hash, scroll to the top of the page.
-        if (pageHash) {
-            document.querySelector(pageHash).scrollIntoView();
-        } else {
-            if (currentPage != pageName) {
-                $(document).scrollTop(0); // Could change later if we don't like this behavior
-            }
-        }
-
-
-        // Fire Additional Scripts based on Page
         // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
         if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
             resolve();
@@ -568,6 +599,16 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
+        if (pageName == "admin/help") {
+            import('../css/admin.css');
+            import('./admin').then(({ setupAdminHelp }) => {
+                setupAdminHelp();
+                resolve();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+        }
+
         if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
@@ -576,15 +617,30 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
                 console.error("Problem importing", error);
             });
         }
-
-        setCurrentPage(pageName);
-        setCurrentQuery(pageQuery);
     }).then(() => {
         // Page Content has now Loaded and setup is done
         // Start fading the page in
         if (currentPage != pageName) {
-            $("#content").addClass("fade");
+            window.setTimeout(() => {
+                $("#content").removeClass("page-hidden");
+                $("#content").addClass("fade");
+            }, 200);
         }
+
+        // Scroll to a specific part of the page if needed
+        // If no hash, scroll to the top of the page.
+        if (pageHash) {
+            pageHash = "#" + encodeURIComponent(pageHash.substring(1));
+            $(document).scrollTop($(pageHash).offset().top - 85);
+        } else {
+            if (currentPage != pageName) {
+                $(document).scrollTop(0); // Could change later if we don't like this behavior
+            }
+        }
+
+        setCurrentPage(pageName);
+        setCurrentQuery(pageQuery);
+        setCurrentHash(pageHash);
     });
 }
 
@@ -614,7 +670,9 @@ window.onpopstate = () => {
     });
 };
 
-// In the event that a navigation action was cancelled, we need to reset the history state
+/**
+ * @description In the event that a navigation action was cancelled, we need to reset the history state
+ */
 function restoreHistory() {
     if (historyStack.currentIndex != window.history.state.index) {
         if (historyStack.currentIndex > window.history.state.index) {
@@ -627,12 +685,17 @@ function restoreHistory() {
     }
 }
 
+/**
+ * @description Changes the title of the page, or appends to the beginning of the current title.
+ * @param {String} newTitle The new title of the page. If empty, the title will be reset to the default.
+ * @param {Boolean} append Defaults to true. If true, the new title will be appended to the beginning of the current title. 
+ */
 export function changePageTitle(newTitle, append = true) {
     if (newTitle == "") {
         document.title = "South Church Library Catalog";
     } else {
         if (append) {
-            var currentTitle = document.title;
+            let currentTitle = document.title;
             document.title = newTitle + " | " + currentTitle;
         } else {
             document.title = newTitle + " | South Church Library Catalog";
@@ -667,6 +730,11 @@ function initApp() {
     logEvent(analytics, 'app_open');
 
     setPerformance(getPerformance(app));
+    // TODO: Low Priority: Try to get FID to work nativly rather than using a custom trace
+    onCLS(sendToFirebase);
+    onFID(sendToFirebase);
+    onLCP(sendToFirebase);
+    onTTFB(sendToFirebase);
 
     setDb(getFirestore(app));
 
@@ -697,16 +765,29 @@ function initApp() {
                         return;
                     }
 
-                    var date = new Date();
+                    let date = new Date();
                     updateDoc(doc(db, "users", user.uid), {
-                        lastSignIn: date
+                        lastSignInTime: date
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
                         if (error) console.warn(error);
                     });
+
+                    // Check if the user is an admin and add the Admin Dashboard link if they are
+                    isAdminCheck(true).then((result) => {
+                        if (result && $("#admin-link").html() == "") {
+                            $("#admin-link").html("Admin Dashboard");
+                        }
+                    });
+
+                    // If remember me was not checked, start a timer to detect inactivity
+                    if (user.auth.persistenceManager.persistence.type == "SESSION") {
+                        startLogoutTimer();
+                    }
                 } else {
                     // User is signed out.
                     console.log("User is now Signed Out.");
+                    stopLogoutTimer();
                 }
                 updateUserAccountInfo().then(() => {
                     resolve();
@@ -723,9 +804,92 @@ function initApp() {
     });
 }
 
+// TODO: Make sure the countdown continues even if the user is on a different tab
+var logoutTimer;
+var logoutCountdown;
+/**
+ * @description Starts a timer to log the user out after inactivity (if "Remember me" was not checked).
+ */
+function startLogoutTimer() {
+    // If the user is not active for 20 minutes, log them out
+    logoutTimer = setTimeout(() => {
+        let timeRemaining = 2 * 60;
+        $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+        $("#logout-overlay").show();
+        $("#logout-overlay").css("opacity", "1");
+        clearInterval(logoutCountdown);
+        logoutCountdown = setInterval(() => {
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+            } else {
+                signOut(auth).then(() => {
+                    window.location.href = "/";
+                });
+            }
+        }, 1000);
+    }, 3 * 60 * 1000);
+}
+
+/**
+ * @description Stops the logout timer.
+ */
+function stopLogoutTimer() {
+    clearTimeout(logoutTimer);
+    clearInterval(logoutCountdown);
+}
+
+/**
+ * @description Resets the logout timer.
+ */
+function resetLogoutTimer() {
+    if (!auth.currentUser) {
+        return;
+    }
+    stopLogoutTimer();
+    startLogoutTimer();
+    if ($("#logout-overlay")[0].style.opacity == "1") {
+        $("#logout-overlay").delay(500).hide(0);
+    }
+    $("#logout-overlay").css("opacity", "0");
+}
+
+/**
+ * Send Core Web Vitals to Firebase
+ * @param {Metric}
+ * @return {void}
+ * @author Kazunari Hara
+ * @link Source: https://gist.github.com/herablog/f04f473b9d9a8f63848f63ce0aec3eff
+ */
+function sendToFirebase({ name, delta, entries }) {
+    const metricNameMap = {
+        CLS: 'Cumulative Layout Shift',
+        LCP: 'Largest Contentful Paint',
+        FID: 'First Input Delay',
+        TTFB: 'Time To First Byte',
+    };
+
+    const startTime = Date.now();
+    let value = Math.round(name === 'CLS' ? delta * 1000 : delta);
+    if (value == 0) {
+        value = 1;
+    }
+
+    entries.forEach(() => {
+        trace(performance, metricNameMap[name]).record(
+            startTime,
+            value
+        );
+    });
+}
+
+/**
+ * @description Updates the UI with the user's account information from the database.
+ * @returns {Promise,void>} A promise that resolves when the user account info has been updated.
+ */
 export function updateUserAccountInfo() {
     return new Promise((resolve, reject) => {
-        var user = auth.currentUser;
+        let user = auth.currentUser;
         if (user) {
             // User is signed in.
             // Get the information about the current user from the database.
@@ -734,15 +898,17 @@ export function updateUserAccountInfo() {
                     throw "The user document could not be found. Ignore if the user just signed up.";
                 }
 
+                let userObject = User.createFromObject(docSnap.data());
+
                 // Update the UI with the information from the doc
-                $("#account-name").text(docSnap.data().firstName + " " + docSnap.data().lastName);
-                updateEmailinUI(docSnap.data().email);
-                if (docSnap.data().pfpIconLink) {
-                    $("#small-account-image").attr("src", docSnap.data().pfpIconLink);
-                    $("#large-account-image").attr("src", docSnap.data().pfpIconLink);
-                } else if (docSnap.data().pfpLink) {
-                    $("#small-account-image").attr("src", docSnap.data().pfpLink);
-                    $("#large-account-image").attr("src", docSnap.data().pfpLink);
+                $("#account-name").text(userObject.firstName + " " + userObject.lastName);
+                updateEmailinUI(userObject.email);
+                if (userObject.pfpIconLink) {
+                    $("#small-account-image").attr("src", userObject.pfpIconLink);
+                    $("#large-account-image").attr("src", userObject.pfpIconLink);
+                } else if (userObject.pfpLink) {
+                    $("#small-account-image").attr("src", userObject.pfpLink);
+                    $("#large-account-image").attr("src", userObject.pfpLink);
                 } else {
                     $("#small-account-image").attr("src", "/img/default-user.jpg");
                     $("#large-account-image").attr("src", "/img/default-user.jpg");
@@ -750,8 +916,8 @@ export function updateUserAccountInfo() {
 
                 // Update Firebase Auth with any out of date data
                 updateProfile(user, {
-                    displayName: docSnap.data().firstName + " " + docSnap.data().lastName,
-                    photoURL: docSnap.data().pfpLink
+                    displayName: userObject.firstName + " " + userObject.lastName,
+                    photoURL: userObject.pfpLink
                 });
 
                 // Change Account Container Appearence
@@ -771,7 +937,6 @@ export function updateUserAccountInfo() {
             });
         } else {
             // User is signed out.
-
             // Change Account Container Appearence
             $("#nav-login-signup").show();
             $("#small-account-container").hide();
@@ -785,12 +950,19 @@ export function updateUserAccountInfo() {
     });
 }
 
+/**
+ * @description Updates the email in the UI to be displayed with a zero width space in the middle of the email address.
+ * @param {String} email A string containing the email address to be displayed.
+ */
 export function updateEmailinUI(email) {
     email = email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
     $("#account-email").text(email);
     $("#account-page-email").text(email);
 }
 
+/**
+ * @description Signs the user out of the application. Then reloads the page.
+ */
 function signOutUser() {
     if (auth.currentUser) {
         signOut(auth).then(() => {

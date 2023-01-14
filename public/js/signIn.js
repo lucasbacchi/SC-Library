@@ -1,13 +1,18 @@
 import { logEvent } from "firebase/analytics";
-import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
+         reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
 import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { findURLValue, sendEmailVerificationToUser } from "./common";
-import { analytics, auth, currentPage, db } from "./globals";
+import { analytics, auth, currentPage, db, User } from "./globals";
 
-export function setupSignIn(pageQueryInput) {
+/**
+ * @description Sets up the sign in page.
+ * @param {String} pageQuery The query string of the page.
+ */
+export function setupSignIn(pageQuery) {
     $("#submit").on("click", () => {
-        signInSubmit(pageQueryInput);
+        signInSubmit(pageQuery);
     });
 
     $("#password-reset").on("click", () => {
@@ -22,57 +27,69 @@ export function setupSignIn(pageQueryInput) {
         goToPage('signup');
     });
 
-    if (findURLValue(pageQueryInput, "redirect", true) != "") {
-        $("#content").empty();
-        var div1 = document.createElement('div');
-        div1.id = 'form';
-        var div2 = document.createElement('div');
-        div2.classList.add("login");
-        var h3 = document.createElement('h3');
-        h3.innerHTML = "Please enter your password.";
-        $(div2).append(h3);
-        var lbl = document.createElement('label');
-        lbl.innerHTML = 'Password:';
-        lbl.setAttribute('for', 'password');
-        $(div2).append(lbl);
-        var input = document.createElement('input');
-        input.type = 'password';
-        input.id = 'password';
-        $(div2).append(input);
-        $(div2).append(document.createElement('br'));
-        $(div2).append(document.createElement('br'));
-        var btn = document.createElement('button');
-        btn.id = 'submit';
-        btn.innerHTML = 'Submit';
-        $(div2).append(btn);
-        btn.addEventListener('click', () => {
-            signInSubmit(pageQueryInput);
-        });
-        $(div2).append(document.createElement('br'));
-        $(div2).append(document.createElement('br'));
-        $(div1).append(div2);
-        $("#content").append(div1);
+    if (findURLValue(pageQuery, "redirect", true) != "") {
+        createReAuthPage(pageQuery);
     }
 
     $("#submit, .login > input").on("keydown", (event) => {
         if (event.key === "Enter") {
-            signInSubmit(pageQueryInput);
+            signInSubmit(pageQuery);
         }
     });
 
 }
 
+/**
+ * @description Redesigns the sign in page to allow the user to reauthenticate only using their password.
+ * @param {String} pageQuery The query string of the page.
+ */
+function createReAuthPage(pageQuery) {
+    $("#content").empty();
+    let div1 = document.createElement('div');
+    div1.id = 'form';
+    let div2 = document.createElement('div');
+    div2.classList.add("login");
+    let h3 = document.createElement('h3');
+    h3.innerHTML = "Please enter your password.";
+    $(div2).append(h3);
+    let lbl = document.createElement('label');
+    lbl.innerHTML = 'Password:';
+    lbl.setAttribute('for', 'password');
+    $(div2).append(lbl);
+    let input = document.createElement('input');
+    input.type = 'password';
+    input.id = 'password';
+    $(div2).append(input);
+    $(div2).append(document.createElement('br'));
+    $(div2).append(document.createElement('br'));
+    let btn = document.createElement('button');
+    btn.id = 'submit';
+    btn.innerHTML = 'Submit';
+    $(div2).append(btn);
+    btn.addEventListener('click', () => {
+        signInSubmit(pageQuery);
+    });
+    $(div2).append(document.createElement('br'));
+    $(div2).append(document.createElement('br'));
+    $(div1).append(div2);
+    $("#content").append(div1);
+}
+
+/**
+ * @description Handles the process of redirecting the user after they have signed in again. For now, this is only used for changing the user's email.
+ * @param {String} pageQuery The query string of the page.
+ */
 function authRedirect(pageQuery) {
     // Find the redirect path in the query
-    var redirect = findURLValue(pageQuery, "redirect");
+    let redirect = findURLValue(pageQuery, "redirect");
 
     // If they are being redirected with an email (to the account page)
     if (pageQuery.includes("email")) {
-        var newEmail = findURLValue(pageQuery, "email");
+        let newEmail = findURLValue(pageQuery, "email");
 
-        var user = auth.currentUser;
+        let user = auth.currentUser;
         // Attempt to update the account
-        updateEmail(user, newEmail).then(function() {
+        updateEmail(user, newEmail).then(function () {
             updateDoc(doc(db, "users", user.uid), {
                 email: newEmail
             }).then(() => {
@@ -98,44 +115,63 @@ function authRedirect(pageQuery) {
     }
 }
 
+/**
+ * @description Starts the process of submitting the form either for sign in or sign up. Runs when the user clicks the submit button.
+ * @param {String} pageQuery The query string of the page. If the length of this string is greater than 1, it will assume this is a reauthentication.
+ */
 function signInSubmit(pageQuery = "") {
-    var reAuth;
+    let reAuth;
     if (pageQuery.length > 1) {
         reAuth = true;
     } else {
         reAuth = false;
     }
-    if (currentPage == 'login') {
-        signIn(reAuth).then(function() {
-            if (reAuth) {
-                authRedirect(pageQuery);
-            } else {
-                goToPage("");
-            }
-        }).catch(() => {});
-    } else if (currentPage == 'signup') {
-        handleSignUp().then(function() {
-            if (reAuth) {
-                authRedirect(pageQuery);
-            } else {
-                goToPage("");
-            }
-        }).catch(() => {
-            console.warn("Signup failed (likely because the user failed validation)");
-        });
+    let persistancePromise;
+    if (!reAuth) {
+        // Sets the persistance state in Firebase
+        let persistance = $("#remember-me").prop("checked");
+        if (persistance) {
+            persistancePromise = setPersistence(auth, browserLocalPersistence);
+        } else {
+            persistancePromise = setPersistence(auth, browserSessionPersistence);
+        }
+    } else {
+        // If this is a reauthentication, we don't need to change the persistance state
+        persistancePromise = Promise.resolve();
     }
+    persistancePromise.then(() => {
+        let authPromise;
+        if (currentPage == 'login') {
+            authPromise = signIn(reAuth);
+        } else if (currentPage == 'signup') {
+            authPromise = handleSignUp();
+        }
+        authPromise.then(() => {
+            if (reAuth) {
+                authRedirect(pageQuery);
+            } else {
+                goToPage("");
+            }
+        }).catch((error) => {
+            console.error(error);
+        });
+    });
 }
 
+/**
+ * @description Signs in a user with email and password.
+ * @param {Boolean} reAuth Whether or not this is a reauthentication.
+ */
 function signIn(reAuth = false) {
-    return new Promise(function(resolve, reject) {
-        var user = auth.currentUser;
+    return new Promise(function (resolve, reject) {
+        let user = auth.currentUser;
         if (user && !reAuth) {
             alert("Another user is currently signed in. Please sign out first.");
         } else {
-            var email;
+            let email;
             if (reAuth) email = user.email;
             else email = document.getElementById('email').value;
-            var password = document.getElementById('password').value;
+            let password = document.getElementById('password').value;
             if (email.length < 4) {
                 alert('Please enter an email address.');
                 reject();
@@ -145,7 +181,7 @@ function signIn(reAuth = false) {
                 reject();
             }
             if (!reAuth) {
-                // Sign in with email and pass.
+                // Sign in with email and password
                 signInWithEmailAndPassword(auth, email, password).then(() => {
                     user = auth.currentUser;
                     logEvent(analytics, "login", {
@@ -153,10 +189,10 @@ function signIn(reAuth = false) {
                         userId: user.uid
                     });
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     // Handle Errors here.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
+                    let errorCode = error.code;
+                    let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
                         alert('Wrong password.');
                     } else {
@@ -170,13 +206,13 @@ function signIn(reAuth = false) {
             } else {
                 // Reauthenticate
                 const credential = EmailAuthProvider.credential(email, password);
-                reauthenticateWithCredential(user, credential).then(function() {
+                reauthenticateWithCredential(user, credential).then(function () {
                     // User re-authenticated.
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     // An error happened.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
+                    let errorCode = error.code;
+                    let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
                         alert('Wrong password.');
                     } else {
@@ -192,20 +228,22 @@ function signIn(reAuth = false) {
 }
 
 /**
- * Handles the sign up button press.
+ * @description Handles the sign up process. This includes validating the user's input, creating the user,
+ *              adding the user to the database, updating the max barcodeNumber, and logging the event.
+ * @returns {Promise} A promise that resolves when the user is signed up.
  */
 function handleSignUp() {
     return new Promise(function (resolve, reject) {
-        var firstName = document.getElementById('firstName').value;
-        var lastName = document.getElementById('lastName').value;
-        var email = document.getElementById('email').value;
-        var phone = document.getElementById('phone').value;
-        var address = document.getElementById('address').value;
-        var town = document.getElementById('town').value;
-        var state = document.getElementById('state').value;
-        var zip = document.getElementById('zip').value;
-        var password = document.getElementById('password').value;
-        var confirmPassword = document.getElementById('confirm-password').value;
+        let firstName = document.getElementById('firstName').value;
+        let lastName = document.getElementById('lastName').value;
+        let email = document.getElementById('email').value;
+        let phone = document.getElementById('phone').value;
+        let address = document.getElementById('address').value;
+        let town = document.getElementById('town').value;
+        let state = document.getElementById('state').value;
+        let zip = document.getElementById('zip').value;
+        let password = document.getElementById('password').value;
+        let confirmPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
             alert('Please enter an email address.');
             reject();
@@ -256,13 +294,13 @@ function handleSignUp() {
             reject();
             return;
         }
-        var signUpError = false;
+        let signUpError = false;
         // Create user with email and pass, then logs them in.
-        createUserWithEmailAndPassword(auth, email, password).catch(function(error) {
+        createUserWithEmailAndPassword(auth, email, password).catch(function (error) {
             // Handle Errors here.
             signUpError = true;
-            var errorCode = error.code;
-            var errorMessage = error.message;
+            let errorCode = error.code;
+            let errorMessage = error.message;
             if (errorCode == 'auth/weak-password') {
                 alert('The password is too weak.');
             } else if (errorCode == 'auth/email-already-in-use') {
@@ -272,37 +310,27 @@ function handleSignUp() {
             }
             console.error(error);
             reject();
-        }).then(function() {
+        }).then(function () {
             if (!signUpError) {
-                var user = auth.currentUser;
+                let user = auth.currentUser;
+                let userObject;
                 // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
                 runTransaction(db, (transaction) => {
-                    var cloudVarsPath = doc(db, "config/writable_vars");
+                    let cloudVarsPath = doc(db, "config/writable_vars");
                     // Get the variable stored in the writable_vars area
                     return transaction.get(cloudVarsPath).then((docSnap) => {
                         if (!docSnap.exists()) {
                             throw "Document does not exist!";
                         }
                         // Save the max value and incriment it by one.
-                        var newCardNumber = docSnap.data().maxCardNumber + 1;
-                        var dateCreated = new Date();
+                        let newCardNumber = docSnap.data().maxCardNumber + 1;
+                        // Create a new user object
+                        userObject = new User(newCardNumber, firstName, lastName, email, phone,
+                            address + ", " + town + ", " + state + " " + zip, null, null, new Date(), null,
+                            new Date(), user.uid, false, false, false, new Date(), true);
                         // Set the document to exist in the users path
-                        transaction.set(doc(db, "users", user.uid), {
-                            firstName: firstName,
-                            lastName: lastName,
-                            address: address + ", " + town + ", " + state + " " + zip,
-                            phone: phone,
-                            email: email,
-                            cardNumber: newCardNumber,
-                            pfpLink: null,
-                            pfpIconLink: null,
-                            checkouts: [],
-                            notificationsOn: true,
-                            dateCreated: dateCreated,
-                            lastSignIn: dateCreated,
-                            lastCheckoutTime: null
-                        });
-                        // Update the cloud var to contain the next card number value
+                        transaction.set(doc(db, "users", user.uid), userObject.toObject());
+                        // Update the cloud variable to contain the next card number value
                         transaction.update(cloudVarsPath, {
                             maxCardNumber: newCardNumber
                         });
@@ -315,13 +343,7 @@ function handleSignUp() {
                     sendEmailVerificationToUser();
                     logEvent(analytics, "sign_up", {
                         method: "email",
-                        userId: user.uid,
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: email,
-                        phone: phone,
-                        address: address + ", " + town + ", " + state + " " + zip,
-                        cardNumber: newCardNumber
+                        userObject: userObject
                     });
                     resolve();
                 }).catch((err) => {
@@ -333,22 +355,27 @@ function handleSignUp() {
     });
 }
 
+/**
+ * @description Sends a password reset email to the user.
+ */
 function sendPasswordReset() {
-    var email = document.getElementById('email').value;
-    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')){
+    let email = document.getElementById('email').value;
+    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')) {
         alert("Please enter a valid email into the Email box above. Then try again.");
         return;
     }
-    sendPasswordResetEmail(auth, email).then(function() {
+    sendPasswordResetEmail(auth, email).then(function () {
         alert('Password Reset Email Sent!');
-    }).catch(function(error) {
+    }).catch(function (error) {
         // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
+        let errorCode = error.code;
+        let errorMessage = error.message;
         if (errorCode == 'auth/invalid-email') {
             alert(errorMessage);
         } else if (errorCode == 'auth/user-not-found') {
             alert(errorMessage);
+        } else {
+            alert("Your password reset email could not be sent. Please contact the librarian for help.");
         }
         console.error(error);
     });

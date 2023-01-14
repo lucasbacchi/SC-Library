@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // TODO: Maybe stop hardcoding this...
+  	function isAdmin() {
+    	let adminList = ["lcIml2tYz6ZjID6IZ9Dt3y5tSLB2", "2agCUfz7xkZg6VZQAe265kRneOY2", "N3yMHynwlqXtPkN3PR83Hfd0Lcn2", "mFOA9P4bHTa1J3QtUojF24LrGV62"];
+      return (request.auth != null && request.auth.uid in adminList);
+    }
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+    match /users/{userId}/{fileName} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    match /public/{file} {
+      allow read: if true;
+    }
+  }
+}
