@@ -452,7 +452,7 @@ function processAccountImage() {
         const file = fileInput.files[0];
         if (file) {
             let output = document.getElementById('account-page-image');
-            output.src = URL.createObjectURL(file);
+            output.src = encodeURIComponent(URL.createObjectURL(file));
             /* This is bad because then the canvas elements can't use the link
             output.onload = function() {
                 URL.revokeObjectURL(output.src); // free memory
