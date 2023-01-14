@@ -1,6 +1,6 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -25,10 +25,6 @@ export function setupAdminMain() {
 
     $("#add-entry-without-isbn").on("click", () => {
         addEntryWithoutISBN();
-    });
-
-    $("#add-entry-with-specific-barcode-number-button").on("click", () => {
-        addEntryWithSpecificBarcodeNumber();
     });
 
     $("#circulation-report-link").on("click", () => {
@@ -119,37 +115,6 @@ function addEntryWithoutISBN() {
 }
 
 /**
- * @description Called when the user adds an entry with a specific barcode number.
- */
-// TODO: Remove this function once the system rework is complete.
-function addEntryWithSpecificBarcodeNumber() {
-    let isbn = $("#add-entry-isbn").val();
-    let check = verifyISBN(isbn);
-    if (!check && isbn != "") {
-        alert("The number you entered is not a valid ISBN Number.");
-        return;
-    }
-    let specificBarcode = $("#add-entry-with-specific-barcode-number").val();
-    getBookFromBarcode(specificBarcode).then((book) => {
-        if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
-            const a = document.createElement("a");
-            if (isbn == "") {
-                a.href = "/admin/editEntry?new=true&id=" + encodeURI(specificBarcode);
-            } else {
-                a.href = "/admin/editEntry?new=true&isbn=" + encodeURI(isbn) + "&id=" + encodeURI(specificBarcode);
-            }
-            a.innerHTML = "Click here to overwrite the barcode above.";
-            $("#add-entry")[0].appendChild(a);
-        } else {
-            alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
-            return;
-        }
-    }).catch((barcodeNumber) => {
-        alert("Could not find a valid book at: " + barcodeNumber);
-    });
-}
-
-/**
  * @description Called when the user searches for a book to edit on the admin dashboard.
  */
 function adminSearch() {
@@ -214,7 +179,7 @@ function createBarcode(multiple = false) {
         input = document.getElementById("barcode-single-input").value;
         input = "11711" + input;
         currentBarcode = parseInt(input);
-        if (input.length != 10 || input.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input)) {
             alert("That barcode is not valid");
             return;
         }
@@ -224,11 +189,11 @@ function createBarcode(multiple = false) {
         input1 = "11711" + input1;
         input2 = document.getElementById("barcode-multiple-input-end").value;
         input2 = "11711" + input2;
-        if (input1.length != 10 || input1.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input1)) {
             alert("The starting barcode is not valid");
             return;
         }
-        if (input2.length != 10 || input2.indexOf("11711") == -1) {
+        if (!/11711[0-9]{5}/.test(input2)) {
             alert("The ending barcode is not valid");
             return;
         }
