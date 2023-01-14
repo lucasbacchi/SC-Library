@@ -821,8 +821,8 @@ function continueScanning() {
  * @description Sets up the admin help page.
  */
 export function setupAdminHelp() {
-    $("#tableOfContents li").each((index, li) => {
-        $(li).on("click", () => {
+    $("#tableOfContents li a").each((index, a) => {
+        $(a).on("click", () => {
             goToPage("/admin/help/#section" + (index + 1));
         });
     });
@@ -831,6 +831,7 @@ export function setupAdminHelp() {
     });
     $(".back-to-top").each((index, li) => {
         $(li).children().on("click", () => {
+            goToPage("admin/help");
             $(document).scrollTop(0);
         });
     });

@@ -287,7 +287,7 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 
         // Temporarily hide the content while the page is loading
         // Don't hide the content if the user is going between two account pages.
-        if (currentPage && !(currentPage.includes("account") && pageName.includes("account"))) {
+        if (currentPage && currentPage != pageName && !(currentPage.includes("account") && pageName.includes("account"))) {
             $("#content").addClass("page-hidden");
         }
 
@@ -630,6 +630,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         // Scroll to a specific part of the page if needed
         // If no hash, scroll to the top of the page.
         if (pageHash) {
+            pageHash = "#" + encodeURIComponent(pageHash.substring(1));
             $(document).scrollTop($(pageHash).offset().top - 85);
         } else {
             if (currentPage != pageName) {
