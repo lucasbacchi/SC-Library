@@ -62,6 +62,13 @@
     <div id="cover"
         style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">
     </div>
+
+    <div id="logout-overlay" style="display: none; opacity: 0;">
+        <div id="logout-overlay-box" style="width: 40%;">
+            <h3 style="text-align: center; margin: 0; padding: 8px;">It appears you are inactive.</h3>
+            <p style="padding: 8px;">To protect your account, you will be logged out in <span id="logout-time-remaining">5:00</span> unless you interact with the page.</p>
+        </div>
+    </div>
     <!-- Required to make sure the footer doesn't overlay on other content. -->
     <div id="footer-spacer" style="clear: both; height: 200px;"></div>
     <footer>
@@ -70,7 +77,7 @@
             <ul class="footer-list">
                 <li><a href="https://goo.gl/maps/tr2RhuvuRkpu9jGu8" target="_blank">41 Central St, Andover, MA 01810</a>
                 </li>
-                <li><a href="mailto:scand@southchurch.com" target="_blank">scand@southchurch.com</a></li>
+                <li><a href="mailto:library@southchurch.com" target="_blank">library@southchurch.com</a></li>
                 <li><a href="tel:978-475-0321">978-475-0321</a></li>
             </ul>
         </div>
@@ -90,9 +97,7 @@
                 <li><a data-link-target='sitemap'>Sitemap</a></li>
             </ul>
         </div>
-        <div class="footer-bottom">&#169; 2022 South Church in Andover</div>
+        <div class="footer-bottom">&#169; 2023 South Church in Andover</div>
     </footer>
-
-    <script src="https://www.google.com/recaptcha/api.js"></script>
 </body>
 </html>
