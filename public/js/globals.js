@@ -255,9 +255,9 @@ export let directory = [
 /**
  * @global
  * @class
- * @classdesc A class which represents a stack of pages which can be navigated through using the browswer history.
+ * @classdesc A class which manages the history and stores a stack of pages which can be navigated through using the browswer history.
  */
-export class HistoryStack {
+export class HistoryManager {
     stack = [];
     currentIndex = -1;
 
@@ -271,15 +271,23 @@ export class HistoryStack {
     }
 
     /**
-     * @param {HistoryPage} item 
-     * @description Adds a new page to the stack and sets it as the current page using the currentIndex.
+     * @param {String} name The name of the page to add to the stack. 
+     * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @description Adds the information to a HistoryPage, adds it to the stack and sets it as the current page using the currentIndex.
      */
-    push(item) {
+    push(name, customData = null, first = false) {
+        // If we are somewhere in the past, remove all pages after the current page
         if (this.currentIndex < this.stack.length - 1) {
             this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
         }
-        this.stack.push(item);
+        this.stack.push(new HistoryPage(name, customData));
         this.currentIndex++;
+        if (!first) {
+            if (name == "") {
+                name = "/";
+            }
+            window.history.pushState({stack: this.stack, index: this.currentIndex}, null, name);
+        }
     }
 
     /**
@@ -313,37 +321,40 @@ export class HistoryStack {
     }
 
     /**
-     * @param {HistoryPage} item The item to add to the stack.
+     * @param {String} name The item to add to the stack.
+     * @param {Object} customData Any custom data to add to the page. This is optional.
      * @description Used to add the first item to the stack.
      */
-    first(item) {
+    first(name, customData = null) {
         if (this.stack.length == 0 && this.currentIndex == -1) {
-            this.push(item);
+            this.push(name, customData, true);
             window.history.replaceState({
                 stack: this.stack,
                 index: this.currentIndex
-            }, "");
+            }, null, name);
         }
     }
 }
 
 /**
  * @global
- * @type {HistoryStack}
- * @description The global variable historyStack which stores the stack of history events.
+ * @type {HistoryManager}
+ * @description The global variable historyManager which stores the history manager and the stack of history events.
  */
-export let historyStack = null;
+export let historyManager = null;
 
 /**
  * @global
- * @param {HistoryStack} newHistoryStack the history stack to set
- * @description Sets the global variable historyStack to the new stack.
+ * @param {Object} state the history state stored in the browser history (if there is one).
+ * @description Sets the global variable historyManager to the new manager.
  */
-export function setHistoryStack(newHistoryStack) {
-    if (newHistoryStack == undefined) {
-        historyStack = new HistoryStack([], -1);
+export function setHistoryManager(state) {
+    if (state == undefined) {
+        // There was no history found in the browser, so create a blank manager. This should only happen on the first page load.
+        historyManager = new HistoryManager([], -1);
     } else {
-        historyStack = new HistoryStack(newHistoryStack.stack, newHistoryStack.index);
+        // There was history found in the browser, so create a manager with the history. This will happen if the user reloads the page.
+        historyManager = new HistoryManager(state.stack, state.index);
     }
 }
 

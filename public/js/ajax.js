@@ -12,7 +12,7 @@ import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyStack, setHistoryStack, setCurrentHash, currentHash, performance, User
+    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User
 } from "./globals";
 import { findURLValue } from "./common";
 
@@ -29,9 +29,9 @@ var fullExtension = path + query + hash;
 $(() => {
     initApp().then(() => {
         setupIndex();
-        setHistoryStack(window.history.state);
+        setHistoryManager(window.history.state);
         goToPage(fullExtension.substring(1), true);
-        historyStack.first(fullExtension.substring(1));
+        historyManager.first(fullExtension.substring(1));
     }).catch((error) => {
         console.error(error);
     });
@@ -361,8 +361,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 setCurrentHash(pageHash);
                 if (goingBack == false) {
                     // Update the URL and History for all but the first page load
-                    historyStack.push("account?" + pageQuery.substring(1));
-                    window.history.pushState({ stack: historyStack.stack, index: historyStack.currentIndex }, "", "account?" + pageQuery.substring(1));
+                    historyManager.push("account?" + pageQuery.substring(1));
                 }
                 resolve();
             }).catch((error) => {
@@ -395,9 +394,10 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 }
 
                 if (!goingBack) {
-                    historyStack.push(pageUrl.substring(1) + pageQuery + pageHash);
+                    historyManager.push(pageUrl.substring(1) + pageQuery + pageHash);
                     // Can't use substring because it will remove the leading / and the history entry can't have an empty string.
-                    window.history.pushState({ stack: historyStack.stack, index: historyStack.currentIndex }, "", pageUrl + pageQuery + pageHash);
+                    // Let's hope past Lucas (above) was wrong.
+                    // window.history.pushState({ stack: historyManager.stack, index: historyManager.currentIndex }, "", pageUrl + pageQuery + pageHash);
                 }
 
                 $("#content").html(xhttp.responseText);
@@ -629,7 +629,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
 // Catch History Events such as forward and back and then go to those pages
 window.onpopstate = () => {
-    if (historyStack.currentIndex == window.history.state.index) {
+    if (historyManager.currentIndex == window.history.state.index) {
         // If the current index is the same as the state index, then we haven't moved
         // forward or back in the history. This could be a beforeunload event.
         return;
@@ -640,14 +640,14 @@ window.onpopstate = () => {
     let hash = document.location.hash;
 
     goToPage(path + search + hash, true).then(() => {
-        if (historyStack.currentIndex - 1 == window.history.state.index) {
-            historyStack.currentIndex--;
-        } else if (historyStack.currentIndex + 1 == window.history.state.index) {
-            historyStack.currentIndex++;
+        if (historyManager.currentIndex - 1 == window.history.state.index) {
+            historyManager.currentIndex--;
+        } else if (historyManager.currentIndex + 1 == window.history.state.index) {
+            historyManager.currentIndex++;
         }
 
         // Give the past knowlege of the future
-        window.history.replaceState({ stack: historyStack.stack, index: historyStack.currentIndex }, "");
+        window.history.replaceState({ stack: historyManager.stack, index: historyManager.currentIndex }, null);
     }).catch(() => {
         restoreHistory();
     });
@@ -657,8 +657,9 @@ window.onpopstate = () => {
  * @description In the event that a navigation action was cancelled, we need to reset the history state
  */
 function restoreHistory() {
-    if (historyStack.currentIndex != window.history.state.index) {
-        if (historyStack.currentIndex > window.history.state.index) {
+    // Figure out which direction we need to go to get back to the original page
+    if (historyManager.currentIndex != window.history.state.index) {
+        if (historyManager.currentIndex > window.history.state.index) {
             // We're going backwards
             window.history.forward();
         } else {
