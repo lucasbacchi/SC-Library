@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack, analytics, Book} from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book} from "./globals";
 
 /************
 BEGIN SEARCH
@@ -280,10 +280,15 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
     return decodeURI(value);
 }
 
-
+/**
+ * @description Sets the value of a parameter in the URL. If the parameter already exists, it will be replaced.
+ * @param {String} param The parameter to set
+ * @param {String} value The value to set the parameter to
+ * @param {Boolean} append A boolean representing if the existing queries should be kept
+ */
 export function setURLValue(param, value, append = true) {
-    let string = window.location.href;
-    // may also be able to use currentQuery for above
+    // Get everything after the host
+    let string = window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1);
     let answer = "";
     // does param already exist?
     if (append && string.indexOf("?") != -1) {
@@ -310,8 +315,7 @@ export function setURLValue(param, value, append = true) {
         answer = "?" + param + "=" + value;
     }
 
-    historyStack.push(encodeURI(answer));
-    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", encodeURI(answer));
+    historyManager.push(encodeURI(answer));
 }
 
 /**********
