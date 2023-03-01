@@ -1,6 +1,6 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
-import { buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
+import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
 import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -311,7 +311,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
             let authorString = items[authorIndex][i];
             const li = document.createElement("li");
             li.classList.add("sort-item");
-            li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+            li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
             li.children[0].checked = true;
             $("#sort-author-list")[0].appendChild(li);
             checkedCount++;
@@ -330,7 +330,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
         if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span";
+        li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
         if (i < maxAuthors) {
             $("#sort-author-list")[0]?.appendChild(li);
         } else if (i == maxAuthors) {
@@ -352,7 +352,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
                     if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\"><span>" + authorString + "</span>";
+                    li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
                     $("#sort-author-list")[0].appendChild(li);
                 }
             });
@@ -374,7 +374,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
             let subject = items[subjectIndex][i];
             const li = document.createElement("li");
             li.classList.add("sort-item");
-            li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span";
+            li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
             li.children[0].checked = true;
             $("#sort-subject-list")[0].appendChild(li);
             checkedCount++;
@@ -393,7 +393,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
         if (alreadyExists) continue;
         const li = document.createElement("li");
         li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
+        li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
         if (i < maxSubjects) {
             $("#sort-subject-list")[0].appendChild(li);
         } else if (i == maxSubjects) {
@@ -415,7 +415,7 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
                     if (alreadyExists) continue;
                     const li = document.createElement("li");
                     li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\"><span>" + subject + "</span>";
+                    li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
                     $("#sort-subject-list")[0].appendChild(li);
                 }
             });
@@ -444,7 +444,7 @@ export function setupResultPage(pageQuery) {
         changePageTitle(bookObject.title);
 
         if (bookObject.medium == "av") {
-            $("#result-page-image").attr("src", "/img/av-image.jpg");
+            $("#result-page-image").attr("src", "/img/av-image.png");
         } else {
             // Currently not checking for icons because they are too low quality. Could change that if needed.
             if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
@@ -458,7 +458,7 @@ export function setupResultPage(pageQuery) {
             }
         }
 
-        $("#result-page-barcode-number").html(barcodeNumber);
+        $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
             $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
@@ -846,4 +846,4 @@ function searchWithFilters(filters, items) {
     createSearchResultsPage(results, 1, filters, items);
 }
 
-console.log("search.js Loaded!");
+console.log("search.js has Loaded!");

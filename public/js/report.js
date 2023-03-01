@@ -18,7 +18,8 @@ export function setupReport(pageQuery) {
             setupRemovedReport();
             break;
         default:
-            goToPage("404");
+            alert("Invalid report type.");
+            goToPage("admin/main");
             break;
     }
 }

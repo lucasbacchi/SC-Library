@@ -280,12 +280,12 @@ export class HistoryManager {
         if (this.currentIndex < this.stack.length - 1) {
             this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
         }
+        if (name.charAt(0) != "/") {
+            name = "/" + name;
+        }
         this.stack.push(new HistoryPage(name, customData));
         this.currentIndex++;
         if (!first) {
-            if (name == "") {
-                name = "/";
-            }
             window.history.pushState({stack: this.stack, index: this.currentIndex}, null, name);
         }
     }
@@ -326,7 +326,11 @@ export class HistoryManager {
      * @description Used to add the first item to the stack.
      */
     first(name, customData = null) {
+        if (name.charAt(0) != "/") {
+            name = "/" + name;
+        }
         if (this.stack.length == 0 && this.currentIndex == -1) {
+            // This will only run if there was no history found.
             this.push(name, customData, true);
             window.history.replaceState({
                 stack: this.stack,
@@ -350,7 +354,8 @@ export let historyManager = null;
  */
 export function setHistoryManager(state) {
     if (state == undefined) {
-        // There was no history found in the browser, so create a blank manager. This should only happen on the first page load.
+        // There was no history found in the browser, so create a blank manager.
+        // This happens on the first page load as well as any time the URL is edited manually.
         historyManager = new HistoryManager([], -1);
     } else {
         // There was history found in the browser, so create a manager with the history. This will happen if the user reloads the page.

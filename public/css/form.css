@@ -32,7 +32,8 @@ p.form-description {
     font-size: .9em;
 }
 
-input.normal-form-input, input.form-input {
+input.normal-form-input,
+input.form-input {
     width: 250px;
     display: block;
 }
@@ -46,7 +47,7 @@ input.short-form-input {
     width: 150px;
 }
 
-input {
+.form-section>input {
     margin-bottom: 8px;
     font-weight: 500;
     font-size: 1em;
@@ -70,7 +71,8 @@ select {
     margin-bottom: 18px;
 }
 
-.subject-field, .add-subject {
+.subject-field,
+.add-subject {
     display: block;
 }
 
@@ -103,7 +105,7 @@ select {
     cursor: pointer;
 }
 
-#book-cover-image-overlay > span {
+#book-cover-image-overlay>span {
     position: relative;
     top: calc(50% - 12px);
 }

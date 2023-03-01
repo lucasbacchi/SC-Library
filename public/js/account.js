@@ -13,10 +13,7 @@ import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } fro
 export function setupAccountPage(pageQuery) {
     let user = auth.currentUser;
     if (!user) {
-        $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link'>here</a>.");
-        $("#no-user-sign-in-link").on("click", () => {
-            goToPage("login");
-        });
+        $("#settings-column").html("No user is signed in. To sign in, please click <a id='no-user-sign-in-link' href='/login'>here</a>.");
         return;
     }
 
@@ -37,9 +34,20 @@ export function setupAccountPage(pageQuery) {
     });
     $("#account-image-overlay").on("mouseleave", () => {
         $("#account-image-overlay").css("opacity", "0");
-        $("#account-image-overlay").delay(300).hide(0);
     });
     $("#account-image-overlay").on("mouseover", () => {
+        $("#account-image-overlay").clearQueue().stop();
+        showAccountImageOverlay();
+    });
+
+    // Keyboard accessibility
+    $("#account-page-image").on("focus", () => {
+        showAccountImageOverlay();
+    });
+    $("#account-image-overlay").on("blur", () => {
+        $("#account-image-overlay").css("opacity", "0");
+    });
+    $("#account-image-overlay").on("focus", () => {
         $("#account-image-overlay").clearQueue().stop();
         showAccountImageOverlay();
     });
@@ -58,25 +66,19 @@ export function setupAccountPage(pageQuery) {
         }
     });
 
+    // Keyboard accessibility
+    $("#account-image-overlay").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        if ($("#file-input")) {
+            $("#file-input").trigger("click");
+        }
+    });
+
     // When there is a change to the input, upload the file
     $("#file-input").on("change", () => {
         processAccountImage();
-    });
-
-    $("#overview-panel-link").on("click", () => {
-        goToPage('account?overview');
-    });
-
-    $("#checkouts-panel-link").on("click", () => {
-        goToPage('account?checkouts');
-    });
-
-    $("#notifications-panel-link").on("click", () => {
-        goToPage('account?notifications');
-    });
-
-    $("#security-panel-link").on("click", () => {
-        goToPage('account?security');
     });
 }
 
@@ -148,6 +150,14 @@ function setupAccountOverview() {
     });
 
     $("#email-verified-link").on("click", () => {
+        sendEmailVerificationToUser();
+    });
+
+    // Keyboard accessibility
+    $("#email-verified-link").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         sendEmailVerificationToUser();
     });
 
@@ -452,7 +462,7 @@ function processAccountImage() {
         const file = fileInput.files[0];
         if (file) {
             let output = document.getElementById('account-page-image');
-            output.src = encodeURIComponent(URL.createObjectURL(file));
+            output.src = encodeURI(URL.createObjectURL(file));
             /* This is bad because then the canvas elements can't use the link
             output.onload = function() {
                 URL.revokeObjectURL(output.src); // free memory

@@ -1,5 +1,5 @@
 .main-column {
-    width: 786px;
+    width: 65%;
     position: relative;
     margin: 0 auto;
     border-radius: 10px;
@@ -37,16 +37,16 @@
 }
 
 .account-image-container {
-    width: 80%;
+    max-width: fit-content;
     margin: 0 auto;
     position: relative;
 }
 
 #account-page-image {
-    width: 100% !important;
-    height: calc((786px * 0.3 - 32px) * 0.8);
+    width: 100%;
+    max-width: 200px;
     border-radius: 600px;
-    border: 3px solid #ffffff;    
+    border: 3px solid #ffffff;
     background-color: white;
 }
 
@@ -54,14 +54,14 @@
     width: 100%;
     height: calc(100% - 5px);
     padding-top: calc(50% - 1em);
-    background-color: #aaaaaa9a;
+    background-color: #ffffff9a;
     margin: 0 auto;
     border-radius: 600px;
     z-index: 2;
     border: 3px solid #ffffff;
     opacity: 0;
     transition: 0.3s;
-    display: none;
+    /* display: none; Removed for Accessibility */
     position: absolute;
     top: 0;
     left: 0;
@@ -69,7 +69,7 @@
     cursor: pointer;
 }
 
-.menu-list > li {
+.menu-list>li {
     list-style-type: none;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -97,7 +97,7 @@ p.notification {
     text-align: left;
 }
 
-.account-info > p {
+.account-info>p {
     margin-top: 4px;
     margin-bottom: 4px;
 }
@@ -111,11 +111,74 @@ input.account-input {
     margin-bottom: 8px;
 }
 
-.setting-section > button {
+.setting-section>button {
     display: block;
     margin-top: 16px;
 }
 
-.setting-section > p {
+.setting-section>p {
     text-align: left;
+}
+
+
+/* Content if screen is large */
+@media screen and (max-width: 1440px) {
+    .main-column {
+        width: 90%;
+    }
+
+}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {
+    .main-column {
+        width: 98%;
+    }
+
+    .menu-column {
+        width: 40%;
+    }
+
+    #account-page-image {
+        max-width: 150px;
+    }
+
+    #account-page-email {
+        font-size: 14px;
+    }
+
+}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    .setting-section>input {
+        width: 80%;
+    }
+
+}
+
+/* Content if screen is super small */
+@media screen and (max-width:500px) {
+    .main-column {
+        width: 95%;
+        flex-wrap: wrap;
+    }
+
+    .menu-column {
+        width: 100%;
+    }
+
+    #settings-column {
+        width: 100%;
+    }
+
+    .menu-list>li {
+        text-align: center;
+        padding: 4px 0px;
+    }
+
+    .setting-section>input {
+        width: 100%;
+    }
+
 }

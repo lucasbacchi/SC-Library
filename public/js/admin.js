@@ -7,10 +7,6 @@ import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } fr
  * @description Sets up the main page for the admin including all the event listeners.
  */
 export function setupAdminMain() {
-    $("#help-icon").on("click", () => {
-        goToPage("/admin/help");
-    });
-
     $("#edit-entry-input").on("keydown", (event) => {
         if (event.key === "Enter") {
             adminSearch();
@@ -27,39 +23,33 @@ export function setupAdminMain() {
         addEntryWithoutISBN();
     });
 
-    $("#circulation-report-link").on("click", () => {
-        goToPage('admin/report?type=circulation');
-    });
-
-    $("#purchases-report-link").on("click", () => {
-        goToPage('admin/report?type=purchases');
-    });
-
-    $("#removed-report-link").on("click", () => {
-        goToPage('admin/report?type=removed');
-    });
-
-    $("#inventory-link").on("click", () => {
-        goToPage('admin/inventory');
-    });
-
     $("#view-missing-barcodes").on("click", () => {
         viewMissingBarcodes();
     });
 
-    $("#view-all-books").on("click", () => {
-        goToPage('admin/view?type=books');
-    });
-
-    $("#view-all-users").on("click", () => {
-        goToPage('admin/view?type=users');
-    });
-
-    $("#barcode-link").on("click", () => {
-        goToPage('admin/barcode');
-    });
-
     $("#import-link").on("click", () => {
+        uploadDatabase();
+    });
+
+    // Keyboard Accessability
+    $("#add-entry-without-isbn").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        addEntryWithoutISBN();
+    });
+
+    $("#view-missing-barcodes").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        viewMissingBarcodes();
+    });
+
+    $("#import-link").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         uploadDatabase();
     });
 
@@ -68,6 +58,13 @@ export function setupAdminMain() {
     });
 
     $("#export-link").on("click", () => {
+        downloadDatabase();
+    });
+
+    $("#export-link").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         downloadDatabase();
     });
 
@@ -80,6 +77,13 @@ export function setupAdminMain() {
     });
 
     $("#import-cancel").on("click", () => {
+        toggleImportPopup();
+    });
+
+    $("#import-cancel").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         toggleImportPopup();
     });
 
@@ -336,11 +340,12 @@ function recentlyCheckedOut() {
 }
 
 /**
- * @description Updates the number of books in the database on the admin dashboard.
+ * @description Updates the stats on the admin dashboard.
  */
 function addStats() {
     let count = 0;
     search("").then(() => {
+        // Number of Books
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
@@ -353,7 +358,15 @@ function addStats() {
             }
         });
         $("#number-of-books").html(count);
+        // TODO: Number of Checked Out Books
+        $("#number-of-checked-out-books").html("0");
     });
+    // TODO: Number of Users
+    getDoc(doc(db, "/config/writable_vars")).then((docSnap) => {
+        let num = docSnap.data().maxCardNumber - 2171100000;
+        $("#number-of-users").html(num);
+    });
+    // TODO: Logins in the Past Month
 }
 
 /**
@@ -577,7 +590,8 @@ export function setupView(pageQuery) {
             });
         });
     } else {
-        console.warn("There was no valid type to view.");
+        console.warn("There was no type specified in the URL.");
+        alert("There was no type specified in the URL. Redirecting to the admin dashboard.");
         goToPage("admin/main");
     }
 }
@@ -590,7 +604,9 @@ export function setupView(pageQuery) {
  * @returns {HTMLDivElement} A div element that contains the user information.
  */
 function buildUserBox(obj, page, num = 0) {
+    const a = document.createElement("a");
     const div = document.createElement("div");
+    a.appendChild(div);
     switch (page) {
         case "view":
             div.classList.add("result-listing");
@@ -627,9 +643,7 @@ function buildUserBox(obj, page, num = 0) {
     div2.appendChild(email);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        div.addEventListener("click", () => {
-            goToPage("admin/editUser?id=" + obj.cardNumber);
-        });
+        a.href = "/admin/editUser?id=" + obj.cardNumber;
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Card Number: " + obj.cardNumber;
@@ -670,7 +684,7 @@ function buildUserBox(obj, page, num = 0) {
         checkouts.appendChild(document.createTextNode("Last Checked Out Book: Not Implemented Yet"));
         div3.appendChild(checkouts);
     }
-    return div;
+    return a;
 }
 
 /**
@@ -822,16 +836,14 @@ function continueScanning() {
  */
 export function setupAdminHelp() {
     $("#tableOfContents li a").each((index, a) => {
-        $(a).on("click", () => {
-            goToPage("/admin/help/#section" + (index + 1));
-        });
+        $(a).attr("href", "/admin/help#section" + (index + 1));
     });
     $("#sections > li").each((index, li) => {
         $(li).attr("id", "section" + (index + 1));
     });
     $(".back-to-top").each((index, li) => {
+        $(li).children().attr("href", "/admin/help");
         $(li).children().on("click", () => {
-            goToPage("admin/help");
             $(document).scrollTop(0);
         });
     });

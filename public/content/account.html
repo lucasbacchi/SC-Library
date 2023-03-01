@@ -2,18 +2,18 @@
     <div class="menu-column">
         <div class="account-info">
             <div class="account-image-container no-select">
-                <img id="account-page-image" src="../img/default-user.jpg" style="width: 0px;">
-                <div id="account-image-overlay">Change Photo</div>
+                <img id="account-page-image" src="../img/default-user.jpg">
+                <div id="account-image-overlay" tabindex="0">Change Photo</div>
                 <input type="file" id="file-input" style="display: none;" accept="image/*">
             </div>
             <p id="account-page-name"><b></b></p>
             <p id="account-page-email"></p>
         </div>
         <div class="menu-list" class="no-select">
-            <li><a id="overview-panel-link">Overview</a></li>
-            <li><a id="checkouts-panel-link">Checkouts</a></li>
-            <li><a id="notifications-panel-link">Notifications</a></li>
-            <li><a id="security-panel-link">Security</a></li>
+            <li><a id="overview-panel-link" href="/account?overview">Overview</a></li>
+            <li><a id="checkouts-panel-link" href="/account?checkouts">Checkouts</a></li>
+            <li><a id="notifications-panel-link" href="/account?notifications">Notifications</a></li>
+            <li><a id="security-panel-link" href="/account?security">Security</a></li>
         </div>
     </div>
     <div id="settings-column"></div>
