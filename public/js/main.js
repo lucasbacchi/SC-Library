@@ -110,4 +110,4 @@ function homeBookBoxes() {
 }
 
 
-console.log("main.js Loaded!");
+console.log("main.js has Loaded!");

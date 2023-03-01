@@ -1,7 +1,7 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
-import { goToPage, isAdminCheck } from "./ajax";
+import { isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book} from "./globals";
 
 /************
@@ -312,7 +312,7 @@ export function setURLValue(param, value, append = true) {
             answer = string + "&" + param + "=" + value;
         }
     } else {
-        answer = "?" + param + "=" + value;
+        answer = string + "?" + param + "=" + value;
     }
 
     historyManager.push(encodeURI(answer));
@@ -331,7 +331,9 @@ BEGIN BUILD BOOK BOX
  * @returns An HTMLDivElement with the book information
  */
 export function buildBookBox(obj, page, num = 0) {
+    const a = document.createElement("a");
     const div = document.createElement("div");
+    a.appendChild(div);
     switch (page) {
         case "view":
         case "search":
@@ -353,7 +355,7 @@ export function buildBookBox(obj, page, num = 0) {
         img.classList.add("edit-entry-book-image");
     }
     if (obj.medium == "av") {
-        img.src = "../img/av-image.jpg";
+        img.src = "../img/av-image.png";
     } else {
         if (obj.iconImageLink) {
             img.src = obj.iconImageLink;
@@ -365,6 +367,10 @@ export function buildBookBox(obj, page, num = 0) {
     }
     img.onload = () => {
         div.style.opacity = 1;
+    };
+    img.onerror = () => {
+        img.src = "../img/default-book.png";
+        img.onerror = null;
     };
     div1.appendChild(img);
     const b = document.createElement("b");
@@ -385,9 +391,7 @@ export function buildBookBox(obj, page, num = 0) {
     div2.appendChild(author);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        div.addEventListener("click", () => {
-            goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
-        });
+        a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
         if (obj.isDeleted) {
             div.classList.add("deleted");
         }
@@ -396,9 +400,7 @@ export function buildBookBox(obj, page, num = 0) {
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
         div2.appendChild(barcode);
     } else {
-        div.addEventListener("click", () => {
-            goToPage("result?id=" + obj.barcodeNumber);
-        });
+        a.href = "result?id=" + obj.barcodeNumber;
     }
     if (page == "account") {
         let frontstr = "", boldstr = "" + num, backstr = "";
@@ -457,25 +459,21 @@ export function buildBookBox(obj, page, num = 0) {
     }
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
+            const a = document.createElement("a");
             const img = document.createElement("img");
+            a.appendChild(img);
             img.classList.add("icon");
             if (page == "edit-entry") {
                 img.src = "../img/paper.png";
-                img.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    goToPage("result?id=" + obj.barcodeNumber);
-                });
+                a.href = "/result?id=" + obj.barcodeNumber;
             } else {
                 img.src = "../img/pencil.png";
-                img.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
-                });
+                a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
             }
-            div.appendChild(img);
+            div.appendChild(a);
         }
     });
-    return div;
+    return a;
 }
 
 function listSubjects(subj) {
@@ -535,6 +533,32 @@ export function getBookFromBarcode(barcodeNumber) {
 
 /**********
 END GET BOOK FROM BARCODE
+BEGIN ADD BARCODE SPACING
+***********/
+
+/**
+ * @description Adds spaces to a barcode to make it easier to read.
+ * @param {String|Number} barcode The (unspaced) barcode
+ * @returns {String} The barcode with spaces added
+ */
+export function addBarcodeSpacing(barcode) {
+    barcode = barcode.toString();
+    if (barcode.length != 10) {
+        console.warn("The barcode is not 10 digits long");
+        return;
+    }
+    let str = "";
+    for (let i = 0; i < barcode.length; i++) {
+        str += barcode.charAt(i);
+        if (i == 0 || i == 4) {
+            str += " ";
+        }
+    }
+    return str;
+}
+
+/**********
+END ADD BARCODE SPACING
 BEGIN ISBN UTILS
 ***********/
 

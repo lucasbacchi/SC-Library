@@ -1,4 +1,4 @@
-import { convertDataTagsToLinks, isAdminCheck } from "./ajax";
+import { isAdminCheck } from "./ajax";
 import { auth, directory } from "./globals";
 
 /**
@@ -22,19 +22,17 @@ export function setupSitemap() {
             }
             folder = newFolder;
             if (folder == "account") char = "?"; else if (folder == "") char = ""; else char = "/";
-            $('#' + folder).append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
+            $('#' + folder).append("<li><a href='/" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         } else {
             folder = "";
             char = "";
-            $('#sitemap').append("<li><a data-link-target='" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
+            $('#sitemap').append("<li><a href='/" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
             buildAdminSitemap();
         }
-
-        convertDataTagsToLinks();
     }).catch((error) => {
         console.error(error);
     });
@@ -53,7 +51,7 @@ function buildAdminSitemap() {
             let newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
-            $('#admin').append("<li><a data-link-target='admin/" + page + "'>" + formatPageString(page) + "</a></li>");
+            $('#admin').append("<li><a href='/admin/" + page + "'>" + formatPageString(page) + "</a></li>");
         }
     }
 }

@@ -19,12 +19,12 @@ export function setupSignIn(pageQuery) {
         sendPasswordReset();
     });
 
-    $("#log-in-switch-link").on("click", () => {
-        goToPage('login');
-    });
-
-    $("#sign-up-switch-link").on("click", () => {
-        goToPage('signup');
+    // Keyboard Accessability
+    $("#password-reset").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        sendPasswordReset();
     });
 
     if (findURLValue(pageQuery, "redirect", true) != "") {
@@ -381,4 +381,4 @@ function sendPasswordReset() {
     });
 }
 
-console.log("signIn.js Loaded!");
+console.log("signIn.js has Loaded!");

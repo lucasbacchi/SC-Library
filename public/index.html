@@ -5,51 +5,56 @@
     <!-- Load Bundled Scripts -->
     <script src="/dist/runtime.bundle.js"></script>
     <script src="/dist/ajax.bundle.js"></script>
+
+    <!-- Meta Tags -->
     <meta charset="utf-8">
     <meta name="keywords"
         content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
     <meta name="description" content="Official Library Catalog of South Church in Andover!">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1">
-    <!-- Chrome, Firefox OS and Opera -->
     <meta name="theme-color" content="#3D7A8B">
-    <!-- Windows Phone -->
     <meta name="msapplication-navbutton-color" content="#3D7A8B">
-    <!-- iOS Safari -->
     <meta name="apple-mobile-web-app-status-bar-style" content="#3D7A8B">
+
+    <!-- Link Tags -->
     <link rel="icon" href="/img/favicon.ico" type="image/png">
     <link rel="stylesheet" href="/css/main.css" type="text/css">
+    <link rel="stylesheet" href="/css/print.css" media="print">
 </head>
 
 <body style="overflow: hidden;">
     <header>
-        <h1><a data-link-target='main' class="no-select">South Church Library</a></h1>
-        <span id="hamburger-button" class="no-select">&#9776;</span>
+        <h1><a href="/" class="no-select">South Church Library</a></h1>
+        <span id="hamburger-button" class="no-select material-symbols-outlined">menu</span>
         <nav class="no-select">
-            <span id="close-button">&#10006;</span>
-            <li class="navlink"><a data-link-target='main'>Home</a></li>
-            <li class="navlink"><a data-link-target='about'>About</a></li>
-            <li class="navlink"><a data-link-target='search'>Browse</a></li>
-            <!--<li class="navlink"><a data-link-target='advancedSearch'>Search</a></li>-->
-            <li class="navlink"><a data-link-target='help'>Help</a></li>
+            <span id="close-button" class="material-symbols-outlined">close</span>
+            <li class="navlink"><a href="/main">Home</a></li>
+            <li class="navlink"><a href="/about">About</a></li>
+            <li class="navlink"><a href="/search">Browse</a></li>
+            <li class="navlink"><a href="/help">Help</a></li>
         </nav>
         <div id="account-container">
             <div id="nav-login-signup" class="no-select">
-                <div id="nav-login"><a data-link-target='login'>Log In</a></div>
-                <div id="nav-signup"><a data-link-target='signup'>Sign Up</a></div>
+                <div id="nav-login"><a href="/login">Log In</a></div>
+                <div id="nav-signup"><a href="/signup">Sign Up</a></div>
             </div>
-            <div id="small-account-container" class="no-select">
+            <div id="small-account-container" class="no-select" tabindex="0">
                 <img id="small-account-image" src="../img/default-user.jpg">
-                <span id="account-arrow">&#9660;</span>
+                <span class="material-symbols-outlined" id="account-arrow">arrow_drop_down</span>
             </div>
             <div id="large-account-container">
                 <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
                 <div id="account-information-container">
                     <p id="account-name"></p>
                     <p id="account-email"></p>
-                    <a id="admin-link" data-link-target="admin/main"></a>
+                    <a id="admin-link" href="/admin/main"></a>
                 </div>
-                <div id="log-out" class="account-bottom"><a>Log Out</a></div>
-                <div id="account-settings" class="account-bottom" data-link-target='account?overview'><a>View Account</a></div>
+                <a>
+                    <div id="log-out" tabindex="0" class="account-bottom">Log Out</div>
+                </a>
+                <a href="/account?overview">
+                    <div id="account-settings" class="account-bottom">View Account</div>
+                </a>
             </div>
         </div>
     </header>
@@ -66,7 +71,8 @@
     <div id="logout-overlay" style="display: none; opacity: 0;">
         <div id="logout-overlay-box" style="width: 40%;">
             <h3 style="text-align: center; margin: 0; padding: 8px;">It appears you are inactive.</h3>
-            <p style="padding: 8px;">To protect your account, you will be logged out in <span id="logout-time-remaining">5:00</span> unless you interact with the page.</p>
+            <p style="padding: 8px;">To protect your account, you will be logged out in <span
+                    id="logout-time-remaining">5:00</span> unless you interact with the page.</p>
         </div>
     </div>
     <!-- Required to make sure the footer doesn't overlay on other content. -->
@@ -92,12 +98,13 @@
         <div class="footer-div">
             <h2 class="footer-title no-select">Help</h2>
             <ul class="footer-list">
-                <li><a data-link-target='help'>Help Page</a></li>
-                <li><a data-link-target='help#FAQ'>FAQs</a></li>
-                <li><a data-link-target='sitemap'>Sitemap</a></li>
+                <li><a href="/help">Help Page</a></li>
+                <li><a href="/help#FAQ">FAQs</a></li>
+                <li><a href="/sitemap">Sitemap</a></li>
             </ul>
         </div>
         <div class="footer-bottom">&#169; 2023 South Church in Andover</div>
     </footer>
 </body>
+
 </html>

@@ -39,24 +39,83 @@ $(() => {
 
 
 /**
- * @description This sets up all the eventlisteners for the page frame.
+ * @description This funciton runs whenever a click event is triggered on the page.
+ * @param {Event} event The click event that was intercepted.
+ */
+function interceptLinkClick(event) {
+    let target = event.target;
+
+    // If the target is not a link tag, then find the closest link tag
+    if (target.tagName != "A") {
+        target = target.closest("a");
+    }
+    // If the target was not a link, and it couldn't find a link, return
+    if (!target) {
+        return;
+    }
+
+    // If the link has no href, then return
+    let href = target.getAttribute("href");
+    if (!href) {
+        return;
+    }
+
+    // If the link is not to the same host, then return - Allow External Links
+    const temp = document.createElement("a");
+    temp.href = href;
+    if (temp.host != window.location.host) {
+        return;
+    }
+
+    // Tell the browser not to respond to the link click
+    event.preventDefault();
+    goToPage(target.getAttribute("href"));
+}
+
+
+/**
+ * @description This sets up all the event listeners for the page frame.
  */
 function setupIndex() {
+    // Listen for link click events at the document level
+    if (document.addEventListener) {
+        document.addEventListener('click', interceptLinkClick);
+    } else if (document.attachEvent) {
+        document.attachEvent('onclick', interceptLinkClick);
+    }
+
     // Set up on click for log out button
     $("div#log-out").on("click", () => {
         signOutUser();
     });
 
-    convertDataTagsToLinks();
-
     // Manage Menu Button event listener
     $("#hamburger-button").on("click", () => {
         openNavMenu();
-
     });
 
     // Manage Menu Close Button event listener
     $("#close-button").on("click", () => {
+        closeNavMenu();
+    });
+
+    // Keyboard Acessibility
+    $("div#log-out").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        signOutUser();
+    });
+    $("#hamburger-button").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        openNavMenu();
+    });
+    $("#close-button").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         closeNavMenu();
     });
 
@@ -81,6 +140,20 @@ function setupIndex() {
 
     // Manage Account Panel and animation
     $("#small-account-container").on("click", () => {
+        if ($("#large-account-container").css("display") == "none") {
+            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
+            $("#large-account-container").show(0).delay(10);
+            $("#large-account-container").css("right", "0%");
+        } else {
+            closeLargeAccount();
+        }
+
+    });
+    // Keyboard Acessibility
+    $("#small-account-container").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         if ($("#large-account-container").css("display") == "none") {
             $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
             $("#large-account-container").show(0).delay(10);
@@ -121,22 +194,7 @@ function closeLargeAccount() {
 }
 
 /**
- * @description This function converts all the data tags on the HTML elements to onclick event listeners.
- */
-export function convertDataTagsToLinks() {
-    // Iterate through all the links and set an onclick
-    document.querySelectorAll("a, div, button").forEach(element => {
-        // The html tags each have a custom data tag telling where the link should go
-        if (element.dataset.linkTarget) {
-            $(element).on("click", () => {
-                goToPage(element.dataset.linkTarget);
-            });
-        }
-    });
-}
-
-/**
- * @description This function closes the mobile nav menu.
+ * @description Closes the mobile nav menu.
  */
 function closeNavMenu() {
     $("nav").css("transition", "0.5s");
@@ -148,7 +206,7 @@ function closeNavMenu() {
 }
 
 /**
- * @description This function opens the mobile nav menu.
+ * @description Opens the mobile nav menu.
  */
 function openNavMenu() {
     $("nav").css("transition", "0.5s");
@@ -213,8 +271,9 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         }
 
         // This removes an ending slash if one was mistakenly included
-        if (pageName.substring(pageName.length - 1) == "/") {
+        if (pageName.length > 1 && pageName.substring(pageName.length - 1) == "/") {
             pageName = pageName.substring(0, pageName.length - 1);
+            console.warn("The page name '" + pageName + "' had an ending slash. This was removed automatically.");
         }
 
         // This removes a leading slash if one was mistakenly included
@@ -395,9 +454,6 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
 
                 if (!goingBack) {
                     historyManager.push(pageUrl.substring(1) + pageQuery + pageHash);
-                    // Can't use substring because it will remove the leading / and the history entry can't have an empty string.
-                    // Let's hope past Lucas (above) was wrong.
-                    // window.history.pushState({ stack: historyManager.stack, index: historyManager.currentIndex }, "", pageUrl + pageQuery + pageHash);
                 }
 
                 $("#content").html(xhttp.responseText);
@@ -414,7 +470,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                     "admin/editUser": "Edit a User",
                     "admin/inventory": "Conduct Inventory",
                     "admin/help": "Admin Help",
-                    "404": "404 | File Not Found",
+                    "404": "404 | Page Not Found",
                     "about": "About Us",
                     "account": "Your Account",
                     "advancedSearch": "Advanced Search",
@@ -458,7 +514,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             resolve();
         }
 
-        if (pageName == "main") {
+        else if (pageName == "main") {
             import('./main').then(({ setupMain }) => {
                 setupMain();
                 resolve();
@@ -467,7 +523,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "login" || pageName == "signup") {
+        else if (pageName == "login" || pageName == "signup") {
             import('./signIn').then(({ setupSignIn }) => {
                 setupSignIn(pageQuery);
                 resolve();
@@ -477,7 +533,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         }
 
-        if (pageName == "search") {
+        else if (pageName == "search") {
             import('../css/search.css');
             import('./search').then(({ setupSearch }) => {
                 setupSearch(searchResultsArray, pageQuery);
@@ -487,7 +543,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "result") {
+        else if (pageName == "result") {
             import('../css/search.css');
             import('./search').then(({ setupResultPage }) => {
                 setupResultPage(pageQuery);
@@ -498,7 +554,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }
 
         // Need a special case for the account page because we have to travel to subpages without calling setup multiple times.
-        if (pageName == "account" && currentPage != "account") {
+        else if (pageName == "account" && currentPage != "account") {
             import('../css/account.css');
             import('./account').then(({ setupAccountPage }) => {
                 setupAccountPage(pageQuery, goingBack);
@@ -506,11 +562,11 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
-        } else {
-            setCurrentPanel(null);
+        } else if (pageName == "account" && currentPage == "account") {
+            resolve();
         }
 
-        if (pageName == "admin/main") {
+        else if (pageName == "admin/main") {
             import('../css/admin.css');
             import('./admin').then(({ setupAdminMain }) => {
                 setupAdminMain();
@@ -520,7 +576,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/editEntry") {
+        else if (pageName == "admin/editEntry") {
             import('../css/form.css');
             import('../css/admin.css');
             import('./editEntry').then(({ setupEditEntry }) => {
@@ -531,7 +587,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/editUser") {
+        else if (pageName == "admin/editUser") {
             import('../css/admin.css');
             import('./admin').then(({ setupEditUser }) => {
                 setupEditUser();
@@ -541,7 +597,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/view") {
+        else if (pageName == "admin/view") {
             import('../css/admin.css');
             import('../css/search.css');
             import('./admin').then(({ setupView }) => {
@@ -552,7 +608,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/report") {
+        else if (pageName == "admin/report") {
             import('../css/admin.css');
             import('./report').then(({ setupReport }) => {
                 setupReport(pageQuery);
@@ -562,7 +618,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/inventory") {
+        else if (pageName == "admin/inventory") {
             import('../css/admin.css');
             import('./admin').then(({ setupInventory }) => {
                 setupInventory();
@@ -572,7 +628,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/barcode") {
+        else if (pageName == "admin/barcode") {
             import('../css/admin.css');
             import('./admin').then(({ setupBarcodePage }) => {
                 setupBarcodePage();
@@ -582,7 +638,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "admin/help") {
+        else if (pageName == "admin/help") {
             import('../css/admin.css');
             import('./admin').then(({ setupAdminHelp }) => {
                 setupAdminHelp();
@@ -592,13 +648,18 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             });
         }
 
-        if (pageName == "sitemap") {
+        else if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
             });
+        }
+
+        else {
+            console.error("No setup function for page: " + pageName);
+            resolve();
         }
     }).then(() => {
         // Page Content has now Loaded and setup is done
@@ -612,7 +673,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
 
         // Scroll to a specific part of the page if needed
         // If no hash, scroll to the top of the page.
-        if (pageHash) {
+        if (pageHash && $(pageHash).length > 0) {
             pageHash = "#" + encodeURIComponent(pageHash.substring(1));
             $(document).scrollTop($(pageHash).offset().top - 85);
         } else {
@@ -621,6 +682,9 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             }
         }
 
+        if (pageName != "account") {
+            setCurrentPanel(null);
+        }
         setCurrentPage(pageName);
         setCurrentQuery(pageQuery);
         setCurrentHash(pageHash);
@@ -804,39 +868,50 @@ function initApp() {
     });
 }
 
-// TODO: Make sure the countdown continues even if the user is on a different tab
-var logoutTimer;
-var logoutCountdown;
+let worker;
 /**
  * @description Starts a timer to log the user out after inactivity (if "Remember me" was not checked).
  */
 function startLogoutTimer() {
     // If the user is not active for 20 minutes, log them out
-    logoutTimer = setTimeout(() => {
-        let timeRemaining = 2 * 60;
-        $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
-        $("#logout-overlay").show();
-        $("#logout-overlay").css("opacity", "1");
-        clearInterval(logoutCountdown);
-        logoutCountdown = setInterval(() => {
-            if (timeRemaining > 0) {
-                timeRemaining--;
-                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
-            } else {
+    if (!window.Worker) {
+        console.warn("Web Workers are not supported in this browser. The logout timer will not work.");
+        return;
+    }
+
+    if (!worker) {
+        worker = new Worker(new URL("./logoutTimer.js", import.meta.url));
+        worker.onmessage = (event) => {
+            if (event.data.command == "logout") {
                 signOut(auth).then(() => {
                     window.location.href = "/";
                 });
+            } else if (event.data.command == "show") {
+                let timeRemaining = event.data.timeRemaining;
+                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+                $("#logout-overlay").show();
+                $("#logout-overlay").css("opacity", "1");
+                if (!document.hasFocus()) {
+                    alert("Are you still there? You are about to be signed out!");
+                }
+            } else if (event.data.command == "update") {
+                let timeRemaining = event.data.timeRemaining;
+                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
             }
-        }, 1000);
-    }, 3 * 60 * 1000);
+        };
+    }
+
+    worker.postMessage("start");
 }
 
 /**
  * @description Stops the logout timer.
  */
 function stopLogoutTimer() {
-    clearTimeout(logoutTimer);
-    clearInterval(logoutCountdown);
+    if (!worker) {
+        return;
+    }
+    worker.postMessage("stop");
 }
 
 /**
@@ -885,7 +960,7 @@ function sendToFirebase({ name, delta, entries }) {
 
 /**
  * @description Updates the UI with the user's account information from the database.
- * @returns {Promise,void>} A promise that resolves when the user account info has been updated.
+ * @returns {Promise<void>} A promise that resolves when the user account info has been updated.
  */
 export function updateUserAccountInfo() {
     return new Promise((resolve, reject) => {
@@ -927,7 +1002,13 @@ export function updateUserAccountInfo() {
                 $("#large-account-image").show();
                 $("#account-email").show();
                 $("#account-settings").show();
-                $("#log-out").html("<a>Log Out</a>").css("width", "50%").on("click", () => {
+                $("#log-out").html("Log Out").css("width", "50%").on("click", () => {
+                    signOutUser();
+                }).on("keydown", (event) => {
+                    // Keyboard accessibility
+                    if (event.key != "Enter") {
+                        return;
+                    }
                     signOutUser();
                 });
                 resolve();
@@ -944,7 +1025,7 @@ export function updateUserAccountInfo() {
             $("#account-email").hide();
             $("#account-name").html("No user signed in");
             $("#account-settings").hide();
-            $("#log-out").html("<a href=\"login.html\">Log In</a>").css("width", "100%").attr("onclick", "");
+            $("#log-out").html("<a href=\"/login.html\">Log In</a>").css("width", "100%").attr("onclick", "").off("click").off("keydown");
             resolve();
         }
     });

@@ -20,7 +20,7 @@
     margin-bottom: 12px;
     padding: 6px;
     font-weight: bold;
-    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
 }
 
 .sort-item {
@@ -28,13 +28,18 @@
     padding-bottom: 5px;
 }
 
-.sort-item > input {
+.sort-item>input {
     margin-top: 7px;
     margin-right: 10px;
+    margin-left: -24px;
+}
+
+.sort-item>label {
+    cursor: pointer;
 }
 
 ul.sort-list {
-    padding: 0;
+    padding-left: 32px;
     margin-top: 6px;
 }
 
@@ -69,7 +74,7 @@ h4:hover {
     padding: 10px;
     border-radius: 6px;
     z-index: 3;
-    margin-left: 15px;
+    margin-left: 16px;
     margin-bottom: 20px;
     width: 81%;
     float: left;
@@ -133,7 +138,7 @@ h4:hover {
     margin-top: 0;
 }
 
-#result-page-details > p {
+#result-page-details>p {
     text-align: left;
 }
 
@@ -142,12 +147,14 @@ h4:hover {
     min-height: 100px;
 }
 
-div#result-page-info-bar > p {
+div#result-page-info-bar>p {
     text-align: left;
 }
 
-#paginator, #paginator > * {
+#paginator,
+#paginator>* {
     margin: 8px;
+    margin-top: 16px;
 }
 
 #checkout-button {
@@ -199,25 +206,41 @@ div#result-page-info-bar > p {
     left: -200px;
 }
 
-#author-show-more, #subject-show-more {
+#author-show-more,
+#subject-show-more {
     text-decoration: underline;
     cursor: pointer;
-    margin-left: 27px;
     color: var(--teal);
 }
 
 #search-page-input {
-    width: calc(100% - 160px);
-    padding-left: 12px;
-    height: 36px;
+    width: 100%;
+    padding-left: 16px;
+    height: 42px;
     border: 2px var(--mint) solid;
-    box-shadow: 0px 0px 8px 2px #cccccc;
+    box-shadow: 0px 0px 16px 0px #cccccc;
     font-size: 16px;
-    border-radius: 20px;
+    border-radius: 21px;
 }
 
 #search-page-input:focus {
     outline: 0px;
+}
+
+#search-page-search-button {
+    position: absolute;
+    top: 50%;
+    right: 0px;
+    transform: translate(0px, -50%);
+    color: var(--teal);
+    cursor: pointer;
+    font-size: 30px;
+    padding: 8px 16px;
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 600,
+    'GRAD' 200,
+    'opsz' 48
 }
 
 h6 {
@@ -229,7 +252,7 @@ h6 {
 
 #apply-filters-button {
     margin: 0 auto;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
     position: relative;
     left: 50%;
     transform: translate(-50%, 0px);
@@ -237,10 +260,11 @@ h6 {
 
 div.search-page-search-container {
     float: left;
-    width: calc(85% - 72px);
+    width: calc(85% - 75px);
     margin: 16px;
     margin-bottom: 20px;
     margin-top: 0px;
+    position: relative;
 }
 
 
@@ -248,11 +272,6 @@ div.search-page-search-container {
     flex-basis: 70%;
     margin-left: 8px;
 }
-
-
-
-
-
 
 
 
@@ -268,7 +287,7 @@ div.search-page-search-container {
     }
 
     div.search-page-search-container {
-        width: calc(80% - 72px);
+        width: calc(80% - 56px);
     }
 
     .advanced-info {
@@ -282,7 +301,6 @@ div.search-page-search-container {
     #results-container {
         width: calc(78% - 35px);
         margin-right: 0;
-        margin-left: 12px;
     }
 
     #sort-sidebar {
@@ -311,7 +329,7 @@ div.search-page-search-container {
     #sort-sidebar {
         width: 25%;
     }*/
-    
+
     .sort-section {
         display: none;
         opacity: 0;
@@ -329,7 +347,6 @@ div.search-page-search-container {
 
     h3#sort-main-title {
         vertical-align: middle;
-        text-align: center;
         margin-top: 2px;
         margin-bottom: 2px;
     }

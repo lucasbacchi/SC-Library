@@ -1,7 +1,7 @@
 <div id="sort-sidebar">
     <h3 id="sort-main-title" tabindex="0">Filter Search Results</h3>
     <button id="apply-filters-button">Apply Filters</button>
-    <br />
+    <br>
     <div class="sort-section">
         <h6 class="sort-title">Author</h6>
         <ul class="sort-list" id="sort-author-list">
@@ -10,17 +10,17 @@
     <div class="sort-section">
         <h6 class="sort-title">Medium</h6>
         <ul class="sort-list" id="sort-medium-list">
-            <li class="sort-item"><input type="checkbox"><span>Hardcover</span></li>
-            <li class="sort-item"><input type="checkbox"><span>Paperback</span></li>
-            <li class="sort-item"><input type="checkbox"><span>AV</span></li>
+            <li class="sort-item"><input type="checkbox" id="hardcover-checkbox"><label for="hardcover-checkbox">Hardcover</label></li>
+            <li class="sort-item"><input type="checkbox" id="paperback-checkbox"><label for="paperback-checkbox">Paperback</label></li>
+            <li class="sort-item"><input type="checkbox" id="av-checkbox"><label for="av-checkbox">AV</label></li>
         </ul>
     </div>
     <div class="sort-section">
         <h6 class="sort-title">Audience</h6>
         <ul class="sort-list" id="sort-audience-list">
-            <li class="sort-item"><input type="checkbox"><span>Children</span></li>
-            <li class="sort-item"><input type="checkbox"><span>Youth</span></li>
-            <li class="sort-item"><input type="checkbox"><span>Adult</span></li>
+            <li class="sort-item"><input type="checkbox" id="children-checkbox"><label for="children-checkbox">Children</label></li>
+            <li class="sort-item"><input type="checkbox" id="youth-checkbox"><label for="youth-checkbox">Youth</label></li>
+            <li class="sort-item"><input type="checkbox" id="adult-checkbox"><label for="adult-checkbox">Adult</label></li>
         </ul>
     </div>
     <div class="sort-section">
@@ -31,18 +31,15 @@
     <div class="sort-section">
         <h6 class="sort-title">Type</h6>
         <ul class="sort-list" id="sort-type-list">
-            <li class="sort-item"><input type="checkbox"><span>Fiction</span></li>
-            <li class="sort-item"><input type="checkbox"><span>Non-fiction</span></li>
+            <li class="sort-item"><input type="checkbox" id="fiction-checkbox"><label for="fiction-checkbox">Fiction</label></li>
+            <li class="sort-item"><input type="checkbox" id="non-fiction-checkbox"><label for="non-fiction-checkbox">Non-fiction</label></li>
         </ul>
     </div>
 </div>
 
 <div class="search-page-search-container search">
     <input id="search-page-input" placeholder="Search by title, author, subject, keyword..."></input>
-    <div id="search-button-container" style="margin-top: 4px;">
-        <button id="search-page-search-button">Search</button>
-        <button onclick="alert('Just use the other button for now');">Advanced Search</button>
-    </div>
+    <span class="material-symbols-outlined" id="search-page-search-button">search</span>
 </div>
 
 

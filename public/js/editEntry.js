@@ -1,5 +1,5 @@
 import { goToPage } from "./ajax";
-import { findURLValue, switchISBNformats, verifyISBN } from "./common";
+import { addBarcodeSpacing, findURLValue, switchISBNformats, verifyISBN } from "./common";
 import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
@@ -190,7 +190,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
             return;
         }
 
-        $('#barcode').html(barcodeNumber);
+        $('#barcode').html(addBarcodeSpacing(barcodeNumber));
         $("#book-title").val(data.title);
         $("#book-subtitle").val(data.subtitle);
 
@@ -1307,7 +1307,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             let newNumber = (order + 1).toString().padStart(3, "0");
                             let barcode = "11711" + newNumber + "00";
 
-                            $("#barcode").html(barcode);
+                            $("#barcode").html(addBarcodeSpacing(barcode));
                             pageData = getBookDataFromPage();
 
                             if (skipImages) {
@@ -1339,7 +1339,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                                 barcode = "11711" + order + numBooksInDoc;
                             }
 
-                            $("#barcode").html(barcode);
+                            $("#barcode").html(addBarcodeSpacing(barcode));
                             pageData = getBookDataFromPage();
 
                             if (skipImages) {

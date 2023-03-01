@@ -1,0 +1,22 @@
+@media print {
+    /* All your print styles go here */
+    header,
+    footer,
+    #sort-sidebar,
+    .search-page-search-container {
+        display: none !important;
+    }
+
+    #header-spacer {
+        height: 16px !important;
+    }
+
+    .book {
+        break-inside: avoid !important;
+    }
+
+    #results-container {
+        width: 95% !important;
+    }
+
+}
