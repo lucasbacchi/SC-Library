@@ -1,3 +1,4 @@
+/* Edit Entry Page */
 .form-section {
     margin-bottom: 40px;
 }
@@ -55,14 +56,14 @@ input.short-form-input {
 
 textarea {
     margin-bottom: 8px;
-    font-family: 'Oswald', sans-serif;
+    font-family: "Oswald", sans-serif;
     font-size: 1em;
     min-height: 150px;
 }
 
 select {
     margin-bottom: 8px;
-    font-family: 'Oswald', sans-serif;
+    font-family: "Oswald", sans-serif;
     font-size: 1em;
 }
 
@@ -109,3 +110,50 @@ select {
     position: relative;
     top: calc(50% - 12px);
 }
+
+
+
+
+
+/* Responsive */
+/* Content if screen is large */
+@media screen and (max-width: 1440px) {
+}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {
+}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    #form-container {
+        width: 95%;
+    }
+
+    .long-form-input {
+        width: 90%;
+    }
+
+    textarea {
+        width: 90%;
+    }
+}
+
+/* Content if screen is really small */
+@media screen and (max-width:570px) {
+}
+
+
+/* Content if screen is super small */
+@media screen and (max-width:500px) {
+    .normal-form-input,
+    .long-form-input,
+    textarea {
+        width: 100%;
+    }
+
+    #form-container {
+        padding: 24px;
+    }
+}
+
