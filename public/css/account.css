@@ -1,3 +1,4 @@
+/* Account Page Layout */
 .main-column {
     width: 65%;
     position: relative;
@@ -18,22 +19,23 @@
     margin-left: 0px;
 }
 
-.account-info {
-    margin-bottom: 24px;
-    text-align: center;
-    position: relative;
-}
-
-.setting-section {
-    margin-bottom: 40px;
-}
-
 #settings-column {
     width: calc(70% - 8px);
     padding: 16px;
     display: inline-block;
     vertical-align: top;
     margin-bottom: 20px;
+}
+
+
+
+
+
+/* Menu Column */
+.account-info {
+    margin-bottom: 24px;
+    text-align: center;
+    position: relative;
 }
 
 .account-image-container {
@@ -75,7 +77,21 @@
     padding-bottom: 10px;
 }
 
-h6 {
+.account-info>p {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+
+
+
+
+/* Settings Column */
+.setting-section {
+    margin-bottom: 40px;
+}
+
+h6.setting-title {
     font-size: 1em;
     margin: 10px 0 0 0;
 }
@@ -85,25 +101,6 @@ p.setting-description {
     margin-top: 4px;
     margin-bottom: 16px;
     font-size: .7em;
-}
-
-div.book-layout {
-    height: 110px;
-    width: 100%;
-    float: none;
-}
-
-p.notification {
-    text-align: left;
-}
-
-.account-info>p {
-    margin-top: 4px;
-    margin-bottom: 4px;
-}
-
-p.unread {
-    color: var(--teal);
 }
 
 input.account-input {
@@ -120,7 +117,40 @@ input.account-input {
     text-align: left;
 }
 
+button.save-button {
+    position: absolute;
+    bottom: 16px;
+}
 
+
+
+
+/* Account Checkouts */
+div.book-layout {
+    height: 110px;
+    width: 100%;
+    float: none;
+}
+
+
+
+
+
+/* Account Notifications */
+p.notification {
+    text-align: left;
+}
+
+p.unread {
+    color: var(--teal);
+}
+
+
+
+
+
+
+/* Responsive */
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {
     .main-column {

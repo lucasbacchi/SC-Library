@@ -588,6 +588,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         }
 
         else if (pageName == "admin/editUser") {
+            import('../css/form.css');
             import('../css/admin.css');
             import('./admin').then(({ setupEditUser }) => {
                 setupEditUser();
