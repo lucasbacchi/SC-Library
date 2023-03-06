@@ -24,7 +24,7 @@
 
 <body style="overflow: hidden;">
     <header>
-        <h1><a href="/" class="no-select">South Church Library</a></h1>
+        <a href="/" class="no-select"><h1>South Church Library</h1></a>
         <span id="hamburger-button" class="no-select material-symbols-outlined">menu</span>
         <nav class="no-select">
             <span id="close-button" class="material-symbols-outlined">close</span>
@@ -33,6 +33,10 @@
             <li class="navlink"><a href="/search">Browse</a></li>
             <li class="navlink"><a href="/help">Help</a></li>
         </nav>
+        <div id="header-search-container" class="search-container">
+            <input id="header-search-input" class="search-input" placeholder="Search by title, author, subject, keyword..."></input>
+            <span class="material-symbols-outlined search-button" id="header-search-button">search</span>
+        </div>
         <div id="account-container">
             <div id="nav-login-signup" class="no-select">
                 <div id="nav-login"><a href="/login">Log In</a></div>
@@ -49,12 +53,10 @@
                     <p id="account-email"></p>
                     <a id="admin-link" href="/admin/main"></a>
                 </div>
-                <a>
-                    <div id="log-out" tabindex="0" class="account-bottom">Log Out</div>
-                </a>
-                <a href="/account?overview">
-                    <div id="account-settings" class="account-bottom">View Account</div>
-                </a>
+                <div id="account-bottom-container">
+                    <a id="log-out" tabindex="0">Log Out</a>
+                    <a href="/account?overview">View Account</a>
+                </div>
             </div>
         </div>
     </header>
@@ -66,14 +68,6 @@
 
     <div id="cover"
         style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">
-    </div>
-
-    <div id="logout-overlay" style="display: none; opacity: 0;">
-        <div id="logout-overlay-box" style="width: 40%;">
-            <h3 style="text-align: center; margin: 0; padding: 8px;">It appears you are inactive.</h3>
-            <p style="padding: 8px;">To protect your account, you will be logged out in <span
-                    id="logout-time-remaining">5:00</span> unless you interact with the page.</p>
-        </div>
     </div>
     <!-- Required to make sure the footer doesn't overlay on other content. -->
     <div id="footer-spacer" style="clear: both; height: 200px;"></div>

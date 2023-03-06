@@ -3,7 +3,7 @@ import { browserLocalPersistence, browserSessionPersistence, createUserWithEmail
          reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
 import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { findURLValue, sendEmailVerificationToUser } from "./common";
+import { findURLValue, openModal, sendEmailVerificationToUser } from "./common";
 import { analytics, auth, currentPage, db, User } from "./globals";
 
 /**
@@ -98,14 +98,14 @@ function authRedirect(pageQuery) {
                     $("#email-verified").show();
                 }
                 updateEmailinUI(email);
-                alert("Your email was saved successfully.");
+                openModal("success", "Your email was saved successfully.");
                 goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
             }).catch((error) => {
-                alert("There was an error updating your email. Please try again later.");
+                openModal("error", "There was an error updating your email. Please try again later.");
                 console.error(error);
             });
         }).catch((error) => {
-            alert("There was an error updating your email. Please try again later.");
+            openModal("error", "There was an error updating your email. Please try again later.");
             console.error(error);
         });
     } else {
@@ -152,8 +152,6 @@ function signInSubmit(pageQuery = "") {
             } else {
                 goToPage("");
             }
-        }).catch((error) => {
-            console.error(error);
         });
     });
 }
@@ -163,21 +161,21 @@ function signInSubmit(pageQuery = "") {
  * @param {Boolean} reAuth Whether or not this is a reauthentication.
  */
 function signIn(reAuth = false) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let user = auth.currentUser;
         if (user && !reAuth) {
-            alert("Another user is currently signed in. Please sign out first.");
+            openModal("error", "Another user is currently signed in. Please sign out first.");
         } else {
             let email;
             if (reAuth) email = user.email;
             else email = document.getElementById('email').value;
             let password = document.getElementById('password').value;
             if (email.length < 4) {
-                alert('Please enter an email address.');
+                openModal("issue", 'Please enter an email address.');
                 reject();
             }
             if (password.length < 4) {
-                alert('Please enter a password.');
+                openModal("issue", 'Please enter a password.');
                 reject();
             }
             if (!reAuth) {
@@ -194,32 +192,32 @@ function signIn(reAuth = false) {
                     let errorCode = error.code;
                     let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
-                        alert('Wrong password.');
+                        openModal("issue", 'Wrong password.');
                     } else {
-                        alert(errorMessage);
+                        openModal("error", errorMessage);
+                        console.error(error);
+                        $('#email').val('');
                     }
-                    console.error(error);
-                    $('#email').val('');
                     $('#password').val('');
-                    reject();
+                    reject(errorCode);
                 });
             } else {
                 // Reauthenticate
                 const credential = EmailAuthProvider.credential(email, password);
-                reauthenticateWithCredential(user, credential).then(function () {
+                reauthenticateWithCredential(user, credential).then(() => {
                     // User re-authenticated.
                     resolve(reAuth);
-                }).catch(function (error) {
+                }).catch((error) => {
                     // An error happened.
                     let errorCode = error.code;
                     let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
-                        alert('Wrong password.');
+                        openModal("issue", 'Wrong password.');
                     } else {
-                        alert(errorMessage);
+                        openModal("error", errorMessage);
+                        console.error(error);
+                        $('#email').val('');
                     }
-                    console.error(error);
-                    $('#email').val('');
                     $('#password').val('');
                 });
             }
@@ -245,72 +243,72 @@ function handleSignUp() {
         let password = document.getElementById('password').value;
         let confirmPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
-            alert('Please enter an email address.');
+            openModal("issue", 'Please enter an email address.');
             reject();
             return;
         }
         if (password.length < 4) {
-            alert('Please enter a longer password.');
+            openModal("issue", 'Please enter a longer password.');
             reject();
             return;
         }
         if (password != confirmPassword) {
-            alert('Your passwords do not match.');
+            openModal("issue", 'Your passwords do not match.');
             reject();
             return;
         }
         if (!/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(phone)) {
-            alert('Please enter a valid phone number');
+            openModal("issue", 'Please enter a valid phone number');
             reject();
             return;
         }
         if (address.length < 6) {
-            alert('Please enter a valid address');
+            openModal("issue", 'Please enter a valid address');
             reject();
             return;
         }
         if (town.length < 3) {
-            alert('Please enter a valid address');
+            openModal("issue", 'Please enter a valid address');
             reject();
             return;
         }
         if (state.length != 2) {
-            alert('Please enter the state as two letters (ex. MA)');
+            openModal("issue", 'Please enter the state as two letters (ex. MA)');
             reject();
             return;
         }
         if (zip.length != 5) {
-            alert('Please enter a valid zip code');
+            openModal("issue", 'Please enter a valid zip code');
             reject();
             return;
         }
         if (firstName.length < 1) {
-            alert('Please enter a first name.');
+            openModal("issue", 'Please enter a first name.');
             reject();
             return;
         }
         if (lastName.length < 1) {
-            alert('Please enter a last name.');
+            openModal("issue", 'Please enter a last name.');
             reject();
             return;
         }
         let signUpError = false;
         // Create user with email and pass, then logs them in.
-        createUserWithEmailAndPassword(auth, email, password).catch(function (error) {
+        createUserWithEmailAndPassword(auth, email, password).catch((error) => {
             // Handle Errors here.
             signUpError = true;
             let errorCode = error.code;
             let errorMessage = error.message;
             if (errorCode == 'auth/weak-password') {
-                alert('The password is too weak.');
+                openModal("issue", 'The password is too weak. Please try another password.');
             } else if (errorCode == 'auth/email-already-in-use') {
-                alert("This email is already in use. If you already have an account, please try signing in instead.");
+                openModal("issue", "This email is already in use. If you already have an account, please try signing in instead.");
             } else {
-                alert(errorMessage);
+                openModal("error", errorMessage);
+                console.error(error);
             }
-            console.error(error);
             reject();
-        }).then(function () {
+        }).then(() => {
             if (!signUpError) {
                 let user = auth.currentUser;
                 let userObject;
@@ -361,23 +359,23 @@ function handleSignUp() {
 function sendPasswordReset() {
     let email = document.getElementById('email').value;
     if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')) {
-        alert("Please enter a valid email into the Email box above. Then try again.");
+        openModal("issue", "Please enter a valid email into the Email box above. Then try again.");
         return;
     }
-    sendPasswordResetEmail(auth, email).then(function () {
-        alert('Password Reset Email Sent!');
-    }).catch(function (error) {
+    sendPasswordResetEmail(auth, email).then(() => {
+        openModal("success", "Password Reset Email Sent!");
+    }).catch((error) => {
         // Handle Errors here.
         let errorCode = error.code;
         let errorMessage = error.message;
         if (errorCode == 'auth/invalid-email') {
-            alert(errorMessage);
+            openModal("error", errorMessage);
         } else if (errorCode == 'auth/user-not-found') {
-            alert(errorMessage);
+            openModal("error", errorMessage);
         } else {
-            alert("Your password reset email could not be sent. Please contact the librarian for help.");
+            openModal("error", "Your password reset email could not be sent. Please contact the librarian for help.\n" + errorMessage);
+            console.error(error);
         }
-        console.error(error);
     });
 }
 

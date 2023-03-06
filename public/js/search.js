@@ -1,6 +1,6 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, search, setURLValue } from './common';
+import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue } from './common';
 import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -51,14 +51,6 @@ export function setupSearch(searchResultsArray, pageQuery) {
                 $('.sort-section').css('opacity', '0');
             }
         }
-    });
-
-    $('#author-show-more').on("click", () => {
-        alert("Add Functionality");
-    });
-
-    $('#subject-show-more').on("click", () => {
-        alert("Add Functionality");
     });
 
     $("#search-page-input").on("keydown", (event) => {
@@ -430,14 +422,14 @@ function createFilterList(searchResultsArray, filters = [], items = [[]]) {
 export function setupResultPage(pageQuery) {
     let barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
-        alert("Error: A valid barcode was not provided.");
+        openModal("error", "A valid barcode was not provided.");
         goToPage("");
         return;
     }
 
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
-            alert("Error: No information could be found for that book.");
+            openModal("error", "No information could be found for that book.");
             goToPage("");
             return;
         }
@@ -636,8 +628,8 @@ export function setupResultPage(pageQuery) {
             item_id: barcodeNumber
         });
     }).catch((error) => {
-        alert("Error: No information could be found for that book. " + error);
-        goToPage("");
+        openModal("error", "No information could be found for that book.\n" + error);
+        window.history.back();
         return;
     });
 
@@ -662,7 +654,7 @@ export function setupResultPage(pageQuery) {
  */
 function checkout(barcodeNumber) {
     if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
-        alert("There was an error checking out this book.");
+        openModal("error", "There was an error checking out this book.");
         console.log("The barcode number could not be identified.");
         return;
     }
@@ -685,7 +677,7 @@ function cancelCheckout() {
  */
 function scanCheckout() {
     // TODO: Delete after implementing
-    alert("This feature is not yet implemented.");
+    openModal("info", "This feature is not yet implemented.");
     return;
     /*
     $("#checkout-next-button").hide();
@@ -719,7 +711,7 @@ function scanCheckout() {
                                     querySnapshot.forEach((docSnap) => {
                                         docSnap.data().checkouts.forEach((checkoutObject) => {
                                             if (checkoutObject.returnTime != null) {
-                                                alert("The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
+                                                openModal("error", "The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
                                                 return;
                                             }
                                         });
@@ -728,13 +720,13 @@ function scanCheckout() {
                             runTransaction(db, (transaction) => {
                                 return transaction.get(doc(db, "books", bookDocument)).then((docSnap) => {
                                     if (!docSnap.exists()) {
-                                        alert("There was a problem with checking out that book.");
+                                        openModal("error", "There was a problem with checking out that book.");
                                         return;
                                     }
 
                                     let bookObject = docSnap.data().books[bookNumber];
                                     if (bookObject.canBeCheckedOut == false) {
-                                        alert("We're sorry, but this is a reference book, and it may not be checked out.");
+                                        openModal("error", "We're sorry, but this is a reference book, and it may not be checked out.");
                                         return;
                                     }
                                     let currentTime = Date.now();
@@ -749,14 +741,14 @@ function scanCheckout() {
                                     });
                                 });
                             }).then(() => {
-                                alert("This book has been checked out to you successfully.");
+                                openModal("success", "This book has been checked out to you successfully.");
                                 goToPage("");
                             });
                         }
                     }
                 });
             } else {
-                alert("This is not the right book. Please view the correct book's page before checking it out.");
+                openModal("error", "This is not the right book. Please view the correct book's page before checking it out.");
                 cancelCheckout();
             }
         }

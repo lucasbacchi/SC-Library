@@ -684,7 +684,7 @@ BEGIN AUTH
 export function sendEmailVerificationToUser() {
     let user = auth.currentUser;
     sendEmailVerification(user).then(() => {
-        alert("Email Verification Sent! Please check your email!");
+        openModal("success", "Email Verification Sent! Please check your email!");
     });
 }
 
@@ -692,4 +692,134 @@ export function sendEmailVerificationToUser() {
 
 /**********
 END AUTH
+BEGIN MODALS
+***********/
+
+/**
+ * @description Opens a modal that covers the screen and displays info to the user.
+ * @param {String} type The type of modal to open. Can be "info", "warning", "issue", "error", or "success".
+ * @param {String} message The message to display to the user.
+ * @param {String} title The title of the modal. Will default to "Info", "Warning", "There was a Problem", "Error", or "Success" depending on the type.
+ * @param {String} mainButtonText The text to display on the main button. Defaults to "OK".
+ * @param {Function} mainCallback The function to call when the main button is clicked. Defaults to null.
+ * @param {String} secondaryButtonText The text to display on the secondary button. Defaults to null.
+ * @param {Function} secondaryCallback The function to call when the secondary button is clicked. Defaults to null.
+ * @returns {Function} A function that closes the modal.
+*/
+export function openModal(type, message, title, mainButtonText = "OK", mainCallback = null, secondaryButtonText = null, secondaryCallback = null) {
+    // Create HTML elements
+    let modalContainer = document.createElement("div");
+    modalContainer.classList.add("modal-container");
+    let modal = document.createElement("div");
+    modal.classList.add("modal");
+    modalContainer.appendChild(modal);
+    let modalIcon = document.createElement("span");
+    modalIcon.classList.add("material-symbols-outlined");
+    modal.appendChild(modalIcon);
+    let modalTitle = document.createElement("h3");
+    modal.appendChild(modalTitle);
+    let modalMessage = document.createElement("p");
+    modal.appendChild(modalMessage);
+    let modalButtonContainer = document.createElement("div");
+    modalButtonContainer.classList.add("modal-button-container");
+    modal.appendChild(modalButtonContainer);
+    let modalButtonMain = document.createElement("button");
+    let modalButtonSecondary = document.createElement("button");
+    modalButtonContainer.appendChild(modalButtonSecondary);
+    modalButtonContainer.appendChild(modalButtonMain);
+
+    // Set attributes
+    switch (type) {
+        case "success":
+            modalIcon.innerHTML = "check";
+            modalIcon.classList.add("success");
+            modalTitle.innerHTML = "Success";
+            break;
+        case "error":
+            modalIcon.innerHTML = "error";
+            modalIcon.classList.add("error");
+            modalTitle.innerHTML = "Error";
+            break;
+        case "warning":
+            modalIcon.innerHTML = "warning";
+            modalIcon.classList.add("warning");
+            modalButtonMain.classList.add("warning");
+            modalTitle.innerHTML = "Warning";
+            break;
+        case "issue":
+            modalIcon.innerHTML = "help";
+            modalIcon.classList.add("issue");
+            modalTitle.innerHTML = "There was a Problem";
+            break;
+        case "info":
+            modalIcon.innerHTML = "info";
+            modalIcon.classList.add("info");
+            modalTitle.innerHTML = "Info";
+            break;
+        default:
+            console.warn("Invalid modal type: " + type);
+            return;
+    }
+    if (title) {
+        modalTitle.innerHTML = title;
+    }
+    modalMessage.innerHTML = message;
+    modalButtonMain.innerHTML = mainButtonText;
+    if (mainButtonText == "") {
+        modalButtonMain.style.display = "none";
+    }
+    if (secondaryButtonText) {
+        modalButtonSecondary.innerHTML = secondaryButtonText;
+        modalButtonContainer.style.justifyContent = "space-between";
+    } else {
+        modalButtonSecondary.style.display = "none";
+    }
+
+    // Button Event Listeners
+    modalButtonMain.onclick = () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+        if (mainCallback) {
+            mainCallback();
+        }
+    };
+    modalButtonSecondary.onclick = () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+        if (secondaryCallback) {
+            secondaryCallback();
+        }
+    };
+
+    document.body.appendChild(modalContainer);
+
+    modal.classList.add("modal-show");
+    modalContainer.style.display = "block";
+    setTimeout(() => {
+        modalContainer.style.opacity = "1";
+    }, 50);
+
+    // Returns a function that closes the modal
+    return () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+    };
+}
+
+
+
+/**********
+END MODALS
 ***********/

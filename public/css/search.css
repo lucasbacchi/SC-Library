@@ -1,16 +1,18 @@
 /* Search Page Sort Sidebar */
 #sort-sidebar {
-    padding: 10px;
+    display: inline-block;
+    padding: 10px 4px;
     width: 15%;
-    float: left;
     height: 100%;
-    top: 0;
+    vertical-align: top;
     position: relative;
     background-color: #f2f2f2;
     margin-left: 20px;
     border-radius: 6px;
     box-shadow: 0px 0px 8px 0px #cccccc;
     margin-bottom: 20px;
+    scrollbar-gutter: stable both-edges;
+    overflow-y: hidden;
 }
 
 #sort-main-title {
@@ -78,8 +80,8 @@ h6.sort-title {
     z-index: 3;
     margin-left: 16px;
     margin-bottom: 20px;
-    width: 81%;
-    float: left;
+    width: calc(85% - 56px);
+    display: inline-block;
     overflow: hidden;
     box-shadow: 0px 0px 8px 2px #cccccc;
 }
@@ -118,43 +120,11 @@ h6.sort-title {
 
 
 /* Search Page Search Bar */
-div.search-page-search-container {
-    float: left;
-    width: calc(85% - 75px);
+#search-page-search-container {
+    display: none;
     margin: 16px;
-    margin-bottom: 20px;
-    margin-top: 0px;
-    position: relative;
-}
-
-#search-page-input {
-    width: 100%;
-    padding-left: 16px;
-    height: 42px;
-    border: 2px var(--mint) solid;
-    box-shadow: 0px 0px 16px 0px #cccccc;
-    font-size: 16px;
-    border-radius: 21px;
-}
-
-#search-page-input:focus {
-    outline: 0px;
-}
-
-#search-page-search-button {
-    position: absolute;
-    top: 50%;
-    right: 0px;
-    transform: translate(0px, -50%);
-    color: var(--teal);
-    cursor: pointer;
-    font-size: 30px;
-    padding: 8px 16px;
-    font-variation-settings:
-    'FILL' 0,
-    'wght' 600,
-    'GRAD' 200,
-    'opsz' 48
+    margin-bottom: 32px;
+    overflow: visible;
 }
 
 
@@ -205,8 +175,8 @@ div#result-page-info-bar>p {
     text-align: left;
 }
 
-h6#result-page-details,
-h6#result-page-info-bar {
+#result-page-details>h6,
+#result-page-info-bar>h6 {
     margin-top: 24px;
     margin-bottom: 8px;
     font-size: 18px;
@@ -265,17 +235,16 @@ h6#result-page-info-bar {
 /* Responsive */
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {
-
     #results-container {
-        width: calc(78% - 35px);
+        width: calc(75% - 56px);
     }
 
     #sort-sidebar {
-        width: 20%;
+        width: 25%;
     }
 
     div.search-page-search-container {
-        width: calc(80% - 56px);
+        width: calc(75% - 56px);
     }
 
     .advanced-info {
@@ -286,7 +255,7 @@ h6#result-page-info-bar {
 /* Content if screen is small */
 @media screen and (max-width:1024px) {
     #results-container {
-        width: calc(78% - 35px);
+        width: calc(75% - 35px);
         margin-right: 0;
     }
 
@@ -313,9 +282,10 @@ h6#result-page-info-bar {
     }
 
     #sort-sidebar {
-        width: calc(100% - 20px);
-        margin: 0px 10px;
-        transition: 1s;
+        display: block;
+        width: 95%;
+        margin: 0px auto;
+        transition: max-height 1s;
         max-height: 58px;
         margin-bottom: 0px;
         overflow-y: hidden;
@@ -328,15 +298,14 @@ h6#result-page-info-bar {
     }
 
     #results-container {
+        margin: 0 auto;
+        display: block;
         margin-top: 20px;
-        clear: both;
-        width: calc(100% - 30px);
+        width: 95%;
     }
 
-    div.search-page-search-container {
-        margin-top: 32px;
-        width: calc(100% - 52px);
-        margin-left: 12px;
+    #search-page-search-container {
+        display: block;
     }
 
     #apply-filters-button {
@@ -350,15 +319,30 @@ h6#result-page-info-bar {
     .advanced-info {
         display: none;
     }
+
+    .search-page-search-container {
+        display: block;
+        float: left;
+        width: calc(85% - 75px);
+        margin: 16px;
+        margin-bottom: 20px;
+        margin-top: 0px;
+        position: relative;
+    }
+
+    #search-page-input {
+        width: 100%;
+        padding-left: 16px;
+        height: 42px;
+        border: 2px var(--mint) solid;
+        box-shadow: 0px 0px 16px 0px #cccccc;
+        font-size: 16px;
+        border-radius: 21px;
+    }
 }
 
 /* Content if screen is extremely small */
 @media screen and (max-width:500px) {
-    #search-page-input {
-        width: calc(100% + 24px);
-        margin-bottom: 8px;
-    }
-
     #result-page-image {
         width: 100%;
         max-width: none;
