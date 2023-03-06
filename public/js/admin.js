@@ -1,6 +1,6 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -28,7 +28,7 @@ export function setupAdminMain() {
     });
 
     $("#import-link").on("click", () => {
-        uploadDatabase();
+        $("#import-input").trigger("click");
     });
 
     // Keyboard Accessability
@@ -50,11 +50,11 @@ export function setupAdminMain() {
         if (event.key != "Enter") {
             return;
         }
-        uploadDatabase();
+        $("#import-input").trigger("click");
     });
 
     $("#import-input").on("change", (event) => {
-        setUploadDatabase(event);
+        processImport(event);
     });
 
     $("#export-link").on("click", () => {
@@ -76,17 +76,6 @@ export function setupAdminMain() {
         adminSearch();
     });
 
-    $("#import-cancel").on("click", () => {
-        toggleImportPopup();
-    });
-
-    $("#import-cancel").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        toggleImportPopup();
-    });
-
     recentlyCheckedOut();
     addStats();
 }
@@ -105,7 +94,7 @@ function addEntry() {
     let isbn = $("#add-entry-isbn").val();
     let check = verifyISBN(isbn);
     if (!check) {
-        alert("The number you entered is not a valid ISBN Number.");
+        openModal("issue", "The number you entered is not a valid ISBN Number.");
         return;
     }
     goToPage("admin/editEntry?new=true&isbn=" + isbn);
@@ -135,7 +124,7 @@ function adminSearch() {
             }
         });
     } else {
-        alert("Please enter a search query");
+        openModal("issue", "Please enter a search query");
     }
 }
 
@@ -184,7 +173,7 @@ function createBarcode(multiple = false) {
         input = "11711" + input;
         currentBarcode = parseInt(input);
         if (!/11711[0-9]{5}/.test(input)) {
-            alert("That barcode is not valid");
+            openModal("issue", "That barcode is not valid");
             return;
         }
     }
@@ -194,15 +183,15 @@ function createBarcode(multiple = false) {
         input2 = document.getElementById("barcode-multiple-input-end").value;
         input2 = "11711" + input2;
         if (!/11711[0-9]{5}/.test(input1)) {
-            alert("The starting barcode is not valid");
+            openModal("issue", "The starting barcode is not valid");
             return;
         }
         if (!/11711[0-9]{5}/.test(input2)) {
-            alert("The ending barcode is not valid");
+            openModal("issue", "The ending barcode is not valid");
             return;
         }
         if (parseInt(input1) >= parseInt(input2)) {
-            alert("The ending barcode must be larger than the starting barcode");
+            openModal("issue", "The ending barcode must be larger than the starting barcode");
             return;
         }
         numberOfBarcodes = parseInt(input2) - parseInt(input1) + 1;
@@ -219,7 +208,7 @@ function createBarcode(multiple = false) {
         setTimeout((currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
             if (i == numberOfBarcodes - 1) {
                 setTimeout(() => {
-                    alert("Download Complete");
+                    openModal("success", "Download Complete");
                 }, 2000);
             }
             let currentBarcodeString = currentBarcode.toString();
@@ -390,7 +379,7 @@ function viewMissingBarcodes() {
     missingArray.forEach((book) => {
         message += book.barcodeNumber + "\n";
     });
-    alert(message);
+    openModal("info", message);
 }
 
 /**
@@ -414,13 +403,6 @@ function downloadDatabase() {
 }
 
 /**
- * @description Called when the user clicks the "Import" link. Clicks on the input element to open a file selector.
- */
-function uploadDatabase() {
-    $("#import-input").trigger("click");
-}
-
-/**
  * @description Uploads a file from the user's computer.
  * @param {InputEvent} event The onchange event that is generated when the user selects a file.
  * @returns {Promise<File>} A promise that resolves to the file that the user selected.
@@ -438,10 +420,10 @@ function importFile(event) {
  * @description Called when the user selects a file to upload. Processes the data and uploads it to the database.
  * @param {InputEvent} event the onchange event that is generated when the user selects a file.
  */
-function setUploadDatabase(event) {
+function processImport(event) {
     importFile(event).then((file) => {
         if (file.type != "application/json") {
-            alert("File type not recognized. Please upload a JSON file.");
+            openModal("error", "File type not recognized. Please upload a JSON file.");
             return;
         }
         file.text().then((text) => {
@@ -461,10 +443,31 @@ function setUploadDatabase(event) {
                 }
                 let ndlen = newDatabase.length, bdlen = bookDatabase.length;
                 let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
-                toggleImportPopup(newDatabase, diff, modified);
+                // Open a modal to confirm the import
+                openModal("warning",
+                    "This will overwrite the entire books database.<br>" +
+                    "<span id=\"import-added\">0</span> books added<br>" +
+                    "<span id=\"import-deleted\">0</span> books deleted<br>" +
+                    "<span id=\"import-modified\">0</span> books modified",
+                    "Are you sure?", "Yes, Import", () => {
+                    importDatabase(newDatabase).then(() => {
+                        setBookDatabase(null);
+                        setTimeLastSearched(null);
+                        openModal("success", "Database updated successfully!");
+                    }).catch((error) => {
+                        console.error(error);
+                        openModal("error", "There was an error and your data was not updated.");
+                    }).finally(() => {
+                        window.clearTimeout(loadingTimer);
+                        loadingModal();
+                    });
+                }, "No, Cancel", () => {
+                    $("#import-input").val("");
+                });
+                fillImportModal(diff, modified);
             } catch (error) {
                 console.error(error);
-                alert("Something went wrong. Please check the file you are trying to import.");
+                openModal("error", "Something went wrong. Please check the file you are trying to import.");
             }
         });
     }).catch(() => {
@@ -472,53 +475,25 @@ function setUploadDatabase(event) {
     });
 }
 
-function toggleImportPopup(database = null, diff = 0, modified = 0) {
-    $("#import-alert").css("transition", "0.5s");
-    $("#import-alert-overlay").css("transition", "0.5s");
-    if ($("#import-alert").css("opacity") == "0") {
-        if (diff > 0) {
-            $("#import-added")[0].innerHTML = diff;
-            $("#import-deleted")[0].innerHTML = 0;
-        } else {
-            $("#import-deleted")[0].innerHTML = 0 - diff;
-            $("#import-added")[0].innerHTML = 0;
-        }
-        $("#import-modified")[0].innerHTML = modified;
-        $("#import-alert").show();
-        $("#import-alert-overlay").show();
-        $("#import-alert").css("opacity", "100%");
-        $("#import-alert-overlay").css("opacity", "50%");
-        $("#import-entry").on("click", () => {
-            importDatabase(database).then(() => {
-                setBookDatabase(null);
-                setTimeLastSearched(null);
-                alert("Database updated successfully!");
-            }).catch((error) => {
-                console.error(error);
-                alert("There was an error and your data was not updated.");
-            }).finally(() => {
-                window.clearTimeout(loadingTimer);
-                $("#import-loading-overlay").hide();
-                $("#import-loading-overlay-box").hide();
-            });
-        });
+function fillImportModal(diff = 0, modified = 0) {
+    if (diff > 0) {
+        $("#import-added").html(diff);
+        $("#import-deleted").html(0);
     } else {
-        $("#import-alert").css("opacity", "0");
-        $("#import-alert-overlay").css("opacity", "0");
-        $("#import-alert").delay(500).hide(0);
-        $("#import-alert-overlay").delay(500).hide(0);
-        $("#import-entry").off("click");
+        $("#import-deleted").html(0 - diff);
+        $("#import-added").html(0);
     }
+    $("#import-modified").html(modified);
 }
 
 var loadingTimer;
+var loadingModal;
 function importDatabase(database) {
-    toggleImportPopup();
-    $("#import-loading-overlay").show();
+    loadingModal = openModal("info", "Please wait. This may take a while. Do not close this window or navigate to a new page.", "Importing Database...", "");
     // If an error occurs somewhere in this process, tell the user after 10 seconds
     loadingTimer = window.setTimeout(() => {
-        alert("We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
-        $("#import-loading-overlay").hide();
+        loadingModal();
+        openModal("issue", "We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
     }, 30000);
     return new Promise(function(resolve) {
         // Get a new write batch
@@ -591,7 +566,7 @@ export function setupView(pageQuery) {
         });
     } else {
         console.warn("There was no type specified in the URL.");
-        alert("There was no type specified in the URL. Redirecting to the admin dashboard.");
+        openModal("issue", "There was no type specified in the URL. Redirecting to the admin dashboard.");
         goToPage("admin/main");
     }
 }
@@ -721,27 +696,19 @@ function getAllUsers() {
 }
 
 
-var inventoryCheck = false;
 /**
  * @description Restarts the inventory progress.
  */
 function restartInventory() {
-    if (!inventoryCheck) {
-        alert("Are you sure you want to restart? This will delete your current progress. If you do, you must click the restart button again to confirm.");
-        inventoryCheck = true;
-        window.setTimeout(() => {
-            inventoryCheck = false;
-        }, 5000);
-        return;
-    }
-    setDoc(doc(db, "admin", "inventory"), {
-        books: []
-    }).then(() => {
-        alert("The Inventory Progress has been reset.");
-        window.location.reload();
-    }).catch((error) => {
-        alert("Error resetting inventory: " + error);
-    });
+    openModal("warning", "This will delete your current progress.", "Are you sure you want to restart?", "Confirm", () => {
+        setDoc(doc(db, "admin", "inventory"), {
+            books: []
+        }).then(() => {
+            openModal("success", "The Inventory Progress has been reset.\nThe page will now refresh.", undefined, undefined, () => {window.location.reload();});
+        }).catch((error) => {
+            openModal("error", "Error resetting inventory: " + error);
+        });
+    }, "Cancel");
 }
 
 /**
@@ -754,7 +721,7 @@ export function setupInventory() {
             $("#recent-scans").html(current + "<br>" + barcode);
         });
     }).catch((error) => {
-        alert("Error loading inventory: " + error);
+        openModal("error", "Error loading inventory: " + error);
     });
 
     $("#restart-inventory").on("click", () => {

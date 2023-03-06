@@ -1,5 +1,5 @@
 import { goToPage } from "./ajax";
-import { findURLValue } from "./common";
+import { findURLValue, openModal } from "./common";
 
 /**
  * @description Runs a script based on which report the user requested in the URL.
@@ -18,7 +18,7 @@ export function setupReport(pageQuery) {
             setupRemovedReport();
             break;
         default:
-            alert("Invalid report type.");
+            openModal("issue", "We couldn't identify the type of report you were trying to view", "Invalid Report Type");
             goToPage("admin/main");
             break;
     }

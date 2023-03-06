@@ -2,7 +2,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePas
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, sendEmailVerificationToUser } from "./common";
+import { buildBookBox, openModal, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
@@ -99,7 +99,7 @@ function updateAccountPageInfo() {
             $("#account-page-image").attr("src", "/img/default-user.jpg");
         }
     }).catch((error) => {
-        alert("There was an error getting your account information from the database. Please try again later.");
+        openModal("error", "There was an error getting your account information from the database. Please try again later.");
         console.log(error);
     });
 }
@@ -142,7 +142,7 @@ function setupAccountOverview() {
         fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
     }).catch((error) => {
         console.error(error);
-        alert("There was an error getting your account information from the database. Please try again later.");
+        openModal("error", "There was an error getting your account information from the database. Please try again later.");
     });
 
     $(".save-button").on("click", () => {
@@ -263,7 +263,7 @@ function createCheckouts(books, str) {
 function updateAccount() {
     let user = auth.currentUser;
     if (!checkForChangedFields()) {
-        alert("There are no changes to save.");
+        openModal("info", "There are no changes to save.");
         return;
     }
 
@@ -278,9 +278,9 @@ function updateAccount() {
             // Assuming there was no problem with the update, set the new values on the index page and the account page.
             updateUserAccountInfo();
             updateAccountPageInfo();
-            alert("Your name was saved successfully.");
+            openModal("success", "Your name was saved successfully.");
         }).catch((error) => {
-            alert("An error has occured. Please try again later.");
+            openModal("error", "An error has occured. Please try again later.");
             console.error(error);
         });
     }
@@ -300,20 +300,21 @@ function updateAccount() {
                 // Assuming there was no problem with the update, set the new values on the index page and the account page.
                 updateEmailinUI(email);
                 updateAccountPageInfo();
-                alert("Your email was saved successfully.");
+                openModal("success", "Your email was saved successfully.");
             }).catch((error) => {
-                alert("There was an error updating your email. Please try again later.");
+                openModal("error", "There was an error updating your email. Please try again later.");
                 console.error(error);
             });
         }).catch((error) => {
             // If the user needs to reauthenticate:
             if (error.code == "auth/requires-recent-login") {
-                alert("Please re-enter your password to complete this operation.");
-                goToPage("login?redirect=account&email=" + newEmail, null, null, true);
+                if (confirm("Please re-enter your password to complete this operation.")) {
+                    goToPage("login?redirect=account&email=" + newEmail, null, null, true);
+                }
             } else if (error.code == "auth/email-already-in-use") {
-                alert("This email is already associated with another account. Please sign into that account, or try a different email.");
+                openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
             } else {
-                alert("An error has occured when trying to update your email. Please try again later.");
+                openModal("error", "An error has occured when trying to update your email. Please try again later.");
                 console.error(error);
             }
         });
@@ -328,7 +329,7 @@ function updateAccount() {
  */
 function deleteAccount() {
     // TODO: Write this function
-    alert("Not implemented. If you'd like to delete your account, contact the librarian.");
+    openModal("info", "Not implemented. If you'd like to delete your account, contact the librarian.");
 }
 
 
@@ -413,7 +414,7 @@ function changePassword() {
     let currentPassword = $("#current-password").val().toString();
     let newPassword = $("#new-password").val().toString();
     if (newPassword != $("#confirm-new-password").val()) {
-        alert("The new passwords do not match!");
+        openModal("issue", "The new passwords do not match!");
         $("#current-password").val("");
         $("#new-password").val("");
         $("#confirm-new-password").val("");
@@ -424,8 +425,8 @@ function changePassword() {
             // User re-authenticated.
             updatePassword(user, newPassword).then(() => {
                 // Update successful
-                alert("Your password was succesfully changed");
                 goToPage("");
+                openModal("success", "Your password was succesfully changed");
             }).catch((error) => {
                 console.error(error);
             });
@@ -434,9 +435,9 @@ function changePassword() {
             let errorCode = error.code;
             let errorMessage = error.message;
             if (errorCode === "auth/wrong-password") {
-                alert("The current password that you entered was incorrect.");
+                openModal("issue", "The current password that you entered was incorrect.");
             } else {
-                alert(errorMessage);
+                openModal("error", errorMessage);
             }
             console.error(error);
             $("#current-password").val("");
@@ -444,7 +445,7 @@ function changePassword() {
             $("#confirm-new-password").val("");
         });
     } else {
-        alert("You must enter a longer password");
+        openModal("error", "You must enter a longer password");
         $("#current-password").val("");
         $("#new-password").val("");
         $("#confirm-new-password").val("");
@@ -481,7 +482,7 @@ function processAccountImage() {
 
         Promise.all(promises).then((values) => {
             if (!Array.isArray(values) || !values[0] || !values[1]) {
-                alert("Not all images were uploaded successfully");
+                openModal("error", "Not all images were uploaded successfully");
                 return;
             }
 
@@ -504,18 +505,18 @@ function processAccountImage() {
             }).then(() => {
                 console.log("New PFP updated in database");
             }).catch((error) => {
-                alert(error);
+                openModal("error", error);
                 console.error(error);
             });
 
             Promise.all([authPromise, databasePromise]).then(() => {
                 console.log("Auth and Database updated successfully.");
             }).catch((error) => {
-                alert("There was an issue saving your profile image. You may need to reupload it. " + error);
+                openModal("issue", "There was an issue saving your profile image. You may need to reupload it. " + error);
                 console.error(error);
             });
         }).catch((error) => {
-            alert(error);
+            openModal("error", error);
             console.error(error);
         });
     });
@@ -587,8 +588,8 @@ function uploadAccountImage(type = "original", file) {
                     getDownloadURL(userSpecificRef).then((url) => {
                         $("#" + type + "-canvas")[0].remove();
                         resolve(url);
-                    }).catch(function(error) {
-                        alert("ERROR: There was a problem storing your new pfp image. Your image has not been saved.");
+                    }).catch((error) => {
+                        openModal("error", "There was a problem storing your new pfp image. Your image has not been saved.");
                         console.error(error);
                     });
                 });

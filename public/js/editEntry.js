@@ -1,5 +1,5 @@
 import { goToPage } from "./ajax";
-import { addBarcodeSpacing, findURLValue, switchISBNformats, verifyISBN } from "./common";
+import { addBarcodeSpacing, findURLValue, openModal, switchISBNformats, verifyISBN } from "./common";
 import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
@@ -22,7 +22,7 @@ export function setupEditEntry(pageQuery) {
     imageChanged = false;
 
     if (newEntry == false && (barcodeNumber < 1171100000 || barcodeNumber > 1171199999)) {
-        alert("The barcode that you are trying to edit is not valid.");
+        openModal("error", "The barcode that you are trying to edit is not valid.");
         goToPage("admin/main");
         return;
     }
@@ -39,7 +39,8 @@ export function setupEditEntry(pageQuery) {
                 loadDataOnToEditEntryPage(returnValue[0], returnValue[1], returnValue[2], returnValue[3]);
             }).catch((error) => {
                 // The ISBN Number is valid, but there is not a listing in Open Library
-                alert("The ISBN number that you entered (" + isbn + ") appears to be a valid number, but we did not find a listing for it in Open Library. You will need to create an entry manually.");
+                openModal("info",
+                    "The ISBN number that you entered (" + isbn + ") appears to be a valid number, but we did not find a listing for it in Open Library. You will need to create an entry manually.");
                 console.warn("Could not find an entry in Open Library for this isbn", error);
             });
         } else {
@@ -138,11 +139,7 @@ export function setupEditEntry(pageQuery) {
     });
 
     $("#edit-entry-delete").on("click", () => {
-        toggleDeletePopup();
-    });
-
-    $("#delete-cancel").on("click", () => {
-        toggleDeletePopup();
+        openModal("warning", "Are you sure you want to delete this entry? This action cannot be undone.", "Delete Forever", "Delete this Entry", deleteEntry, "Cancel");
     });
 
     $("#add-subject").on("click", () => {
@@ -175,7 +172,7 @@ function watchForChanges() {
  */
 function populateEditEntryFromDatabase(barcodeNumber) {
     if (isNaN(barcodeNumber)) {
-        alert("We could not find an entry in the database with the barcode number that you entered.");
+        openModal("error", "We could not find an entry in the database with the barcode number that you entered.");
         console.error("barcodeNumber is not a number", barcodeNumber);
         return;
     }
@@ -185,7 +182,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         let data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
 
         if (!data) {
-            alert("We could not find any data for a book with barcode number " + barcodeNumber);
+            openModal("error", "We could not find any data for a book with barcode number " + barcodeNumber);
             goToPage("admin/main");
             return;
         }
@@ -267,7 +264,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
             $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
         }
     }).catch((error) => {
-        alert("There was an error retreiving this book information from the database");
+        openModal("error", "There was an error retreiving this book information from the database");
         console.error(error);
     });
 }
@@ -295,19 +292,19 @@ function gatherExternalInformation(isbn) {
                     let worksObject = value[2];
                     resolve([false, bookObject, authorObject, worksObject]);
                 }).catch((error) => {
-                    alert("There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
+                    openModal("error", "There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
                     console.error(error);
                     resolve([true]);
                     return;
                 });
             }).catch((error) => {
-                alert("There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
+                openModal("error", "There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
                 console.error(error);
                 resolve([true]);
                 return;
             });
         }).catch((error) => {
-            alert("There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
+            openModal("error", "There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
             console.error(error);
             resolve([true]);
             return;
@@ -769,19 +766,20 @@ function addSubject() {
 }
 
 var loadingTimer;
+var loadingModal;
 /**
  * @description Run when the user clicks the "Save" button. Saves the changes made to the entry. It will also validate the entry before saving.
  */
 function editEntry() {
     // Prevent the user from clicking the "Save" button again
     $("#edit-entry-save")[0].disabled = true;
-    // Start the loading overlay
-    $("#loading-overlay").show();
+    // Start the loading modal
+    loadingModal = openModal("info", "Saving your changes...", "Loading...", "");
     // If an error occurs somewhere in this process, tell the user after 10 seconds
     loadingTimer = window.setTimeout(() => {
         $("#edit-entry-save")[0].disabled = false;
-        alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
-        $("#loading-overlay").hide();
+        loadingModal();
+        openModal("issue", "We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
     }, 10000);
 
     // Before validating the entry, auto convert between ISBN numbers if both are not already inputted.
@@ -799,7 +797,7 @@ function editEntry() {
         if (valid == false || valid == null) {
             window.clearTimeout(loadingTimer);
             $("#edit-entry-save")[0].disabled = false;
-            $("#loading-overlay").hide();
+            loadingModal();
             return;
         }
 
@@ -812,12 +810,11 @@ function editEntry() {
 
         storeData();
     }).catch((error) => {
-        alert("There was an error validating the entry. Your changes have not been saved.");
-        alert(error);
+        openModal("error", "There was an error validating the entry. Your changes have not been saved.\n" + error);
         console.error(error);
         window.clearTimeout(loadingTimer);
         $("#edit-entry-save")[0].disabled = false;
-        $("#loading-overlay").hide();
+        loadingModal();
         return;
     });
 }
@@ -935,11 +932,11 @@ function validateEntry() {
 
         // Validate inputs
         if (pageData.title == "") {
-            alert("Title is required!");
+            openModal("issue", "Title is required!");
             let rect = $("#book-title")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-title")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-title")[0].focus();}, 600);
+            setTimeout(function() {$("#book-title")[0].focus();}, 800);
             $("#book-title")[0].onkeydown = function() {
                 $("#book-title")[0].style.borderColor = "";
             };
@@ -947,12 +944,12 @@ function validateEntry() {
             return;
         }
         if (pageData.medium != "av" && pageData.authors[0].lastName == "" && pageData.authors[0].firstName == "") {
-            alert("At least one author is required! If author is unknown, enter \"unknown\" into last name.");
+            openModal("issue", "At least one author is required! If author is unknown, enter \"unknown\" into last name.");
             let rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-author-1-last")[0].style.borderColor = "red";
             $("#book-author-1-first")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-author-1-last")[0].focus();}, 600);
+            setTimeout(function() {$("#book-author-1-last")[0].focus();}, 800);
             $("#book-author-1-last")[0].onkeydown = function() {
                 $("#book-author-1-last")[0].style.borderColor = "";
                 $("#book-author-1-first")[0].style.borderColor = "";
@@ -965,11 +962,11 @@ function validateEntry() {
             return;
         }
         if (pageData.medium == "") {
-            alert("Medium is required!");
+            openModal("issue", "Medium is required!");
             let rect = $("#book-medium")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-medium")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-medium")[0].focus();}, 600);
+            setTimeout(function() {$("#book-medium")[0].focus();}, 800);
             $("#book-medium")[0].onclick = function() {
                 $("#book-medium")[0].style.borderColor = "";
             };
@@ -978,11 +975,11 @@ function validateEntry() {
         }
         // The pageData.coverImageLink will now be null during this check, so we'll read it off the page manually
         if ($("#book-cover-image").attr('src') == "../img/favicon.ico" && pageData.medium != "av") {
-            alert("Cover image is required!");
+            openModal("issue", "Cover image is required!");
             let rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
-            setTimeout(function() {$("#book-cover-image")[0].focus();}, 600);
+            setTimeout(function() {$("#book-cover-image")[0].focus();}, 800);
             $("#book-cover-image")[0].onkeydown = function() {
                 $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
             };
@@ -990,11 +987,11 @@ function validateEntry() {
             return;
         }
         if (pageData.subjects.length == 0 && pageData.medium != "av") {
-            alert("Please enter at least one subject!");
+            openModal("issue", "Please enter at least one subject!");
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-subject-1")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-subject-1")[0].focus();}, 600);
+            setTimeout(function() {$("#book-subject-1")[0].focus();}, 800);
             $("#book-subject-1")[0].onkeydown = function() {
                 $("#book-subject-1")[0].style.borderColor = "";
             };
@@ -1002,11 +999,11 @@ function validateEntry() {
             return;
         }
         if (pageData.description == "" && pageData.medium != "av") {
-            alert("Description is required!");
+            openModal("issue", "Description is required!");
             let rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-description")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-description")[0].focus();}, 600);
+            setTimeout(function() {$("#book-description")[0].focus();}, 800);
             $("#book-description")[0].onkeydown = function() {
                 $("#book-description")[0].style.borderColor = "";
             };
@@ -1015,14 +1012,14 @@ function validateEntry() {
         }
         if ((!pageData.audience.children && !pageData.audience.youth && !pageData.audience.adult && !noneValue) ||
             (noneValue && (pageData.audience.children || pageData.audience.youth || pageData.audience.adult))) {
-            alert("Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
+            openModal("issue", "Invalid audience input! If there is no audience listed, please select \"None\" (and no other checkboxes).");
             let rect = $("#book-audience-children")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-audience-children")[0].style.outline = "2px solid red";
             $("#book-audience-youth")[0].style.outline = "2px solid red";
             $("#book-audience-adult")[0].style.outline = "2px solid red";
             $("#book-audience-none")[0].style.outline = "2px solid red";
-            setTimeout(function() {$("#book-audience-children")[0].focus();}, 600);
+            setTimeout(function() {$("#book-audience-children")[0].focus();}, 800);
             $("#book-audience-children")[0].onkeydown = function() {
                 $("#book-audience-children")[0].style.outline = "";
                 $("#book-audience-youth")[0].style.outline = "";
@@ -1033,11 +1030,11 @@ function validateEntry() {
             return;
         }
         if (!noISBN && (!verifyISBN(pageData.isbn10) || pageData.isbn10.length != 10)) {
-            alert("The ISBN number you entered was not valid! Please double check it.");
+            openModal("issue", "The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-10")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 600);
+            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 800);
             $("#book-isbn-10")[0].onkeydown = function() {
                 $("#book-isbn-10")[0].style.borderColor = "";
             };
@@ -1045,11 +1042,11 @@ function validateEntry() {
             return;
         }
         if (!noISBN && (!verifyISBN(pageData.isbn13) || pageData.isbn13.length != 13)) {
-            alert("The ISBN number you entered was not valid! Please double check it.");
+            openModal("issue", "The ISBN number you entered was not valid! Please double check it.");
             let rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-13")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-isbn-13")[0].focus();}, 600);
+            setTimeout(function() {$("#book-isbn-13")[0].focus();}, 800);
             $("#book-isbn-13")[0].onkeydown = function() {
                 $("#book-isbn-13")[0].style.borderColor = "";
             };
@@ -1057,11 +1054,11 @@ function validateEntry() {
             return;
         }
         if (pageData.publishers[0] == "" && pageData.medium != "av") {
-            alert("Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
+            openModal("issue", "Please enter at least one publisher! If the publisher is unknown, enter \"unknown\".");
             let rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publisher-1")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-publisher-1")[0].focus();}, 600);
+            setTimeout(function() {$("#book-publisher-1")[0].focus();}, 800);
             $("#book-publisher-1")[0].onkeydown = function() {
                 $("#book-publisher-1")[0].style.borderColor = "";
             };
@@ -1069,13 +1066,13 @@ function validateEntry() {
             return;
         }
         if (!(pageData.publishDate && pageData.publishDate instanceof Date) && pageData.medium != "av") {
-            alert("The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+            openModal("issue", "The publishing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publish-month")[0].style.borderColor = "red";
             $("#book-publish-day")[0].style.borderColor = "red";
             $("#book-publish-year")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-publish-month")[0].focus();}, 600);
+            setTimeout(function() {$("#book-publish-month")[0].focus();}, 800);
             $("#book-publish-month")[0].onkeydown = function() {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
@@ -1095,11 +1092,11 @@ function validateEntry() {
             return;
         }
         if (!unNumbered && (isNaN(pageData.numberOfPages) || pageData.numberOfPages < 1)) {
-            alert("Please enter a valid number of pages!");
+            openModal("issue", "Please enter a valid number of pages!");
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-pages")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-pages")[0].focus();}, 600);
+            setTimeout(function() {$("#book-pages")[0].focus();}, 800);
             $("#book-pages")[0].onkeydown = function() {
                 $("#book-pages")[0].style.borderColor = "";
             };
@@ -1107,11 +1104,11 @@ function validateEntry() {
             return;
         }
         if (pageData.ddc == "" || (pageData.ddc != "FIC" && isNaN(parseFloat(pageData.ddc)))) {
-            alert("Please enter a valid Dewey Decimal Classification!");
+            openModal("issue", "Please enter a valid Dewey Decimal Classification!");
             let rect = $("#book-dewey")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-dewey")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-dewey")[0].focus();}, 600);
+            setTimeout(function() {$("#book-dewey")[0].focus();}, 800);
             $("#book-dewey")[0].onkeydown = function() {
                 $("#book-dewey")[0].style.borderColor = "";
             };
@@ -1119,13 +1116,13 @@ function validateEntry() {
             return;
         }
         if (pageData.purchaseDate && !(pageData.purchaseDate instanceof Date)) {
-            alert("The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
+            openModal("issue", "The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today.");
             let rect = $("#book-purchase-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-month")[0].style.borderColor = "red";
             $("#book-purchase-day")[0].style.borderColor = "red";
             $("#book-purchase-year")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-purchase-month")[0].focus();}, 600);
+            setTimeout(function() {$("#book-purchase-month")[0].focus();}, 800);
             $("#book-purchase-month")[0].onkeydown = function() {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
@@ -1145,11 +1142,11 @@ function validateEntry() {
             return;
         }
         if (pageData.purchasePrice != "" && (isNaN(parseFloat(pageData.purchasePrice)) || parseFloat(pageData.purchasePrice) < 0)) {
-            alert("Please enter a valid purchase price!");
+            openModal("issue", "Please enter a valid purchase price!");
             let rect = $("#book-purchase-price")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-price")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-purchase-price")[0].focus();}, 600);
+            setTimeout(function() {$("#book-purchase-price")[0].focus();}, 800);
             $("#book-purchase-price")[0].onkeydown = function() {
                 $("#book-purchase-price")[0].style.borderColor = "";
             };
@@ -1292,7 +1289,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                             getDoc(doc(db, "books", next)).then((docSnap) => {
                                 if (docSnap.exists()) {
                                     console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                    alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
+                                    openModal("error", "Please stop adding books and contact the developers of the site.", "Database Error");
                                     throw "Something went wrong.";
                                 }
                             }).catch((err) => {
@@ -1364,7 +1361,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                     // After both writes complete, send the user to the edit page and take it from there.
                     if (newBarcode) {
                         console.log("New Entry Created with barcode: " + newBarcode);
-                        alert("New book created successfully. Please take note of your new barcode number: " + newBarcode);
+                        openModal("success", "Please take note of your new barcode number: " + newBarcode, "New Book Created!");
                         resolve(newBarcode);
                     } else {
                         reject("No barcode was returned from the transaction.");
@@ -1374,13 +1371,13 @@ function storeData(isDeletedValue = false, skipImages = false) {
         }
     }).then(() => {
         $(window).off("beforeunload");
-        alert("Edits were made successfully");
+        openModal("success", "Edits were made successfully!");
         setTimeLastSearched(null);
         goToPage('admin/main');
     }).catch(() => {
-        alert("An error has occurred, but we couldn't identify the problem. Your changes have not been saved.");
+        openModal("error", "An error has occurred, but we couldn't identify the problem. Your changes have not been saved.");
     }).finally(() => {
-        $("#loading-overlay").hide();
+        loadingModal();
         clearTimeout(loadingTimer);
         $("#edit-entry-save")[0].disabled = false;
     });
@@ -1413,12 +1410,11 @@ function processImages(barcodeNumber) {
                 reject(error);
             });
         }).catch((error) => {
-            alert("There was an error uploading the images for this book. Your changes have not been saved.");
-            alert(error);
+            openModal("error", "There was an error uploading the images for this book. Your changes have not been saved.\n" + error);
             console.error(error);
             window.clearTimeout(loadingTimer);
             $("#edit-entry-save")[0].disabled = false;
-            $("#loading-overlay").hide();
+            loadingModal();
             reject(error);
         });
     });
@@ -1446,7 +1442,7 @@ function getImage() {
             xhr.onload = function() {
                 if (this.status == 200) {
                     if (this.responseURL.substring(0, 5) != "https") {
-                        alert("This image was not able to be saved securely. Please download it from the internet, re-upload it on the edit entry page, and try again.");
+                        openModal("error", "This image was not able to be saved securely. Please download it from the internet, re-upload it on the edit entry page, and try again.");
                         reject("Insecure Image URL");
                     }
                     file = this.response;
@@ -1595,48 +1591,25 @@ function loadFile(event) {
  */
 function cancelEditEntry() {
     $(window).off("beforeunload");
-
     window.history.back();
 }
 
 /**
- * @description This function will run when the user clicks the "Delete" button on the edit page, or
- *              the "Cancel" button on the popup window. It toggles the popup.
- */
-function toggleDeletePopup() {
-    if (newEntry) {
-        alert("You can't delete a book that hasn't been saved yet. If you'd like to disregard this book, click the \"Cancel\" button.");
-        return;
-    }
-    $("#delete-alert").css("transition", "0.5s");
-    $("#delete-alert-overlay").css("transition", "0.5s");
-    if ($("#delete-alert").css("opacity") == "0") {
-        $("#delete-alert").show();
-        $("#delete-alert-overlay").show();
-        $("#delete-alert").css("opacity", "100%");
-        $("#delete-alert-overlay").css("opacity", "50%");
-    } else {
-        $("#delete-alert").css("opacity", "0");
-        $("#delete-alert-overlay").css("opacity", "0");
-        $("#delete-alert").delay(500).hide(0);
-        $("#delete-alert-overlay").delay(500).hide(0);
-    }
-}
-
-/**
- * @description This function will run when the user clicks the "Delete" button on the popup window.
+ * @description This function will run when the user clicks the "Delete" button on the modal.
  */
 function deleteEntry() {
+    if (newEntry) {
+        openModal("issue", "You can't delete a book that hasn't been saved yet. If you'd like to disregard this book, click the \"Cancel\" button.");
+        return;
+    }
     // Prevent the user from clicking the "Delete" button again
-    $("#delete-alert").hide();
-    $("#delete-alert-overlay").hide();
-    // Start the loading overlay
-    $("#delete-loading-overlay").show();
+    // Start the loading modal
+    loadingModal = openModal("info", "Deletion in progress...", "Loading...", "");
     // If an error occurs somewhere in this process, tell the user after 10 seconds
     loadingTimer = window.setTimeout(() => {
         $("#edit-entry-save")[0].disabled = false;
-        alert("We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
-        $("#delete-loading-overlay").hide();
+        loadingModal();
+        openModal("issue", "We did not complete the upload process in 10 seconds. An error has likely occurred. Your changes may not have been saved.");
     }, 10000);
     storeData(true, true);
 }

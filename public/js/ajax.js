@@ -14,7 +14,7 @@ import {
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
     currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User
 } from "./globals";
-import { findURLValue } from "./common";
+import { findURLValue, openModal } from "./common";
 
 
 // eslint-disable-next-line no-unused-vars
@@ -125,16 +125,10 @@ function setupIndex() {
         if (width > 570) {
             $("nav").css("transition", "");
             $("nav").width("fit-content");
-            $("nav > li > a").show();
-            $("nav > li > a").css("opacity", "1");
-            $("#close-button").hide();
         }
-        if (width <= 570 && $("#close-button").css("display") == "none") {
-            $("nav").width("");
+        if (width <= 570) {
+            $("nav").width("0");
             $("nav").css("transition", "0.5s");
-            $("nav > li > a").hide();
-            $("nav > li > a").css("opacity", "0");
-
         }
     });
 
@@ -143,7 +137,7 @@ function setupIndex() {
         if ($("#large-account-container").css("display") == "none") {
             $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
             $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "0%");
+            $("#large-account-container").css("right", "16px");
         } else {
             closeLargeAccount();
         }
@@ -157,7 +151,7 @@ function setupIndex() {
         if ($("#large-account-container").css("display") == "none") {
             $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
             $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "0%");
+            $("#large-account-container").css("right", "16px");
         } else {
             closeLargeAccount();
         }
@@ -172,7 +166,6 @@ function setupIndex() {
             event.target == $("#large-account-container")[0])) && (!($.contains($("#small-account-container")[0], event.target) || event.target == $("#small-account-container")[0]))) {
             closeLargeAccount();
         }
-
     });
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
@@ -199,10 +192,6 @@ function closeLargeAccount() {
 function closeNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("0");
-    $("#close-button").delay(400).hide(0);
-    $("nav > li > a").css("opacity", "0");
-    $("#close-button").css("opacity", "0");
-    $("nav > li > a").delay(400).hide(0);
 }
 
 /**
@@ -211,10 +200,6 @@ function closeNavMenu() {
 function openNavMenu() {
     $("nav").css("transition", "0.5s");
     $("nav").width("60%");
-    $("nav > li > a").show();
-    $("nav > li > a").css("opacity", "1");
-    $("#close-button").css("display", "block");
-    $("#close-button").css("opacity", "1");
 }
 
 let isAdmin;
@@ -308,7 +293,7 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
         // Prevent the user from visiting the auth pages if they are already logged in
         if (pageName.includes("login") || pageName.includes("signup")) {
             if (auth.currentUser != null && findURLValue(pageQuery, "redirect", true) == "") {
-                alert("You can't visit the login or signup pages while you're logged in.");
+                openModal("error", "You can't visit the login or signup pages while you're logged in.");
                 reject("User is already logged in.");
                 goToPage("");
                 return;
@@ -804,7 +789,18 @@ function initApp() {
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     // User is signed in.
-                    console.log("User is now Signed In.");
+                    console.log("User is signed in.");
+
+                    // If remember me was not checked, start a timer to detect inactivity
+                    if (user.auth.persistenceManager.persistence.type == "SESSION") {
+                        startLogoutTimer();
+                        // Sets event listeners for the logout timer
+                        $(window).on("mousemove", resetLogoutTimer);
+                        $(window).on("keypress", resetLogoutTimer);
+                        $(window).on("click", resetLogoutTimer);
+                        $(window).on("scroll", resetLogoutTimer);
+                        $(window).on("touchmove", resetLogoutTimer); // This is for mobile
+                    }
 
                     // If user has just signed in, don't bother updating info a second time
                     // TODO: maybe add something to do with time since last page load?
@@ -828,36 +824,15 @@ function initApp() {
                             $("#admin-link").html("Admin Dashboard");
                         }
                     });
-
-                    // If remember me was not checked, start a timer to detect inactivity
-                    if (user.auth.persistenceManager.persistence.type == "SESSION") {
-                        startLogoutTimer();
-                        // Sets event listeners for the logout timer
-                        $(window).on("mousemove", () => {
-                            resetLogoutTimer();
-                        });
-                        $(window).on("keypress", () => {
-                            resetLogoutTimer();
-                        });
-                        $(window).on("click", () => {
-                            resetLogoutTimer();
-                        });
-                        $(window).on("scroll", () => {
-                            resetLogoutTimer();
-                        });
-                        $(window).on("touchmove", () => {
-                            resetLogoutTimer(); // This is for mobile
-                        });
-                    }
                 } else {
                     // User is signed out.
-                    console.log("User is now Signed Out.");
+                    console.log("User is signed out.");
                     stopLogoutTimer();
                 }
                 updateUserAccountInfo().then(() => {
                     resolve();
                 }).catch(() => {
-                    alert("Error logging in. Please contact an administrator for support.");
+                    openModal("error", "Please contact an administrator for support.", "Error Logging In");
                     signOut(auth).then(() => {
                         window.location.href = "/";
                     });
@@ -874,35 +849,58 @@ let worker;
  * @description Starts a timer to log the user out after inactivity (if "Remember me" was not checked).
  */
 function startLogoutTimer() {
-    // If the user is not active for 20 minutes, log them out
+    // If the user is not active for 5 minutes, log them out
     if (!window.Worker) {
         console.warn("Web Workers are not supported in this browser. The logout timer will not work.");
         return;
     }
-
-    if (!worker) {
-        worker = new Worker(new URL("./logoutTimer.js", import.meta.url));
-        worker.onmessage = (event) => {
-            if (event.data.command == "logout") {
-                signOut(auth).then(() => {
-                    window.location.href = "/";
-                });
-            } else if (event.data.command == "show") {
-                let timeRemaining = event.data.timeRemaining;
-                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
-                $("#logout-overlay").show();
-                $("#logout-overlay").css("opacity", "1");
-                if (!document.hasFocus()) {
-                    alert("Are you still there? You are about to be signed out!");
-                }
-            } else if (event.data.command == "update") {
-                let timeRemaining = event.data.timeRemaining;
-                $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
-            }
-        };
+    // Prevent multiple workers from being created
+    if (worker) {
+        return;
     }
 
+    // Create the worker
+    worker = new Worker(new URL("./logoutTimer.js", import.meta.url));
+    // Start the worker
     worker.postMessage("start");
+    // Listen for messages from the workers
+    worker.onmessage = (event) => {
+        if (event.data.command == "logout") {
+            signOut(auth).then(() => {
+                window.location.href = "/";
+            });
+        } else if (event.data.command == "show") {
+            // Stop the active event listerners so the user can interact with the modal
+            $(window).off("mousemove", resetLogoutTimer);
+            $(window).off("keypress", resetLogoutTimer);
+            $(window).off("click", resetLogoutTimer);
+            $(window).off("scroll", resetLogoutTimer);
+            $(window).off("touchmove", resetLogoutTimer);
+            let timeRemaining = event.data.timeRemaining;
+            openModal("issue", "To protect your account, you will be logged out soon unless you interact with the page.<br><br><span id=\"logout-time-remaining\">5:00</span> ",
+                "Are you still there?", "Stay Logged In", () => {
+                    worker.postMessage("reset");
+                    // Sets event listeners for the logout timer
+                    $(window).on("mousemove", resetLogoutTimer);
+                    $(window).on("keypress", resetLogoutTimer);
+                    $(window).on("click", resetLogoutTimer);
+                    $(window).on("scroll", resetLogoutTimer);
+                    $(window).on("touchmove", resetLogoutTimer); // This is for mobile
+                }, "Log Out", () => {
+                    signOut(auth).then(() => {
+                        window.location.href = "/";
+                    });
+                });
+            $("#logout-time-remaining").css("font-weight", "bold");
+            $("#logout-time-remaining").css("font-size", "24px");
+            $("#logout-time-remaining").css("text-align", "center");
+            $("#logout-time-remaining").parent().css("display", "grid");
+            $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+        } else if (event.data.command == "update") {
+            let timeRemaining = event.data.timeRemaining;
+            $("#logout-time-remaining").html(Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60);
+        }
+    };
 }
 
 /**
@@ -916,18 +914,13 @@ function stopLogoutTimer() {
 }
 
 /**
- * @description Resets the logout timer.
+ * @description Resets the logout timer. This is called every time the user interacts with the page.
  */
 function resetLogoutTimer() {
     if (!auth.currentUser) {
         return;
     }
-    stopLogoutTimer();
-    startLogoutTimer();
-    if ($("#logout-overlay")[0].style.opacity == "1") {
-        $("#logout-overlay").delay(500).hide(0);
-    }
-    $("#logout-overlay").css("opacity", "0");
+    worker.postMessage("reset");
 }
 
 /**
@@ -1051,11 +1044,11 @@ function signOutUser() {
             // could change 'replace' to 'href' if we wanted to keep the page in the history
             window.location.replace("/");
         }).catch((error) => {
-            alert("Unable to sign you out, please refresh the page and try again.");
+            openModal("error", "Unable to sign you out, please refresh the page and try again.");
             console.error(error);
         });
     } else {
-        alert("Unable to sign you out. No user is currently signed in.");
+        openModal("error", "Unable to sign you out. No user is currently signed in.");
     }
 }
 
