@@ -6,7 +6,7 @@
   "dependencies": {
     "firebase": "^9.17.2",
     "jquery": "^3.6.4",
-    "web-vitals": "^3.1.1"
+    "web-vitals": "^3.3.0"
   },
   "devDependencies": {
     "@types/jquery": "^3.5.16",
