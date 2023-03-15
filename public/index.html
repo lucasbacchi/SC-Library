@@ -24,7 +24,9 @@
 
 <body style="overflow: hidden;">
     <header>
-        <a href="/" class="no-select"><h1>South Church Library</h1></a>
+        <a href="/" class="no-select">
+            <h1>South Church Library</h1>
+        </a>
         <span id="hamburger-button" class="no-select material-symbols-outlined">menu</span>
         <nav class="no-select">
             <span id="close-button" class="material-symbols-outlined">close</span>
@@ -34,8 +36,9 @@
             <li class="navlink"><a href="/help">Help</a></li>
         </nav>
         <div id="header-search-container" class="search-container">
-            <input id="header-search-input" class="search-input" placeholder="Search by title, author, subject, keyword..."></input>
-            <span class="material-symbols-outlined search-button" id="header-search-button">search</span>
+            <input id="header-search-input" class="search-input"
+                placeholder="Search by title, author, subject, keyword..."></input>
+            <button class="material-symbols-outlined search-button" id="header-search-button">search</span>
         </div>
         <div id="account-container">
             <div id="nav-login-signup" class="no-select">
@@ -63,8 +66,9 @@
     <!-- Required to make sure the header doesn't overlay on other content. -->
     <div id="header-spacer" style="clear: both; height: 100px;"></div>
 
-    <div id="content" class="page-hidden" style="height: 900px; margin-bottom: 20px;"></div>
-
+    <div id="index-content-container" style="height: 900px; margin-bottom: 20px;">
+        <div id="content" class="page-hidden"></div>
+    </div>
 
     <div id="cover"
         style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">

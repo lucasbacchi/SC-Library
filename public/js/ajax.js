@@ -84,6 +84,30 @@ function setupIndex() {
         document.attachEvent('onclick', interceptLinkClick);
     }
 
+    // Listen to see when the Material Symbols have loaded (It's a huge file)
+    let fontChecker = setInterval(() => {
+        $(".material-symbols-outlined").css("opacity", "0");
+        $(".material-symbols-outlined").css("width", "40px");
+        let status = document.fonts.check("12px Material Symbols Outlined");
+        if (status) {
+            $(".material-symbols-outlined").css("opacity", "");
+            $(".material-symbols-outlined").css("width", "");
+            clearInterval(fontChecker);
+        }
+    }, 100);
+
+    // Set up on click for header search button
+    $("#header-search-button").on("click", () => {
+        headerSearch();
+    });
+
+    // Set up listener for Enter key on header search bar
+    $("#header-search-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            headerSearch();
+        }
+    });
+
     // Set up on click for log out button
     $("div#log-out").on("click", () => {
         signOutUser();
@@ -176,7 +200,31 @@ function setupIndex() {
             $("header").css("box-shadow", "");
         }
     });
+
+    // Setup a ResizeObserver to watch for changes in content div
+    let contentDiv = document.getElementById("content");
+    let contentDivObserver = new ResizeObserver(() => {
+        let contentHeight = contentDiv.offsetHeight;
+        let minHeight = window.innerHeight - $("#header-spacer").height() - $("#footer-spacer").height() - 21;
+        if (contentHeight < minHeight) {
+            contentHeight = minHeight;
+        }
+        $("#index-content-container").css("height", contentHeight);
+    });
+    contentDivObserver.observe(contentDiv);
 }
+
+/**
+ * @description This function searches for the query in the header search bar.
+ */
+function headerSearch() {
+    let query = $("#header-search-input").val();
+    if (query == "") {
+        return;
+    }
+    goToPage("search?query=" + query);
+}
+
 
 /**
  * @description Closes the large account panel
@@ -209,7 +257,7 @@ let isAdmin;
  * @returns {Promise<Boolean>} A promise that resolves to true if the user is an admin and false if they are not.
  */
 export function isAdminCheck(recheck = false) {
-    return new Promise(function (resolve) {
+    return new Promise((resolve) => {
         if (isAdmin == null || recheck) {
             getDoc(doc(db, "admin", "private_vars")).then(() => {
                 isAdmin = true;
@@ -229,12 +277,11 @@ export function isAdminCheck(recheck = false) {
  * If the page change is valid, the function will go to the new page by calling getPage().
  * @param {String} pageName The name of the page to go to.
  * @param {Boolean} goingBack Whether the user is going forward or backward in the history. (Prevents new history entries)
- * @param {Array<Book>} searchResultsArray The array of books to display in the search results page.
  * @param {Boolean} bypassUnload Whether to bypass the unload event.
  * @returns {Promise<void>} A promise representing the loading progress of the page.
  */
-export function goToPage(pageName, goingBack = false, searchResultsArray = null, bypassUnload = false) {
-    return new Promise(function (resolve, reject) {
+export function goToPage(pageName, goingBack = false, bypassUnload = false) {
+    return new Promise((resolve, reject) => {
         let pageHash = "";
         let pageQuery = "";
 
@@ -312,46 +359,41 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
             }
         }
 
+        let delayTimer;
+        let adminCheck;
         // Temporarily hide the content while the page is loading
         // Don't hide the content if the user is going between two account pages.
         if (currentPage && currentPage != pageName && !(currentPage.includes("account") && pageName.includes("account"))) {
             $("#content").addClass("page-hidden");
+            $("#content").removeClass("fade");
+            if (!goingBack) {
+                $("html, body").animate({ scrollTop: 0 }, 600);
+            }
+            delayTimer = new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 300);
+            });
         }
 
         // Prevent the user from visiting admin pages if they are not an admin
         if (pageName.includes("admin")) {
-            isAdminCheck(true).then((isAdmin) => {
-                if (isAdmin) {
-                    // Normal exit for all admin pages
-                    getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
-                        pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
-                            resolve();
-                        });
-                    });
-                    // Add the Admin Dashboard Link to the account panel if it isn't there already.
-                    if ($("#admin-link").html() == "") {
-                        $("#admin-link").html("Admin Dashboard");
-                    }
-                    return;
-                } else {
-                    reject("User is not an admin.");
-                    goToPage("");
-                    return;
-                }
-            }).catch((error) => {
-                console.error("Error in admin check", error);
+            adminCheck = isAdminCheck(true);
+        }
+
+        Promise.all([delayTimer, adminCheck]).then((values) => {
+            let isAdmin = values[1];
+            if (pageName.includes("admin") && !isAdmin) {
+                reject("User is not an admin.");
+                goToPage("");
                 return;
-            });
-            return;
-        } else {
-            // At this point, we have decided that we are going to a new page that doesn't require admin access
+            }
             getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
-                // Run the setup function for whichever page has loaded.
-                pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery).then(() => {
+                pageSetup(pageName, goingBack, pageHash, pageQuery).then(() => {
                     resolve();
                 });
             });
-        }
+        });
     }).then(() => {
         // Will Run after goToPage resolves
         $("#cover").hide();
@@ -388,7 +430,6 @@ export function goToPage(pageName, goingBack = false, searchResultsArray = null,
 function getPage(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve, reject) => {
         // Prepare the page for loading
-        $("#content").removeClass("fade");
         if (window.innerWidth <= 570) {
             closeNavMenu();
         }
@@ -442,8 +483,6 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 }
 
                 $("#content").html(xhttp.responseText);
-                // Remove Placeholder Height
-                $("#content").css("height", "100%");
 
                 // Set Title Correctly
                 let titleList = {
@@ -487,12 +526,11 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
  * @description This function fires additional scripts based on the page that was loaded.
  * @param {String} pageName The name of the page.
  * @param {Boolean} goingBack A boolean that represents if the user is going back in the history.
- * @param {Array} searchResultsArray The array of search results (for the search page).
  * @param {String} pageHash The hash of the page.
  * @param {String} pageQuery The query of the page.
  * @returns {Promise<void>} A promise that represents the setup progress of the page.
  */
-function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery) {
+function pageSetup(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve) => {
         // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
         if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
@@ -521,7 +559,7 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
         else if (pageName == "search") {
             import('../css/search.css');
             import('./search').then(({ setupSearch }) => {
-                setupSearch(searchResultsArray, pageQuery);
+                setupSearch(pageQuery);
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
@@ -654,18 +692,13 @@ function pageSetup(pageName, goingBack, searchResultsArray, pageHash, pageQuery)
             window.setTimeout(() => {
                 $("#content").removeClass("page-hidden");
                 $("#content").addClass("fade");
-            }, 200);
+            }, 100);
         }
 
         // Scroll to a specific part of the page if needed
-        // If no hash, scroll to the top of the page.
         if (pageHash && $(pageHash).length > 0) {
             pageHash = "#" + encodeURIComponent(pageHash.substring(1));
             $(document).scrollTop($(pageHash).offset().top - 85);
-        } else {
-            if (currentPage != pageName) {
-                $(document).scrollTop(0); // Could change later if we don't like this behavior
-            }
         }
 
         if (pageName != "account") {
@@ -784,7 +817,7 @@ function initApp() {
     });
 
     // Listening for auth state changes.
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         try {
             onAuthStateChanged(auth, (user) => {
                 if (user) {

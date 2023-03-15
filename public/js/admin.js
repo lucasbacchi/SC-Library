@@ -1,6 +1,6 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -333,7 +333,7 @@ function recentlyCheckedOut() {
  */
 function addStats() {
     let count = 0;
-    search("").then(() => {
+    updateBookDatabase().then(() => {
         // Number of Books
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
@@ -386,7 +386,7 @@ function viewMissingBarcodes() {
  * @description Called when the user clicks the "Export" link. Downloads the database as a JSON file.
  */
 function downloadDatabase() {
-    search("", true).then(() => {
+    updateBookDatabase().then(() => {
         let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
@@ -408,7 +408,7 @@ function downloadDatabase() {
  * @returns {Promise<File>} A promise that resolves to the file that the user selected.
  */
 function importFile(event) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         if (event.target.files[0])
             resolve(event.target.files[0]);
         else
@@ -495,7 +495,7 @@ function importDatabase(database) {
         loadingModal();
         openModal("issue", "We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
     }, 30000);
-    return new Promise(function(resolve) {
+    return new Promise((resolve) => {
         // Get a new write batch
         let batch = writeBatch(db);
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
@@ -551,17 +551,17 @@ function importDatabase(database) {
 export function setupView(pageQuery) {
     let type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        search("", true).then(() => {
-            bookDatabase.forEach((doc) => {
-                doc.books.forEach((book) => {
-                    $("div#view-container")[0].appendChild(buildBookBox(book, "view"));
+        updateBookDatabase().then(() => {
+            bookDatabase.forEach((doc, docIndex) => {
+                doc.books.forEach((book, bookIndex) => {
+                    $("div#view-container")[0].appendChild(buildBookBox(book, "view", docIndex*100 + bookIndex));
                 });
             });
         });
     } else if (type == "users") {
         getAllUsers().then(() => {
-            userDatabase.forEach((user) => {
-                $("div#view-container")[0].appendChild(buildUserBox(user, "view"));
+            userDatabase.forEach((user, index) => {
+                $("div#view-container")[0].appendChild(buildUserBox(user, "view", index));
             });
         });
     } else {
@@ -680,7 +680,7 @@ var userDatabase = [];
  * @returns {Promise<void>} A promise that resolves when the userDatabase is loaded.
  */
 function getAllUsers() {
-    return new Promise(function (resolve) {
+    return new Promise((resolve) => {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((docSnap) => {
@@ -747,7 +747,7 @@ var cachedInventory = [];
  * @returns {Promise<void>} A promise that resolves when the inventory is loaded from the database.
  */
 function loadInventory() {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
@@ -776,7 +776,7 @@ function cancelInventory() {
  * @description Continues the inventory process from where it left off.
  */
 function continueScanning() {
-    search("", true);
+    updateBookDatabase();
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");

@@ -1,6 +1,6 @@
 import { goToPage } from "./ajax";
-import { addBarcodeSpacing, findURLValue, openModal, switchISBNformats, verifyISBN } from "./common";
-import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
+import { addBarcodeSpacing, encodeHTML, findURLValue, openModal, switchISBNformats, verifyISBN } from "./common";
+import { app, Audience, Book, db, historyManager, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
 
@@ -18,7 +18,7 @@ export function setupEditEntry(pageQuery) {
     file = null;
     newEntry = (findURLValue(pageQuery, "new") == "true");
     barcodeNumber = parseInt(findURLValue(pageQuery, "id", true));
-    isbn = findURLValue(pageQuery, "isbn", true);
+    isbn = encodeHTML(findURLValue(pageQuery, "isbn", true));
     imageChanged = false;
 
     if (newEntry == false && (barcodeNumber < 1171100000 || barcodeNumber > 1171199999)) {
@@ -276,7 +276,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
  *          Ideally, noISBN, the book object, the author object, and the works object.
  */
 function gatherExternalInformation(isbn) {
-    return (new Promise(function(resolve) {
+    return (new Promise((resolve) => {
         if (isbn == "") {
             // In this case, the entry was created without an isbn
             resolve(true);
@@ -318,7 +318,7 @@ function gatherExternalInformation(isbn) {
  * @returns {Promise<Object>} The book object from Open Library. It is not an instance of the Book class.
  */
 function lookupBook(isbn) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let xhttp = new XMLHttpRequest();
 
         xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
@@ -346,7 +346,7 @@ function lookupBook(isbn) {
  */
 function lookupAuthor(bookObject) {
     console.log(bookObject);
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let total = 0;
         if (bookObject.authors) {
             for (let i = 0; i < bookObject.authors.length; i++) {
@@ -390,7 +390,7 @@ function lookupAuthor(bookObject) {
  * @returns {Promise<Array<Object, Object, Object>>} Returns a promise with an array containing the book object, the author object, and the works object.
  */
 function lookupWorks(bookObject, authorObject) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let total = 0;
         for (let i = 0; i < bookObject.works.length; i++) {
             let xhttp = new XMLHttpRequest();
@@ -1200,7 +1200,7 @@ function isValidDate(y, m, d) {
  * @returns {Promise<void>} A Promise that resolves when the data is stored.
  */
 function storeData(isDeletedValue = false, skipImages = false) {
-    return new Promise(function(resolve, reject) {
+    return new Promise((resolve, reject) => {
         // Gets the values of all the input elements
         let pageData = getBookDataFromPage();
         if (pageData.medium == "av") {
@@ -1425,7 +1425,7 @@ function processImages(barcodeNumber) {
  * @returns {Promise<File>} A promise representing the image file
  */
 function getImage() {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         if ($("#book-medium")[0].value == "av") {
             console.warn("No need to get an image for an AV item...");
             resolve(null);
@@ -1591,7 +1591,12 @@ function loadFile(event) {
  */
 function cancelEditEntry() {
     $(window).off("beforeunload");
-    window.history.back();
+    // If we can go back without refreshing the page, do so, otherwise, send us to the admin dashboard.
+    if (historyManager.currentIndex > 0) {
+        window.history.back();
+    } else {
+        goToPage("admin/main");
+    }
 }
 
 /**

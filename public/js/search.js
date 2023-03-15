@@ -1,7 +1,7 @@
 // Make content Responsive
 import { changePageTitle, goToPage } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue } from './common';
-import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue, updateBookDatabase } from './common';
+import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -24,10 +24,9 @@ $(window).on("resize", () => {
 
 /**
  * @description Sets up the search page event listeners then starts the process of displaying books.
- * @param {Book[]} searchResultsArray The array of books to display if a search already happened.
  * @param {String} pageQuery The page query from the URL.
  */
-export function setupSearch(searchResultsArray, pageQuery) {
+export function setupSearch(pageQuery) {
     // Set Initial window layout.
     if ($(window).width() > 786) {
         $('.sort-section').show();
@@ -53,7 +52,7 @@ export function setupSearch(searchResultsArray, pageQuery) {
         }
     });
 
-    $("#search-page-input").on("keydown", (event) => {
+    $("#search-page-search-input").on("keydown", (event) => {
         if (event.key === "Enter") {
             searchPageSearch();
         }
@@ -72,17 +71,13 @@ export function setupSearch(searchResultsArray, pageQuery) {
 
     $("#search-page-input").val(queryFromURL);
 
-    if (searchResultsArray == null) {
-        // If you are entering the page without a search completed
-        if (queryFromURL == "") {
-            browse();
-        } else {
-            search(queryFromURL).then((resultsArray) => {
-                createSearchResultsPage(resultsArray);
-            });
-        }
+    // If you are entering the page without a search completed
+    if (queryFromURL == "") {
+        browse();
     } else {
-        createSearchResultsPage(searchResultsArray);
+        search(queryFromURL).then((resultsArray) => {
+            createSearchResultsPage(resultsArray);
+        });
     }
 }
 
@@ -90,7 +85,7 @@ export function setupSearch(searchResultsArray, pageQuery) {
  * @description Handles new searches from the search page.
  */
 function searchPageSearch() {
-    let searchQuery = $('#search-page-input').val();
+    let searchQuery = $('#search-page-search-input').val();
     setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
@@ -628,9 +623,13 @@ export function setupResultPage(pageQuery) {
             item_id: barcodeNumber
         });
     }).catch((error) => {
+        // If we can go back without refreshing the page, do so, otherwise, send us home.
+        if (historyManager.currentIndex > 0) {
+            window.history.back();
+        } else {
+            goToPage("");
+        }
         openModal("error", "No information could be found for that book.\n" + error);
-        window.history.back();
-        return;
     });
 
     // Create Event Listeners
@@ -777,7 +776,7 @@ function applySearchFilters(queryFromURL) {
         }
     }
     if (queryFromURL == "") {
-        search("").then(() => {
+        updateBookDatabase().then(() => {
             searchWithFilters(filters, items);
         });
     } else {

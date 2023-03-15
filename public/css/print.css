@@ -1,5 +1,5 @@
+/* Removes the index frame from the print view */
 @media print {
-    /* All your print styles go here */
     header,
     footer,
     #sort-sidebar,
@@ -18,5 +18,4 @@
     #results-container {
         width: 95% !important;
     }
-
 }

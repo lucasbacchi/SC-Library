@@ -61,17 +61,17 @@ div.mgmt {
 }
 
 /* Grid Contents */
-div.mgmt>p {
+div.mgmt > p {
     margin: 5px;
 }
 
-div.mgmt>h3 {
+div.mgmt > h3 {
     margin: 0 auto;
     margin-bottom: 16px;
     text-align: center;
 }
 
-div.mgmt>h4 {
+div.mgmt > h4 {
     text-align: left;
     font-size: 16px;
     margin-bottom: 0px;
@@ -83,7 +83,7 @@ div#checked-out-books-container {
     position: relative;
 }
 
-div#checked-out-books-container>.book {
+div#checked-out-books-container > .book {
     width: 100%;
     height: 120px;
     margin: 0;
@@ -104,7 +104,7 @@ div#checked-out-books-container>.book {
     padding: 4px 6px;
 }
 
-div#edit-entry-search-results>.book {
+div#edit-entry-search-results > .book {
     width: 100%;
     height: auto;
     margin: 0;
@@ -190,7 +190,7 @@ div#edit-entry-search-results>.book {
     text-decoration-thickness: 2px;
 }
 
-.deleted>* {
+.deleted > * {
     opacity: 0.7;
 }
 
@@ -211,7 +211,7 @@ div#edit-entry-search-results>.book {
 
 
 /* Admin Help Page */
-ol.h3>li::marker {
+ol.h3 > li::marker {
     font-size: 1.17em;
     font-weight: bold;
 }
@@ -220,7 +220,7 @@ div.help {
     margin: 0 auto;
 }
 
-li>ul {
+li > ul {
     margin-left: -25px;
 }
 
@@ -287,17 +287,17 @@ li.back-to-top::marker {
         grid-row: 4;
     }
 
-    div#edit-entry-search-results>.book {
+    div#edit-entry-search-results > .book {
         height: auto;
         flex-wrap: wrap;
     }
 
-    div#edit-entry-search-results>.book>.bookimage {
+    div#edit-entry-search-results > .book > .bookimage {
         max-height: 100px;
     }
 
-    div#edit-entry-search-results>.book>.basic-info>p,
-    div#edit-entry-search-results>.book>.basic-info>b>p {
+    div#edit-entry-search-results > .book > .basic-info > p,
+    div#edit-entry-search-results > .book > .basic-info > b > p {
         text-align: center;
     }
 }
