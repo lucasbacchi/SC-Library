@@ -1,6 +1,6 @@
-import { Book, bookDatabase, db } from "./globals";
+import { Book, bookDatabase, db, historyManager } from "./globals";
 import { goToPage } from "./ajax";
-import { buildBookBox, search } from "./common";
+import { buildBookBox, updateBookDatabase } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 
@@ -9,35 +9,46 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "
  */
 export function setupMain() {
     homeBookBoxes();
-    $("#search-input").on("keydown", (event) => {
+    $("#home-page-search-input").on("keydown", (event) => {
         if (event.key === "Enter") {
             homePageSearch();
         }
     });
 
-    $("#home-page-search").on("click", () => {
+    $("#home-page-search-button").on("click", () => {
         homePageSearch();
     });
 }
 
 /**
- * @description Runs when the user searches from the home page. Searches for a book and goes to the search page.
+ * @description Runs when the user searches from the home page. Adds the query to the URL and goes to the search page.
  */
 function homePageSearch() {
-    let searchQuery = $('#search-input').val();
-
-    search(searchQuery).then((searchResultsArray) => {
-        goToPage('search?query=' + searchQuery, false, searchResultsArray);
-    });
+    let searchQuery = $('#home-page-search-input').val();
+    goToPage('search?query=' + searchQuery);
 }
 
 /**
  * @description Generates the book boxes on the home page by randomly selecting books from the database.
  */
 function homeBookBoxes() {
+    // If we have the books in the history, use those.
+    if (window.history.state.stack[window.history.state.index]?.customData?.homeBookBoxes) {
+        let values = window.history.state.stack[window.history.state.index]?.customData?.homeBookBoxes;
+        console.log("Using books from history", values);
+        updateBookDatabase().then(() => {
+            for (let i = 0; i < 9; i++) {
+                let book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
+                $('div#books')[0].appendChild(buildBookBox(book, "main"));
+            }
+        });
+        return;
+    }
+
+    let values;
     if (bookDatabase) {
         // Don't wait for the database and save ourselves a read request
-        let values = [];
+        values = [];
         let count = 0;
         for (let i = 0; i < 9; i++) {
             let rand1 = Math.floor(Math.random() * bookDatabase.length);
@@ -59,6 +70,8 @@ function homeBookBoxes() {
             let book = bookDatabase[Math.floor(values[i] / 100)].books[values[i] % 100];
             $('div#books')[0].appendChild(buildBookBox(book, "main"));
         }
+        // Store the books in the history
+        historyManager.update(undefined, {homeBookBoxes: values});
     } else {
         // Get the largest doc to figure out how many total books there are.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
@@ -79,7 +92,7 @@ function homeBookBoxes() {
                         console.error("books " + rand + " does not exist");
                         return;
                     }
-                    let values = [];
+                    values = [];
                     let count = 0;
                     for (let i = 0; i < 9; i++) {
                         let random = Math.floor(Math.random() * docSnap.data().books.length);
@@ -99,6 +112,8 @@ function homeBookBoxes() {
                         let book = Book.createFromObject(docSnap.data().books[values[i]]);
                         $('div#books')[0].appendChild(buildBookBox(book, "main"));
                     }
+                    // Store the books in the history
+                    historyManager.update(undefined, {homeBookBoxes: values});
                 }).catch((error) => {
                     console.error("There was an issue getting the random book doc", error);
                 });

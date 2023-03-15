@@ -61,35 +61,16 @@
 
 /* Index Frame */
 /* Fading Animation */
-.page-hidden {
-    opacity: 0;
-}
-
 .fade {
-    -webkit-animation-name: fade;
-    -webkit-animation-duration: 0.8s;
     animation-name: fade;
     animation-duration: 0.8s;
     transition: opacity 0.8s;
 }
 
 .fade-out {
-    -webkit-animation-name: fade;
-    -webkit-animation-duration: 0.6s;
-    -webkit-animation-direction: reverse;
     animation-name: fade;
     animation-duration: 0.6s;
     animation-direction: reverse;
-}
-
-@-webkit-keyframes fade {
-    from {
-        opacity: 0
-    }
-
-    to {
-        opacity: 1
-    }
 }
 
 @keyframes fade {
@@ -102,9 +83,14 @@
     }
 }
 
+.page-hidden {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
 /* Page Frame */
 html {
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth; */
     overflow-x: hidden;
     overflow-y: overlay;
 }
@@ -115,6 +101,10 @@ body {
     overflow-y: hidden;
     margin: 0px;
     font-family: "Montserrat", sans-serif;
+}
+
+#index-content-container {
+    transition: height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
 }
 
 /* Header */
@@ -134,20 +124,20 @@ header {
     transition: box-shadow 0.5s;
 }
 
-header>* {
+header > * {
     display: inline-block;
     vertical-align: middle;
     position: relative;
 }
 
-header>a,
-header>a:visited,
-header>a>h1 {
+header > a,
+header > a:visited,
+header > a > h1 {
     margin: 0;
     color: var(--mint);
 }
 
-header>a>h1 {
+header > a > h1 {
     margin: 0px 20px;
     position: relative;
     top: 50%;
@@ -167,8 +157,8 @@ nav {
     height: 100%;
 }
 
-.navlink>a,
-.navlink>a:visited {
+.navlink > a,
+.navlink > a:visited {
     display: flex;
     align-items: center;
     height: 100%;
@@ -201,42 +191,8 @@ nav {
     cursor: pointer;
 }
 
-.search-container {
-    position: relative;
-    flex-grow: 1;
-    margin: 0px 24px;
-}
-
-.search-container>input {
-    position: relative;
-    top: 50%;
-    transform: translate(0px, -50%);
-    width: 100%;
-    padding-left: 16px;
-    height: 42px;
-    border: 2px var(--mint) solid;
-    box-shadow: none;
-    font-size: 16px;
-    border-radius: 21px;
-    outline: none;
-}
-
-.search-button {
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    transform: translate(0px, -50%);
-    color: var(--teal);
-    cursor: pointer;
-    font-size: 30px;
-    padding: 4px 12px;
-    font-variation-settings:
-    'FILL' 0,
-    'wght' 600,
-    'GRAD' 200,
-    'opsz' 48;
-    border-radius: 0px 100px 100px 0px;
-    background-color: var(--mint);
+#header-search-container {
+    height: 100%;
 }
 
 /* Index Account Containers */
@@ -254,12 +210,12 @@ nav {
     margin-right: 8px;
 }
 
-#nav-login-signup>* {
+#nav-login-signup > * {
     display: inline;
     margin: 16px 0px;
 }
 
-#nav-login-signup>*>a {
+#nav-login-signup > * > a {
     height: 100%;
     padding: 5px 15px;
     display: flex;
@@ -274,8 +230,8 @@ nav {
     border-left: 1px solid var(--mint);
 }
 
-div#nav-login>a,
-div#nav-signup>a {
+div#nav-login > a,
+div#nav-signup > a {
     color: var(--mint);
 }
 
@@ -317,12 +273,12 @@ div#nav-signup>a {
     overflow: hidden;
 }
 
-#small-account-container>* {
+#small-account-container > * {
     height: 100%;
     position: relative;
     top: 50%;
     transform: translate(0px, -50%);
-    transition: box-shadow 0.25s;
+    transition: box-shadow 0.25s, text-shadow 0.25s;
 }
 
 #small-account-image {
@@ -333,11 +289,11 @@ div#nav-signup>a {
     background-color: white;
 }
 
-#small-account-container:hover>#small-account-image {
+#small-account-container:hover > #small-account-image {
     box-shadow: 0px 0px 12px 0px #00000070;
 }
 
-#small-account-container:hover>#account-arrow {
+#small-account-container:hover > #account-arrow {
     text-shadow: 0px 0px 8px #000000a0;
 }
 
@@ -359,7 +315,7 @@ div#nav-signup>a {
     border-top: 1px solid black;
 }
 
-#account-bottom-container>* {
+#account-bottom-container > * {
     display: inline-block;
     width: 50%;
     padding: 20px 8px;
@@ -368,7 +324,7 @@ div#nav-signup>a {
     color: black;
 }
 
-#account-bottom-container>*:hover {
+#account-bottom-container > *:hover {
     text-decoration: underline;
     cursor: pointer;
 }
@@ -409,11 +365,11 @@ footer {
     margin: 0;
 }
 
-.footer-list>li {
+.footer-list > li {
     list-style-type: none;
 }
 
-.footer-list>li>a {
+.footer-list > li > a {
     color: var(--mint);
     padding-left: 1px;
 }
@@ -529,14 +485,13 @@ button:focus {
     border: 1px solid var(--mint);
     color: var(--teal);
     overflow: visible;
-    float: left;
     display: flex;
     justify-content: space-between;
     border-radius: 8px;
 }
 
-#books>.book,
-#books>a {
+#books > .book,
+#books > a {
     margin: 8px;
     height: initial;
     flex-basis: 30%;
@@ -545,7 +500,7 @@ button:focus {
     min-height: 150px;
 }
 
-.book>a {
+.book > a {
     position: absolute;
     top: 0;
     right: 0;
@@ -553,6 +508,7 @@ button:focus {
 
 .bookimage {
     max-height: 150px;
+    max-width: 200px;
     float: left;
     user-select: none;
     border-radius: 2px;
@@ -570,8 +526,7 @@ img[src="../img/av-image.png"] {
 
 #home-page-search-container {
     display: none;
-    width: 98%;
-    margin: 0 auto;
+    margin: 0 16px;
 }
 
 
@@ -651,6 +606,57 @@ p.answer {
 
 
 
+/* Search Boxes */
+.search-container {
+    position: relative;
+    height: 42px;
+    flex-grow: 1;
+    display: flex;
+    margin: 0px 24px;
+}
+
+.search-container > input {
+    position: relative;
+    top: 50%;
+    transform: translate(0px, -50%);
+    flex-grow: 1;
+    padding-left: 16px;
+    height: 42px;
+    border: 2px var(--mint) solid;
+    box-shadow: none;
+    font-size: 16px;
+    border-radius: 100px 0px 0px 100px;
+    outline: none;
+}
+
+.search-button {
+    position: relative;
+    top: 50%;
+    height: 42px;
+    transform: translate(0px, -50%);
+    color: var(--teal);
+    cursor: pointer;
+    font-size: 30px;
+    padding: 4px 12px;
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 600,
+        'GRAD' 200,
+        'opsz' 48;
+    border-radius: 0px 100px 100px 0px;
+    background-color: var(--mint);
+    border: 2px solid var(--mint);
+}
+
+.search-button:hover {
+    border-color: var(--mint);
+}
+
+
+
+
+
+
 /* Books */
 p.title,
 p.author,
@@ -667,6 +673,10 @@ p.description {
     text-align: left;
     margin: .25em;
     white-space: pre-wrap;
+}
+
+p.subjects {
+    margin-bottom: 1em;
 }
 
 div.basic-info {
@@ -740,37 +750,37 @@ img.icon:hover {
     padding: 8px 32px;
 }
 
-.modal>span.material-symbols-outlined {
+.modal > span.material-symbols-outlined {
     font-size: 96px;
     margin: 16px auto;
     display: block;
 }
 
-.modal>span.success {
+.modal > span.success {
     color: #22d022;
 }
 
-.modal>span.error {
+.modal > span.error {
     color: #dc3c3c;
 }
 
-.modal>span.warning,
-.modal>span.issue {
+.modal > span.warning,
+.modal > span.issue {
     color: #ffbb00;
 }
 
-.modal>span.info {
+.modal > span.info {
     color: #3e9def;
 }
 
-.modal>h3 {
+.modal > h3 {
     width: 100%;
     margin: 16px auto;
     text-align: center;
     font-size: 32px;
 }
 
-.modal>p {
+.modal > p {
     margin: 16px auto;
     text-align: left;
     font-size: 16px;
@@ -787,7 +797,7 @@ img.icon:hover {
     margin: 16px auto;
 }
 
-.modal>.modal-button-container>button {
+.modal > .modal-button-container > button {
     font-size: 20px;
     padding: 4px 16px;
     display: inline-block;
@@ -853,10 +863,12 @@ button.warning:focus {
 
 
 
+
+
 /* Responsive */
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {
-    header>a>h1 {
+    header > a > h1 {
         font-size: 28px;
     }
 
@@ -875,6 +887,7 @@ button.warning:focus {
 
     #header-search-button {
         font-size: 24px;
+        height: 36px;
     }
 
     #books {
@@ -884,7 +897,7 @@ button.warning:focus {
 
 /* Content if screen is small */
 @media screen and (max-width:1024px) {
-    header>a {
+    header > a {
         display: none;
     }
 
@@ -892,7 +905,7 @@ button.warning:focus {
         display: inline;
     }
 
-    #books>a {
+    #books > a {
         flex-basis: 47%;
     }
 
@@ -911,7 +924,7 @@ button.warning:focus {
         width: 95%;
     }
 
-    #books>a {
+    #books > a {
         flex-basis: 100%;
     }
 
@@ -919,17 +932,14 @@ button.warning:focus {
         font-size: 20px;
     }
 
-    header>#header-search-container {
+    header > #header-search-container {
         display: none;
     }
 
     #home-page-search-container {
-        display: block;
+        height: 42px;
+        display: flex;
         margin-bottom: 16px;
-    }
-
-    .search-container>input {
-        transform: none;
     }
 
     .footer-div {
@@ -976,7 +986,7 @@ button.warning:focus {
         transform: none;
     }
 
-    .navlink>a {
+    .navlink > a {
         width: 100%;
         padding: 16px;
         padding-left: 30px;
@@ -992,7 +1002,7 @@ button.warning:focus {
     #close-button {
         display: flex;
     }
-    
+
     .footer-div {
         width: 100% !important;
         padding: 15px 0px;

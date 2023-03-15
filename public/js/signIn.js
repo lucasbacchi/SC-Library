@@ -231,7 +231,7 @@ function signIn(reAuth = false) {
  * @returns {Promise} A promise that resolves when the user is signed up.
  */
 function handleSignUp() {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let firstName = document.getElementById('firstName').value;
         let lastName = document.getElementById('lastName').value;
         let email = document.getElementById('email').value;

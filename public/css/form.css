@@ -48,7 +48,7 @@ input.short-form-input {
     width: 150px;
 }
 
-.form-section>input {
+.form-section > input {
     margin-bottom: 8px;
     font-weight: 500;
     font-size: 1em;
@@ -106,7 +106,7 @@ select {
     cursor: pointer;
 }
 
-#book-cover-image-overlay>span {
+#book-cover-image-overlay > span {
     position: relative;
     top: calc(50% - 12px);
 }
@@ -117,12 +117,10 @@ select {
 
 /* Responsive */
 /* Content if screen is large */
-@media screen and (max-width: 1440px) {
-}
+@media screen and (max-width: 1440px) {}
 
 /* Content if screen is small */
-@media screen and (max-width:1024px) {
-}
+@media screen and (max-width:1024px) {}
 
 /* Content if screen is very small */
 @media screen and (max-width:786px) {
@@ -140,8 +138,7 @@ select {
 }
 
 /* Content if screen is really small */
-@media screen and (max-width:570px) {
-}
+@media screen and (max-width:570px) {}
 
 
 /* Content if screen is super small */
@@ -156,4 +153,3 @@ select {
         padding: 24px;
     }
 }
-

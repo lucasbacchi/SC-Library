@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book} from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -17,11 +17,21 @@ BEGIN SEARCH
  * @returns {Promise<Array>} An array of results
  */
 export function search(searchQuery, viewHidden = false) {
-    return new Promise(function (resolve, reject) {
-        if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
-            // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
+    return new Promise((resolve, reject) => {
+        updateBookDatabase().then(() => {
+            return performSearch(searchQuery, viewHidden);
+        }).catch((error) => {
+            console.error("Search function failed to update the book database", error);
+            reject();
+        });
+    });
+}
+
+export function updateBookDatabase(forced = false) {
+    return new Promise((resolve, reject) => {
+        if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
+            // It hasn't searched since the page loaded, or it's been 15 mins since last page load
             setTimeLastSearched(new Date());
-            console.log("It's been 5 mins since last search (or it's the first one since page load).");
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
                 setBookDatabase([]);
                 querySnapshot.forEach((doc) => {
@@ -39,24 +49,12 @@ export function search(searchQuery, viewHidden = false) {
                     });
                     bookDatabase.push(documentObject);
                 });
-                performSearch(searchQuery, viewHidden).then((output) => {
-                    resolve(output);
-                }).catch((error) => {
-                    console.error("Search function failed to perform search", error);
-                    reject();
-                });
+                resolve();
             }).catch((error) => {
-                console.error("Search function failed to query the database", error);
-                reject();
+                reject(error);
             });
         } else {
-            // The bookDatabase cache is recent enough, just use that
-            performSearch(searchQuery, viewHidden).then((output) => {
-                resolve(output);
-            }).catch((error) => {
-                console.error("Search function failed to perform search", error);
-                reject();
-            });
+            resolve();
         }
     });
 }
@@ -73,7 +71,7 @@ const BARCODE_WEIGHT = 50;
 const ISBN_WEIGHT = 50;
 
 function performSearch(searchQuery, viewHidden = false) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
 
         let scoresArray = [];
@@ -89,7 +87,7 @@ function performSearch(searchQuery, viewHidden = false) {
                         continue;
                     }
                     if (searchQuery == "") {
-                        scoresArray.push({book: book, score: Math.random() * 99 + 1}); // puts the books in a random order so that it's not the same every time
+                        scoresArray.push({ book: book, score: Math.random() * 99 + 1 }); // puts the books in a random order so that it's not the same every time
                         continue;
                     }
                     let score = 0;
@@ -318,6 +316,23 @@ export function setURLValue(param, value, append = true) {
     historyManager.push(encodeURI(answer));
 }
 
+const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+};
+
+export function encodeHTML(string) {
+    return String(string).replace(/[&<>"'`=/]/g, function (s) {
+        return entityMap[s];
+    });
+}
+
 /**********
 END URL VALUE
 BEGIN BUILD BOOK BOX
@@ -354,15 +369,17 @@ export function buildBookBox(obj, page, num = 0) {
     if (page == "edit-entry") {
         img.classList.add("edit-entry-book-image");
     }
-    if (obj.medium == "av") {
-        img.src = "../img/av-image.png";
+    if (obj.iconImageLink) {
+        img.src = obj.iconImageLink;
+    } else if (obj.thumbnailImageLink) {
+        img.src = obj.thumbnailImageLink;
+    } else if (obj.coverImageLink) {
+        img.src = obj.coverImageLink;
     } else {
-        if (obj.iconImageLink) {
-            img.src = obj.iconImageLink;
-        } else if (obj.thumbnailImageLink) {
-            img.src = obj.thumbnailImageLink;
+        if (obj.medium == "av") {
+            img.src = "../img/av-image.png";
         } else {
-            img.src = obj.coverImageLink;
+            img.src = "../img/default-book.png";
         }
     }
     img.onload = () => {
@@ -439,11 +456,26 @@ export function buildBookBox(obj, page, num = 0) {
         div.appendChild(number);
         const medium = document.createElement("p");
         medium.classList.add("medium");
-        medium.appendChild(document.createTextNode(obj.medium));
+        let mediumString = "";
+        switch (obj.medium) {
+            case "paperback":
+                mediumString = "Paperback";
+                break;
+            case "hardcover":
+                mediumString = "Hardcover";
+                break;
+            case "av":
+                mediumString = "Audio/Visual";
+        }
+        medium.appendChild(document.createTextNode(mediumString));
         div2.appendChild(medium);
         const audience = document.createElement("p");
         audience.classList.add("audience");
-        audience.appendChild(document.createTextNode(obj.audience.toString()));
+        let audienceString = obj.audience.toString();
+        if (audienceString == "None") {
+            audienceString = "";
+        }
+        audience.appendChild(document.createTextNode(audienceString));
         div2.appendChild(audience);
         const div3 = document.createElement("div");
         div3.classList.add("advanced-info");
@@ -506,28 +538,23 @@ BEGIN GET BOOK FROM BARCODE
  * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */
 export function getBookFromBarcode(barcodeNumber) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
         }
 
-        if (!bookDatabase) {
-            search("").then(() => {
-                returnBook();
-            });
-        } else {
-            returnBook();
-        }
-
-        function returnBook() {
+        updateBookDatabase().then(() => {
             let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
             let bookNumber = barcodeNumber % 100;
-            if (bookDatabase[documentNumber].books[bookNumber]) {
+            if (bookDatabase[documentNumber] && bookDatabase[documentNumber].books[bookNumber]) {
                 resolve(bookDatabase[documentNumber].books[bookNumber]);
             } else {
                 reject(barcodeNumber);
             }
-        }
+        }).catch((error) => {
+            console.error(error);
+            reject("An error occurred when searching for barcode " + barcodeNumber);
+        });
     });
 }
 

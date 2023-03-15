@@ -291,6 +291,23 @@ export class HistoryManager {
     }
 
     /**
+     * @param {String} name The name of the page to add to the stack.
+     * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @description Updates the current page in the history stack and then updates the browser history.
+     */
+    update(name, customData = null) {
+        if (name == undefined) {
+            name = this.stack[this.currentIndex].name;
+        } else if (name.charAt(0) != "/") {
+            name = "/" + name;
+        }
+        // Update the current page in the stack
+        this.stack[this.currentIndex] = new HistoryPage(name, customData);
+        // Update the history
+        window.history.replaceState({stack: this.stack, index: this.currentIndex}, null, name);
+    }
+
+    /**
      * @description Removes the top page from the stack and sets the previous page as the current page using the currentIndex.
      * @returns {HistoryPage} The current page in the stack.
      */
@@ -438,18 +455,21 @@ export class Book {
             }
         }
         this.medium = medium;
-        if (coverImageLink == null && barcodeNumber) {
-            this.coverImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover.jpg";
+        let time = new Date();
+        let timeString = time.getFullYear().toString() + "-" + (time.getMonth()+1).toString().padStart(2, "0") + "-" + time.getDate().toString().padStart(2, "0") + " "
+         + time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0") + ":" + time.getSeconds().toString().padStart(2, "0");
+        if (coverImageLink == null && this.medium != "av" && barcodeNumber) {
+            this.coverImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover.jpg?lastUpdated=" + timeString;
         } else {
             this.coverImageLink = coverImageLink;
         }
-        if (thumbnailImageLink == null && barcodeNumber) {
-            this.thumbnailImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-400px.jpg";
+        if (thumbnailImageLink == null && this.medium != "av" && barcodeNumber) {
+            this.thumbnailImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-400px.jpg?lastUpdated=" + timeString;
         } else {
             this.thumbnailImageLink = thumbnailImageLink;
         }
-        if (iconImageLink == null && barcodeNumber) {
-            this.iconImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-250px.jpg";
+        if (iconImageLink == null && this.medium != "av" && barcodeNumber) {
+            this.iconImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-250px.jpg?lastUpdated=" + timeString;
         } else {
             this.iconImageLink = iconImageLink;
         }

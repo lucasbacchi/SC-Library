@@ -71,13 +71,13 @@
     cursor: pointer;
 }
 
-.menu-list>li {
+.menu-list > li {
     list-style-type: none;
     padding-top: 10px;
     padding-bottom: 10px;
 }
 
-.account-info>p {
+.account-info > p {
     margin-top: 4px;
     margin-bottom: 4px;
 }
@@ -108,12 +108,12 @@ input.account-input {
     margin-bottom: 8px;
 }
 
-.setting-section>button {
+.setting-section > button {
     display: block;
     margin-top: 16px;
 }
 
-.setting-section>p {
+.setting-section > p {
     text-align: left;
 }
 
@@ -181,7 +181,7 @@ p.unread {
 
 /* Content if screen is very small */
 @media screen and (max-width:786px) {
-    .setting-section>input {
+    .setting-section > input {
         width: 80%;
     }
 
@@ -202,12 +202,12 @@ p.unread {
         width: 100%;
     }
 
-    .menu-list>li {
+    .menu-list > li {
         text-align: center;
         padding: 4px 0px;
     }
 
-    .setting-section>input {
+    .setting-section > input {
         width: 100%;
     }
 

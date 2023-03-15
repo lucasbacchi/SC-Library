@@ -28,13 +28,13 @@
     padding-bottom: 5px;
 }
 
-.sort-item>input {
+.sort-item > input {
     margin-top: 7px;
     margin-right: 10px;
     margin-left: -24px;
 }
 
-.sort-item>label {
+.sort-item > label {
     cursor: pointer;
 }
 
@@ -103,13 +103,13 @@ h6.sort-title {
 }
 
 .result-number {
-    float: left;
+    min-width: 30px;
     margin-right: 16px;
     order: -1;
 }
 
 #paginator,
-#paginator>* {
+#paginator > * {
     margin: 8px;
     margin-top: 16px;
 }
@@ -122,7 +122,7 @@ h6.sort-title {
 /* Search Page Search Bar */
 #search-page-search-container {
     display: none;
-    margin: 16px;
+    margin: 0px 16px;
     margin-bottom: 32px;
     overflow: visible;
 }
@@ -162,7 +162,7 @@ h6.sort-title {
     margin-top: 0;
 }
 
-#result-page-details>p {
+#result-page-details > p {
     text-align: left;
 }
 
@@ -171,12 +171,12 @@ h6.sort-title {
     min-height: 100px;
 }
 
-div#result-page-info-bar>p {
+div#result-page-info-bar > p {
     text-align: left;
 }
 
-#result-page-details>h6,
-#result-page-info-bar>h6 {
+#result-page-details > h6,
+#result-page-info-bar > h6 {
     margin-top: 24px;
     margin-bottom: 8px;
     font-size: 18px;
@@ -305,7 +305,7 @@ div#result-page-info-bar>p {
     }
 
     #search-page-search-container {
-        display: block;
+        display: flex;
     }
 
     #apply-filters-button {
@@ -337,7 +337,6 @@ div#result-page-info-bar>p {
         border: 2px var(--mint) solid;
         box-shadow: 0px 0px 16px 0px #cccccc;
         font-size: 16px;
-        border-radius: 21px;
     }
 }
 

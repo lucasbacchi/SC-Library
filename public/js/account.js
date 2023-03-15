@@ -110,7 +110,7 @@ var userObject;
  * @returns {Promise<User>} The user object from the database
  */
 function getAccountInfoFromDatabase() {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let user = auth.currentUser;
 
         // If the user object has already been loaded, return it, then load the data for the next time.
@@ -309,7 +309,7 @@ function updateAccount() {
             // If the user needs to reauthenticate:
             if (error.code == "auth/requires-recent-login") {
                 if (confirm("Please re-enter your password to complete this operation.")) {
-                    goToPage("login?redirect=account&email=" + newEmail, null, null, true);
+                    goToPage("login?redirect=account&email=" + newEmail, null, true);
                 }
             } else if (error.code == "auth/email-already-in-use") {
                 openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
