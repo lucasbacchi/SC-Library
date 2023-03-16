@@ -2,7 +2,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePas
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, openModal, sendEmailVerificationToUser } from "./common";
+import { buildBookBox, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
@@ -437,7 +437,7 @@ function changePassword() {
             if (errorCode === "auth/wrong-password") {
                 openModal("issue", "The current password that you entered was incorrect.");
             } else {
-                openModal("error", errorMessage);
+                openModal("error", encodeHTML(errorMessage));
             }
             console.error(error);
             $("#current-password").val("");
