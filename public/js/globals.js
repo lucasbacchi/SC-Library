@@ -601,13 +601,16 @@ export class Book {
         if (!book1 || !book2) {
             return false;
         }
+        if (book1.barcodeNumber == book2.barcodeNumber) {
+            return true;
+        }
         if (book1.isbn10 && book2.isbn10 && book1.isbn10 == book2.isbn10) {
             return true;
         }
         if (book1.isbn13 && book2.isbn13 && book1.isbn13 == book2.isbn13) {
             return true;
         }
-        if (book1.title == book2.title && book1.subtitle == book2.subtitle && Person.isSamePerson(book1.authors[0], book2.authors[0])) {
+        if (book1.title == book2.title && book1.subtitle == book2.subtitle && (!book1.authors[0] || !book2.authors[0] || Person.isSamePerson(book1.authors[0], book2.authors[0]))) {
             return true;
         }
         return false;

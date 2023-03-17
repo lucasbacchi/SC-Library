@@ -19,7 +19,7 @@ BEGIN SEARCH
 export function search(searchQuery, viewHidden = false) {
     return new Promise((resolve, reject) => {
         updateBookDatabase().then(() => {
-            return performSearch(searchQuery, viewHidden);
+            resolve(performSearch(searchQuery, viewHidden));
         }).catch((error) => {
             console.error("Search function failed to update the book database", error);
             reject();
@@ -77,7 +77,6 @@ function performSearch(searchQuery, viewHidden = false) {
         let scoresArray = [];
 
         isAdminCheck().then((isAdmin) => {
-            // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
             bookDatabase.forEach((document) => {
                 // Iterate through each of the 10-ish docs
                 for (let i = 0; i < document.books.length; i++) {

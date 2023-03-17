@@ -70,6 +70,7 @@ export function setupSearch(pageQuery) {
     });
 
     $("#search-page-input").val(queryFromURL);
+    $("#header-search-input").val(queryFromURL);
 
     // If you are entering the page without a search completed
     if (queryFromURL == "") {
