@@ -90,7 +90,7 @@ function homeBookBoxes() {
                     docs--;
                 }
                 let rand = Math.floor(Math.random() * docs);
-                getDoc(doc(db, "books", rand.padStart(3, "0"))).then((docSnap) => {
+                getDoc(doc(db, "books", rand.toString().padStart(3, "0"))).then((docSnap) => {
                     if (!docSnap.exists()) {
                         console.error("books " + rand + " does not exist");
                         return;
