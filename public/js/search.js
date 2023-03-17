@@ -448,7 +448,7 @@ export function setupResultPage(pageQuery) {
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
-            $("#result-page-image").after("Unfortuantely, this book cannot be checked out.");
+            $("#result-page-image").after("Unfortunately, this book cannot be checked out.");
         } else {
             $("#checkout-button").show();
             $("#checkout-button").on("click", () => {
