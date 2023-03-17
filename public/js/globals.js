@@ -455,24 +455,9 @@ export class Book {
             }
         }
         this.medium = medium;
-        let time = new Date();
-        let timeString = time.getFullYear().toString() + "-" + (time.getMonth()+1).toString().padStart(2, "0") + "-" + time.getDate().toString().padStart(2, "0") + " "
-         + time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0") + ":" + time.getSeconds().toString().padStart(2, "0");
-        if (coverImageLink == null && this.medium != "av" && barcodeNumber) {
-            this.coverImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover.jpg?lastUpdated=" + timeString;
-        } else {
-            this.coverImageLink = coverImageLink;
-        }
-        if (thumbnailImageLink == null && this.medium != "av" && barcodeNumber) {
-            this.thumbnailImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-400px.jpg?lastUpdated=" + timeString;
-        } else {
-            this.thumbnailImageLink = thumbnailImageLink;
-        }
-        if (iconImageLink == null && this.medium != "av" && barcodeNumber) {
-            this.iconImageLink = "https://storage.googleapis.com/south-church-library/books/" + barcodeNumber + "/cover-250px.jpg?lastUpdated=" + timeString;
-        } else {
-            this.iconImageLink = iconImageLink;
-        }
+        this.coverImageLink = coverImageLink;
+        this.thumbnailImageLink = thumbnailImageLink;
+        this.iconImageLink = iconImageLink;
         this.subjects = subjects;
         this.description = description;
         this.audience = new Audience(audience.children, audience.youth, audience.adult);
@@ -585,6 +570,50 @@ export class Book {
     }
 
     /**
+     * @description Creates image links for the current book and updates the book object with them. The links will include a last updated timestamp.
+     * @returns {Array<String>} an array of image links for this book. The first link is the cover image, the second is the thumbnail image, and the third is the icon image.
+     */
+    generateImageLinks() {
+        let time = new Date();
+        let timeString = time.getFullYear().toString() + "-" + (time.getMonth()+1).toString().padStart(2, "0") + "-" + time.getDate().toString().padStart(2, "0") + "_"
+            + time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0") + ":" + time.getSeconds().toString().padStart(2, "0");
+        if (!this.barcodeNumber) {
+            console.warn("cannot generate image links for a book without a barcode number");
+            return;
+        }
+        let imageLinks = [];
+        imageLinks.push("https://storage.googleapis.com/south-church-library/books/" + this.barcodeNumber + "/cover.jpg?lastUpdated=" + timeString);
+        imageLinks.push("https://storage.googleapis.com/south-church-library/books/" + this.barcodeNumber + "/cover-400px.jpg?lastUpdated=" + timeString);
+        imageLinks.push("https://storage.googleapis.com/south-church-library/books/" + this.barcodeNumber + "/cover-250px.jpg?lastUpdated=" + timeString);
+        this.coverImageLink = imageLinks[0];
+        this.thumbnailImageLink = imageLinks[1];
+        this.iconImageLink = imageLinks[2];
+        return imageLinks;
+    }
+
+    /**
+     * @description Checks if the current book is the same as another book. Retruns true if the title, subtitle, and author all match or if either of their ISBN numbers match.
+     * @param {*} book1 the first book to compare
+     * @param {*} book2 the second book to compare
+     * @returns {Boolean} true if the books are the same book, even if they have different barcode numbers.
+     */
+    static isSameBook(book1, book2) {
+        if (!book1 || !book2) {
+            return false;
+        }
+        if (book1.isbn10 && book2.isbn10 && book1.isbn10 == book2.isbn10) {
+            return true;
+        }
+        if (book1.isbn13 && book2.isbn13 && book1.isbn13 == book2.isbn13) {
+            return true;
+        }
+        if (book1.title == book2.title && book1.subtitle == book2.subtitle && Person.isSamePerson(book1.authors[0], book2.authors[0])) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * @param {Book} book1 
      * @param {Book} book2 
      * @returns true iff the books are exactly the same in every aspect
@@ -654,6 +683,22 @@ export class Person {
     constructor(firstName = null, lastName = null) {
         this.firstName = firstName;
         this.lastName = lastName;
+    }
+
+    /**
+     * @description Determines if two people are the same person. This is determined by comparing first and last names.
+     * @param {Person} person1 the first person to compare
+     * @param {Person} person2 the second person to compare
+     * @returns {Boolean} true iff the two people are the same person.
+     */
+    static isSamePerson(person1, person2) {
+        if (!person1 || !person2) {
+            return false;
+        }
+        if (person1.firstName == person2.firstName && person1.lastName == person2.lastName) {
+            return true;
+        }
+        return false;
     }
 
     /**
