@@ -9,7 +9,7 @@
     margin: 0 auto;
     margin-top: 10px;
     display: grid;
-    width: 80%;
+    width: 85%;
     grid-template-columns: 1fr 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 16px 16px;
@@ -92,27 +92,29 @@ div#checked-out-books-container > .book {
 
 #edit-entry-search-results {
     margin: 0px;
-    margin-top: 8px;
+    margin-top: 16px;
     overflow-x: hidden;
     overflow-y: scroll;
     position: relative;
-    /*border: 3px solid var(--teal);*/
-    width: calc(100% + 16px);
+    border: 2px solid var(--teal);
+    width: 100%;
     display: none;
-    left: -8px;
-    max-height: 87.5%;
-    padding: 4px 6px;
+    max-height: 500px;
+    padding: 0px 8px;
+    box-shadow: 0 0 10px #ccc;
+    scrollbar-gutter: stable both-edges;
 }
 
-div#edit-entry-search-results > .book {
+div#edit-entry-search-results > * {
+    display: block;
     width: 100%;
     height: auto;
     margin: 0;
-    margin-bottom: 12px;
+    margin: 8px 0px;
 }
 
 .edit-entry-book-image {
-    max-width: 120px;
+    max-width: 100px;
 }
 
 
@@ -287,12 +289,12 @@ li.back-to-top::marker {
         grid-row: 4;
     }
 
-    div#edit-entry-search-results > .book {
+    div#edit-entry-search-results > * {
         height: auto;
         flex-wrap: wrap;
     }
 
-    div#edit-entry-search-results > .book > .bookimage {
+    div#edit-entry-search-results > * > .book > .bookimage {
         max-height: 100px;
     }
 
