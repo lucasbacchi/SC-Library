@@ -69,8 +69,7 @@ export function setupSearch(pageQuery) {
         applySearchFilters(queryFromURL);
     });
 
-    $("#search-page-input").val(queryFromURL);
-    $("#header-search-input").val(queryFromURL);
+    $("#search-page-search-input").val(queryFromURL);
 
     // If you are entering the page without a search completed
     if (queryFromURL == "") {

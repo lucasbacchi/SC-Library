@@ -687,6 +687,12 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
         }
     }).then(() => {
         // Page Content has now Loaded and setup is done
+
+        // Change Index Page Frame if needed
+        if (pageName != "result") {
+            $("#header-search-input").val(findURLValue(pageQuery, "query", true));
+        }
+
         // Start fading the page in
         if (currentPage != pageName) {
             window.setTimeout(() => {

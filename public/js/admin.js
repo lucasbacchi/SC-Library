@@ -133,7 +133,11 @@ function adminSearch() {
  * @param {Books[]} objects The books to display in the edit entry search results.
  */
 function adminBookBoxes(objects) {
-    for (let i = 0; i < objects.length; i++) {
+    let maxResults = 10;
+    if (objects.length < maxResults) {
+        maxResults = objects.length;
+    }
+    for (let i = 0; i < maxResults; i++) {
         $("div#edit-entry-search-results")[0].appendChild(buildBookBox(objects[i], "edit-entry"));
     }
 }
