@@ -90,7 +90,7 @@
 
 /* Page Frame */
 html {
-    /* scroll-behavior: smooth; */
+    scroll-behavior: smooth;
     overflow-x: hidden;
     overflow-y: overlay;
 }

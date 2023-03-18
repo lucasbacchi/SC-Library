@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase } from "./common";
-import { Book, bookDatabase, db, setBookDatabase, setTimeLastSearched, User } from "./globals";
+import { Book, bookDatabase, db, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
@@ -818,6 +818,36 @@ export function setupAdminHelp() {
             $(document).scrollTop(0);
         });
     });
+
+    document.addEventListener("scroll", adminHelpScrolling);
+
+    $(window).on("beforeunload", () => {
+        document.removeEventListener("scroll", adminHelpScrolling);
+    });
+}
+
+function adminHelpScrolling() {
+    let currentSection = 0;
+    $("#tableOfContents, #sections > li").each((index, li) => {
+        // Check if the section is above the top of the screen.
+        // Used to be 90 to account for the header, but I added more to make it more natural.
+        if ($(li).offset().top - $(document).scrollTop() - 165 < 0) {
+            currentSection = index;
+        }
+    });
+    // Change the URL to the current section.
+    let url = "/admin/help";
+    let newHash;
+    if (currentSection == 0) {
+        newHash = "#top";
+    } else {
+        newHash = "#section" + currentSection;
+    }
+    let currentUrl = window.location.pathname + window.location.hash;
+    if (currentUrl != url + newHash) {
+        window.history.replaceState(undefined, "", url + newHash);
+        setCurrentHash(newHash);
+    }
 }
 
 console.log("admin.js has loaded!");

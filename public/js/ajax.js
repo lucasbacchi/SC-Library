@@ -367,7 +367,11 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
             $("#content").addClass("page-hidden");
             $("#content").removeClass("fade");
             if (!goingBack) {
+                $("html").css("scroll-behavior", "auto");
                 $("html, body").animate({ scrollTop: 0 }, 600);
+                setTimeout(() => {
+                    $("html").css("scroll-behavior", "smooth");
+                }, 600);
             }
             delayTimer = new Promise((resolve) => {
                 setTimeout(() => {
@@ -704,7 +708,9 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
         // Scroll to a specific part of the page if needed
         if (pageHash && $(pageHash).length > 0) {
             pageHash = "#" + encodeURIComponent(pageHash.substring(1));
-            $(document).scrollTop($(pageHash).offset().top - 85);
+            setTimeout(() => {
+                $(document).scrollTop($(pageHash).offset().top - 90);
+            }, 350);
         }
 
         if (pageName != "account") {
