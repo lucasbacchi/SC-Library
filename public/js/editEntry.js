@@ -824,7 +824,7 @@ function editEntry() {
  * @returns {Book} The book object that was created from the input elements.
  */
 function getBookDataFromPage() {
-    let barcode = parseInt($("#barcode").html());
+    let barcode = parseInt(findURLValue(window.location.search, "id"));
     if (isNaN(barcode)) {
         barcode = null;
     }
