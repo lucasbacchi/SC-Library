@@ -200,9 +200,11 @@ function createSearchResultsPage(searchResultsArray, page = 1, filters = [], ite
     } else {
         fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
     }
+    $("html").css("scroll-behavior", "auto");
+    $("html, body").animate({ scrollTop: 0 }, 600);
     setTimeout(() => {
-        $(document).scrollTop(0);
-    }, 100);
+        $("html").css("scroll-behavior", "smooth");
+    }, 600);
 }
 
 /**
@@ -797,8 +799,8 @@ function searchWithFilters(filters, items) {
             let passesFilter = false;
             for (let k = 0; k < items[j].length; k++) {
                 if (filters[j] == "Author") {
-                    if (passesFilter ||
-                        items[j][k] == searchCache[i].authors[0].lastName + ", " + searchCache[i].authors[0].firstName
+                    if (passesFilter || (searchCache[i].authors[0] &&
+                        items[j][k] == searchCache[i].authors[0].lastName + ", " + searchCache[i].authors[0].firstName)
                         || (searchCache[i].authors[1] &&
                             items[j][k] == searchCache[i].authors[1].lastName + ", " + searchCache[i].authors[1].firstName)) {
                         passesFilter = true;
