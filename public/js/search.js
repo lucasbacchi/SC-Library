@@ -1,5 +1,5 @@
 // Make content Responsive
-import { changePageTitle, goToPage } from './ajax';
+import { changePageTitle, goToPage, isAdminCheck } from './ajax';
 import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue, updateBookDatabase } from './common';
 import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
@@ -424,6 +424,76 @@ export function setupResultPage(pageQuery) {
         return;
     }
 
+    fillResultPage(barcodeNumber);
+
+    // Create Event Listeners
+    $("#checkout-next-button").on("click", () => {
+        scanCheckout();
+    });
+
+    $("#checkout-cancel-button").on("click", () => {
+        cancelCheckout();
+    });
+
+    $("#result-page-back-button").on("click", () => {
+        // If we can go back without refreshing the page, do so, otherwise, send us home.
+        if (historyManager.currentIndex > 0) {
+            window.history.back();
+        } else {
+            goToPage("");
+        }
+    });
+
+    $(".result-page-image").on("click", () => {
+        const imgContainer = document.createElement("div");
+        imgContainer.classList.add("modal-container");
+        imgContainer.style.backgroundColor = "#000000c0";
+        const img = document.createElement("img");
+        img.id = "result-page-popup-image";
+        imgContainer.appendChild(img);
+        getBookFromBarcode(barcodeNumber).then((bookObject) => {
+            img.src = bookObject.coverImageLink;
+            img.onload = () => {
+                imgContainer.style.display = "block";
+                imgContainer.style.opacity = "1";
+                img.classList.add("modal-show");
+            };
+            $("#content")[0].appendChild(imgContainer);
+            imgContainer.addEventListener("click", () => {
+                imgContainer.style.opacity = "0";
+                img.classList.remove("modal-show");
+                img.classList.add("modal-hide");
+                setTimeout(() => {
+                    $(".modal-container").remove();
+                }, 500);
+            });
+        });
+    });
+
+    $("#result-page-email").on("click", () => {
+        openModal("issue", "This feature is not yet implemented.");
+    });
+
+    $("#result-page-link").on("click", () => {
+        openModal("issue", "This feature is not yet implemented.");
+    });
+
+    $("#result-page-print").on("click", () => {
+        window.print();
+    });
+
+    isAdminCheck().then((isAdmin) => {
+        if (isAdmin) {
+            $("#result-page-edit").css("display", "block");
+
+            $("#result-page-edit").on("click", () => {
+                goToPage("admin/editEntry?new=false&id=" + barcodeNumber);
+            });
+        }
+    });
+}
+
+function fillResultPage(barcodeNumber) {
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             openModal("error", "No information could be found for that book.");
@@ -433,24 +503,24 @@ export function setupResultPage(pageQuery) {
         changePageTitle(bookObject.title);
 
         if (bookObject.medium == "av") {
-            $("#result-page-image").attr("src", "/img/av-image.png");
+            $(".result-page-image").attr("src", "/img/av-image.png");
         } else {
             // Currently not checking for icons because they are too low quality. Could change that if needed.
             if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
-                $("#result-page-image").attr("src", bookObject.thumbnailImageLink);
+                $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
             } else if (bookObject.coverImageLink.indexOf("http") != -1) {
                 console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
-                $("#result-page-image").attr("src", bookObject.coverImageLink);
+                $(".result-page-image").attr("src", bookObject.coverImageLink);
             } else {
                 console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
-                $("#result-page-image").attr("src", "/img/favicon.ico");
+                $(".result-page-image").attr("src", "/img/favicon.ico");
             }
         }
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").hide();
-            $("#result-page-image").after("Unfortunately, this book cannot be checked out.");
+            $(".result-page-image").after("Unfortunately, this book cannot be checked out.");
         } else {
             $("#checkout-button").show();
             $("#checkout-button").on("click", () => {
@@ -620,6 +690,9 @@ export function setupResultPage(pageQuery) {
         $("#result-page-subjects").html(subjectsAnswer);
         $("#result-page-description").html(bookObject.description);
 
+        // Fade in the result container
+        $("#result-page-container").css("opacity", "1");
+
         logEvent(analytics, "select_content", {
             content_type: "book_result",
             item_id: barcodeNumber
@@ -632,20 +705,6 @@ export function setupResultPage(pageQuery) {
             goToPage("");
         }
         openModal("error", "No information could be found for that book.\n" + error);
-    });
-
-    // Create Event Listeners
-
-    $("#checkout-button").on("click", () => {
-        checkout();
-    });
-
-    $("#checkout-next-button").on("click", () => {
-        scanCheckout();
-    });
-
-    $("#checkout-cancel-button").on("click", () => {
-        cancelCheckout();
     });
 }
 
@@ -678,7 +737,7 @@ function cancelCheckout() {
  */
 function scanCheckout() {
     // TODO: Delete after implementing
-    openModal("info", "This feature is not yet implemented.");
+    openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
     return;
     /*
     $("#checkout-next-button").hide();
