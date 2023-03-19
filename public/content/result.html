@@ -1,37 +1,45 @@
-<div id="result-page-container">
-    <div id="result-page-info-bar">
-        <img id="result-page-image">
+<div id="result-page-container" style="opacity: 0;">
+    <div id="result-page-header">
+        <div id="result-page-back-button"><span class="material-symbols-outlined">arrow_back</span> Back</div>
         <div id="checkout-button">Borrow</div>
+    </div>
+    <div id="result-page-info-bar">
+        <img class="result-page-image">
         <h6>Barcode Number</h6>
         <p id="result-page-barcode-number"></p>
         <h6>ISBN Number</h6>
         <p id="result-page-isbn-number"></p>
         <h6>Call Number</h6>
         <p id="result-page-call-number"></p>
-        <h6>Publisher</h6>
+        <h6>Publication Info<!--rmation--></h6>
         <p id="result-page-publisher"></p>
-        <h6>Publish Date</h6>
         <p id="result-page-publish-date"></p>
+        <h6>Actions</h6>
+        <div id="result-page-actions-container">
+            <!-- TODO: Implement the rest of these -->
+            <!-- <div id="result-page-email"><span class="material-symbols-outlined">mail</span> Save to Email</div> -->
+            <!-- <div id="result-page-link"><span class="material-symbols-outlined">link</span> Copy Link</div> -->
+            <div id="result-page-print"><span class="material-symbols-outlined">print</span> Print</div>
+            <div id="result-page-edit" style="display: none;"><span class="material-symbols-outlined">edit</span> Edit</div>
+        </div>
     </div>
-    <div id="result-page-details">
-        <h6>Title</h6>
+    <div id="result-page-details">        
+        <img class="result-page-image" style="display: none;">
         <p id="result-page-title"></p>
-        <h6 id="result-page-subtitle-header">Subtitle</h6>
         <p id="result-page-subtitle"></p>
         <h6 id="result-page-author-header">Author</h6>
         <p id="result-page-author"></p>
         <h6 id="result-page-illustrator-header">Illustrator</h6>
         <p id="result-page-illustrator"></p>
+        <h6 id="result-page-description-header">Description</h6>
+        <p id="result-page-description"></p>
         <h6 id="result-page-subjects-header">Subjects</h6>
         <p id="result-page-subjects"></p>
-        <h6>Description</h6>
-        <p id="result-page-description"></p>
-        <h6 id="result-page-pages-header">Number of Pages</h6>
-        <p id="result-page-pages"></p>
-        <h6>Medium</h6>
-        <p id="result-page-medium"></p>
         <h6>Audience</h6>
         <p id="result-page-audience"></p>
+        <h6 id="result-page-physical-description-header">Physical Description</h6>
+        <p id="result-page-medium"></p>
+        <p><span id="result-page-pages"></span> pages</p>
     </div>
 </div>
 <div id="checkout-popup">
