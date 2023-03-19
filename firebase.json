@@ -28,14 +28,16 @@
       }
     ]
   },
-  "storage": [{
-    "rules": "storage.rules",
-    "bucket": "south-church-library.appspot.com"
-  },
-  {
-    "rules": "public-storage.rules",
-    "bucket": "south-church-library"
-  }],
+  "storage": [
+    {
+      "rules": "storage.rules",
+      "bucket": "south-church-library.appspot.com"
+    },
+    {
+      "rules": "public-storage.rules",
+      "bucket": "south-church-library"
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099
@@ -53,5 +55,8 @@
     "ui": {
       "enabled": true
     }
+  },
+  "extensions": {
+    "firestore-send-email": "firebase/firestore-send-email@0.1.24"
   }
 }
