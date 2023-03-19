@@ -292,19 +292,19 @@ function gatherExternalInformation(isbn) {
                     let worksObject = value[2];
                     resolve([false, bookObject, authorObject, worksObject]);
                 }).catch((error) => {
-                    openModal("error", "There was an issue loading the works object info from the external database. Please ensure you input the isbn number correctly.");
+                    openModal("error", "There was an issue loading the works object info from the external database. Please ensure you input the ISBN number correctly.");
                     console.error(error);
                     resolve([true]);
                     return;
                 });
             }).catch((error) => {
-                openModal("error", "There was an issue loading the author object from the external database. Please ensure you input the isbn number correctly.");
+                openModal("error", "There was an issue loading the author object from the external database. Please ensure you input the ISBN number correctly.");
                 console.error(error);
                 resolve([true]);
                 return;
             });
         }).catch((error) => {
-            openModal("error", "There was an issue loading the book object info from the external database. Please ensure you input the isbn number correctly.");
+            openModal("error", "There was an issue loading the book object info from the external database. Please ensure you input the ISBN number correctly.");
             console.error(error);
             resolve([true]);
             return;
@@ -1254,21 +1254,19 @@ function storeData(isDeletedValue = false, skipImages = false) {
                     // Get the existing list of books
                     let existingBooks = docSnap.data().books;
 
+                    let imageUploadPromise;
+                    if (!skipImages) {
+                        pageData.generateImageLinks();
+                        imageUploadPromise = processImages(pageData.barcodeNumber);
+                    } else {
+                        imageUploadPromise = Promise.resolve();
+                    }
+
                     // Update the array with the new book information.
                     existingBooks[bookNumber] = pageData.toObject();
 
-                    // If we are skipping the images, then just update the book and return
-                    if (skipImages) {
-                        transaction.update(doc(booksPath, bookDocument), {
-                            books: existingBooks
-                        });
-                        resolve();
-                        return;
-                    }
-
-                    // Otherwise, process the images and then update the book
-                    pageData.generateImageLinks();
-                    processImages(pageData.barcodeNumber).then(() => {
+                    // Update the book
+                    Promise.all(imageUploadPromise).then(() => {
                         transaction.update(doc(booksPath, bookDocument), {
                             books: existingBooks
                         });
@@ -1327,6 +1325,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                             $("#barcode").html(addBarcodeSpacing(barcode));
                             pageData = getBookDataFromPage();
+                            pageData.barcodeNumber = barcode;
 
                             if (skipImages) {
                                 transaction.set(doc(db, "books", newNumber), {
@@ -1360,6 +1359,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                             $("#barcode").html(addBarcodeSpacing(barcode));
                             pageData = getBookDataFromPage();
+                            pageData.barcodeNumber = barcode;
 
                             if (skipImages) {
                                 transaction.update(doc(db, "books", order), {
@@ -1394,7 +1394,9 @@ function storeData(isDeletedValue = false, skipImages = false) {
         }
     }).then(() => {
         $(window).off("beforeunload");
-        openModal("success", "Edits were made successfully!");
+        if (!newEntry) {
+            openModal("success", "Edits were made successfully!");
+        }
         setTimeLastSearched(null);
         goToPage('admin/main');
     }).catch(() => {
