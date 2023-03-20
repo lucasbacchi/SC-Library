@@ -214,6 +214,7 @@ h6.sort-title {
     max-height: 94vh;
     margin: 0 auto;
     margin-top: 3vh;
+    max-width: 90%;
 }
 
 #result-page-info-bar {
