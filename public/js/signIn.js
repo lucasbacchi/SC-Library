@@ -1,10 +1,12 @@
 import { logEvent } from "firebase/analytics";
-import { browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
-         reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import {
+    browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
+    reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail
+} from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
 import { findURLValue, openModal, sendEmailVerificationToUser } from "./common";
-import { analytics, auth, currentPage, db, User } from "./globals";
+import { analytics, auth, currentPage, db } from "./globals";
 
 /**
  * @description Sets up the sign in page.
@@ -120,11 +122,9 @@ function authRedirect(pageQuery) {
  * @param {String} pageQuery The query string of the page. If the length of this string is greater than 1, it will assume this is a reauthentication.
  */
 function signInSubmit(pageQuery = "") {
-    let reAuth;
+    let reAuth = false;
     if (pageQuery.length > 1) {
         reAuth = true;
-    } else {
-        reAuth = false;
     }
     let persistancePromise;
     if (!reAuth) {
@@ -292,11 +292,10 @@ function handleSignUp() {
             reject();
             return;
         }
-        let signUpError = false;
-        // Create user with email and pass, then logs them in.
+
+        // Creates user with email and password, then logs them in.
         createUserWithEmailAndPassword(auth, email, password).catch((error) => {
             // Handle Errors here.
-            signUpError = true;
             let errorCode = error.code;
             let errorMessage = error.message;
             if (errorCode == 'auth/weak-password') {
@@ -309,46 +308,34 @@ function handleSignUp() {
             }
             reject();
         }).then(() => {
-            if (!signUpError) {
-                let user = auth.currentUser;
-                let userObject;
-                // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
-                runTransaction(db, (transaction) => {
-                    let cloudVarsPath = doc(db, "config/writable_vars");
-                    // Get the variable stored in the writable_vars area
-                    return transaction.get(cloudVarsPath).then((docSnap) => {
-                        if (!docSnap.exists()) {
-                            throw "Document does not exist!";
-                        }
-                        // Save the max value and incriment it by one.
-                        let newCardNumber = docSnap.data().maxCardNumber + 1;
-                        // Create a new user object
-                        userObject = new User(newCardNumber, firstName, lastName, email, phone,
-                            address + ", " + town + ", " + state + " " + zip, null, null, new Date(), null,
-                            new Date(), user.uid, false, false, false, new Date(), true);
-                        // Set the document to exist in the users path
-                        transaction.set(doc(db, "users", user.uid), userObject.toObject());
-                        // Update the cloud variable to contain the next card number value
-                        transaction.update(cloudVarsPath, {
-                            maxCardNumber: newCardNumber
-                        });
-                        return newCardNumber;
-                    });
-                }).then((newCardNumber) => {
-                    // After both writes complete, send the user to the edit page and take it from there.
-                    console.log("New User Created with card number: ", newCardNumber);
-                    updateUserAccountInfo();
-                    sendEmailVerificationToUser();
-                    logEvent(analytics, "sign_up", {
-                        method: "email",
-                        userObject: userObject
-                    });
-                    resolve();
-                }).catch((err) => {
-                    console.error(err);
-                    reject(err);
+            // Database updates are now handled by the beforeCreate function in the cloud functions.
+            // However, we must update information from the page that the cloud function didn't have.
+            updateDoc(doc(db, "users", auth.currentUser.uid), {
+                firstName: firstName,
+                lastName: lastName,
+                phone: phone,
+                address: address + ", " + town + ", " + state + " " + zip,
+                lastSignInTime: new Date(),
+                lastUpdated: new Date()
+            }).then(() => {
+                // After both writes complete, send the user to the edit page and take it from there.
+                updateUserAccountInfo();
+                sendEmailVerificationToUser();
+                logEvent(analytics, "sign_up", {
+                    method: "email",
+                    firstName: firstName,
+                    lastName: lastName,
+                    userId: auth.currentUser.uid,
+                    email: email,
+                    phone: phone,
+                    address: address + ", " + town + ", " + state + " " + zip
                 });
-            }
+                resolve();
+            }).catch((error) => {
+                openModal("error", "There was an error creating your account. Please try again.");
+                console.error(error);
+                reject();
+            });
         });
     });
 }
