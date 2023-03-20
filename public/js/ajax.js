@@ -822,6 +822,8 @@ function initApp() {
     setAuth(getAuth(app));
 
     // Start App Check
+    // WARNING: DO NOT USE THIS IN PRODUCTION
+    // self.FIREBASE_APPCHECK_DEBUG_TOKEN = "INSERT_TOKEN_HERE";
     // eslint-disable-next-line
     const appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider("6LcpTm0bAAAAALfsopsnY-5aX2BC7nAukEDHtKDu"),
@@ -856,8 +858,10 @@ function initApp() {
                     }
 
                     let date = new Date();
+                    let emailVerified = user.emailVerified;
                     updateDoc(doc(db, "users", user.uid), {
-                        lastSignInTime: date
+                        lastSignInTime: date,
+                        emailVerified: emailVerified
                     }).catch((error) => {
                         console.warn("The last sign in time could not be updated, likely not a problem if the user just signed up.");
                         if (error) console.warn(error);

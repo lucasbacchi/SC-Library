@@ -794,11 +794,13 @@ export class User {
      * @param {Boolean} isHidden
      * @param {Date} lastUpdated
      * @param {Boolean} notificationsOn
+     * @param {Boolean} emailVerified
+     * @param {Boolean} isDisabled
      */
     constructor(cardNumber = null, firstName = null, lastName = null, email = null, phone = null,
         address = null, pfpLink = null, pfpIconLink = null, dateCreated = null, lastCheckoutTime = null,
         lastSignInTime = null, uid = null, canCheckOutBooks = null, isDeleted = null, isHidden = null,
-        lastUpdated = null, notificationsOn = null) {
+        lastUpdated = null, notificationsOn = null, emailVerified = null, isDisabled = null) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -816,6 +818,8 @@ export class User {
         this.isHidden = isHidden;
         this.lastUpdated = lastUpdated;
         this.notificationsOn = notificationsOn;
+        this.emailVerified = emailVerified;
+        this.isDisabled = isDisabled;
     }
 
     /**
@@ -855,7 +859,7 @@ export class User {
             jsonObject.phone, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
             jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid,
             jsonObject.canCheckOutBooks, jsonObject.isDeleted, jsonObject.isHidden, jsonObject.lastUpdated,
-            jsonObject.notificationsOn);
+            jsonObject.notificationsOn, jsonObject.emailVerified, jsonObject.isDisabled);
     }
 
     /**
@@ -879,7 +883,9 @@ export class User {
             isDeleted: this.isDeleted,
             isHidden: this.isHidden,
             lastUpdated: this.lastUpdated,
-            notificationsOn: this.notificationsOn
+            notificationsOn: this.notificationsOn,
+            emailVerified: this.emailVerified,
+            isDisabled: this.isDisabled
         };
     }
 }
