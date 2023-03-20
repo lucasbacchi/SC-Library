@@ -519,8 +519,10 @@ function fillResultPage(barcodeNumber) {
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
-            $("#checkout-button").hide();
-            $(".result-page-image").after("Unfortunately, this book cannot be checked out.");
+            $("#checkout-button").addClass("disabled");
+            $("#checkout-button").on("click", () => {
+                openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
+            });
         } else {
             $("#checkout-button").show();
             $("#checkout-button").on("click", () => {
