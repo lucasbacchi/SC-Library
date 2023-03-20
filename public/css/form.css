@@ -1,3 +1,4 @@
+/* Edit Entry Page */
 .form-section {
     margin-bottom: 40px;
 }
@@ -32,7 +33,8 @@ p.form-description {
     font-size: .9em;
 }
 
-input.normal-form-input, input.form-input {
+input.normal-form-input,
+input.form-input {
     width: 250px;
     display: block;
 }
@@ -46,7 +48,7 @@ input.short-form-input {
     width: 150px;
 }
 
-input {
+.form-section > input {
     margin-bottom: 8px;
     font-weight: 500;
     font-size: 1em;
@@ -54,14 +56,14 @@ input {
 
 textarea {
     margin-bottom: 8px;
-    font-family: 'Oswald', sans-serif;
+    font-family: "Oswald", sans-serif;
     font-size: 1em;
     min-height: 150px;
 }
 
 select {
     margin-bottom: 8px;
-    font-family: 'Oswald', sans-serif;
+    font-family: "Oswald", sans-serif;
     font-size: 1em;
 }
 
@@ -70,7 +72,8 @@ select {
     margin-bottom: 18px;
 }
 
-.subject-field, .add-subject {
+.subject-field,
+.add-subject {
     display: block;
 }
 
@@ -108,60 +111,45 @@ select {
     top: calc(50% - 12px);
 }
 
-.delete-button {
-    background-color: rgb(255, 116, 139);
-    border: 1px solid rgb(59, 59, 59);
-    padding: 2px 7px;
-    border-radius: 2px;
+
+
+
+
+/* Responsive */
+/* Content if screen is large */
+@media screen and (max-width: 1440px) {}
+
+/* Content if screen is small */
+@media screen and (max-width:1024px) {}
+
+/* Content if screen is very small */
+@media screen and (max-width:786px) {
+    #form-container {
+        width: 95%;
+    }
+
+    .long-form-input {
+        width: 90%;
+    }
+
+    textarea {
+        width: 90%;
+    }
 }
 
-#delete-alert {
-    opacity: 0;
-    background-color: white;
-    border: 10px solid var(--teal);
-    border-radius: 20px;
-    z-index: 99;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    margin: 0 auto;
-    padding: 30px 40px;
-    transform: translate(-50%, -50%);
-    -ms-transform: translate(-50%, -50%);
-}
+/* Content if screen is really small */
+@media screen and (max-width:570px) {}
 
-#delete-alert-overlay {
-    opacity: 0;
-    background-color: var(--mint);
-    z-index: 98;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-}
 
-#loading-overlay {
-    width: 100%;
-    height: 100%;
-    position: fixed;
-    z-index: 20;
-    top: 0;
-    left: 0;
-    background-color: #c4d86d67;
-}
+/* Content if screen is super small */
+@media screen and (max-width:500px) {
+    .normal-form-input,
+    .long-form-input,
+    textarea {
+        width: 100%;
+    }
 
-#loading-overlay-box {
-    min-width: 20%;
-    width: 300px;
-    background-color: white;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: 4px solid var(--teal);
-    border-radius: 8px;
-    padding: 8px;
+    #form-container {
+        padding: 24px;
+    }
 }

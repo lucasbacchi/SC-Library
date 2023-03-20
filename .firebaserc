@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "south-church-library"
+  },
+  "targets": {},
+  "etags": {
+    "south-church-library": {
+      "extensionInstances": {
+        "firestore-send-email": "8ac6cfe263b078bf13f6dc306fb789733f6eed5f24f4e2a15eaaf91d46260dde"
+      }
+    }
   }
 }

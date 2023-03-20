@@ -1,8 +1,8 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
-import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyStack, analytics } from "./globals";
+import { isAdminCheck } from "./ajax";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -14,34 +14,47 @@ BEGIN SEARCH
  * @param {Number} start The start place in the results list
  * @param {Number} end The end place in the results list
  * @param {Boolean} viewHidden Determines if the function returns hidden books
- * @returns {Promise<void>} An array of results
+ * @returns {Promise<Array>} An array of results
  */
 export function search(searchQuery, viewHidden = false) {
-    return new Promise(function (resolve) {
-        if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 5 < Date.now()) {
-            // It hasn't searched since the page loaded, or it's been 5 mins since last page load;
+    return new Promise((resolve, reject) => {
+        updateBookDatabase().then(() => {
+            resolve(performSearch(searchQuery, viewHidden));
+        }).catch((error) => {
+            console.error("Search function failed to update the book database", error);
+            reject();
+        });
+    });
+}
+
+export function updateBookDatabase(forced = false) {
+    return new Promise((resolve, reject) => {
+        if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
+            // It hasn't searched since the page loaded, or it's been 15 mins since last page load
             setTimeLastSearched(new Date());
-            console.log("It's been 5 mins since last search (or it's the first one since page load).");
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
                 setBookDatabase([]);
                 querySnapshot.forEach((doc) => {
                     if (!doc.exists()) {
                         console.error("books document does not exist");
+                        reject();
                         return;
                     }
-                    bookDatabase.push(doc.data());
+                    let documentObject = {
+                        books: [],
+                        order: doc.data().order
+                    };
+                    doc.data().books.forEach((book) => {
+                        documentObject.books.push(Book.createFromObject(book));
+                    });
+                    bookDatabase.push(documentObject);
                 });
-                performSearch(searchQuery, viewHidden).then((output) => {
-                    resolve(output);
-                });
+                resolve();
             }).catch((error) => {
-                console.error("Search function failed to query the database", error);
+                reject(error);
             });
         } else {
-            // The bookDatabase cache is recent enough, just use that
-            performSearch(searchQuery, viewHidden).then((output) => {
-                resolve(output);
-            });
+            resolve();
         }
     });
 }
@@ -58,37 +71,36 @@ const BARCODE_WEIGHT = 50;
 const ISBN_WEIGHT = 50;
 
 function performSearch(searchQuery, viewHidden = false) {
-    return new Promise(function (resolve, reject) {
-        var searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
+    return new Promise((resolve, reject) => {
+        let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
 
-        var scoresArray = [];
+        let scoresArray = [];
 
         isAdminCheck().then((isAdmin) => {
-            // TODO: Make it so that words that aren't exactly equal count. Like Theatre and Theatres (probably write a comparison function).
             bookDatabase.forEach((document) => {
                 // Iterate through each of the 10-ish docs
                 for (let i = 0; i < document.books.length; i++) {
                     // Iterate through each of the 100 books in each doc
-                    var book = document.books[i];
+                    let book = document.books[i];
                     if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
                         continue;
                     }
                     if (searchQuery == "") {
-                        scoresArray.push({book: book, score: Math.random() * 99 + 1}); // puts the books in a random order so that it's not the same every time
+                        scoresArray.push({ book: book, score: Math.random() * 99 + 1 }); // puts the books in a random order so that it's not the same every time
                         continue;
                     }
-                    var score = 0;
+                    let score = 0;
                     // Authors
                     for (let j = 0; j < book.authors.length; j++) {
-                        let arr1 = book.authors[j].first.replace(/-/g, " ").split(" ");
-                        let arr2 = book.authors[j].last.replace(/-/g, " ").split(" ");
+                        let arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
+                        let arr2 = book.authors[j].lastName.replace(/-/g, " ").split(" ");
                         let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                         score += arr1Ratio * AUTHOR_WEIGHT;
                         let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                         score += arr2Ratio * AUTHOR_WEIGHT;
                     }
                     // Barcode Number
-                    var barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+                    let barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
                     score += barcodeRatio * BARCODE_WEIGHT;
                     // DDC?
                     // Number of Pages?
@@ -96,19 +108,19 @@ function performSearch(searchQuery, viewHidden = false) {
                     // Description? (as opposed to just keywords)
                     // Illustrators
                     for (let j = 0; j < book.illustrators.length; j++) {
-                        let arr1 = book.illustrators[j].first.replace(/-/g, " ").split(" ");
-                        let arr2 = book.illustrators[j].last.replace(/-/g, " ").split(" ");
+                        let arr1 = book.illustrators[j].firstName.replace(/-/g, " ").split(" ");
+                        let arr2 = book.illustrators[j].lastName.replace(/-/g, " ").split(" ");
                         let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                         score += arr1Ratio * ILLUSTRATOR_WEIGHT;
                         let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                         score += arr2Ratio * ILLUSTRATOR_WEIGHT;
                     }
                     // ISBN 10 and ISBN 13
-                    var ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
+                    let ISBNRatio = countInArray([book.isbn10.toString(), book.isbn13.toString()], searchQueryArray, true);
                     score += ISBNRatio * ISBN_WEIGHT;
                     // Keywords
                     if (book.keywords.length != 0) {
-                        var keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
+                        let keywordsRatio = countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
                         score += keywordsRatio * KEYWORDS_WEIGHT;
                     }
                     // Publishers
@@ -135,8 +147,8 @@ function performSearch(searchQuery, viewHidden = false) {
                 return b.score - a.score;
             });
 
-            var returnArray = [];
-            console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
+            let returnArray = [];
+            // console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
                 if (item.score < 1) { return; }
                 if (isNaN(item.score)) {
@@ -154,13 +166,13 @@ function performSearch(searchQuery, viewHidden = false) {
             setSearchCache(returnArray);
             resolve(returnArray);
         }).catch((error) => {
-            reject("Error in isAdminCheck", error);
+            reject("Error in isAdminCheck or search", error);
         });
     });
 }
 
 function countInArray(arr, searchQueryArray, strict = false) {
-    var count = 0;
+    let count = 0;
     for (let i = 0; i < arr.length; i++) {
         if (strict) {
             if (searchQueryArray.includes(arr[i])) {
@@ -178,11 +190,11 @@ function countInArray(arr, searchQueryArray, strict = false) {
 function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
-    var max = Math.max(a.length, b.length);
+    let max = Math.max(a.length, b.length);
     if (max == 0) {
         return 0;
     }
-    var similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+    let similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
     // This threshold seems pretty good, it prevents things from showing up if they share one or two letters.
     if (similarity < 0.7) {
         return 0;
@@ -194,14 +206,14 @@ function searchCompare(a, b) {
 
 /**
  * Calculates the Damerau-Levenshtein distance between two strings.
- * author: Isaac Sukin
- * source: https://gist.github.com/IceCreamYou/8396172
+ * @author Isaac Sukin
+ * @link Source: https://gist.github.com/IceCreamYou/8396172
  */
 function distance(source, target) {
     if (!source) { return target ? target.length : 0; }
     else if (!target) { return source.length; }
 
-    var m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
+    let m = source.length, n = target.length, INF = m + n, score = new Array(m + 2), sd = {};
     for (let i = 0; i < m + 2; i++) { score[i] = new Array(n + 2); }
     score[0][0] = INF;
     for (let i = 0; i <= m; i++) {
@@ -216,9 +228,9 @@ function distance(source, target) {
     }
 
     for (let i = 1; i <= m; i++) {
-        var DB = 0;
+        let DB = 0;
         for (let j = 1; j <= n; j++) {
-            var i1 = sd[target[j - 1]],
+            let i1 = sd[target[j - 1]],
                 j1 = DB;
             if (source[i - 1] === target[j - 1]) {
                 score[i + 1][j + 1] = score[i][j];
@@ -246,8 +258,8 @@ BEGIN URL VALUE
  * @returns {String} The value from string that matches key
  */
 export function findURLValue(string, key, mightReturnEmpty = false) {
-    var value;
-    var keyNameIsNotComplete = (string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0);
+    let value;
+    let keyNameIsNotComplete = (string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0);
     if (string.indexOf(key) < 0 || keyNameIsNotComplete || key == "") {
         if (!mightReturnEmpty) {
             console.warn("The key (\"" + key + "\") could not be found in the URL.");
@@ -255,7 +267,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
         return "";
     }
 
-    var position = string.indexOf(key);
+    let position = string.indexOf(key);
     if (string.substring(position).indexOf("&") > -1) {
         value = string.substring(string.indexOf("=", position) + 1, string.indexOf("&", position));
     } else {
@@ -265,14 +277,19 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
     return decodeURI(value);
 }
 
-
+/**
+ * @description Sets the value of a parameter in the URL. If the parameter already exists, it will be replaced.
+ * @param {String} param The parameter to set
+ * @param {String} value The value to set the parameter to
+ * @param {Boolean} append A boolean representing if the existing queries should be kept
+ */
 export function setURLValue(param, value, append = true) {
-    var string = window.location.href;
-    // may also be able to use currentQuery for above
-    var answer = "";
+    // Get everything after the host
+    let string = window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1);
+    let answer = "";
     // does param already exist?
     if (append && string.indexOf("?") != -1) {
-        var paramAlreadyExists = (string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0);
+        let paramAlreadyExists = (string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0);
         if (paramAlreadyExists) {
             // Edit it and return it.
             if (string.indexOf("?" + param + "=") >= 0) {
@@ -292,11 +309,27 @@ export function setURLValue(param, value, append = true) {
             answer = string + "&" + param + "=" + value;
         }
     } else {
-        answer = "?" + param + "=" + value;
+        answer = string + "?" + param + "=" + value;
     }
 
-    historyStack.push(encodeURI(answer));
-    window.history.pushState({stack: historyStack.stack, index: historyStack.currentIndex}, "", encodeURI(answer));
+    historyManager.push(encodeURI(answer));
+}
+
+const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+};
+
+export function encodeHTML(string) {
+    return String(string).replace(/[&<>"'`=/]/g, function (s) {
+        return entityMap[s];
+    });
 }
 
 /**********
@@ -312,7 +345,9 @@ BEGIN BUILD BOOK BOX
  * @returns An HTMLDivElement with the book information
  */
 export function buildBookBox(obj, page, num = 0) {
+    const a = document.createElement("a");
     const div = document.createElement("div");
+    a.appendChild(div);
     switch (page) {
         case "view":
         case "search":
@@ -333,19 +368,25 @@ export function buildBookBox(obj, page, num = 0) {
     if (page == "edit-entry") {
         img.classList.add("edit-entry-book-image");
     }
-    if (obj.medium == "av") {
-        img.src = "../img/av-image.jpg";
+    if (obj.iconImageLink) {
+        img.src = obj.iconImageLink;
+    } else if (obj.thumbnailImageLink) {
+        img.src = obj.thumbnailImageLink;
+    } else if (obj.coverImageLink) {
+        img.src = obj.coverImageLink;
     } else {
-        if (obj.iconImageLink) {
-            img.src = obj.iconImageLink;
-        } else if (obj.thumbnailImageLink) {
-            img.src = obj.thumbnailImageLink;
+        if (obj.medium == "av") {
+            img.src = "../img/av-image.png";
         } else {
-            img.src = obj.coverImageLink;
+            img.src = "../img/default-book.png";
         }
     }
     img.onload = () => {
         div.style.opacity = 1;
+    };
+    img.onerror = () => {
+        img.src = "../img/default-book.png";
+        img.onerror = null;
     };
     div1.appendChild(img);
     const b = document.createElement("b");
@@ -354,10 +395,10 @@ export function buildBookBox(obj, page, num = 0) {
     title.appendChild(document.createTextNode(obj.title));
     const author = document.createElement("p");
     author.classList.add("author");
-    var authorString = "";
+    let authorString = "";
     for (let i = 0; i < obj.authors.length; i++) {
         if (i == 1) { authorString += " & "; }
-        authorString += obj.authors[i].last + ", " + obj.authors[i].first;
+        authorString += obj.authors[i].lastName + ", " + obj.authors[i].firstName;
     }
     if (authorString == ", ") { authorString = ""; }
     author.appendChild(document.createTextNode(authorString));
@@ -366,9 +407,7 @@ export function buildBookBox(obj, page, num = 0) {
     div2.appendChild(author);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        div.addEventListener("click", () => {
-            goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
-        });
+        a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
         if (obj.isDeleted) {
             div.classList.add("deleted");
         }
@@ -377,12 +416,10 @@ export function buildBookBox(obj, page, num = 0) {
         barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
         div2.appendChild(barcode);
     } else {
-        div.addEventListener("click", () => {
-            goToPage("result?id=" + obj.barcodeNumber);
-        });
+        a.href = "result?id=" + obj.barcodeNumber;
     }
     if (page == "account") {
-        var frontstr = "", boldstr = "" + num, backstr = "";
+        let frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
             boldstr = "Overdue";
         }
@@ -418,11 +455,26 @@ export function buildBookBox(obj, page, num = 0) {
         div.appendChild(number);
         const medium = document.createElement("p");
         medium.classList.add("medium");
-        medium.appendChild(document.createTextNode(obj.medium));
+        let mediumString = "";
+        switch (obj.medium) {
+            case "paperback":
+                mediumString = "Paperback";
+                break;
+            case "hardcover":
+                mediumString = "Hardcover";
+                break;
+            case "av":
+                mediumString = "Audio/Visual";
+        }
+        medium.appendChild(document.createTextNode(mediumString));
         div2.appendChild(medium);
         const audience = document.createElement("p");
         audience.classList.add("audience");
-        audience.appendChild(document.createTextNode(buildAudienceString(obj.audience)));
+        let audienceString = obj.audience.toString();
+        if (audienceString == "None") {
+            audienceString = "";
+        }
+        audience.appendChild(document.createTextNode(audienceString));
         div2.appendChild(audience);
         const div3 = document.createElement("div");
         div3.classList.add("advanced-info");
@@ -438,42 +490,25 @@ export function buildBookBox(obj, page, num = 0) {
     }
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
+            const a = document.createElement("a");
             const img = document.createElement("img");
+            a.appendChild(img);
             img.classList.add("icon");
             if (page == "edit-entry") {
                 img.src = "../img/paper.png";
-                img.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    goToPage("result?id=" + obj.barcodeNumber);
-                });
+                a.href = "/result?id=" + obj.barcodeNumber;
             } else {
                 img.src = "../img/pencil.png";
-                img.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    goToPage("admin/editEntry?new=false&id=" + obj.barcodeNumber);
-                });
+                a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
             }
-            div.appendChild(img);
+            div.appendChild(a);
         }
     });
-    return div;
-}
-
-function buildAudienceString(audience) {
-    var str = "", values = ["Children", "Youth", "Adult"];
-    for (let i = 0; i < 3; i++) {
-        if (audience[i]) {
-            if (str != "") {
-                str += ", ";
-            }
-            str += values[i];
-        }
-    }
-    return str;
+    return a;
 }
 
 function listSubjects(subj) {
-    var str = "";
+    let str = "";
     for (let i = 0; i < subj.length; i++) {
         str += subj[i] + "; ";
     }
@@ -481,12 +516,13 @@ function listSubjects(subj) {
 }
 
 function shortenDescription(desc) {
-    var cutoff = desc.indexOf(". ", 300);
-    desc.replace(/\n/g, "<br>");
+    const MIN_LEN = 300;
+    let cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
+    //desc.replace("\n", "<br>");
     if (desc.length <= cutoff || cutoff == -1) {
         return desc;
     } else {
-        return desc.substring(0, cutoff) + ". ...";
+        return desc.substring(0, cutoff + MIN_LEN) + ". ...";
     }
 }
 
@@ -497,38 +533,58 @@ BEGIN GET BOOK FROM BARCODE
 
 /**
  * 
- * @param {number} barcodeNumber - 1171100000 through 1171199999
- * @returns {Object} Book Object
+ * @param {number} barcodeNumber 1171100000 through 1171199999
+ * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */
 export function getBookFromBarcode(barcodeNumber) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
         }
-        if (!bookDatabase) {
-            search("").then(() => {
-                var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
-                var bookNumber = barcodeNumber % 100;
-                if (bookDatabase[documentNumber].books[bookNumber]) {
-                    resolve(bookDatabase[documentNumber].books[bookNumber]);
-                } else {
-                    reject(barcodeNumber);
-                }
-            });
-        } else {
-            var documentNumber = Math.floor(barcodeNumber / 100) % 1000;
-            var bookNumber = barcodeNumber % 100;
-            if (bookDatabase[documentNumber].books[bookNumber]) {
+
+        updateBookDatabase().then(() => {
+            let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
+            let bookNumber = barcodeNumber % 100;
+            if (bookDatabase[documentNumber] && bookDatabase[documentNumber].books[bookNumber]) {
                 resolve(bookDatabase[documentNumber].books[bookNumber]);
             } else {
                 reject(barcodeNumber);
             }
-        }
+        }).catch((error) => {
+            console.error(error);
+            reject("An error occurred when searching for barcode " + barcodeNumber);
+        });
     });
 }
 
 /**********
 END GET BOOK FROM BARCODE
+BEGIN ADD BARCODE SPACING
+***********/
+
+/**
+ * @description Adds spaces to a barcode to make it easier to read.
+ * @param {String|Number} barcode The (unspaced) barcode
+ * @returns {String} The barcode with spaces added
+ */
+export function addBarcodeSpacing(barcode) {
+    barcode = barcode.toString();
+    if (barcode.length != 10) {
+        console.warn("The barcode is not 10 digits long");
+        return;
+    }
+    let str = "";
+    for (let i = 0; i < barcode.length; i++) {
+        str += barcode.charAt(i);
+        if (i == 0 || i == 4) {
+            str += " ";
+        }
+    }
+    return str;
+}
+
+/**********
+END ADD BARCODE SPACING
 BEGIN ISBN UTILS
 ***********/
 
@@ -539,19 +595,19 @@ BEGIN ISBN UTILS
  */
 export function calculateISBNCheckDigit(number) {
     number = number.toString();
-    var length = number.length;
+    let length = number.length;
     if (length == 13 || length == 10) {
         console.warn("The ISBN number already has a check digit");
         return;
     }
 
+    let digits = [];
+    let total = 0;
     if (length == 12) {
-        var digits = [];
         for (let i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
         }
 
-        var total = 0;
         for (let i = 0; i < digits.length; i++) {
             if (i % 2 == 0) {
                 total += digits[i];
@@ -559,20 +615,17 @@ export function calculateISBNCheckDigit(number) {
                 total += digits[i] * 3;
             }
         }
-        return (10 - (total % 10)).toString();
+        return ((1000 - total) % 10).toString();
     } else if (length == 9) {
-        digits = [];
-        total = 0;
         for (let i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
         }
-
 
         for (let i = 0; i < digits.length; i++) {
             total += digits[i] * (10 - i);
         }
 
-        var answer = (11 - (total % 11)) % 11;
+        let answer = (11 - (total % 11)) % 11;
         if (answer == 10) {
             answer = "X";
         }
@@ -655,9 +708,9 @@ BEGIN AUTH
  * Sends an email verification to the user.
  */
 export function sendEmailVerificationToUser() {
-    var user = auth.currentUser;
+    let user = auth.currentUser;
     sendEmailVerification(user).then(() => {
-        alert("Email Verification Sent! Please check your email!");
+        openModal("success", "Email Verification Sent! Please check your email!");
     });
 }
 
@@ -665,4 +718,134 @@ export function sendEmailVerificationToUser() {
 
 /**********
 END AUTH
+BEGIN MODALS
+***********/
+
+/**
+ * @description Opens a modal that covers the screen and displays info to the user.
+ * @param {String} type The type of modal to open. Can be "info", "warning", "issue", "error", or "success".
+ * @param {String} message The message to display to the user.
+ * @param {String} title The title of the modal. Will default to "Info", "Warning", "There was a Problem", "Error", or "Success" depending on the type.
+ * @param {String} mainButtonText The text to display on the main button. Defaults to "OK".
+ * @param {Function} mainCallback The function to call when the main button is clicked. Defaults to null.
+ * @param {String} secondaryButtonText The text to display on the secondary button. Defaults to null.
+ * @param {Function} secondaryCallback The function to call when the secondary button is clicked. Defaults to null.
+ * @returns {Function} A function that closes the modal.
+*/
+export function openModal(type, message, title, mainButtonText = "OK", mainCallback = null, secondaryButtonText = null, secondaryCallback = null) {
+    // Create HTML elements
+    let modalContainer = document.createElement("div");
+    modalContainer.classList.add("modal-container");
+    let modal = document.createElement("div");
+    modal.classList.add("modal");
+    modalContainer.appendChild(modal);
+    let modalIcon = document.createElement("span");
+    modalIcon.classList.add("material-symbols-outlined");
+    modal.appendChild(modalIcon);
+    let modalTitle = document.createElement("h3");
+    modal.appendChild(modalTitle);
+    let modalMessage = document.createElement("p");
+    modal.appendChild(modalMessage);
+    let modalButtonContainer = document.createElement("div");
+    modalButtonContainer.classList.add("modal-button-container");
+    modal.appendChild(modalButtonContainer);
+    let modalButtonMain = document.createElement("button");
+    let modalButtonSecondary = document.createElement("button");
+    modalButtonContainer.appendChild(modalButtonSecondary);
+    modalButtonContainer.appendChild(modalButtonMain);
+
+    // Set attributes
+    switch (type) {
+        case "success":
+            modalIcon.innerHTML = "check";
+            modalIcon.classList.add("success");
+            modalTitle.innerHTML = "Success";
+            break;
+        case "error":
+            modalIcon.innerHTML = "error";
+            modalIcon.classList.add("error");
+            modalTitle.innerHTML = "Error";
+            break;
+        case "warning":
+            modalIcon.innerHTML = "warning";
+            modalIcon.classList.add("warning");
+            modalButtonMain.classList.add("warning");
+            modalTitle.innerHTML = "Warning";
+            break;
+        case "issue":
+            modalIcon.innerHTML = "help";
+            modalIcon.classList.add("issue");
+            modalTitle.innerHTML = "There was a Problem";
+            break;
+        case "info":
+            modalIcon.innerHTML = "info";
+            modalIcon.classList.add("info");
+            modalTitle.innerHTML = "Info";
+            break;
+        default:
+            console.warn("Invalid modal type: " + type);
+            return;
+    }
+    if (title) {
+        modalTitle.innerHTML = title;
+    }
+    modalMessage.innerHTML = message;
+    modalButtonMain.innerHTML = mainButtonText;
+    if (mainButtonText == "") {
+        modalButtonMain.style.display = "none";
+    }
+    if (secondaryButtonText) {
+        modalButtonSecondary.innerHTML = secondaryButtonText;
+        modalButtonContainer.style.justifyContent = "space-between";
+    } else {
+        modalButtonSecondary.style.display = "none";
+    }
+
+    // Button Event Listeners
+    modalButtonMain.onclick = () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+        if (mainCallback) {
+            mainCallback();
+        }
+    };
+    modalButtonSecondary.onclick = () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+        if (secondaryCallback) {
+            secondaryCallback();
+        }
+    };
+
+    document.body.appendChild(modalContainer);
+
+    modal.classList.add("modal-show");
+    modalContainer.style.display = "block";
+    setTimeout(() => {
+        modalContainer.style.opacity = "1";
+    }, 50);
+
+    // Returns a function that closes the modal
+    return () => {
+        modal.classList.remove("modal-show");
+        modal.classList.add("modal-hide");
+        modalContainer.style.opacity = "0";
+        setTimeout(() => {
+            modalContainer.remove();
+        }, 500);
+    };
+}
+
+
+
+/**********
+END MODALS
 ***********/

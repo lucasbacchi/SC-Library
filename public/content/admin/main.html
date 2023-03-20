@@ -1,47 +1,51 @@
-<!--<h2>Overview</h2>
-<div id="admin-header">
-    <p><span id="total">Some amount of</span> books are in the database. <span id="checkedout">Some subset</span> of them
-        are currently checked out. <span id="lost">Hopefully none</span> are unaccounted for.</p>
-    <p><a onclick="javascript:goToPage('admin/report');">Generate a Report</a></p>
-</div>-->
-
-<h2>Database Management</h2>
+<h2 id="admin-dashboard-title">Admin Dashboard</h2>
+<a id="help-icon" href="/admin/help" style="position: absolute; top: 100px; right: 30px;"><img src="../../img/help.svg" height="30px" width="30px"></a>
 <div id="management-grid">
     <div class="mgmt" id="add-entry">
-        <h3>There are currently <span id="number-of-books">???</span> books in the database</h3>
-        <p>If you'd like to add a new book, enter the ISBN below:</p>
+        <h3>Add a New Entry</h3>
+        <p>Add using an ISBN Number:</p>
         <input id="add-entry-isbn">
         <button id="add-entry-button">Add Entry</button>
-        <a id="add-entry-without-isbn" style="display: block;">I don't have an ISBN number. Create a blank entry for
-            me.</a>
-        <p>Enter an ISBN number above and also enter a barcode below to overrite that barcode. Please enter both of
-            these <b>manually</b>.</p>
-        <input id="add-entry-with-specific-barcode-number">
-        <button id="add-entry-with-specific-barcode-number-button">Change this Barcode</button>
+        <br>
+        <br>
+        <h2>OR</h2>
+        <p>Add a blank entry:</p>
+        <button id="add-entry-without-isbn" tabindex="0" style="display: block; margin: 0 auto;">Create a Blank Entry</button>
+    </div>
+    <div class="mgmt" id="stats">
+        <h3>Stats</h3>
+        <h4>Number of Books: <span id="number-of-books">????</span></h4>
+        <h4>Number of Checked Out Books: <span id="number-of-checked-out-books">??</span></h4>
+        <h4>Number of Users: <span id="number-of-users">??</span></h4>
+        <h4>Logins in the Past Month: <span id="recent-logins">?</span></h4>
     </div>
     <div class="mgmt" id="edit-entry">
-        <h3>Search for an entry to edit below:</h3>
+        <h3>Edit Existing Entries</h3>
         <input id="edit-entry-input">
         <button id="edit-entry-search">Search</button>
         <div id="edit-entry-search-results"></div>
     </div>
     <div class="mgmt" id="checked-out">
-        <h3>Here are the 5 most recently checked out books:</h3>
+        <h3>Recent Checkouts</h3>
         <div id="checked-out-books-container"></div>
     </div>
     <div class="mgmt" id="report">
-        <h3>Select your type of report:</h3>
-        <p><a id="circulation-report-link">Circulation</a></p>
-        <p><a id="purchases-report-link">New Purchases</a></p>
-        <p><a id="removed-report-link">Removed Books</a></p>
-        <p><a id="inventory-link">Inventory</a></p>
-        <p><a id="view-missing-barcodes">View Missing Barcodes</a></p>
-        <p><a id="view-all-books">View All Books</a></p>
-        <p><a id="view-all-users">View All Users</a></p>
-        <p><a id="barcode-link">Generate New Barcodes</a></p>
-        <h3>Download or upload to the Database</h3>
-        <p><a id="import-link">Import</a></p>
-        <input id="import-input" type="file" style="display: none;">
-        <p><a id="export-link">Export</a></p>
+        <h3>Reports</h3>
+        <p><a id="circulation-report-link" href="/admin/report?type=circulation">Circulation</a></p>
+        <p><a id="purchases-report-link" href="/admin/report?type=purchases">New Purchases</a></p>
+        <p><a id="removed-report-link" href="/admin/report?type=removed">Removed Books</a></p>
+        <p><a id="view-missing-barcodes" tabindex="0">View Missing Barcodes</a></p>
+        <p><a id="view-all-books" href="/admin/view?type=books">View All Books</a></p>
+        <p><a id="view-all-users" href="/admin/view?type=users">View All Users</a></p>
+    </div>
+    <div class="mgmt" id="management">
+        <h3>Database Management</h3>
+        <p><a id="import-link" tabindex="0">Import</a></p>
+        <input id="import-input" type="file" accept="application/json" style="display: none;">
+        <p><a id="export-link" tabindex="0">Export</a></p>
+        <br>
+        <h3>Barcodes</h3>
+        <p><a id="barcode-link" href="/admin/barcode">Generate New Barcodes</a></p>
+        <p><a id="inventory-link" href="/admin/inventory">Inventory</a></p>
     </div>
 </div>
