@@ -1,7 +1,7 @@
 // Make content Responsive
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
 import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue, updateBookDatabase } from './common';
-import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { analytics, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -716,10 +716,11 @@ function checkout(barcodeNumber) {
         console.log("The barcode number could not be identified.");
         return;
     }
-    $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
-    $("#checkout-popup").show();
-    $("#checkout-name").html(auth.currentUser.email);
-    $("#checkout-next-button").show();
+    openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
+    // $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
+    // $("#checkout-popup").show();
+    // $("#checkout-name").html(auth.currentUser.email);
+    // $("#checkout-next-button").show();
 }
 
 /**
