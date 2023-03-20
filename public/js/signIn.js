@@ -152,6 +152,8 @@ function signInSubmit(pageQuery = "") {
             } else {
                 goToPage("");
             }
+        }).catch((error) => {
+            console.warn("error in auth functions", error);
         });
     });
 }
@@ -172,11 +174,11 @@ function signIn(reAuth = false) {
             let password = document.getElementById('password').value;
             if (email.length < 4) {
                 openModal("issue", 'Please enter an email address.');
-                reject();
+                reject("no-email-address");
             }
             if (password.length < 4) {
                 openModal("issue", 'Please enter a password.');
-                reject();
+                reject("no-password");
             }
             if (!reAuth) {
                 // Sign in with email and password
@@ -244,52 +246,52 @@ function handleSignUp() {
         let confirmPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
             openModal("issue", 'Please enter an email address.');
-            reject();
+            reject("no-email-address");
             return;
         }
         if (password.length < 4) {
             openModal("issue", 'Please enter a longer password.');
-            reject();
+            reject("no-password");
             return;
         }
         if (password != confirmPassword) {
             openModal("issue", 'Your passwords do not match.');
-            reject();
+            reject("password-confirm-fail");
             return;
         }
         if (!/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(phone)) {
             openModal("issue", 'Please enter a valid phone number');
-            reject();
+            reject("invalid-phone-number");
             return;
         }
         if (address.length < 6) {
             openModal("issue", 'Please enter a valid address');
-            reject();
+            reject("invalid-address");
             return;
         }
         if (town.length < 3) {
             openModal("issue", 'Please enter a valid address');
-            reject();
+            reject("invalid-town");
             return;
         }
         if (state.length != 2) {
             openModal("issue", 'Please enter the state as two letters (ex. MA)');
-            reject();
+            reject("invalid-state");
             return;
         }
         if (zip.length != 5) {
             openModal("issue", 'Please enter a valid zip code');
-            reject();
+            reject("invalid-zip-code");
             return;
         }
         if (firstName.length < 1) {
             openModal("issue", 'Please enter a first name.');
-            reject();
+            reject("invalid-first-name");
             return;
         }
         if (lastName.length < 1) {
             openModal("issue", 'Please enter a last name.');
-            reject();
+            reject("invalid-last-name");
             return;
         }
 
@@ -334,7 +336,7 @@ function handleSignUp() {
             }).catch((error) => {
                 openModal("error", "There was an error creating your account. Please try again.");
                 console.error(error);
-                reject();
+                reject("auth-error");
             });
         });
     });
