@@ -1266,7 +1266,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
                     existingBooks[bookNumber] = pageData.toObject();
 
                     // Update the book
-                    Promise.all(imageUploadPromise).then(() => {
+                    imageUploadPromise.then(() => {
                         transaction.update(doc(booksPath, bookDocument), {
                             books: existingBooks
                         });
