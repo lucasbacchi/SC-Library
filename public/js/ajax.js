@@ -148,10 +148,10 @@ function setupIndex() {
         let width = window.innerWidth;
         if (width > 570) {
             $("nav").css("transition", "");
-            $("nav").width("fit-content");
+            $("nav").width("unset");
         }
         if (width <= 570) {
-            $("nav").width("0");
+            $("nav").width("0px");
             $("nav").css("transition", "0.5s");
         }
     });
