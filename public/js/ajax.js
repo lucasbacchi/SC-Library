@@ -145,15 +145,7 @@ function setupIndex() {
 
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
-        let width = window.innerWidth;
-        if (width > 570) {
-            $("nav").css("transition", "");
-            $("nav").width("unset");
-        }
-        if (width <= 570) {
-            $("nav").width("0px");
-            $("nav").css("transition", "0.5s");
-        }
+        closeNavMenu();
     });
 
     // Manage Account Panel and animation
@@ -238,16 +230,14 @@ function closeLargeAccount() {
  * @description Closes the mobile nav menu.
  */
 function closeNavMenu() {
-    $("nav").css("transition", "0.5s");
-    $("nav").width("0");
+    $("nav").removeClass("nav-open");
 }
 
 /**
  * @description Opens the mobile nav menu.
  */
 function openNavMenu() {
-    $("nav").css("transition", "0.5s");
-    $("nav").width("60%");
+    $("nav").addClass("nav-open");
 }
 
 let isAdmin;
