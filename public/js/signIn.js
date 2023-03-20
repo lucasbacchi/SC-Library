@@ -1,78 +1,97 @@
 import { logEvent } from "firebase/analytics";
-import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, sendPasswordResetEmail, signInWithEmailAndPassword, updateEmail } from "firebase/auth";
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import {
+    browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
+    reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail
+} from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { findURLValue, sendEmailVerificationToUser } from "./common";
+import { findURLValue, openModal, sendEmailVerificationToUser } from "./common";
 import { analytics, auth, currentPage, db } from "./globals";
 
-export function setupSignIn(pageQueryInput) {
+/**
+ * @description Sets up the sign in page.
+ * @param {String} pageQuery The query string of the page.
+ */
+export function setupSignIn(pageQuery) {
     $("#submit").on("click", () => {
-        signInSubmit(pageQueryInput);
+        signInSubmit(pageQuery);
     });
 
     $("#password-reset").on("click", () => {
         sendPasswordReset();
     });
 
-    $("#log-in-switch-link").on("click", () => {
-        goToPage('login');
+    // Keyboard Accessability
+    $("#password-reset").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        sendPasswordReset();
     });
 
-    $("#sign-up-switch-link").on("click", () => {
-        goToPage('signup');
-    });
-
-    if (findURLValue(pageQueryInput, "redirect", true) != "") {
-        $("#content").empty();
-        var div1 = document.createElement('div');
-        div1.id = 'form';
-        var div2 = document.createElement('div');
-        div2.classList.add("login");
-        var h3 = document.createElement('h3');
-        h3.innerHTML = "Please enter your password.";
-        $(div2).append(h3);
-        var lbl = document.createElement('label');
-        lbl.innerHTML = 'Password:';
-        lbl.setAttribute('for', 'password');
-        $(div2).append(lbl);
-        var input = document.createElement('input');
-        input.type = 'password';
-        input.id = 'password';
-        $(div2).append(input);
-        $(div2).append(document.createElement('br'));
-        $(div2).append(document.createElement('br'));
-        var btn = document.createElement('button');
-        btn.id = 'submit';
-        btn.innerHTML = 'Submit';
-        $(div2).append(btn);
-        btn.addEventListener('click', () => {
-            signInSubmit(pageQueryInput);
-        });
-        $(div2).append(document.createElement('br'));
-        $(div2).append(document.createElement('br'));
-        $(div1).append(div2);
-        $("#content").append(div1);
+    if (findURLValue(pageQuery, "redirect", true) != "") {
+        createReAuthPage(pageQuery);
     }
 
     $("#submit, .login > input").on("keydown", (event) => {
         if (event.key === "Enter") {
-            signInSubmit(pageQueryInput);
+            signInSubmit(pageQuery);
         }
     });
 
 }
 
+/**
+ * @description Redesigns the sign in page to allow the user to reauthenticate only using their password.
+ * @param {String} pageQuery The query string of the page.
+ */
+function createReAuthPage(pageQuery) {
+    $("#content").empty();
+    let div1 = document.createElement('div');
+    div1.id = 'form';
+    let div2 = document.createElement('div');
+    div2.classList.add("login");
+    let h3 = document.createElement('h3');
+    h3.innerHTML = "Please enter your password.";
+    $(div2).append(h3);
+    let lbl = document.createElement('label');
+    lbl.innerHTML = 'Password:';
+    lbl.setAttribute('for', 'password');
+    $(div2).append(lbl);
+    let input = document.createElement('input');
+    input.type = 'password';
+    input.id = 'password';
+    $(div2).append(input);
+    $(div2).append(document.createElement('br'));
+    $(div2).append(document.createElement('br'));
+    let btn = document.createElement('button');
+    btn.id = 'submit';
+    btn.innerHTML = 'Submit';
+    $(div2).append(btn);
+    btn.addEventListener('click', () => {
+        signInSubmit(pageQuery);
+    });
+    $(div2).append(document.createElement('br'));
+    $(div2).append(document.createElement('br'));
+    $(div1).append(div2);
+    $("#content").append(div1);
+}
+
+/**
+ * @description Handles the process of redirecting the user after they have signed in again. For now, this is only used for changing the user's email.
+ * @param {String} pageQuery The query string of the page.
+ */
 function authRedirect(pageQuery) {
     // Find the redirect path in the query
-    var redirect = findURLValue(pageQuery, "redirect");
+    let redirect = findURLValue(pageQuery, "redirect");
 
     // If they are being redirected with an email (to the account page)
     if (pageQuery.includes("email")) {
-        var newEmail = findURLValue(pageQuery, "email");
+        let newEmail = findURLValue(pageQuery, "email");
 
-        var user = auth.currentUser;
+        let user = auth.currentUser;
         // Attempt to update the account
-        updateEmail(user, newEmail).then(function() {
+        updateEmail(user, newEmail).then(function () {
             updateDoc(doc(db, "users", user.uid), {
                 email: newEmail
             }).then(() => {
@@ -81,14 +100,14 @@ function authRedirect(pageQuery) {
                     $("#email-verified").show();
                 }
                 updateEmailinUI(email);
-                alert("Your email was saved successfully.");
+                openModal("success", "Your email was saved successfully.");
                 goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
             }).catch((error) => {
-                alert("There was an error updating your email. Please try again later.");
+                openModal("error", "There was an error updating your email. Please try again later.");
                 console.error(error);
             });
         }).catch((error) => {
-            alert("There was an error updating your email. Please try again later.");
+            openModal("error", "There was an error updating your email. Please try again later.");
             console.error(error);
         });
     } else {
@@ -98,54 +117,71 @@ function authRedirect(pageQuery) {
     }
 }
 
+/**
+ * @description Starts the process of submitting the form either for sign in or sign up. Runs when the user clicks the submit button.
+ * @param {String} pageQuery The query string of the page. If the length of this string is greater than 1, it will assume this is a reauthentication.
+ */
 function signInSubmit(pageQuery = "") {
-    var reAuth;
+    let reAuth = false;
     if (pageQuery.length > 1) {
         reAuth = true;
+    }
+    let persistancePromise;
+    if (!reAuth) {
+        // Sets the persistance state in Firebase
+        let persistance = $("#remember-me").prop("checked");
+        if (persistance) {
+            persistancePromise = setPersistence(auth, browserLocalPersistence);
+        } else {
+            persistancePromise = setPersistence(auth, browserSessionPersistence);
+        }
     } else {
-        reAuth = false;
+        // If this is a reauthentication, we don't need to change the persistance state
+        persistancePromise = Promise.resolve();
     }
-    if (currentPage == 'login') {
-        signIn(reAuth).then(function() {
+    persistancePromise.then(() => {
+        let authPromise;
+        if (currentPage == 'login') {
+            authPromise = signIn(reAuth);
+        } else if (currentPage == 'signup') {
+            authPromise = handleSignUp();
+        }
+        authPromise.then(() => {
             if (reAuth) {
                 authRedirect(pageQuery);
             } else {
                 goToPage("");
             }
-        }).catch(() => {});
-    } else if (currentPage == 'signup') {
-        handleSignUp().then(function() {
-            if (reAuth) {
-                authRedirect(pageQuery);
-            } else {
-                goToPage("");
-            }
-        }).catch(() => {
-            console.warn("Signup failed (likely because the user failed validation)");
+        }).catch((error) => {
+            console.warn("error in auth functions", error);
         });
-    }
+    });
 }
 
+/**
+ * @description Signs in a user with email and password.
+ * @param {Boolean} reAuth Whether or not this is a reauthentication.
+ */
 function signIn(reAuth = false) {
-    return new Promise(function(resolve, reject) {
-        var user = auth.currentUser;
+    return new Promise((resolve, reject) => {
+        let user = auth.currentUser;
         if (user && !reAuth) {
-            alert("Another user is currently signed in. Please sign out first.");
+            openModal("error", "Another user is currently signed in. Please sign out first.");
         } else {
-            var email;
+            let email;
             if (reAuth) email = user.email;
             else email = document.getElementById('email').value;
-            var password = document.getElementById('password').value;
+            let password = document.getElementById('password').value;
             if (email.length < 4) {
-                alert('Please enter an email address.');
-                reject();
+                openModal("issue", 'Please enter an email address.');
+                reject("no-email-address");
             }
             if (password.length < 4) {
-                alert('Please enter a password.');
-                reject();
+                openModal("issue", 'Please enter a password.');
+                reject("no-password");
             }
             if (!reAuth) {
-                // Sign in with email and pass.
+                // Sign in with email and password
                 signInWithEmailAndPassword(auth, email, password).then(() => {
                     user = auth.currentUser;
                     logEvent(analytics, "login", {
@@ -153,37 +189,37 @@ function signIn(reAuth = false) {
                         userId: user.uid
                     });
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch(function (error) {
                     // Handle Errors here.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
+                    let errorCode = error.code;
+                    let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
-                        alert('Wrong password.');
+                        openModal("issue", 'Wrong password.');
                     } else {
-                        alert(errorMessage);
+                        openModal("error", errorMessage);
+                        console.error(error);
+                        $('#email').val('');
                     }
-                    console.error(error);
-                    $('#email').val('');
                     $('#password').val('');
-                    reject();
+                    reject(errorCode);
                 });
             } else {
                 // Reauthenticate
                 const credential = EmailAuthProvider.credential(email, password);
-                reauthenticateWithCredential(user, credential).then(function() {
+                reauthenticateWithCredential(user, credential).then(() => {
                     // User re-authenticated.
                     resolve(reAuth);
-                }).catch(function(error) {
+                }).catch((error) => {
                     // An error happened.
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
+                    let errorCode = error.code;
+                    let errorMessage = error.message;
                     if (errorCode === 'auth/wrong-password') {
-                        alert('Wrong password.');
+                        openModal("issue", 'Wrong password.');
                     } else {
-                        alert(errorMessage);
+                        openModal("error", errorMessage);
+                        console.error(error);
+                        $('#email').val('');
                     }
-                    console.error(error);
-                    $('#email').val('');
                     $('#password').val('');
                 });
             }
@@ -192,166 +228,144 @@ function signIn(reAuth = false) {
 }
 
 /**
- * Handles the sign up button press.
+ * @description Handles the sign up process. This includes validating the user's input, creating the user,
+ *              adding the user to the database, updating the max barcodeNumber, and logging the event.
+ * @returns {Promise} A promise that resolves when the user is signed up.
  */
 function handleSignUp() {
-    return new Promise(function (resolve, reject) {
-        var firstName = document.getElementById('firstName').value;
-        var lastName = document.getElementById('lastName').value;
-        var email = document.getElementById('email').value;
-        var phone = document.getElementById('phone').value;
-        var address = document.getElementById('address').value;
-        var town = document.getElementById('town').value;
-        var state = document.getElementById('state').value;
-        var zip = document.getElementById('zip').value;
-        var password = document.getElementById('password').value;
-        var confirmPassword = document.getElementById('confirm-password').value;
+    return new Promise((resolve, reject) => {
+        let firstName = document.getElementById('firstName').value;
+        let lastName = document.getElementById('lastName').value;
+        let email = document.getElementById('email').value;
+        let phone = document.getElementById('phone').value;
+        let address = document.getElementById('address').value;
+        let town = document.getElementById('town').value;
+        let state = document.getElementById('state').value;
+        let zip = document.getElementById('zip').value;
+        let password = document.getElementById('password').value;
+        let confirmPassword = document.getElementById('confirm-password').value;
         if (email.length < 4) {
-            alert('Please enter an email address.');
-            reject();
+            openModal("issue", 'Please enter an email address.');
+            reject("no-email-address");
             return;
         }
         if (password.length < 4) {
-            alert('Please enter a longer password.');
-            reject();
+            openModal("issue", 'Please enter a longer password.');
+            reject("no-password");
             return;
         }
         if (password != confirmPassword) {
-            alert('Your passwords do not match.');
-            reject();
+            openModal("issue", 'Your passwords do not match.');
+            reject("password-confirm-fail");
             return;
         }
-        if (phone < 10) {
-            alert('Please enter a valid phone number');
-            reject();
+        if (!/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/.test(phone)) {
+            openModal("issue", 'Please enter a valid phone number');
+            reject("invalid-phone-number");
             return;
         }
-        if (address < 6) {
-            alert('Please enter a valid address');
-            reject();
+        if (address.length < 6) {
+            openModal("issue", 'Please enter a valid address');
+            reject("invalid-address");
             return;
         }
-        if (town < 3) {
-            alert('Please enter a valid address');
-            reject();
+        if (town.length < 3) {
+            openModal("issue", 'Please enter a valid address');
+            reject("invalid-town");
             return;
         }
         if (state.length != 2) {
-            alert('Please enter the state as two letters (ex. MA)');
-            reject();
+            openModal("issue", 'Please enter the state as two letters (ex. MA)');
+            reject("invalid-state");
             return;
         }
         if (zip.length != 5) {
-            alert('Please enter a valid zip code');
-            reject();
+            openModal("issue", 'Please enter a valid zip code');
+            reject("invalid-zip-code");
             return;
         }
         if (firstName.length < 1) {
-            alert('Please enter a first name.');
-            reject();
+            openModal("issue", 'Please enter a first name.');
+            reject("invalid-first-name");
             return;
         }
         if (lastName.length < 1) {
-            alert('Please enter a last name.');
-            reject();
+            openModal("issue", 'Please enter a last name.');
+            reject("invalid-last-name");
             return;
         }
-        var signUpError = false;
-        // Create user with email and pass, then logs them in.
-        createUserWithEmailAndPassword(auth, email, password).catch(function(error) {
+
+        // Creates user with email and password, then logs them in.
+        createUserWithEmailAndPassword(auth, email, password).catch((error) => {
             // Handle Errors here.
-            signUpError = true;
-            var errorCode = error.code;
-            var errorMessage = error.message;
+            let errorCode = error.code;
+            let errorMessage = error.message;
             if (errorCode == 'auth/weak-password') {
-                alert('The password is too weak.');
+                openModal("issue", 'The password is too weak. Please try another password.');
             } else if (errorCode == 'auth/email-already-in-use') {
-                alert("This email is already in use. If you already have an account, please try signing in instead.");
+                openModal("issue", "This email is already in use. If you already have an account, please try signing in instead.");
             } else {
-                alert(errorMessage);
+                openModal("error", errorMessage);
+                console.error(error);
             }
-            console.error(error);
             reject();
-        }).then(function() {
-            if (!signUpError) {
-                var user = auth.currentUser;
-                // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
-                runTransaction(db, (transaction) => {
-                    var cloudVarsPath = doc(db, "config/writable_vars");
-                    // Get the variable stored in the writable_vars area
-                    return transaction.get(cloudVarsPath).then((docSnap) => {
-                        if (!docSnap.exists()) {
-                            throw "Document does not exist!";
-                        }
-                        // Save the max value and incriment it by one.
-                        var newCardNumber = docSnap.data().maxCardNumber + 1;
-                        var dateCreated = new Date();
-                        // Set the document to exist in the users path
-                        transaction.set(doc(db, "users", user.uid), {
-                            firstName: firstName,
-                            lastName: lastName,
-                            address: address + ", " + town + ", " + state + " " + zip,
-                            phone: phone,
-                            email: email,
-                            cardNumber: newCardNumber,
-                            pfpLink: null,
-                            pfpIconLink: null,
-                            checkouts: [],
-                            notificationsOn: true,
-                            dateCreated: dateCreated,
-                            lastSignIn: dateCreated,
-                            lastCheckoutTime: null
-                        });
-                        // Update the cloud var to contain the next card number value
-                        transaction.update(cloudVarsPath, {
-                            maxCardNumber: newCardNumber
-                        });
-                        return newCardNumber;
-                    });
-                }).then((newCardNumber) => {
-                    // After both writes complete, send the user to the edit page and take it from there.
-                    console.log("New User Created with card number: ", newCardNumber);
-                    updateUserAccountInfo();
-                    sendEmailVerificationToUser();
-                    logEvent(analytics, "sign_up", {
-                        method: "email",
-                        userId: user.uid,
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: email,
-                        phone: phone,
-                        address: address + ", " + town + ", " + state + " " + zip,
-                        cardNumber: newCardNumber
-                    });
-                    resolve();
-                }).catch((err) => {
-                    console.error(err);
-                    reject(err);
+        }).then(() => {
+            // Database updates are now handled by the beforeCreate function in the cloud functions.
+            // However, we must update information from the page that the cloud function didn't have.
+            updateDoc(doc(db, "users", auth.currentUser.uid), {
+                firstName: firstName,
+                lastName: lastName,
+                phone: phone,
+                address: address + ", " + town + ", " + state + " " + zip,
+                lastSignInTime: new Date(),
+                lastUpdated: new Date()
+            }).then(() => {
+                // After both writes complete, send the user to the edit page and take it from there.
+                updateUserAccountInfo();
+                sendEmailVerificationToUser();
+                logEvent(analytics, "sign_up", {
+                    method: "email",
+                    firstName: firstName,
+                    lastName: lastName,
+                    userId: auth.currentUser.uid,
+                    email: email,
+                    phone: phone,
+                    address: address + ", " + town + ", " + state + " " + zip
                 });
-            }
+                resolve();
+            }).catch((error) => {
+                openModal("error", "There was an error creating your account. Please try again.");
+                console.error(error);
+                reject("auth-error");
+            });
         });
     });
 }
 
+/**
+ * @description Sends a password reset email to the user.
+ */
 function sendPasswordReset() {
-    var email = document.getElementById('email').value;
-    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')){
-        alert("Please enter a valid email into the Email box above. Then try again.");
+    let email = document.getElementById('email').value;
+    if (!email.includes('@') || email.lastIndexOf('.') < email.indexOf('@')) {
+        openModal("issue", "Please enter a valid email into the Email box above. Then try again.");
         return;
     }
-    sendPasswordResetEmail(auth, email).then(function() {
-        alert('Password Reset Email Sent!');
-    }).catch(function(error) {
+    sendPasswordResetEmail(auth, email).then(() => {
+        openModal("success", "Password Reset Email Sent!");
+    }).catch((error) => {
         // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
+        let errorCode = error.code;
+        let errorMessage = error.message;
         if (errorCode == 'auth/invalid-email') {
-            alert(errorMessage);
+            openModal("error", errorMessage);
         } else if (errorCode == 'auth/user-not-found') {
-            alert(errorMessage);
+            openModal("error", errorMessage);
+        } else {
+            openModal("error", "Your password reset email could not be sent. Please contact the librarian for help.\n" + errorMessage);
+            console.error(error);
         }
-        console.error(error);
     });
 }
 
-console.log("signIn.js Loaded!");
+console.log("signIn.js has Loaded!");

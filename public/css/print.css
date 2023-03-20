@@ -1,0 +1,21 @@
+/* Removes the index frame from the print view */
+@media print {
+    header,
+    footer,
+    #sort-sidebar,
+    .search-page-search-container {
+        display: none !important;
+    }
+
+    #header-spacer {
+        height: 16px !important;
+    }
+
+    .book {
+        break-inside: avoid !important;
+    }
+
+    #results-container {
+        width: 95% !important;
+    }
+}

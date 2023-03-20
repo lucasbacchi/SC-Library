@@ -1,8 +1,11 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, getBookFromBarcode, verifyISBN } from "./common";
-import { bookDatabase, db } from "./globals";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase } from "./common";
+import { Book, bookDatabase, db, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
+/**
+ * @description Sets up the main page for the admin including all the event listeners.
+ */
 export function setupAdminMain() {
     $("#edit-entry-input").on("keydown", (event) => {
         if (event.key === "Enter") {
@@ -20,51 +23,48 @@ export function setupAdminMain() {
         addEntryWithoutISBN();
     });
 
-    $("#add-entry-with-specific-barcode-number-button").on("click", () => {
-        addEntryWithSpecificBarcodeNumber();
-    });
-
-    $("#circulation-report-link").on("click", () => {
-        goToPage('admin/report?type=circulation');
-    });
-
-    $("#purchases-report-link").on("click", () => {
-        goToPage('admin/report?type=purchases');
-    });
-
-    $("#removed-report-link").on("click", () => {
-        goToPage('admin/report?type=removed');
-    });
-
-    $("#inventory-link").on("click", () => {
-        goToPage('admin/inventory');
-    });
-
     $("#view-missing-barcodes").on("click", () => {
         viewMissingBarcodes();
     });
 
-    $("#view-all-books").on("click", () => {
-        goToPage('admin/view?type=books');
-    });
-
-    $("#view-all-users").on("click", () => {
-        goToPage('admin/view?type=users');
-    });
-
-    $("#barcode-link").on("click", () => {
-        goToPage('admin/barcode');
-    });
-
     $("#import-link").on("click", () => {
-        uploadDatabase();
+        $("#import-input").trigger("click");
+    });
+
+    // Keyboard Accessability
+    $("#add-entry-without-isbn").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        addEntryWithoutISBN();
+    });
+
+    $("#view-missing-barcodes").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        viewMissingBarcodes();
+    });
+
+    $("#import-link").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        $("#import-input").trigger("click");
     });
 
     $("#import-input").on("change", (event) => {
-        setUploadDatabase(event);
+        processImport(event);
     });
 
     $("#export-link").on("click", () => {
+        downloadDatabase();
+    });
+
+    $("#export-link").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
         downloadDatabase();
     });
 
@@ -80,59 +80,38 @@ export function setupAdminMain() {
     addStats();
 }
 
+/**
+ * @description Sets up the page for editing a user.
+ */
 export function setupEditUser() {
     console.error("TODO: Write this function");
 }
 
-
+/**
+ * @description Called when the user adds an entry using an ISBN number.
+ */
 function addEntry() {
-    var isbn = $("#add-entry-isbn").val();
-    var check = verifyISBN(isbn);
+    let isbn = $("#add-entry-isbn").val();
+    let check = verifyISBN(isbn);
     if (!check) {
-        alert("The number you entered is not a valid ISBN Number.");
+        openModal("issue", "The number you entered is not a valid ISBN Number.");
         return;
     }
-    createEntry().then((newBarcode) => {
-        // TO DO: As a nice to have, we could convert between them and add a check digit here to improve reliability
-        goToPage("admin/editEntry?new=true&isbn=" + isbn + "&id=" + newBarcode);
-    });
+    goToPage("admin/editEntry?new=true&isbn=" + isbn);
 }
 
+/**
+ * @description Called when the user adds an entry without an ISBN number.
+ */
 function addEntryWithoutISBN() {
-    createEntry().then((newBarcode) => {
-        goToPage("admin/editEntry?new=true&id=" + newBarcode);
-    });
+    goToPage("admin/editEntry?new=true");
 }
 
-function addEntryWithSpecificBarcodeNumber() {
-    var isbn = $("#add-entry-isbn").val();
-    var check = verifyISBN(isbn);
-    if (!check && isbn != "") {
-        alert("The number you entered is not a valid ISBN Number.");
-        return;
-    }
-    var specificBarcode = $("#add-entry-with-specific-barcode-number").val();
-    getBookFromBarcode(specificBarcode).then((book) => {
-        if (book.isDeleted || (book.title == "" && book.lastUpdated == null)) {
-            const a = document.createElement("a");
-            if (isbn == "") {
-                a.href = "/admin/editEntry?new=true&id=" + encodeURI(specificBarcode);
-            } else {
-                a.href = "/admin/editEntry?new=true&isbn=" + encodeURI(isbn) + "&id=" + encodeURI(specificBarcode);
-            }
-            a.innerHTML = "Click here to overwrite the barcode above.";
-            $("#add-entry")[0].appendChild(a);
-        } else {
-            alert("You may not create a new book with this barcode. Please edit the book with that barcode normally.");
-            return;
-        }
-    }).catch((barcodeNumber) => {
-        alert("Could not find a valid book at: " + barcodeNumber);
-    });
-}
-
+/**
+ * @description Called when the user searches for a book to edit on the admin dashboard.
+ */
 function adminSearch() {
-    var searchQuery = $("#edit-entry-input").val();
+    let searchQuery = $("#edit-entry-input").val();
 
     if (searchQuery) {
         $("#edit-entry-search-results").show();
@@ -145,188 +124,60 @@ function adminSearch() {
             }
         });
     } else {
-        alert("Please enter a search query");
+        openModal("issue", "Please enter a search query");
     }
 }
 
+/**
+ * @description A helper function for adminSearch(). Calls buildBookBox() for each book in the array.
+ * @param {Books[]} objects The books to display in the edit entry search results.
+ */
 function adminBookBoxes(objects) {
-    for (let i = 0; i < objects.length; i++) {
+    let maxResults = 10;
+    if (objects.length < maxResults) {
+        maxResults = objects.length;
+    }
+    for (let i = 0; i < maxResults; i++) {
         $("div#edit-entry-search-results")[0].appendChild(buildBookBox(objects[i], "edit-entry"));
     }
 }
 
-
-
-function createEntry() {
-    return new Promise(function (resolve, reject) {
-        // Run a Transaction to ensure that the correct barcode is used.
-        // First, get the highest barcode number by loading the largest book document.
-        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
-            var topDoc;
-            querySnapshot.forEach((docSnap) => {
-                if (!docSnap.exists()) {
-                    throw "The books document doesn't exist";
-                }
-                topDoc = docSnap;
-            });
-
-            // Now that we have the highest document, we can get that document and create a new book within it.
-            runTransaction(db, (transaction) => {
-                return transaction.get(doc(db, "books", topDoc.id)).then((docSnap) => {
-                    if (!docSnap.exists()) {
-                        throw "Document does not exist!";
-                    }
-
-                    var order = docSnap.data().order;
-                    var numBooksInDoc = docSnap.data().books.length;
-
-                    // Let's make sure that there isn't another doc that has been created after this one already.
-                    try {
-                        var next = order + 1;
-                        if (next < 10) {
-                            next = "00" + (next);
-                        } else if (next < 100) {
-                            next = "0" + (next);
-                        }
-                        getDoc(doc(db, "books", next)).then((docSnap) => {
-                            if (docSnap.exists()) {
-                                console.error("A new book doc was created, it shouldn't have been, so abort!");
-                                alert("A database error has occurred. Please stop adding books and contact the developers of the site.");
-                                throw "Something went wrong.";
-                            }
-                        }).catch((err) => {
-                            console.log(err, "Hopefully the line before doesn't say that something went wrong.... If it didn't, the next document doesn't exist, which is a good thing.");
-                        });
-                    } catch {
-                        console.warn("Something about the try catch failed....");
-                    }
-
-                    if (numBooksInDoc == 100) {
-                        // A new book doc has to be created...
-                        var newNumber = order + 1;
-                        if (newNumber < 10) {
-                            newNumber = "00" + newNumber;
-                        } else if (newNumber < 100) {
-                            newNumber = "0" + newNumber;
-                        }
-                        let barcode = "11711" + newNumber + "00";
-                        transaction.set(doc(db, "books", newNumber), {
-                            books: [{
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{ first: "", last: "" }],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                thumbnailImageLink: null,
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            }],
-                            order: order + 1
-                        });
-                        return barcode;
-                    } else {
-                        // We don't need to add a new book doc, so just add the book to the existing one.
-                        if (order < 10) {
-                            order = "00" + order;
-                        } else if (order < 100) {
-                            order = "0" + order;
-                        }
-
-                        let barcode;
-                        if (numBooksInDoc < 10) {
-                            barcode = "11711" + order + "0" + numBooksInDoc;
-                        } else {
-                            barcode = "11711" + order + numBooksInDoc;
-                        }
-                        transaction.update(doc(db, "books", order), {
-                            books: arrayUnion({
-                                barcodeNumber: barcode,
-                                title: "",
-                                subtitle: "",
-                                authors: [{ first: "", last: "" }],
-                                illustrators: [],
-                                medium: "",
-                                coverImageLink: "",
-                                subjects: [],
-                                description: "",
-                                audience: [false, false, false, false],
-                                isbn10: "",
-                                isbn13: "",
-                                publishers: [],
-                                publishDate: null,
-                                numberOfPages: 0,
-                                ddc: "",
-                                purchaseDate: null,
-                                purchasePrice: "",
-                                vendor: "",
-                                keywords: [],
-                                canBeCheckedOut: true,
-                                isDeleted: false,
-                                isHidden: true,
-                                lastUpdated: null
-                            })
-                        });
-                        return barcode;
-                    }
-                });
-            }).then((newBarcode) => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                console.log("New Entry Created with barcode: " + newBarcode);
-                // editEntry(newBarcode);
-                resolve(newBarcode);
-            });
-        }).catch((err) => {
-            console.error(err);
-            reject(err);
-        });
-    });
-}
 
 var input;
 var input1;
 var input2;
 var canvas;
 var ctx;
+/**
+ * @description Sets up the page for creating barcodes.
+ */
 export function setupBarcodePage() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
 
     $("#merge-one-barcode").on("click", () => {
-        mergeBarcodes();
+        createBarcode();
     });
 
     $("#merge-multiple-barcodes").on("click", () => {
-        mergeBarcodes(true);
+        createBarcode(true);
     });
 }
 
-function mergeBarcodes(multiple = false) {
-    var numberOfBarcodes;
-    var currentBarcode;
+/**
+ * @description Reads the values off of the page in order to create barcodes using a canvas.
+ * @param {Boolean} multiple A boolean that represents whether or not the user is creating multiple barcodes.
+ */
+function createBarcode(multiple = false) {
+    let numberOfBarcodes;
+    let currentBarcode;
     if (!multiple) {
         numberOfBarcodes = 1;
         input = document.getElementById("barcode-single-input").value;
         input = "11711" + input;
         currentBarcode = parseInt(input);
-        if (input.length != 10 || input.indexOf("11711") == -1) {
-            alert("That barcode is not valid");
+        if (!/11711[0-9]{5}/.test(input)) {
+            openModal("issue", "That barcode is not valid");
             return;
         }
     }
@@ -335,41 +186,42 @@ function mergeBarcodes(multiple = false) {
         input1 = "11711" + input1;
         input2 = document.getElementById("barcode-multiple-input-end").value;
         input2 = "11711" + input2;
-        if (input1.length != 10 || input1.indexOf("11711") == -1) {
-            alert("The starting barcode is not valid");
+        if (!/11711[0-9]{5}/.test(input1)) {
+            openModal("issue", "The starting barcode is not valid");
             return;
         }
-        if (input2.length != 10 || input2.indexOf("11711") == -1) {
-            alert("The ending barcode is not valid");
+        if (!/11711[0-9]{5}/.test(input2)) {
+            openModal("issue", "The ending barcode is not valid");
             return;
         }
         if (parseInt(input1) >= parseInt(input2)) {
-            alert("The ending barcode must be larger than the starting barcode");
+            openModal("issue", "The ending barcode must be larger than the starting barcode");
             return;
         }
         numberOfBarcodes = parseInt(input2) - parseInt(input1) + 1;
         currentBarcode = parseInt(input1);
     }
+    // Loop through each barcode
     for (let i = 0; i < numberOfBarcodes; i++) {
         if (i != 0) {
             currentBarcode++;
         }
-        var imageObjArray = [];
-        var imageObjLoadedArray = [];
-        var delay = i * 1500 + (Math.floor(i / 5) * 2000);
+        let imageObjArray = [];
+        let imageObjLoadedArray = [];
+        let delay = i * 1500 + (Math.floor(i / 5) * 2000);
         setTimeout((currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
             if (i == numberOfBarcodes - 1) {
                 setTimeout(() => {
-                    alert("Download Complete");
+                    openModal("success", "Download Complete");
                 }, 2000);
             }
             let currentBarcodeString = currentBarcode.toString();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = "bold 60px Poppins";
             ctx.textAlign = "center";
-            // var textWidth = ctx.measureText("South Church Library");
+            // let textWidth = ctx.measureText("South Church Library");
             ctx.fillText("South Church Library", (canvas.width / 2), 60);
-            var barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
+            let barcodeStyled = currentBarcodeString.substring(0, 1) + "  " + currentBarcodeString.substring(1, 5) + "  " + currentBarcodeString.substring(5, currentBarcodeString.length);
             ctx.font = "bold 78px Poppins";
             // textWidth = ctx.measureText(barcodeStyled);
             ctx.fillText(barcodeStyled, (canvas.width / 2), 350);
@@ -397,24 +249,31 @@ function mergeBarcodes(multiple = false) {
             imageObjArray[0].src = "/img/barcode-parts/A.png";
             imageObjArray[11].src = "/img/barcode-parts/B.png";
             for (let i = 1; i < 11; i++) {
-                var temp = currentBarcodeString.substring(i - 1, i);
+                let temp = currentBarcodeString.substring(i - 1, i);
                 imageObjArray[i].src = "/img/barcode-parts/" + temp + ".png";
             }
         }, delay, currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes);
     }
 }
 
+/**
+ * @description Loads the 12 individual images into the canvas. Once all are loaded, it renders the canvas to a png and downloads it.
+ * @param {Number} num the number of the image 0-11 which is being loaded. 0 is the first bar, 11 is the last bar.
+ * @param {Image[]} imageObjArray The array contianing the image objects.
+ * @param {Boolean[]} imageObjLoadedArray An array containing a boolean that represents whether the image has loaded or not.
+ * @param {String} currentBarcodeString The current barcode string.
+ */
 function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
     imageObjArray[num].onload = function () {
         // console.log("Image #" + num + " has loaded");
         ctx.globalAlpha = 1;
-        var position = 110 * 0.6 * num + 160;
+        let position = 110 * 0.6 * num + 160;
         if (num != 0) {
             position += 10;
         }
         ctx.drawImage(imageObjArray[num], position, 95, imageObjArray[num].width * 0.6, imageObjArray[num].height * 0.6);
         imageObjLoadedArray[num] = true;
-        var allLoaded = true;
+        let allLoaded = true;
         for (let i = 0; i < 12; i++) {
             if (imageObjLoadedArray[i]) {
                 continue;
@@ -424,8 +283,8 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
         }
         if (allLoaded) {
             canvas.toBlob((blob) => {
-                var url = window.URL.createObjectURL(blob);
-                var a = document.getElementById("link");
+                let url = window.URL.createObjectURL(blob);
+                let a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
                 a.click();
@@ -436,12 +295,17 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
 
 }
 
+/**
+ * @description Displays the list of recently checked out books on the admin dashboard.
+ */
 function recentlyCheckedOut() {
-    var d = new Date(2021, 1, 1);
+    /* TODO: Implement Checkout System
+    let d = new Date(2021, 1, 1);
+    // I don't know if we're storing checkouts in the users doc yet...
     getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
-        var bookTimes = [];
+        let bookTimes = [];
         querySnapshot.forEach((docSnapshot) => {
-            var co = docSnapshot.data().checkouts;
+            let co = docSnapshot.data().checkouts;
             for (let i = 0; i < co.length; i++) {
                 bookTimes.push({ book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut });
                 if (bookTimes.length == 6) {
@@ -451,8 +315,7 @@ function recentlyCheckedOut() {
             }
         });
         for (let i = 0; i < bookTimes.length; i++) {
-            /* TODO: Implement Checkout System
-            var currentBook = bookTimes[i];
+            let currentBook = bookTimes[i];
             getDoc(currentBook.book).then((docSnap) => {
                 if (!docSnap.exists()) {
                     // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
@@ -464,19 +327,23 @@ function recentlyCheckedOut() {
                         $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
                     }
                 }
-            });*/
+            });
         }
-    });
+    });*/
 }
 
+/**
+ * @description Updates the stats on the admin dashboard.
+ */
 function addStats() {
     let count = 0;
-    search("").then(() => {
+    updateBookDatabase().then(() => {
+        // Number of Books
         bookDatabase.forEach((document) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
-                var book = document.books[i];
+                let book = document.books[i];
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
@@ -484,36 +351,52 @@ function addStats() {
             }
         });
         $("#number-of-books").html(count);
+        // TODO: Number of Checked Out Books
+        $("#number-of-checked-out-books").html("0");
     });
+    // TODO: Number of Users
+    getDoc(doc(db, "/config/writable_vars")).then((docSnap) => {
+        let num = docSnap.data().maxCardNumber - 2171100000;
+        $("#number-of-users").html(num);
+    });
+    // TODO: Logins in the Past Month
 }
 
+/**
+ * @description Called when the user clicks the "View Missing Barcodes" link.
+ */
+// TODO: Remove this function after the system is fully updated to prevent wholes.
 function viewMissingBarcodes() {
-    var missingArray = [];
+    let missingArray = [];
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
-            var book = document.books[i];
-            if (book.barcodeNumber == 1171100000 || (book.lastUpdated && !book.isDeleted)) {
+            let book = document.books[i];
+            if (book.barcodeNumber == 1171100000 || (book.lastUpdated/* && !book.isDeleted (We decided not to write over deleted books)*/)) {
                 continue;
             }
             missingArray.push(book);
         }
     });
-    var message = "The following Barcodes have been created, but they have never been updated:\n";
+    let message = "The following Barcodes have been created, but they have never been updated:\n";
     missingArray.forEach((book) => {
         message += book.barcodeNumber + "\n";
     });
-    alert(message);
+    openModal("info", message);
 }
 
+/**
+ * @description Called when the user clicks the "Export" link. Downloads the database as a JSON file.
+ */
 function downloadDatabase() {
-    search("", true).then(() => {
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
+    updateBookDatabase().then(() => {
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
         a.id = "download-database-link";
-        a.download = "database.json";
+        let dateString = new Date().toLocaleDateString("en-CA"); // it's canadian because they use yyyy-mm-dd format
+        a.download = "database " + dateString + ".json";
         a.href = dataStr;
         a.innerHTML = "Click Here to download the database";
         $("#content")[0].appendChild(a);
@@ -523,48 +406,186 @@ function downloadDatabase() {
     });
 }
 
-function uploadDatabase() {
-    $("#import-input").trigger("click");
-}
-
+/**
+ * @description Uploads a file from the user's computer.
+ * @param {InputEvent} event The onchange event that is generated when the user selects a file.
+ * @returns {Promise<File>} A promise that resolves to the file that the user selected.
+ */
 function importFile(event) {
-    return new Promise(function (resolve) {
-        resolve(event.target.files[0]);
+    return new Promise((resolve, reject) => {
+        if (event.target.files[0])
+            resolve(event.target.files[0]);
+        else
+            reject();
     });
 }
 
-function setUploadDatabase() {
-    importFile.then((file) => {
-        var dataToUpload = JSON.parse(JSON.stringify(file));
-        console.log(dataToUpload);
-        alert("The database wasn't uploaded, because this function didn't get finished.");
+/**
+ * @description Called when the user selects a file to upload. Processes the data and uploads it to the database.
+ * @param {InputEvent} event the onchange event that is generated when the user selects a file.
+ */
+function processImport(event) {
+    importFile(event).then((file) => {
+        if (file.type != "application/json") {
+            openModal("error", "File type not recognized. Please upload a JSON file.");
+            return;
+        }
+        file.text().then((text) => {
+            try {
+                let dataToUpload = JSON.parse(text);
+                let newDatabase = [], modified = 0;
+                for (let i = 0; i < dataToUpload.length; i++) {
+                    let newDoc = [];
+                    for (let j = 0; j < dataToUpload[i].books.length; j++) {
+                        let newBook = Book.createFromObject(dataToUpload[i].books[j]);
+                        newDoc.push(newBook);
+                        if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
+                            modified++;
+                        }
+                    }
+                    newDatabase.push(newDoc);
+                }
+                let ndlen = newDatabase.length, bdlen = bookDatabase.length;
+                let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
+                // Open a modal to confirm the import
+                openModal("warning",
+                    "This will overwrite the entire books database.<br>" +
+                    "<span id=\"import-added\">0</span> books added<br>" +
+                    "<span id=\"import-deleted\">0</span> books deleted<br>" +
+                    "<span id=\"import-modified\">0</span> books modified",
+                    "Are you sure?", "Yes, Import", () => {
+                    importDatabase(newDatabase).then(() => {
+                        setBookDatabase(null);
+                        setTimeLastSearched(null);
+                        openModal("success", "Database updated successfully!");
+                    }).catch((error) => {
+                        console.error(error);
+                        openModal("error", "There was an error and your data was not updated.");
+                    }).finally(() => {
+                        window.clearTimeout(loadingTimer);
+                        loadingModal();
+                    });
+                }, "No, Cancel", () => {
+                    $("#import-input").val("");
+                });
+                fillImportModal(diff, modified);
+            } catch (error) {
+                console.error(error);
+                openModal("error", "Something went wrong. Please check the file you are trying to import.");
+            }
+        });
+    }).catch(() => {
+        console.log("The user did not upload a valid file.");
     });
 }
 
+function fillImportModal(diff = 0, modified = 0) {
+    if (diff > 0) {
+        $("#import-added").html(diff);
+        $("#import-deleted").html(0);
+    } else {
+        $("#import-deleted").html(0 - diff);
+        $("#import-added").html(0);
+    }
+    $("#import-modified").html(modified);
+}
+
+var loadingTimer;
+var loadingModal;
+function importDatabase(database) {
+    loadingModal = openModal("info", "Please wait. This may take a while. Do not close this window or navigate to a new page.", "Importing Database...", "");
+    // If an error occurs somewhere in this process, tell the user after 10 seconds
+    loadingTimer = window.setTimeout(() => {
+        loadingModal();
+        openModal("issue", "We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
+    }, 30000);
+    return new Promise((resolve) => {
+        // Get a new write batch
+        let batch = writeBatch(db);
+        getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
+                    throw "The books document doesn't exist";
+                }
+                // Set each doc for deletion
+                batch.delete(docSnap.ref);
+            });
+            for (let i = 0; i < database.length; i++) {
+                // Create a new doc and add all the books to be imported into it
+                let newDoc = [];
+                for (let j = 0; j < database[i].length; j++) {
+                    let newBook = database[i][j].toObject();
+                    // temporarily renaming things to old scheme
+                    // for (let k = 0; k < 2; k++) {
+                    //     if (newBook.authors[k]) {
+                    //         newBook.authors[k] = {
+                    //             first: newBook.authors[k].firstName,
+                    //             last: newBook.authors[k].lastName
+                    //         };
+                    //     }
+                    //     if (newBook.illustrators[k]) {
+                    //         newBook.illustrators[k] = {
+                    //             first: newBook.illustrators[k].firstName,
+                    //             last: newBook.illustrators[k].lastName
+                    //         };
+                    //     }
+                    // }
+                    // newBook.audience = [newBook.audience.children, newBook.audience.youth, newBook.audience.adult,
+                    //     !(newBook.audience.children || newBook.audience.youth || newBook.audience.adult)];
+                    newDoc.push(newBook);
+                }
+                // Set the new doc for addition
+                batch.set(doc(db, "books", i.toString().padStart(3, "0")), {
+                    books: newDoc,
+                    order: i
+                });
+            }
+            // Commit all the staged writes
+            batch.commit().then(() => {
+                resolve();
+            });
+        });
+    });
+}
+
+/**
+ * @description The setup function for the view page. It will load all books or all users depending on the type parameter in the URL.
+ * @param {String} pageQuery The query string from the URL.
+ */
 export function setupView(pageQuery) {
-    var type = findURLValue(pageQuery, "type");
+    let type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        search("", true).then(() => {
-            bookDatabase.forEach((doc) => {
-                doc.books.forEach((book) => {
-                    $("div#view-container")[0].appendChild(buildBookBox(book, "view"));
+        updateBookDatabase().then(() => {
+            bookDatabase.forEach((doc, docIndex) => {
+                doc.books.forEach((book, bookIndex) => {
+                    $("div#view-container")[0].appendChild(buildBookBox(book, "view", docIndex*100 + bookIndex));
                 });
             });
         });
     } else if (type == "users") {
         getAllUsers().then(() => {
-            userDatabase.forEach((user) => {
-                $("div#view-container")[0].appendChild(buildUserBox(user, "view"));
+            userDatabase.forEach((user, index) => {
+                $("div#view-container")[0].appendChild(buildUserBox(user, "view", index));
             });
         });
     } else {
-        console.warn("There was no valid type to view.");
+        console.warn("There was no type specified in the URL.");
+        openModal("issue", "There was no type specified in the URL. Redirecting to the admin dashboard.");
         goToPage("admin/main");
     }
 }
 
+/**
+ * @description Builds a box that contains the information for a user so it can be displayed on the page.
+ * @param {User} obj The user object to build the box for.
+ * @param {String} page A string that represents the page that this is being built for.
+ * @param {Number} num The result number if this is created for a search result.
+ * @returns {HTMLDivElement} A div element that contains the user information.
+ */
 function buildUserBox(obj, page, num = 0) {
+    const a = document.createElement("a");
     const div = document.createElement("div");
+    a.appendChild(div);
     switch (page) {
         case "view":
             div.classList.add("result-listing");
@@ -601,9 +622,7 @@ function buildUserBox(obj, page, num = 0) {
     div2.appendChild(email);
     div2.classList.add("basic-info");
     if (page == "edit-entry" || page == "view") {
-        div.addEventListener("click", () => {
-            goToPage("admin/editUser?id=" + obj.cardNumber);
-        });
+        a.href = "/admin/editUser?id=" + obj.cardNumber;
         const barcode = document.createElement("p");
         barcode.classList.add("barcode");
         barcode.innerHTML = "Card Number: " + obj.cardNumber;
@@ -630,36 +649,42 @@ function buildUserBox(obj, page, num = 0) {
         dateCreated.classList.add("subjects");
         dateCreated.appendChild(document.createTextNode("Date Created: " + formatDate(obj.dateCreated)));
         div3.appendChild(dateCreated);
-        const lastSignIn = document.createElement("p");
-        lastSignIn.classList.add("subjects");
-        lastSignIn.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignIn)));
-        div3.appendChild(lastSignIn);
+        const lastSignInTime = document.createElement("p");
+        lastSignInTime.classList.add("subjects");
+        lastSignInTime.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignInTime)));
+        div3.appendChild(lastSignInTime);
         const lastCheckoutTime = document.createElement("p");
         lastCheckoutTime.classList.add("subjects");
         lastCheckoutTime.appendChild(document.createTextNode("Last Checkout Time: " + formatDate(obj.lastCheckoutTime)));
         div3.appendChild(lastCheckoutTime);
         const checkouts = document.createElement("p");
         checkouts.classList.add("description");
-        if (obj.checkouts.length > 0) {
-            checkouts.appendChild(document.createTextNode("Last Checked Out Book: " + obj.checkouts[0].title + " (Barcode: " + obj.checkouts[0].barcodeNumber + ")"));
-        } else {
-            checkouts.appendChild(document.createTextNode("Last Checked Out Book: N/A"));
-        }
+        // TODO: Implement this.
+        checkouts.appendChild(document.createTextNode("Last Checked Out Book: Not Implemented Yet"));
         div3.appendChild(checkouts);
     }
-    return div;
+    return a;
 }
 
+/**
+ * @description Formats a date object into a string.
+ * @param {Date} date The date object to format.
+ * @returns {String} The formatted date string.
+ */
 function formatDate(date) {
     if (!date) {
         return "N/A";
     }
-    return date.toDate().toLocaleString("en-US");
+    return date.toLocaleString("en-US");
 }
 
 var userDatabase = [];
+/**
+ * @description Gets all the users from the database and stores them in the userDatabase array.
+ * @returns {Promise<void>} A promise that resolves when the userDatabase is loaded.
+ */
 function getAllUsers() {
-    return new Promise(function (resolve) {
+    return new Promise((resolve) => {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
             userDatabase = [];
             querySnapshot.forEach((docSnap) => {
@@ -667,7 +692,7 @@ function getAllUsers() {
                     console.error("user document does not exist");
                     return;
                 }
-                userDatabase.push(docSnap.data());
+                userDatabase.push(User.createFromObject(docSnap.data()));
             });
             resolve();
         });
@@ -675,29 +700,32 @@ function getAllUsers() {
 }
 
 
-var inventoryCheck = false;
+/**
+ * @description Restarts the inventory progress.
+ */
 function restartInventory() {
-    if (!inventoryCheck) {
-        alert("Are you sure you want to restart? This will delete your current progress. If you do, you must click the restart button again to confirm.");
-        inventoryCheck = true;
-        window.setTimeout(() => {
-            inventoryCheck = false;
-        }, 5000);
-        return;
-    }
-    setDoc(doc(db, "admin", "inventory"), {
-        books: []
-    });
-    alert("The Inventory Progress has been reset.");
-    window.location.reload();
+    openModal("warning", "This will delete your current progress.", "Are you sure you want to restart?", "Confirm", () => {
+        setDoc(doc(db, "admin", "inventory"), {
+            books: []
+        }).then(() => {
+            openModal("success", "The Inventory Progress has been reset.\nThe page will now refresh.", undefined, undefined, () => {window.location.reload();});
+        }).catch((error) => {
+            openModal("error", "Error resetting inventory: " + error);
+        });
+    }, "Cancel");
 }
 
+/**
+ * @description Sets up the inventory page including the event listeners.
+ */
 export function setupInventory() {
     loadInventory().then(() => {
         cachedInventory.forEach((barcode) => {
-            var current = $("#recent-scans").html();
+            let current = $("#recent-scans").html();
             $("#recent-scans").html(current + "<br>" + barcode);
         });
+    }).catch((error) => {
+        openModal("error", "Error loading inventory: " + error);
     });
 
     $("#restart-inventory").on("click", () => {
@@ -718,26 +746,41 @@ export function setupInventory() {
 }
 
 var cachedInventory = [];
+/**
+ * @description Loads the inventory from the database.
+ * @returns {Promise<void>} A promise that resolves when the inventory is loaded from the database.
+ */
 function loadInventory() {
-    return new Promise(function (resolve) {
+    return new Promise((resolve, reject) => {
         getDoc(doc(db, "admin", "inventory")).then((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("inventory document does not exist");
                 return;
             }
-            cachedInventory = docSnap.data().books;
+            cachedInventory = [];
+            docSnap.data().books.forEach((book) => {
+                cachedInventory.push(Book.createFromObject(book));
+            });
             resolve();
+        }).catch((error) => {
+            reject(error);
         });
     });
 }
 
+/**
+ * @description Cancels the inventory process and hides the popup.
+ */
 function cancelInventory() {
     $("#inventory-book-barcode").off("blur");
     $("#inventory-popup").hide();
 }
 
+/**
+ * @description Continues the inventory process from where it left off.
+ */
 function continueScanning() {
-    search("", true);
+    updateBookDatabase();
     $("#inventory-popup").show();
     $("#inventory-next-button").hide();
     $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
@@ -757,6 +800,54 @@ function continueScanning() {
             }
         }
     });
+}
+
+/**
+ * @description Sets up the admin help page.
+ */
+export function setupAdminHelp() {
+    $("#tableOfContents li a").each((index, a) => {
+        $(a).attr("href", "/admin/help#section" + (index + 1));
+    });
+    $("#sections > li").each((index, li) => {
+        $(li).attr("id", "section" + (index + 1));
+    });
+    $(".back-to-top").each((index, li) => {
+        $(li).children().attr("href", "/admin/help");
+        $(li).children().on("click", () => {
+            $(document).scrollTop(0);
+        });
+    });
+
+    document.addEventListener("scroll", adminHelpScrolling);
+
+    $(window).on("beforeunload", () => {
+        document.removeEventListener("scroll", adminHelpScrolling);
+    });
+}
+
+function adminHelpScrolling() {
+    let currentSection = 0;
+    $("#tableOfContents, #sections > li").each((index, li) => {
+        // Check if the section is above the top of the screen.
+        // Used to be 90 to account for the header, but I added more to make it more natural.
+        if ($(li).offset().top - $(document).scrollTop() - 165 < 0) {
+            currentSection = index;
+        }
+    });
+    // Change the URL to the current section.
+    let url = "/admin/help";
+    let newHash;
+    if (currentSection == 0) {
+        newHash = "#top";
+    } else {
+        newHash = "#section" + currentSection;
+    }
+    let currentUrl = window.location.pathname + window.location.hash;
+    if (currentUrl != url + newHash) {
+        window.history.replaceState(undefined, "", url + newHash);
+        setCurrentHash(newHash);
+    }
 }
 
 console.log("admin.js has loaded!");

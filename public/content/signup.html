@@ -3,45 +3,44 @@
 <div id="form">
     <div class="login">
         <label for="firstName">First Name:</label>
-        <input type="name" id="firstName" name="name">
-        <br>
+        <input type="text" id="firstName" name="firstName">
         <br>
         <label for="lastName">Last Name:</label>
-        <input type="name" id="lastName" name="name">
-        <br>
+        <input type="text" id="lastName" name="lastName">
         <br>
         <label for="email">Email:</label>
         <input type="email" id="email" name="email">
         <br>
-        <br>
         <label for="phone">Phone Number:</label>
-        <input type="phone" id="phone" name="phone">
-        <br>
+        <input type="tel" id="phone" name="phone">
         <br>
         <label for="address">Address:</label>
-        <input type="address" id="address" name="address">
+        <input type="text" id="address" name="address">
         <br>
         <label for="town">Town:</label>
-        <input type="town" id="town" name="town">
+        <input type="text" id="town" name="town">
         <br>
         <label for="state">State:</label>
-        <input type="state" id="state" name="state">
+        <input type="text" id="state" name="state">
         <br>
         <label for="zip">Zip Code:</label>
-        <input type="zip" id="zip" name="zip">
-        <br>
+        <input type="text" id="zip" name="zip">
         <br>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password">
         <br>
-        <br>
         <label for="confirm-password">Confim Password:</label>
         <input type="password" id="confirm-password" name="confirm-password">
         <br>
+        <div>
+            <input type="checkbox" id="remember-me" name="remember-me" style="float: left; margin-top: 6px;">
+            <label for="remember-me">Remember me</label>
+        </div>
+        <p style="font-size: 12px;">*Do not click this checkbox if you are on a public computer.<br>Only select this option if you are on a personal computer.</p>
         <br>
         <button id="submit">Sign Up</button>
     </div>
 
     <p class="sign-in-switch">Already have an Account?</p>
-    <a class="sign-in-switch" id="log-in-switch-link" style="margin-bottom: 20px;">Click here to Log In!</a>
+    <a class="sign-in-switch" id="log-in-switch-link" href="/login" style="margin-bottom: 20px;">Click here to Log In!</a>
 </div>
