@@ -1,7 +1,7 @@
-# SC-Library
+# SC Library - The South Church Library Database
 
-This git contains the code for a website for the South Church Library Catalog. It is being developed as part of a Scouts BSA Eagle Project.
+This repository contains the code for the South Church Library Catalog. It was started as part of a Scouts BSA Eagle Project and continues to be developed. Learn more about the library on the [about page](https://library.southchurch.com/about).
 
-Feel free to visit the website below (and tell us what we've done wrong):
+Feel free to visit the website below, check out our books, (and probably file a bug report...):
 
-https://south-church-library.web.app
+https://library.southchurch.com
