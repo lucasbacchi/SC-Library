@@ -615,7 +615,7 @@ export function calculateISBNCheckDigit(number) {
                 total += digits[i] * 3;
             }
         }
-        return (10 - (total % 10)).toString();
+        return ((1000 - total) % 10).toString();
     } else if (length == 9) {
         for (let i = 0; i < length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
