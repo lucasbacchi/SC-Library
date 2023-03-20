@@ -641,7 +641,8 @@ p.answer {
     color: var(--teal);
     cursor: pointer;
     font-size: 30px;
-    padding: 4px 12px;
+    padding: 4px 16px;
+    padding-left: 12px;
     font-variation-settings:
         'FILL' 0,
         'wght' 600,
