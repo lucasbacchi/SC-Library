@@ -1,12 +1,16 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
+
+
 
 /************
 BEGIN SEARCH
 *************/
+
+
 
 /**
  * Searches the book database for books based on a query
@@ -245,10 +249,14 @@ function distance(source, target) {
     return score[m + 1][n + 1];
 }
 
+
+
 /**********
 END SEARCH
 BEGIN URL VALUE
 ***********/
+
+
 
 /**
  * 
@@ -332,10 +340,14 @@ export function encodeHTML(string) {
     });
 }
 
+
+
 /**********
 END URL VALUE
 BEGIN BUILD BOOK BOX
 ***********/
+
+
 
 /**
  * 
@@ -526,10 +538,26 @@ function shortenDescription(desc) {
     }
 }
 
+/**
+ * @description Formats a date object into a string.
+ * @param {Date} date The date object to format.
+ * @returns {String} The formatted date string.
+ */
+export function formatDate(date) {
+    if (!date) {
+        return "N/A";
+    }
+    return date.toLocaleString("en-US");
+}
+
+
+
 /**********
 END BUILD BOOK BOX
 BEGIN GET BOOK FROM BARCODE
 ***********/
+
+
 
 /**
  * 
@@ -557,10 +585,14 @@ export function getBookFromBarcode(barcodeNumber) {
     });
 }
 
+
+
 /**********
 END GET BOOK FROM BARCODE
 BEGIN ADD BARCODE SPACING
 ***********/
+
+
 
 /**
  * @description Adds spaces to a barcode to make it easier to read.
@@ -583,10 +615,14 @@ export function addBarcodeSpacing(barcode) {
     return str;
 }
 
+
+
 /**********
 END ADD BARCODE SPACING
 BEGIN ISBN UTILS
 ***********/
+
+
 
 /**
  * 
@@ -698,6 +734,7 @@ export function verifyISBN(number) {
 }
 
 
+
 /**********
 END ISBN UTILS
 BEGIN AUTH
@@ -720,6 +757,8 @@ export function sendEmailVerificationToUser() {
 END AUTH
 BEGIN MODALS
 ***********/
+
+
 
 /**
  * @description Opens a modal that covers the screen and displays info to the user.
@@ -848,4 +887,77 @@ export function openModal(type, message, title, mainButtonText = "OK", mainCallb
 
 /**********
 END MODALS
+BEGIN EMAILS
+***********/
+
+
+
+// TODO: Setup Security Rules for Firestore to restrict who can send emails
+/**
+ * @description Sends an email using the Firebase Send Email Extension.
+ * @param {String|Array<String>} to The email address or addresses to send the email to
+ * @param {String} subject The subject of the email
+ * @param {String} text The text of the email
+ * @param {String} html The HTML of the email
+ * @param {String|Array<String>} cc The email address or addresses to CC the email to
+ * @param {String|Array<String>} bcc The email address or addresses to BCC the email to
+ * @param {String} from The email address to use as the sender. Defaults to the email address in the extension configuration
+ * @param {String} replyTo The email address to use as the reply-to address. Defaults to the email address in the extension configuration
+ * @param {Object} headers An object containing any additional headers to include in the email
+ * @param {Array<Object>} attachments An array of objects containing any attachments to include in the email
+ * @returns {Promise} A promise that resolves when the email is sent
+ */
+export function sendEmail(to = null, subject = null, text = null, html = null, cc = null, bcc = null, from = null, replyTo = null, headers = null, attachments = null) {
+    return new Promise((resolve, reject) => {
+        if ((!to && !cc && !bcc) || !subject || (!text && !html)) {
+            reject("Not enough information to send email.");
+            return;
+        }
+        let emailObject = {
+            to: to,
+            cc: cc,
+            bcc: bcc,
+            from: from,
+            replyTo: replyTo,
+            headers: headers,
+            message: {
+                subject: subject,
+                text: text,
+                html: html,
+                attachments: attachments
+            }
+        };
+        const emailPath = collection(db, "mail");
+        addDoc(emailPath, emailObject).then((docRef) => {
+            const unsub = onSnapshot(doc(db, "mail", docRef.id), (doc) => {
+                try {
+                    if (!doc.exists()) {
+                        reject("Email not found");
+                        unsub();
+                    }
+                    if (!doc.data().delivery) {
+                        return;
+                    }
+                    if (doc.data().delivery.state == "SUCCESS") {
+                        resolve();
+                        unsub();
+                    } else if (doc.data().delivery.state == "ERROR") {
+                        reject(doc.data().delivery.error);
+                        unsub();
+                    }
+                } catch (error) {
+                    console.error(error);
+                    reject(error);
+                }
+            });
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
+
+
+
+/**********
+END EMAILS
 ***********/

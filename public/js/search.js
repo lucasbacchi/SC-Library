@@ -1,7 +1,7 @@
 // Make content Responsive
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue, updateBookDatabase } from './common';
-import { analytics, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { addBarcodeSpacing, buildBookBox, findURLValue, formatDate, getBookFromBarcode, openModal, search, sendEmail, setURLValue, updateBookDatabase } from './common';
+import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -448,6 +448,7 @@ export function setupResultPage(pageQuery) {
         const imgContainer = document.createElement("div");
         imgContainer.classList.add("modal-container");
         imgContainer.style.backgroundColor = "#000000c0";
+        imgContainer.style.opacity = "0";
         const img = document.createElement("img");
         img.id = "result-page-popup-image";
         imgContainer.appendChild(img);
@@ -455,8 +456,10 @@ export function setupResultPage(pageQuery) {
             img.src = bookObject.coverImageLink;
             img.onload = () => {
                 imgContainer.style.display = "block";
-                imgContainer.style.opacity = "1";
-                img.classList.add("modal-show");
+                setTimeout(() => {
+                    imgContainer.style.opacity = "1";
+                    img.classList.add("modal-show");
+                }, 10);
             };
             $("#content")[0].appendChild(imgContainer);
             imgContainer.addEventListener("click", () => {
@@ -470,12 +473,32 @@ export function setupResultPage(pageQuery) {
         });
     });
 
-    $("#result-page-email").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
-    });
+
+    if (auth.currentUser) {
+        $("#result-page-email").css("display", "block");
+
+        $("#result-page-email").on("click", () => {
+            $("#result-page-email")[0].innerHTML = "<span class=\"material-symbols-outlined\">mail</span> Sending...";
+            $("#result-page-email").off("click");
+            sendBookEmail(barcodeNumber).then(() => {
+                openModal("success", "Please check your email.", "Email Sent Successfully");
+                $("#result-page-email")[0].innerHTML = "<span class=\"material-symbols-outlined\">check</span> Email Sent!";
+            }).catch((error) => {
+                $("#result-page-email")[0].innerHTML = "<span class=\"material-symbols-outlined\">error</span> Couldn't Send Email";
+                openModal("error", "Something went wrong, and we couldn't send you an email. Please try again later.\n" + error);
+            });
+        });
+    }
 
     $("#result-page-link").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            let modal = openModal("success", "The link to this book has been copied to your clipboard.", "Link Copied", "");
+            setTimeout(() => {
+                modal();
+            }, 1800);
+        }).catch((error) => {
+            openModal("error", "Something went wrong, and we couldn't copy the link to your clipboard. Please try again later.\n" + error.message);
+        });
     });
 
     $("#result-page-print").on("click", () => {
@@ -709,6 +732,78 @@ function fillResultPage(barcodeNumber) {
         openModal("error", "No information could be found for that book.\n" + error);
     });
 }
+
+/**
+ * @description Sends an email to the user with the information about the book.
+ * @param {String} barcodeNumber The barcode number of the book.
+ * @returns {Promise} A promise that resolves when the email is sent.
+ */
+function sendBookEmail(barcodeNumber) {
+    return new Promise((resolve, reject) => {
+        if (!barcodeNumber) {
+            reject("No barcode number was provided.");
+            return;
+        }
+        if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
+            reject("The barcode number could not be identified.");
+            return;
+        }
+        let email = auth.currentUser.email;
+        if (!email) {
+            reject("No email found.");
+            return;
+        }
+        getBookFromBarcode(barcodeNumber).then((bookObject) => {
+            let emailBody = "<p style=\"white-space: pre;\">Hello,\n\nHere is the information you requested about the book with barcode " + barcodeNumber + ":</p>\n\n";
+            emailBody += "<img src=\"" + bookObject.coverImageLink + "\" style=\"margin-right: 10px; margin-bottom: 10px; max-width: 200px\">\n";
+            emailBody += "<p style=\"white-space: pre;\">Title: " + bookObject.title + "\n";
+            emailBody += "Subtitle: " + bookObject.subtitle + "\n";
+            emailBody += "Author(s): ";
+            bookObject.authors.forEach((item) => {
+                emailBody += item.lastName + ", " + item.firstName + "; ";
+            });
+            emailBody += "\n";
+            emailBody += "Illustrator(s): ";
+            bookObject.illustrators.forEach((item) => {
+                emailBody += item.lastName + ", " + item.firstName + "; ";
+            });
+            emailBody += "\n";
+            emailBody += "Publisher(s): ";
+            bookObject.publishers.forEach((item) => {
+                emailBody += item + "; ";
+            });
+            emailBody += "\n";
+            let date = formatDate(bookObject.publishDate);
+            date = date.substring(0, date.indexOf(","));
+            emailBody += "Publish Date: " + date + "\n";
+            emailBody += "ISBN 10: " + bookObject.isbn10 + "\n";
+            emailBody += "ISBN 13: " + bookObject.isbn13 + "\n";
+            emailBody += "Barcode: " + bookObject.barcodeNumber + "\n";
+            emailBody += "Pages: " + bookObject.numberOfPages + "\n";
+            emailBody += "Medium: " + bookObject.medium + "\n";
+            emailBody += "Audience: " + bookObject.audience.toString() + "\n";
+            emailBody += "Call Number: " + bookObject.ddc + "\n";
+            emailBody += "\nDescription: " + bookObject.description + "\n\n";
+            emailBody += "Subjects: ";
+            bookObject.subjects.forEach((item) => {
+                emailBody += item + "; ";
+            });
+            emailBody += "\n\nThank you for using the library's online catalog.\n\n";
+            emailBody += "Sincerely,\n";
+            emailBody += "Your South Church Library Team</p>";
+            let subject = "Book Information for " + bookObject.title;
+            sendEmail(email, subject, undefined, emailBody).then(() => {
+                resolve();
+            }).catch((error) => {
+                reject(error);
+            });
+        }).catch((error) => {
+            reject("There was an error getting the book information.\n" + error);
+        });
+
+    });
+}
+
 
 /**
  * @description Checks out a book. This function starts the process when the user clicks the checkout button on the result page.

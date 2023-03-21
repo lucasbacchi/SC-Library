@@ -1,6 +1,6 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate } from "./common";
 import { Book, bookDatabase, db, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -365,7 +365,7 @@ function addStats() {
 /**
  * @description Called when the user clicks the "View Missing Barcodes" link.
  */
-// TODO: Remove this function after the system is fully updated to prevent wholes.
+// TODO: Remove this function after the system is fully updated to prevent holes.
 function viewMissingBarcodes() {
     let missingArray = [];
     bookDatabase.forEach((document) => {
@@ -664,18 +664,6 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(checkouts);
     }
     return a;
-}
-
-/**
- * @description Formats a date object into a string.
- * @param {Date} date The date object to format.
- * @returns {String} The formatted date string.
- */
-function formatDate(date) {
-    if (!date) {
-        return "N/A";
-    }
-    return date.toLocaleString("en-US");
 }
 
 var userDatabase = [];
