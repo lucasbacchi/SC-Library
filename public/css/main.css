@@ -246,10 +246,10 @@ div#nav-signup > a {
 }
 
 #large-account-container {
-    display: none;
-    z-index: 20;
-    position: absolute;
-    right: -500%;
+    display: block;
+    z-index: 40;
+    position: fixed;
+    right: 16px;
     top: 88px;
     width: 300px;
     background-color: #f9f9f9;
@@ -259,8 +259,50 @@ div#nav-signup > a {
     padding: 20px;
     padding-bottom: 0px;
     min-width: 125px;
-    transition: 1s ease;
+    transition: 0.6s cubic-bezier(0.4, 0, 0.25, 0.95);
+    transform-origin: top right;
 }
+
+.large-account-show {
+    animation: large-account-show 0.6s forwards cubic-bezier(0.4, 0, 0.5, 0.95);
+}
+
+@keyframes large-account-show {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.large-account-hide {
+    animation: large-account-hide 0.8s forwards cubic-bezier(0.4, 0, 0.25, 0.95);
+}
+
+@keyframes large-account-hide {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
 
 #large-account-image {
     margin: 10px auto;

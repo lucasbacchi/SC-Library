@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="/css/print.css" media="print">
 </head>
 
-<body style="overflow: hidden;">
+<body>
     <header>
         <a href="/" class="no-select">
             <h1>South Church Library</h1>
@@ -49,20 +49,20 @@
                 <img id="small-account-image" src="../img/default-user.jpg">
                 <span class="material-symbols-outlined" id="account-arrow">arrow_drop_down</span>
             </div>
-            <div id="large-account-container">
-                <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
-                <div id="account-information-container">
-                    <p id="account-name"></p>
-                    <p id="account-email"></p>
-                    <a id="admin-link" href="/admin/main"></a>
-                </div>
-                <div id="account-bottom-container">
-                    <a id="log-out" tabindex="0">Log Out</a>
-                    <a href="/account?overview">View Account</a>
-                </div>
-            </div>
         </div>
     </header>
+    <div id="large-account-container" class="large-account-hide">
+        <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
+        <div id="account-information-container">
+            <p id="account-name"></p>
+            <p id="account-email"></p>
+            <a id="admin-link" href="/admin/main"></a>
+        </div>
+        <div id="account-bottom-container">
+            <a id="log-out" tabindex="0">Log Out</a>
+            <a href="/account?overview">View Account</a>
+        </div>
+    </div>
     <!-- Required to make sure the header doesn't overlay on other content. -->
     <div id="header-spacer" style="clear: both; height: 100px;"></div>
 
