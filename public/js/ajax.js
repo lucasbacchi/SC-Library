@@ -30,8 +30,10 @@ $(() => {
     initApp().then(() => {
         setupIndex();
         setHistoryManager(window.history.state);
-        goToPage(fullExtension.substring(1), true, true);
         historyManager.first(fullExtension.substring(1));
+        goToPage(fullExtension.substring(1), true, true).then(() => {
+            $("#cover").remove();
+        });
     }).catch((error) => {
         console.error(error);
     });
@@ -395,9 +397,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         });
     }).then(() => {
         // Will Run after goToPage resolves
-        $("#cover").hide();
         $("body").addClass("fade");
-        $("body").css("overflow", "");
     }).catch((error) => {
         if (error == "Cancelled by BeforeUnload Event") {
             console.log("goToPage function cancelled by BeforeUnload Event");
