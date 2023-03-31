@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "dependencies": {
-    "firebase": "^9.18.0",
+    "firebase": "^9.19.0",
     "firebase-admin": "^11.5.0",
     "jquery": "^3.6.4",
     "web-vitals": "^3.3.0"
