@@ -4,20 +4,10 @@ const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 // This is just a javascript module that exports the config to webpack
-module.exports = {/*
-    entry: {
-        ajax: { import: "/public/js/ajax.js", dependOn: "shared" },
-        main: { import: "/public/js/main.js", dependOn: "shared" },
-        shared: "firebase/compat/app"
-    },*/
+module.exports = {
     entry: {
         ajax: "./public/js/ajax.js"
-    },/*
-    optimization: {
-        splitChunks: {
-            chunks: 'all',
-        },
-    },*/
+    },
     output: {
         filename: "[name].bundle.js",
         path: path.resolve(__dirname, "./public/dist"),
