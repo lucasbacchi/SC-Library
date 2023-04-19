@@ -4,7 +4,7 @@
   "description": "A collection of code for the South Church Library Catalog Website.",
   "private": true,
   "dependencies": {
-    "firebase": "^9.19.1",
+    "firebase": "^9.20.0",
     "firebase-admin": "^11.7.0",
     "jquery": "^3.6.4",
     "web-vitals": "^3.3.1"
