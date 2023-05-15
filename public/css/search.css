@@ -1,3 +1,12 @@
+#search-page-content {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 24px;
+}
+
 /* Search Page Sort Sidebar */
 #sort-sidebar {
     display: inline-block;
@@ -7,7 +16,6 @@
     vertical-align: top;
     position: relative;
     background-color: #f2f2f2;
-    margin-left: 20px;
     border-radius: 6px;
     box-shadow: 0px 0px 8px 0px #cccccc;
     margin-bottom: 20px;
@@ -26,6 +34,7 @@
 .sort-item {
     list-style-type: none;
     padding-bottom: 5px;
+    position: relative;
 }
 
 .sort-item > input {
@@ -38,9 +47,23 @@
     cursor: pointer;
 }
 
+.sort-item > .sort-frequency {
+    display: inline;
+    position: absolute;
+    right: -40px;
+    top: 2px;
+    padding: 2px 8px;
+    border-radius: 24px;
+    background-color: #ddd;
+    font-size: 14px;
+    user-select: none;
+    cursor: default;
+}
+
 ul.sort-list {
     padding-left: 32px;
     margin-top: 6px;
+    margin-right: 42px;
 }
 
 h6.sort-title {
@@ -78,9 +101,7 @@ h6.sort-title {
     padding: 10px;
     border-radius: 6px;
     z-index: 3;
-    margin-left: 16px;
-    margin-bottom: 20px;
-    width: calc(85% - 56px);
+    width: 85%;
     display: inline-block;
     overflow: hidden;
     box-shadow: 0px 0px 8px 2px #cccccc;
@@ -97,6 +118,10 @@ h6.sort-title {
     justify-content: space-between;
 }
 
+#search-results-container > a:last-child > .result-listing {
+    border-bottom: none;
+}
+
 .advanced-info {
     flex-basis: 70%;
     margin-left: 8px;
@@ -108,12 +133,38 @@ h6.sort-title {
     order: -1;
 }
 
-#paginator,
-#paginator > * {
-    margin: 8px;
-    margin-top: 16px;
+#paginator {
+    display: none;
+    align-items: center;
+    user-select: none;
+    font-size: 20px;
+    padding: 8px;
+    padding-top: 16px;
+    border-top: 1px solid black;
 }
 
+#paginator > * {
+    margin: 0px 2px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: inline-block;
+    transition: background-color 0.25s, color 0.25s;
+}
+
+#paginator > a:hover {
+    background-color: #ddd;
+}
+
+#paginator > span {
+    cursor: default;
+    background-color: var(--teal);
+    color: white;
+}
+
+#paginator > a.arrow {
+    padding: 8px 12px;
+    line-height: 0;
+}
 
 
 
@@ -123,7 +174,7 @@ h6.sort-title {
 #search-page-search-container {
     display: none;
     margin: 0px 16px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     overflow: visible;
 }
 
@@ -328,16 +379,8 @@ div#result-page-info-bar > h6:first-of-type {
 /* Responsive */
 /* Content if screen is large */
 @media screen and (max-width: 1440px) {
-    #results-container {
-        width: calc(75% - 56px);
-    }
-
     #sort-sidebar {
         width: 25%;
-    }
-
-    div.search-page-search-container {
-        width: calc(75% - 56px);
     }
 
     .advanced-info {
@@ -351,13 +394,16 @@ div#result-page-info-bar > h6:first-of-type {
 
 /* Content if screen is small */
 @media screen and (max-width:1024px) {
-    #results-container {
-        width: calc(75% - 35px);
-        margin-right: 0;
+    #search-page-content {
+        margin: 0 16px;
     }
 
     #sort-sidebar {
-        margin-left: 8px;
+        width: 30%;
+    }
+
+    #results-container {
+        width: 70%;
     }
 
     #result-page-container {
@@ -371,20 +417,25 @@ div#result-page-info-bar > h6:first-of-type {
 
 /* Content if screen is very small */
 @media screen and (max-width:786px) {
-    .sort-section {
-        display: none;
-        opacity: 0;
-        transition: 1s;
+    #search-page-content {
+        flex-direction: column;
+        gap: 24px;
     }
 
     #sort-sidebar {
         display: block;
-        width: 95%;
+        width: 100%;
         margin: 0px auto;
         transition: max-height 1s;
         max-height: 58px;
         margin-bottom: 0px;
         overflow-y: hidden;
+        padding-right: 8px;
+    }
+
+    #sort-sidebar.sort-open {
+        max-height: 500px;
+        overflow-y: scroll;
     }
 
     h3#sort-main-title {
@@ -394,10 +445,8 @@ div#result-page-info-bar > h6:first-of-type {
     }
 
     #results-container {
-        margin: 0 auto;
+        width: 100%;
         display: block;
-        margin-top: 20px;
-        width: 95%;
     }
 
     #search-page-search-container {
@@ -438,6 +487,10 @@ div#result-page-info-bar > h6:first-of-type {
         border: 2px var(--mint) solid;
         box-shadow: 0px 0px 16px 0px #cccccc;
         font-size: 16px;
+    }
+
+    #paginator {
+        justify-content: center;
     }
 }
 

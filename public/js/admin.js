@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase } from "./common";
-import { Book, bookDatabase, db, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle } from "./common";
+import { Book, bookDatabase, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
@@ -815,18 +815,29 @@ export function setupAdminHelp() {
     $(".back-to-top").each((index, li) => {
         $(li).children().attr("href", "/admin/help");
         $(li).children().on("click", () => {
-            $(document).scrollTop(0);
+            windowScroll(0);
         });
     });
 
-    document.addEventListener("scroll", adminHelpScrolling);
+    let adminHelpScrollingFn;
+    if (!adminHelpScrollingFn){
+        adminHelpScrollingFn = new Throttle(adminHelpScrolling, 100).get();
+    }
+    document.addEventListener("scroll", adminHelpScrollingFn);
 
     $(window).on("beforeunload", () => {
-        document.removeEventListener("scroll", adminHelpScrolling);
+        setIgnoreScroll(true);
+        document.removeEventListener("scroll", adminHelpScrollingFn);
+        setTimeout(() => {
+            setIgnoreScroll(false);
+        }, 500);
     });
 }
 
 function adminHelpScrolling() {
+    if (ignoreScroll) {
+        return;
+    }
     let currentSection = 0;
     $("#tableOfContents, #sections > li").each((index, li) => {
         // Check if the section is above the top of the screen.
@@ -844,8 +855,9 @@ function adminHelpScrolling() {
         newHash = "#section" + currentSection;
     }
     let currentUrl = window.location.pathname + window.location.hash;
-    if (currentUrl != url + newHash) {
-        window.history.replaceState(undefined, "", url + newHash);
+    if ((currentUrl != url + newHash) && !ignoreScroll) {
+        console.log("Changing URL to " + url + newHash);
+        historyManager.update(url + newHash);
         setCurrentHash(newHash);
     }
 }

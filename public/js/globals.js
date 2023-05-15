@@ -266,16 +266,21 @@ export class HistoryManager {
      * @param {Number} currentIndex The index of the current page in the stack. Useful for stepping back and forth through the stack.
      */
     constructor(stack, currentIndex) {
-        this.stack = stack;
+        let convertedStack = [];
+        stack.forEach((page) => {
+            convertedStack.push(new HistoryPage(page.name, page.customData, page.sessionData));
+        });
+        this.stack = convertedStack;
         this.currentIndex = currentIndex;
     }
 
     /**
      * @param {String} name The name of the page to add to the stack. 
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} sessionData Any session data to save. This is optional.
      * @description Adds the information to a HistoryPage, adds it to the stack and sets it as the current page using the currentIndex.
      */
-    push(name, customData = null, first = false) {
+    push(name, customData = null, sessionData = null, first = false) {
         // If we are somewhere in the past, remove all pages after the current page
         if (this.currentIndex < this.stack.length - 1) {
             this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
@@ -283,28 +288,56 @@ export class HistoryManager {
         if (name.charAt(0) != "/") {
             name = "/" + name;
         }
-        this.stack.push(new HistoryPage(name, customData));
+        let sessionDataKey = undefined; // Tells HistoryPage not to generate a key
+        // Save the session data
+        if (sessionData != null) {
+            sessionDataKey = null; // Will be set by HistoryPage
+        }
+        // Add the page to the stack
+        this.stack.push(new HistoryPage(name, customData, sessionDataKey));
         this.currentIndex++;
+        // If this is not the first time we are running this, add to the browser history
         if (!first) {
             window.history.pushState({stack: this.stack, index: this.currentIndex}, null, name);
+        }
+        if (sessionData != null) {
+            // Save the session data
+            sessionDataKey = this.stack[this.currentIndex].sessionData;
+            sessionStorage.setItem(sessionDataKey, JSON.stringify(sessionData));
         }
     }
 
     /**
      * @param {String} name The name of the page to add to the stack.
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} sessionData Any session data to save. This is optional.
      * @description Updates the current page in the history stack and then updates the browser history.
      */
-    update(name, customData = null) {
+    update(name, customData = null, sessionData = null) {
         if (name == undefined) {
             name = this.stack[this.currentIndex].name;
         } else if (name.charAt(0) != "/") {
             name = "/" + name;
         }
+        // Get the session data key
+        let sessionDataKey = this.stack[this.currentIndex].sessionData;
+        if (!sessionDataKey && sessionData) {
+            // If there is no session data key, but there is session data, generate a new key
+            this.stack[this.currentIndex] = new HistoryPage(name, customData, sessionData);
+            sessionDataKey = this.stack[this.currentIndex].sessionData;
+        }
         // Update the current page in the stack
-        this.stack[this.currentIndex] = new HistoryPage(name, customData);
+        this.stack[this.currentIndex].update(name, customData);
         // Update the history
-        window.history.replaceState({stack: this.stack, index: this.currentIndex}, null, name);
+        setTimeout(() => {
+            window.history.replaceState({stack: this.stack, index: this.currentIndex}, null, name);
+        }, 10);
+        // Save the session data
+        if (sessionData) {
+            console.log("Length: " + JSON.stringify(sessionData).length);
+            debugger;
+            sessionStorage.setItem(sessionDataKey, JSON.stringify(sessionData));
+        }
     }
 
     /**
@@ -314,6 +347,15 @@ export class HistoryManager {
     pop() {
         this.currentIndex--;
         return this.stack.pop();
+    }
+
+    /**
+     * @description Gets the page at the specified index relative to the current page.
+     * @param {Number} relativeIndex The index of the page relative to the current page. Defaults to 0.
+     * @returns {HistoryPage} The page at the specified index.
+     */
+    get(relativeIndex = 0) {
+        return this.stack[this.currentIndex + relativeIndex];
     }
 
     /**
@@ -340,19 +382,23 @@ export class HistoryManager {
     /**
      * @param {String} name The item to add to the stack.
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} sessionData Any session data to save. This is optional.
      * @description Used to add the first item to the stack.
      */
-    first(name, customData = null) {
+    first(name, customData = null, sessionData = null) {
         if (name.charAt(0) != "/") {
             name = "/" + name;
         }
         if (this.stack.length == 0 && this.currentIndex == -1) {
             // This will only run if there was no history found.
-            this.push(name, customData, true);
+            this.push(name, customData, sessionData, true);
             window.history.replaceState({
                 stack: this.stack,
                 index: this.currentIndex
             }, null, name);
+            if (history.scrollRestoration) {
+                history.scrollRestoration = "manual";
+            }
         }
     }
 }
@@ -388,14 +434,35 @@ export function setHistoryManager(state) {
 export class HistoryPage {
     name = "";
     customData = null;
+    sessionData = null;
     /**
      * 
      * @param {String} name A string containing the path of the page.
      * @param {Object} customData An object containing any custom data that should be stored with the page.
+     * @param {String} sessionData A string containing the session data key. This is optional.
      */
-    constructor(name, customData) {
+    constructor(name, customData, sessionData) {
         this.name = name;
         this.customData = customData;
+        if (!isNaN(Date.parse(sessionData))) {
+            this.sessionData = sessionData;
+        } else if (sessionData) {
+            this.sessionData = new Date().toISOString();
+        } else {
+            this.sessionData = null;
+        }
+    }
+
+    /**
+     * @description Updates and existing History Page, but keeps the Session Data key the same.
+     * @param {String} name A string containing the path of the page.
+     * @param {Object} customData An object containing any custom data that should be stored with the page.
+     */
+    update(name, customData = null) {
+        this.name = name;
+        if (customData != null) {
+            this.customData = customData;
+        }
     }
 }
 
@@ -767,6 +834,23 @@ export class Audience {
             youth: this.youth,
             adult: this.adult
         };
+    }
+
+    /**
+     * @returns {Array} an array of strings representing the audience
+     */
+    toArray() {
+        let arr = [];
+        if (this.children) {
+            arr.push("Children");
+        }
+        if (this.youth) {
+            arr.push("Youth");
+        }
+        if (this.adult) {
+            arr.push("Adult");
+        }
+        return arr;
     }
 }
 
