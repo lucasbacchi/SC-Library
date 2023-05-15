@@ -33,8 +33,9 @@ function homePageSearch() {
  */
 function homeBookBoxes() {
     // If we have the books in the history, use those.
-    if (window.history.state.stack[window.history.state.index]?.customData?.homeBookBoxes) {
-        let bookList = window.history.state.stack[window.history.state.index]?.customData?.homeBookBoxes;
+    if (window.history.state.stack[window.history.state.index]?.sessionData) {
+        let sessionData = JSON.parse(sessionStorage.getItem(historyManager.get().sessionData));
+        let bookList = sessionData?.homeBookBoxes;
         console.log("Using books from history", bookList);
         updateBookDatabase().then(() => {
             for (let i = 0; i < 9; i++) {
@@ -75,8 +76,16 @@ function homeBookBoxes() {
                 return;
             }
         }
+
         // Store the books in the history
-        historyManager.update(undefined, {homeBookBoxes: bookList});
+        let sessionData = historyManager.get().sessionData;
+        if (sessionData) {
+            sessionData = JSON.parse(sessionStorage.getItem(sessionData));
+        } else {
+            sessionData = {};
+        }
+        sessionData.homeBookBoxes = bookList;
+        historyManager.update(undefined, undefined, sessionData);
     } else {
         // Get the largest doc to figure out how many total books there are.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
@@ -122,8 +131,16 @@ function homeBookBoxes() {
                             return;
                         }
                     }
+
                     // Store the books in the history
-                    historyManager.update(undefined, {homeBookBoxes: bookList});
+                    let sessionData = historyManager.get().sessionData;
+                    if (sessionData) {
+                        sessionData = JSON.parse(sessionStorage.getItem(sessionData));
+                    } else {
+                        sessionData = {};
+                    }
+                    sessionData.homeBookBoxes = bookList;
+                    historyManager.update(undefined, undefined, sessionData);
                 }).catch((error) => {
                     console.error("There was an issue getting the random book doc", error);
                 });

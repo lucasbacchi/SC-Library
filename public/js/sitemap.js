@@ -5,20 +5,20 @@ import { auth, directory } from "./globals";
  * @description Sets up the sitemap page. It also determines if the user is an admin and adds the admin pages to the sitemap.
  */
 export function setupSitemap() {
-    let folder = "", blacklist = ['404', 'autogenindex', 'account', 'result'];
-    if (auth.currentUser) blacklist.push('login', 'signup');
+    let folder = "", blacklist = ["404", "account", "result"];
+    if (auth.currentUser) blacklist.push("login", "signup");
     for (let i = 0; i < directory.length; i++) {
         let page = directory[i];
         if (blacklist.indexOf(page) != -1) continue;
-        let slash = page.indexOf('/');
+        let slash = page.indexOf("/");
         let char;
         if (slash != -1) {
             let newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder == "admin") continue;
             if (folder != newFolder && newFolder != "") {
-                $('#sitemap').append("<li>" + formatPageString(newFolder) + "</li>");
-                $('#sitemap').append("<ul id='" + newFolder + "'></ul>");
+                $("#sitemap").append("<li>" + formatPageString(newFolder) + "</li>");
+                $("#sitemap").append("<ul id='" + newFolder + "'></ul>");
             }
             folder = newFolder;
             if (folder == "account") char = "?"; else if (folder == "") char = ""; else char = "/";

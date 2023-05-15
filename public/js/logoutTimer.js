@@ -5,12 +5,12 @@ const COUNTDOWN_TIMER = 2 * 60; // 2 minutes
 // This creates an event listener for the main thread to send messages to
 onmessage = (e) => {
     if (e.data === "start") {
-        start();
+        scroll();
     } else if (e.data === "stop") {
         stop();
     } else if (e.data === "reset") {
         stop();
-        start();
+        scroll();
     }
 };
 
@@ -19,7 +19,7 @@ var logoutCountdown;
 /**
  * @description Starts the logout timer.
  */
-function start() {
+function scroll() {
     logoutTimer = setTimeout(() => {
         let timeRemaining = COUNTDOWN_TIMER;
         postMessage({command: "show", timeRemaining: timeRemaining});
