@@ -268,10 +268,10 @@ div#nav-signup > a {
 }
 
 #large-account-container {
-    display: none;
+    opacity: 0;
     z-index: 20;
     position: absolute;
-    right: -500%;
+    right: 16px;
     top: 88px;
     width: 300px;
     background-color: #f9f9f9;
@@ -281,7 +281,6 @@ div#nav-signup > a {
     padding: 20px;
     padding-bottom: 0px;
     min-width: 125px;
-    transition: 0.6s cubic-bezier(0.4, 0, 0.25, 0.95);
     transform-origin: top right;
 }
 

@@ -1,6 +1,6 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { addDoc, collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
 
@@ -487,6 +487,70 @@ export let updateScrollPosition = new Throttle(() => {
     customData["scrollRestoration"] = scrollPosition;
     historyManager.update(null, customData);
 }, 200).get();
+
+
+export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
+    return new Promise((resolve, reject) => {
+        if (!to || !subject || (!text && !html)) {
+            reject("Missing required parameters");
+        }
+        let document = {
+            to: to,
+            message: {
+                subject: subject
+            }
+        };
+        if (cc) {
+            document.cc = cc;
+        }
+        if (bcc) {
+            document.bcc = bcc;
+        }
+        if (from) {
+            document.from = from;
+        }
+        if (replyTo) {
+            document.replyTo = replyTo;
+        }
+        if (headers) {
+            document.headers = headers;
+        }
+        if (text) {
+            document.message.text = text;
+        }
+        if (html) {
+            document.message.html = html;
+        }
+        if (attachments) {
+            document.message.attachments = attachments;
+        }
+        addDoc(collection(db, "mail"), document).then((docRef) => {
+            let unsub = onSnapshot(docRef, (doc) => {
+                if (!doc.exists) {
+                    return;
+                }
+                let data = doc.data();
+                if (!data.delivery) {
+                    return;
+                }
+                if (data.delivery.state == "SUCCESS") {
+                    unsub();
+                    resolve();
+                } else if (data.delivery.state == "ERROR") {
+                    unsub();
+                    reject(data.delivery.error);
+                }
+            });
+            // Give up after 10 seconds
+            window.setTimeout(() => {
+                unsub();
+                reject("Timeout");
+            }, 10000);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
 
 
 

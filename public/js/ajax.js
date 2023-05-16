@@ -150,10 +150,8 @@ function setupIndex() {
 
     // Manage Account Panel and animation
     $("#small-account-container").on("click", () => {
-        if ($("#large-account-container").css("display") == "none") {
-            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
-            $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "16px");
+        if ($("#large-account-container").css("opacity") == "0") {
+            openLargeAccount();
         } else {
             closeLargeAccount();
         }
@@ -164,10 +162,8 @@ function setupIndex() {
         if (event.key != "Enter") {
             return;
         }
-        if ($("#large-account-container").css("display") == "none") {
-            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
-            $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "16px");
+        if ($("#large-account-container").css("opacity") == "none") {
+            openLargeAccount();
         } else {
             closeLargeAccount();
         }
@@ -266,8 +262,8 @@ function openLargeAccount() {
  * @description Closes the large account panel
  */
 function closeLargeAccount() {
-    $("#large-account-container").delay(400).hide(0);
-    $("#large-account-container").css("right", "-500%");
+    $("#large-account-container").addClass("large-account-hide");
+    $("#large-account-container").removeClass("large-account-show");
 }
 
 /**
@@ -505,7 +501,10 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
         if (window.innerWidth <= 570) {
             closeNavMenu();
         }
-        closeLargeAccount();
+
+        if ($("#large-account-container").css("opacity") != "none") {
+            closeLargeAccount();
+        }
 
 
         // If the user is going to a different panel on the account page, handle it with the other function and return.

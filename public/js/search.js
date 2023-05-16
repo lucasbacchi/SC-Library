@@ -1,5 +1,5 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, formatDate, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
+import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
 import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -635,11 +635,25 @@ export function setupResultPage(pageQuery) {
     });
 
     $("#result-page-email").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
+        let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
+        resultPageEmail(barcodeNumber).then(() => {
+            loadingModal();
+            openModal("success", "An email containing this book's information has been sent to the email address on file. Please check your inbox.", "Email Sent!");
+        }).catch((error) => {
+            console.error(error);
+            loadingModal();
+            openModal("error", "An error occured while sending the email. Please try again later.\n\nIf the problem persists, contact us at library@southchurch.com for assistance.",
+            "Error Sending Email");
+        });
     });
 
     $("#result-page-link").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            let closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
+            window.setTimeout(() => {
+                closeModal();
+            }, 1200);
+        });
     });
 
     $("#result-page-print").on("click", () => {
@@ -871,6 +885,88 @@ function fillResultPage(barcodeNumber) {
             goToPage("");
         }
         openModal("error", "No information could be found for that book.\n" + error);
+    });
+}
+
+function resultPageEmail(barcodeNumber) {
+    return new Promise((resolve, reject) => {
+        getBookFromBarcode(barcodeNumber).then((book) => {
+            let message = "<p style='white-space:pre-wrap'>Hello,\n\nHere is the information you requested about the book with barcode " + book.barcodeNumber + ":</p>";
+            message += "<img src='" + book.coverImageLink + "' alt='Cover Image' style='width: 100%; max-width: 300px; height: auto;'>";
+            message += "<br><p style='white-space:pre-wrap'><b>Title:</b> " + book.title + "\n";
+            if (book.subtitle) {
+                message += "<b>Subtitle:</b> " + book.subtitle + "\n";
+            }
+            if (book.authors.length > 0) {
+                message += "<b>Author(s):</b> ";
+                for (let i = 0; i < book.authors.length; i++) {
+                    message += book.authors[i].lastName + ", " + book.authors[i].firstName;
+                    if (i != book.authors.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.illustrators.length > 0) {
+                message += "<b>Illustrator(s):</b> ";
+                for (let i = 0; i < book.illustrators.length; i++) {
+                    message += book.illustrators[i].lastName + ", " + book.illustrators[i].firstName;
+                    if (i != book.illustrators.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n\n";
+            }
+            if (book.subjects.length > 0) {
+                message += "<b>Subject(s):</b> ";
+                for (let i = 0; i < book.subjects.length; i++) {
+                    message += book.subjects[i];
+                    if (i != book.subjects.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.description) {
+                message += "<b>Description:</b> " + book.description + "\n\n";
+            }
+            if (book.publishers.length > 0) {
+                message += "<b>Publisher(s):</b> ";
+                for (let i = 0; i < book.publishers.length; i++) {
+                    message += book.publishers[i];
+                    if (i != book.publishers.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.publishDate) {
+                let d = book.publishDate;
+                let date = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear();
+                message += "<b>Publish Date:</b> " + date + "\n";
+            }
+            if (book.isbn10) {
+                message += "<b>ISBN-10:</b> " + book.isbn10 + "\n";
+            }
+            if (book.isbn13) {
+                message += "<b>ISBN-13:</b> " + book.isbn13 + "\n";
+            }
+            message += "<b>Audience:</b> " + book.audience.toString() + "\n";
+            message += "<b>Medium:</b> " + book.medium + "\n";
+            message += "<b>Number of Pages:</b> " + book.numberOfPages + "\n";
+            message += "<b>Dewey Decimal Classification:</b> " + book.ddc + "\n\n";
+            message += "Thank you for using the South Church Library Catalog!\n\nSincerely,\nYour South Church Library Team</p>";
+            let to = [auth.currentUser.email];
+            let subject = "Book Information for " + book.title;
+            sendEmail(to, subject, undefined, message).then(() => {
+                resolve();
+            }).catch((error) => {
+                reject(error);
+            });
+        }).catch((error) => {
+            openModal("error", "There was an error sending an email. Please contact us at library@southchurch.com for assistance.\n" + error);
+            reject(error);
+        });
     });
 }
 
