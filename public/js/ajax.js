@@ -14,7 +14,7 @@ import {
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
     currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User
 } from "./globals";
-import { findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
 
 // eslint-disable-next-line no-unused-vars
@@ -391,7 +391,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 
         // Handle Scrolling
         // Scroll to a specific part of the page if needed
-        if (pageHash && $(decodeURIComponent(pageHash)).length > 0) {
+        if (pageHash && $(encodeHTML(pageHash)).length > 0) {
             pageHash = "#" + encodeURIComponent(pageHash.substring(1));
             setTimeout(() => {
                 windowScroll($(pageHash).offset().top - 90);
