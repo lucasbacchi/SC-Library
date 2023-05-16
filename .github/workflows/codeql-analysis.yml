@@ -24,7 +24,7 @@ on:
 
 jobs:
   analyze:
-    if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
+    if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
     name: Analyze
     runs-on: ubuntu-latest
 
@@ -36,19 +36,19 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3.4.0
-      if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
+      if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
-      if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
+      if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
       with:
         languages: ${{ matrix.language }}
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
-      if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
+      if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
-      if: github.actor == 'FunMan22' || github.actor == 'justinbacchi73'
+      if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
