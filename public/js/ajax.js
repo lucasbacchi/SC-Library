@@ -391,7 +391,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 
         // Handle Scrolling
         // Scroll to a specific part of the page if needed
-        if (pageHash && $(pageHash).length > 0) {
+        if (pageHash && $(decodeURIComponent(pageHash)).length > 0) {
             pageHash = "#" + encodeURIComponent(pageHash.substring(1));
             setTimeout(() => {
                 windowScroll($(pageHash).offset().top - 90);
