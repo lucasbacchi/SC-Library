@@ -624,7 +624,6 @@ img[src="/img/av-image.png"] {
 div.login {
     display: flex;
     flex-direction: column;
-    float: left;
     width: 100%;
     margin: 4px;
     margin-bottom: 25px;
@@ -633,7 +632,7 @@ div.login {
 .sign-in-switch,
 a.sign-in-switch:visited {
     display: block;
-    float: left;
+    text-align: left;
     margin: auto;
     margin-bottom: 5px;
     font-size: 1em;

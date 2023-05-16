@@ -666,18 +666,6 @@ function buildUserBox(obj, page, num = 0) {
     return a;
 }
 
-/**
- * @description Formats a date object into a string.
- * @param {Date} date The date object to format.
- * @returns {String} The formatted date string.
- */
-function formatDate(date) {
-    if (!date) {
-        return "N/A";
-    }
-    return date.toLocaleString("en-US");
-}
-
 var userDatabase = [];
 /**
  * @description Gets all the users from the database and stores them in the userDatabase array.

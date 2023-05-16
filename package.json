@@ -29,16 +29,17 @@
     "stats-dev": "webpack --config webpack.dev.js --profile --json > stats.json",
     "stats-prod": "webpack --config webpack.prod.js --profile --json > stats.json",
     "webpack": "webpack --entry ./public/js/ajax.js",
-    "watch": "webpack --config webpack.dev.js --watch"
+    "watch": "webpack --config webpack.dev.js --watch",
+    "serve": "firebase emulators:start --only hosting"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FunMan22/SC-Library.git"
+    "url": "git+https://github.com/lucasbacchi/SC-Library.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/FunMan22/SC-Library/issues"
+    "url": "https://github.com/lucasbacchi/SC-Library/issues"
   },
-  "homepage": "https://github.com/FunMan22/SC-Library#readme"
+  "homepage": "https://github.com/lucasbacchi/SC-Library#readme"
 }

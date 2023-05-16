@@ -251,6 +251,18 @@ BEGIN UTILS
 ***********/
 
 /**
+ * @description Formats a date object into a string.
+ * @param {Date} date The date object to format.
+ * @returns {String} The formatted date string.
+ */
+export function formatDate(date) {
+    if (!date) {
+        return "N/A";
+    }
+    return date.toLocaleString("en-US");
+}
+
+/**
  * 
  * @param {String} string The String of text to search through
  * @param {String} key The name of the value that you are searching for
