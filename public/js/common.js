@@ -49,6 +49,7 @@ export function updateBookDatabase(forced = false) {
                     });
                     bookDatabase.push(documentObject);
                 });
+                setBookDatabase(bookDatabase); // This may seem redundant, but it's not. It's to make sure that the bookDatabase is updated in indexedDB.
                 resolve();
             }).catch((error) => {
                 reject(error);

@@ -1,6 +1,6 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
 import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
-import { analytics, auth, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
@@ -201,23 +201,43 @@ function goToSearchPage(page = 1, bypassHistory = false) {
     $("#content").addClass("loading");
 
     // If we have the books in the history, use those.
-    if (!bypassHistory && historyManager.get()?.sessionData) {
-        let sessionDataKey = historyManager.get()?.sessionData;
-        let sessionData = JSON.parse(sessionStorage.getItem(sessionDataKey));
-        let searchPageData = sessionData?.searchPageData;
-        // Check to ensure that the page number is the same as the one in the history.
-        if (searchPageData && searchPageData.page == page) {
-            console.log("Using books from history", searchPageData);
-            searchPageData.resultsArray.forEach((book, index) => {
-                if (!(book instanceof Book)) {
-                    searchPageData.resultsArray[index] = Book.createFromObject(book);
-                }
-            });
-            createSearchResultsPage(searchPageData.resultsArray, page);
-            return;
-        }
+    if (!bypassHistory && historyManager.get()?.stateData) {
+        let stateDataKey = historyManager.get()?.stateData;
+        HistoryManager.getFromIDB(stateDataKey).then((stateData) => {
+            let searchPageData = stateData?.searchPageData;
+            // Check to ensure that the page number is the same as the one in the history.
+            if (searchPageData && searchPageData.page == page) {
+                console.log("Using books from history", searchPageData);
+                searchPageData.resultsArray.forEach((book, index) => {
+                    if (!(book instanceof Book)) {
+                        searchPageData.resultsArray[index] = Book.createFromObject(book);
+                    }
+                });
+                // Set the global variables to the ones from the history.
+                isBrowse = searchPageData.isBrowse;
+                browseResultsArray = searchPageData.resultsArray;
+                filters = searchPageData.filters;
+                docsUsed = searchPageData.docsUsed;
+                createSearchResultsPage(searchPageData.resultsArray, page);
+            } else {
+                // If the page number is not the same, abort and get the books from the database.
+                getNewBooksForSearch(page);
+            }
+        }).catch((error) => {
+            console.error("Could not get books from history. IDB error:", error);
+        });
+        return;
     }
 
+    // If we couldn't use the history, get the books from the database.
+    getNewBooksForSearch(page);
+}
+
+/**
+ * @description Gets new books for the search page, then calls createSearchResultsPage.
+ * @param {Number} page the page number.
+ */
+function getNewBooksForSearch(page) {
     // If we don't have the books in the history, get them from the database.
     let loadingModal;
     let timer = setTimeout(() => {
@@ -255,7 +275,7 @@ function goToSearchPage(page = 1, bypassHistory = false) {
  * @param {Book[]} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
-function createSearchResultsPage(resultsArray, page = 1) {
+async function createSearchResultsPage(resultsArray, page = 1) {
     // Clear the search results container.
     $('div#search-results-container').empty();
     // If the search results array is empty, display a message saying so.
@@ -281,14 +301,24 @@ function createSearchResultsPage(resultsArray, page = 1) {
     createPaginator(resultsArray, page);
     searchPageData.page = page;
 
-    let sessionData = historyManager.get().sessionData;
-    if (sessionData) {
-        sessionData = JSON.parse(sessionStorage.getItem(sessionData));
+    searchPageData.isBrowse = isBrowse;
+    searchPageData.browseResultsArray = browseResultsArray;
+    searchPageData.docsUsed = docsUsed;
+
+    let stateData = historyManager.get().stateData;
+    let lookupPromise;
+    if (stateData) {
+        lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
+            console.error("There was an issue getting the books from the history. IDB Error:", error);
+        });
     } else {
-        sessionData = {};
+        lookupPromise = Promise.resolve({});
     }
-    sessionData.searchPageData = searchPageData;
-    historyManager.update(null, undefined, sessionData);
+
+    lookupPromise.then((stateData) => {
+        stateData.searchPageData = searchPageData;
+        historyManager.update(null, undefined, stateData);
+    });
 
     $("#apply-filters-button").removeAttr("disabled");
     $("#content").removeClass("loading");
@@ -309,8 +339,8 @@ function createPaginator(resultsArray, page) {
         prev.classList.add("arrow");
         prev.innerHTML = "<span class='material-symbols-outlined'>navigate_before</span>";
         prev.onclick = () => {
-            goToSearchPage(page - 1);
             windowScroll(0, 1500);
+            goToSearchPage(page - 1);
         };
         $("#paginator")[0].appendChild(prev);
     }
@@ -327,8 +357,8 @@ function createPaginator(resultsArray, page) {
         const a = document.createElement('a');
         a.innerHTML = p;
         a.onclick = () => {
-            goToSearchPage(p);
             windowScroll(0, 1500);
+            goToSearchPage(p);
         };
         $("#paginator")[0].appendChild(a);
     }
@@ -339,8 +369,8 @@ function createPaginator(resultsArray, page) {
         next.classList.add("arrow");
         next.innerHTML = "<span class='material-symbols-outlined'>navigate_next</span>";
         next.onclick = () => {
-            goToSearchPage(page + 1);
             windowScroll(0, 1500);
+            goToSearchPage(page + 1);
         };
         $("#paginator")[0].appendChild(next);
     }

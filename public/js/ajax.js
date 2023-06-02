@@ -12,7 +12,7 @@ import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User
+    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
 import { encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
@@ -29,6 +29,7 @@ var fullExtension = path + query + hash;
 $(() => {
     initApp().then(() => {
         setupIndex();
+        setupIndexedDB();
         setHistoryManager(window.history.state);
         goToPage(fullExtension.substring(1), true);
         historyManager.first(fullExtension.substring(1));
@@ -237,6 +238,74 @@ function setupIndex() {
         $("#footer-spacer").css("height", footerHeight);
     });
     footerObserver.observe(footer);
+}
+
+/**
+ * @description This function sets up the IndexedDB database.
+ */
+function setupIndexedDB() {
+    // Setup IndexedDB
+    let openRequest = window.indexedDB.open("SCLibrary", 1);
+
+    // Runs if the database doesn't exist or the version number is newer
+    openRequest.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        db.createObjectStore("historyStates");
+        db.createObjectStore("globals");
+        // const bookObjectStore = db.createObjectStore("books", {keyPath: "id"});
+        // bookObjectStore.createIndex("id", "id", {unique: true});
+    };
+
+    openRequest.onerror = (event) => {
+        console.error("Error opening indexedDB");
+        console.log(event);
+    };
+
+    openRequest.onsuccess = () => {
+        // Load in any caches
+        const expectedCachedVars = ["bookDatabase", "timeLastSearched"];
+        setIDB(openRequest.result);
+        let transaction = iDB.transaction("globals", "readonly");
+        let globalsObjectStore = transaction.objectStore("globals");
+
+        expectedCachedVars.forEach((key) => {
+            let request = globalsObjectStore.get(key);
+            request.onsuccess = () => {
+                if (request.result == undefined) {
+                    console.warn("Cached variable not found: " + key);
+                    return;
+                }
+                if (key == "bookDatabase") {
+                    let tempBookDatabase = [];
+                    request.result.forEach((bookDoc) => {
+                        let books = [];
+                        bookDoc.books.forEach((book) => {
+                            books.push(Book.createFromObject(book));
+                        });
+                        let order = bookDoc.order;
+                        tempBookDatabase.push({books: books, order: order});
+                    });
+                    setBookDatabase(tempBookDatabase);
+                } else if (key == "timeLastSearched") {
+                    setTimeLastSearched(request.result);
+                } else {
+                    console.warn("Unexpected cached variable: " + key);
+                }
+            };
+        });
+
+        // Flush old history states from more than 2 weeks ago
+        let historyTransaction = iDB.transaction("historyStates", "readwrite");
+        let historyStatesObjectStore = historyTransaction.objectStore("historyStates");
+        const range = IDBKeyRange.upperBound(Date.now() - 604800000 * 2); // 604800000ms = 1 week
+        let request = historyStatesObjectStore.openCursor(range);
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (!cursor) return;
+            cursor.delete();
+            cursor.continue();
+        };
+    };
 }
 
 /**
