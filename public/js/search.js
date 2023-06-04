@@ -377,7 +377,7 @@ function createPaginator(resultsArray, page) {
 }
 
 /**
- * @description Creates the list of filters and the filter object. Then it calls buildFilterList to create the HTML elements.
+ * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
  * @param {Book[]} resultsArray The array of books to list on the search results page.
  */
 function createFilterList(resultsArray) {
