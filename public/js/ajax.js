@@ -859,11 +859,7 @@ window.onpopstate = () => {
         return;
     }
 
-    if (historyManager.currentIndex - 1 == window.history.state.index) {
-        historyManager.currentIndex--;
-    } else if (historyManager.currentIndex + 1 == window.history.state.index) {
-        historyManager.currentIndex++;
-    }
+    historyManager.currentIndex = window.history.state.index;
 
     let path = document.location.pathname.substring(1);
     let search = document.location.search;

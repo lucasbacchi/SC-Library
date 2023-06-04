@@ -458,6 +458,20 @@ export class HistoryManager {
         return new Promise((resolve, reject) => {
             let request = iDB.transaction("historyStates").objectStore("historyStates").get(stateDataKey);
             request.onsuccess = () => {
+                // Convert JSON Objects to Book Objects
+                if (request.result.searchPageData) {
+                    let searchPageData = request.result.searchPageData;
+                    searchPageData.books = searchPageData.books.map(book => Book.createFromObject(book));
+                    searchPageData.browseResultsArray = searchPageData.browseResultsArray.map(book => Book.createFromObject(book));
+                    searchPageData.resultsArray = searchPageData.resultsArray.map(book => Book.createFromObject(book));
+                    request.result.searchPageData = searchPageData;
+                }
+                if (request.result.homeBookBoxes) {
+                    let homeBookBoxes = request.result.homeBookBoxes;
+                    homeBookBoxes = homeBookBoxes.map(book => Book.createFromObject(book));
+                    request.result.homeBookBoxes = homeBookBoxes;
+                }
+
                 resolve(request.result);
             };
             request.onerror = () => {

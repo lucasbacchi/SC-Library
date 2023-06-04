@@ -215,7 +215,7 @@ function goToSearchPage(page = 1, bypassHistory = false) {
                 });
                 // Set the global variables to the ones from the history.
                 isBrowse = searchPageData.isBrowse;
-                browseResultsArray = searchPageData.resultsArray;
+                browseResultsArray = searchPageData.browseResultsArray;
                 filters = searchPageData.filters;
                 docsUsed = searchPageData.docsUsed;
                 createSearchResultsPage(searchPageData.resultsArray, page);
@@ -275,7 +275,7 @@ function getNewBooksForSearch(page) {
  * @param {Book[]} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
-async function createSearchResultsPage(resultsArray, page = 1) {
+function createSearchResultsPage(resultsArray, page = 1) {
     // Clear the search results container.
     $('div#search-results-container').empty();
     // If the search results array is empty, display a message saying so.
@@ -499,7 +499,7 @@ function bulidFilterList() {
             $("#sort-" + filterType + "-list")[0].appendChild(li);
             filter.displayed = true;
             if (filter.checked) {
-                $("#" + id)[0].checked = true;
+                document.getElementById(id).checked = true;
             }
         });
     });
