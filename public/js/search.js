@@ -1,54 +1,26 @@
-// Make content Responsive
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, search, setURLValue, updateBookDatabase } from './common';
-import { analytics, Book, bookDatabase, db, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
+import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
-// Doesn't have to be setup because the window element doesn't change.
-$(window).on("resize", () => {
-    if ($(window).width() > 786) {
-        $('#sort-container').width('fit-content');
-        $('.sort-section').show();
-        $('.sort-section').css('opacity', '1');
-        $('#close-button').hide();
-        // $('#sort-sidebar').css('overflow-y', 'visible'); Was causing problems, if needed, reimplement
-        $('#sort-sidebar').css('max-height', '');
-    }
-    if ($(window).width() <= 786 && $('#close-button').css('display') == 'none') {
-        $('#sort-container').width('0');
-        $('.sort-section').hide();
-        $('.sort-section').css('opacity', '0');
-    }
-});
+var isBrowse;
+var browseResultsArray;
+var filters;
+var docsUsed;
+const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
 
 /**
  * @description Sets up the search page event listeners then starts the process of displaying books.
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
-    // Set Initial window layout.
-    if ($(window).width() > 786) {
-        $('.sort-section').show();
-    }
-    if ($(window).width() <= 786) {
-        $('.sort-section').hide();
-    }
-
     // Create Sort Dropdown Event Listener
-    $('#sort-main-title').on("click", () => {
-        if (window.innerWidth < 787) {
-            if ($('.sort-section').css('display') == 'none') {
-                $('.sort-section').show(0).delay(10);
-                $('#sort-sidebar').css('max-height', '500px');
-                $('#sort-sidebar').css('overflow-y', 'scroll');
-                $('.sort-section').css('opacity', '1');
-            } else {
-                $('.sort-section').delay(1000).hide(0);
-                $('#sort-sidebar').css('overflow-y', 'hidden');
-                $('#sort-sidebar').css('max-height', '58px');
-                $('.sort-section').css('opacity', '0');
-            }
+    $("#sort-main-title").on("click", () => {
+        if (window.innerWidth <= 786) {
+            $("#sort-sidebar").toggleClass("sort-open");
+        } else {
+            $("#sort-sidebar").removeClass("sort-open");
         }
     });
 
@@ -62,23 +34,40 @@ export function setupSearch(pageQuery) {
         searchPageSearch();
     });
 
-    let queryFromURL = findURLValue(pageQuery, "query", true);
-
     $("#apply-filters-button").on("click", () => {
-        queryFromURL = findURLValue(window.location.search, "query", true);
-        applySearchFilters(queryFromURL);
+        if (isBrowse) {
+            browse(page).then((resultsArray) => {
+                applySearchFilters(resultsArray);
+            });
+        } else {
+            applySearchFilters(searchCache);
+        }
     });
+
+    let queryFromURL = findURLValue(pageQuery, "query", true);
 
     $("#search-page-search-input").val(queryFromURL);
 
     // If you are entering the page without a search completed
     if (queryFromURL == "") {
-        browse();
+        isBrowse = true;
     } else {
-        search(queryFromURL).then((resultsArray) => {
-            createSearchResultsPage(resultsArray);
-        });
+        isBrowse = false;
     }
+
+    let page = findURLValue(pageQuery, "page", true);
+    if (page == "") {
+        page = 1;
+    } else {
+        page = parseInt(page);
+    }
+
+    docsUsed = [];
+    browseResultsArray = [];
+    filters = null;
+    setSearchCache(null);
+
+    goToSearchPage(page);
 }
 
 /**
@@ -89,24 +78,50 @@ function searchPageSearch() {
     setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
-        createSearchResultsPage(searchResultsArray);
+        setSearchCache(searchResultsArray);
+        goToSearchPage();
     });
 }
 
 /**
- * @description Creates the browse page of randomly selected books.
- * @param {Book[]} browseResultsArray The array of books to list on the browse page.
- * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ * @description Creates the list randomly selected books for browse.
  * @param {Number} page The current results page.
  */
-function browse(browseResultsArray = [], docsUsed = [], page = 1) {
-    return new Promise((resolve, reject) => {
+function browse(page = 1) {
+    return new Promise((resolve) => {
         changePageTitle("Browse", false);
+        // Set the needed length for the browse results array.
+        let length = page * 20;
+        // If the browse results array is already long enough, just return it.
+        let filteredLength = filterSearchResults(browseResultsArray).length;
+        if (filteredLength >= length) {
+            // If the browse results array is already long enough, just return it.
+            resolve(browseResultsArray);
+        }
+        // If the browse results array is not long enough for the next two pages, start adding more books to it.
+        if (filteredLength <= length + 40) {
+            // If the browse results array is not long enough, add more books to it.
+            browseNext().then(() => {
+                browse(page).then((resultsArray) => {
+                    resolve(resultsArray);
+                }).catch((resultsArray) => {
+                    resolve(resultsArray);
+                });
+            }).catch(() => {
+                // If there are no more books to add, just return the whole array.
+                resolve(browseResultsArray);
+            });
+        }
+    });
+}
+
+function browseNext() {
+    return new Promise((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
             // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
             let docs = bookDatabase.length;
             if (docsUsed.length == docs) {
-                resolve(true); // lets createSearchResultsPage know that the end is nigh
+                reject();
                 return;
             }
             let rand = Math.floor(Math.random() * docs);
@@ -130,8 +145,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                     browseResultsArray.push(bookDatabase[rand].books[random]);
                 }
             }
-            setSearchCache(browseResultsArray);
-            createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+            resolve(browseResultsArray);
         } else {
             // No search has been performed on the page yet, so get it from the database.
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1))).then((querySnapshot) => {
@@ -143,7 +157,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                     }
                     let docs = docSnap.data().order + 1;
                     if (docsUsed.length == docs) {
-                        resolve(true); // lets createSearchResultsPage know that the end is nigh
+                        reject();
                         return;
                     }
                     let rand = Math.floor(Math.random() * docs);
@@ -170,8 +184,7 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
                                 browseResultsArray.push(Book.createFromObject(data.books[random]));
                             }
                         }
-                        setSearchCache(browseResultsArray);
-                        createSearchResultsPage(browseResultsArray, page, undefined, undefined, true, docsUsed);
+                        resolve(browseResultsArray);
                     });
                 });
             });
@@ -180,71 +193,161 @@ function browse(browseResultsArray = [], docsUsed = [], page = 1) {
 }
 
 /**
- * @description Creates a search results page. Most information is passed into fillSearchResultsPage().
- * @param {Book[]} searchResultsArray The array of books to list on the search results page.
- * @param {Number} page The page number of the results page.
- * @param {String[]} filters The catagories you can filter by.
- * @param {String[][]} items The selected items in each filter catagory.
- * @param {Boolean} isBrowse A boolean representing if the user is browsing or searching.
- * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ * @description Handles the paginator buttons for navigating between pages.
+ * @param {Number} page The page number to navigate to.
+ * @param {Boolean} bypassHistory Whether or not to bypass the history.
  */
-function createSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
-    if (isBrowse && (page + 2) * 20 > searchResultsArray.length) {
-        browse(searchResultsArray, docsUsed, page).then((allDocsUsed) => {
-            if (allDocsUsed) {
-                fillSearchResultsPage(searchResultsArray, page, filters, items, false);
+function goToSearchPage(page = 1, bypassHistory = false) {
+    $("#content").addClass("loading");
+
+    // If we have the books in the history, use those.
+    if (!bypassHistory && historyManager.get()?.stateData) {
+        let stateDataKey = historyManager.get()?.stateData;
+        HistoryManager.getFromIDB(stateDataKey).then((stateData) => {
+            let searchPageData = stateData?.searchPageData;
+            // Check to ensure that the page number is the same as the one in the history.
+            if (searchPageData && searchPageData.page == page) {
+                console.log("Using books from history", searchPageData);
+                searchPageData.resultsArray.forEach((book, index) => {
+                    if (!(book instanceof Book)) {
+                        searchPageData.resultsArray[index] = Book.createFromObject(book);
+                    }
+                });
+                // Set the global variables to the ones from the history.
+                isBrowse = searchPageData.isBrowse;
+                browseResultsArray = searchPageData.browseResultsArray;
+                filters = searchPageData.filters;
+                docsUsed = searchPageData.docsUsed;
+                createSearchResultsPage(searchPageData.resultsArray, page);
             } else {
-                return;
+                // If the page number is not the same, abort and get the books from the database.
+                getNewBooksForSearch(page);
             }
+        }).catch((error) => {
+            console.error("Could not get books from history. IDB error:", error);
         });
-    } else {
-        fillSearchResultsPage(searchResultsArray, page, filters, items, isBrowse, docsUsed);
+        return;
     }
-    $("html").css("scroll-behavior", "auto");
-    $("html, body").animate({ scrollTop: 0 }, 600);
-    setTimeout(() => {
-        $("html").css("scroll-behavior", "smooth");
-    }, 600);
+
+    // If we couldn't use the history, get the books from the database.
+    getNewBooksForSearch(page);
 }
 
 /**
- * @description This function does the actual work of creating the search results page and evaluating filters.
- * @param {Book[]} searchResultsArray The array of books to list on the search results page.
- * @param {Number} page The page number of the results page.
- * @param {String[]} filters The catagories you can filter by.
- * @param {String[][]} items The selected items in each filter catagory.
- * @param {Boolean} isBrowse A boolean representing if the user is browsing or searching.
- * @param {Number[]} docsUsed An array of the indices of the book documents from the database that have already been used.
+ * @description Gets new books for the search page, then calls createSearchResultsPage.
+ * @param {Number} page the page number.
  */
-function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items = [[]], isBrowse = false, docsUsed = null) {
+function getNewBooksForSearch(page) {
+    // If we don't have the books in the history, get them from the database.
+    let loadingModal;
+    let timer = setTimeout(() => {
+        loadingModal = openModal("info", "", "Loading...", "");
+    }, 400);
+    let searchPromise;
+    if (isBrowse) {
+        searchPromise = browse(page);
+    } else {
+        if (!searchCache || searchCache.length == 0) {
+            searchPromise = search(findURLValue(window.location.href, "query"));
+        } else {
+            searchPromise = Promise.resolve(searchCache);
+        }
+    }
+
+    searchPromise.then((resultsArray) => {
+        // Filter the results array.
+        resultsArray = filterSearchResults(resultsArray);
+        createSearchResultsPage(resultsArray, page);
+        clearTimeout(timer);
+        if (loadingModal) {
+            loadingModal();
+        }
+        if (page > 1) {
+            setURLValue("page", page);
+        } else {
+            removeURLValue("page", true);
+        }
+    });
+}
+
+/**
+ * @description Creates a search results page. Adds the book objects, pagination, and filters to the page.
+ * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Number} page The page number of the results page.
+ */
+function createSearchResultsPage(resultsArray, page = 1) {
+    // Clear the search results container.
     $('div#search-results-container').empty();
-    if (searchResultsArray.length == 0 || (page - 1) * 20 >= searchResultsArray.length) {
+    // If the search results array is empty, display a message saying so.
+    if (resultsArray.length == 0 || resultsArray.length <= (page - 1) * 20) {
         const p = document.createElement('p');
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
         $('div#search-results-container')?.[0].appendChild(p);
     }
-    for (let i = (page - 1) * 20; i < Math.min(page * 20, searchResultsArray.length); i++) {
-        $('div#search-results-container')?.[0]?.appendChild(buildBookBox(searchResultsArray[i], "search", i + 1));
-    }
-    createFilterList(searchResultsArray, filters, items);
 
+    // Add the books to the search results container and log the list of books on the current page (for the history).
+    let searchPageData = {};
+    searchPageData.resultsArray = resultsArray;
+    searchPageData.books = [];
+    for (let i = (page - 1) * 20; i < Math.min(page * 20, resultsArray.length); i++) {
+        $('div#search-results-container')?.[0]?.appendChild(buildBookBox(resultsArray[i], "search", i + 1));
+        searchPageData.books.push(resultsArray[i]);
+    }
+
+    // Create the filters and paginator.
+    createFilterList(resultsArray, filters);
+    searchPageData.filters = filters;
+
+    createPaginator(resultsArray, page);
+    searchPageData.page = page;
+
+    searchPageData.isBrowse = isBrowse;
+    searchPageData.browseResultsArray = browseResultsArray;
+    searchPageData.docsUsed = docsUsed;
+
+    let stateData = historyManager.get().stateData;
+    let lookupPromise;
+    if (stateData) {
+        lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
+            console.error("There was an issue getting the books from the history. IDB Error:", error);
+        });
+    } else {
+        lookupPromise = Promise.resolve({});
+    }
+
+    lookupPromise.then((stateData) => {
+        stateData.searchPageData = searchPageData;
+        historyManager.update(null, undefined, stateData);
+    });
+
+    $("#apply-filters-button").removeAttr("disabled");
+    $("#content").removeClass("loading");
+}
+
+function createPaginator(resultsArray, page) {
     $("#paginator").empty();
-    $("#paginator").show();
-    if (searchResultsArray.length < 21) {
+    $("#paginator").css("display", "flex");
+    if (resultsArray.length < 21) {
         // there is only one page, so don't bother displaying the paginator
         $("#paginator").hide();
         return;
     }
+
+    // Create the previous button
     if (page > 1) {
         const prev = document.createElement('a');
-        prev.innerHTML = "< Previous Page";
-        prev.onclick = function() {
-            createSearchResultsPage(searchResultsArray, page - 1, undefined, undefined, isBrowse, docsUsed);
+        prev.classList.add("arrow");
+        prev.innerHTML = "<span class='material-symbols-outlined'>navigate_before</span>";
+        prev.onclick = () => {
+            windowScroll(0, 1500);
+            goToSearchPage(page - 1);
         };
         $("#paginator")[0].appendChild(prev);
     }
+
+    // Create the page number buttons
     for (let p = page - 2; p <= page + 2; p++) {
-        if (p < 1 || (p - 1) * 20 >= searchResultsArray.length && !isBrowse) continue;
+        if (p < 1 || (p - 1) * 20 >= resultsArray.length) continue;
         if (p == page) {
             const span = document.createElement('span');
             span.innerHTML = "<b>" + p + "</b>";
@@ -253,163 +356,254 @@ function fillSearchResultsPage(searchResultsArray, page = 1, filters = [], items
         }
         const a = document.createElement('a');
         a.innerHTML = p;
-        a.onclick = function() {
-            createSearchResultsPage(searchResultsArray, p, undefined, undefined, isBrowse, docsUsed);
+        a.onclick = () => {
+            windowScroll(0, 1500);
+            goToSearchPage(p);
         };
         $("#paginator")[0].appendChild(a);
     }
-    if (page * 20 < searchResultsArray.length) {
+
+    // Create the next button
+    if (page * 20 < resultsArray.length) {
         const next = document.createElement('a');
-        next.innerHTML = "Next Page >";
-        next.onclick = function() {
-            createSearchResultsPage(searchResultsArray, page + 1, undefined, undefined, isBrowse, docsUsed);
+        next.classList.add("arrow");
+        next.innerHTML = "<span class='material-symbols-outlined'>navigate_next</span>";
+        next.onclick = () => {
+            windowScroll(0, 1500);
+            goToSearchPage(page + 1);
         };
         $("#paginator")[0].appendChild(next);
     }
 }
 
-var searchResultsAuthorsArray = [];
-var searchResultsSubjectsArray = [];
 /**
- * @description Creates the HTML elements for the filter lists on the side of the search results page.
- * @param {Book[]} searchResultsArray The array of books to list on the search results page.
- * @param {String[]} filters The catagories you can filter by.
- * @param {String[][]} items The selected items in each filter catagory.
+ * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
+ * @param {Book[]} resultsArray The array of books to list on the search results page.
  */
-function createFilterList(searchResultsArray, filters = [], items = [[]]) {
-    // TODO: This function should also order each of the lists by occurances.
-    searchResultsAuthorsArray = [];
-    searchResultsSubjectsArray = [];
-    $("#sort-author-list").empty();
-    $("#sort-subject-list").empty();
-
-    // Authors
-    for (let i = 0; i < searchResultsArray.length; i++) {
-        for (let j = 0; j < 2; j++) {
-            if (searchResultsArray[i].authors[j]) {
-                let authorString = searchResultsArray[i].authors[j]?.lastName + ", " + searchResultsArray[i].authors[j]?.firstName;
-                if (!searchResultsAuthorsArray.includes(authorString) && authorString != "undefined, undefined" && authorString != ", ") {
-                    searchResultsAuthorsArray.push(authorString);
-                }
-            }
-        }
-    }
-    let authorIndex = filters.indexOf("Author"), checkedCount = 0, offset = 0;
-    if (authorIndex != -1) {
-        for (let i = 0; i < items[authorIndex].length; i++) {
-            let authorString = items[authorIndex][i];
-            const li = document.createElement("li");
-            li.classList.add("sort-item");
-            li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
-            li.children[0].checked = true;
-            $("#sort-author-list")[0].appendChild(li);
-            checkedCount++;
-        }
-    }
-    let maxAuthors = Math.max(6, checkedCount);
-    for (let i = checkedCount; i < searchResultsAuthorsArray.length; i++) {
-        let authorString = searchResultsAuthorsArray[i - checkedCount + offset], alreadyExists = false;
-        for (let j = 0; j < checkedCount; j++) {
-            if ($("#sort-author-list")[0].children[j].children[1].innerHTML == authorString) {
-                i--;
-                offset++;
-                alreadyExists = true;
-            }
-        }
-        if (alreadyExists) continue;
-        const li = document.createElement("li");
-        li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
-        if (i < maxAuthors) {
-            $("#sort-author-list")[0]?.appendChild(li);
-        } else if (i == maxAuthors) {
-            const span = document.createElement("span");
-            span.id = "author-show-more";
-            span.innerHTML = "Show More...";
-            $("#sort-author-list")[0].appendChild(span);
-            $("#author-show-more").on("click", () => {
-                $("#author-show-more").css("display", "none");
-                for (let j = maxAuthors; j < searchResultsAuthorsArray.length; j++) {
-                    let authorString = searchResultsAuthorsArray[j - checkedCount + offset], alreadyExists = false;
-                    for (let k = 0; k < checkedCount; k++) {
-                        if ($("#sort-author-list")[0].children[k].children[j].innerHTML == authorString) {
-                            i--;
-                            offset++;
-                            alreadyExists = true;
-                        }
-                    }
-                    if (alreadyExists) continue;
-                    const li = document.createElement("li");
-                    li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\" id=\"author-" + i +"-checkbox\"><label for=\"author-" + i +"-checkbox\">" + authorString + "</label>";
-                    $("#sort-author-list")[0].appendChild(li);
-                }
-            });
-        }
+function createFilterList(resultsArray) {
+    // If the filters object is empty, we need to create the data type.
+    if (!filters || filters == {}) {
+        filters = {};
+        FILTER_TYPES.forEach((filterType) => {
+            filters[filterType] = [];
+        });
     }
 
-    // Subjects
-    for (let i = 0; i < searchResultsArray.length; i++) {
-        for (let j = 0; j < searchResultsArray[i].subjects.length; j++) {
-            if (!searchResultsSubjectsArray.includes(searchResultsArray[i].subjects[j]) && searchResultsArray[i].subjects[j]) {
-                searchResultsSubjectsArray.push(searchResultsArray[i].subjects[j]);
-            }
-        }
-    }
-    let subjectIndex = filters.indexOf("Subject");
-    checkedCount = 0, offset = 0;
-    if (subjectIndex != -1) {
-        for (let i = 0; i < items[subjectIndex].length; i++) {
-            let subject = items[subjectIndex][i];
-            const li = document.createElement("li");
-            li.classList.add("sort-item");
-            li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
-            li.children[0].checked = true;
-            $("#sort-subject-list")[0].appendChild(li);
-            checkedCount++;
-        }
-    }
-    let maxSubjects = Math.max(6, checkedCount);
-    for (let i = checkedCount; i < searchResultsSubjectsArray.length; i++) {
-        let subject = searchResultsSubjectsArray[i - checkedCount + offset], alreadyExists = false;
-        for (let j = 0; j < checkedCount; j++) {
-            if ($("#sort-subject-list")[0].children[j].children[1].innerHTML == subject) {
+    // First, we need to remove any filters that are not checked and clear the count for the ones that are.
+    FILTER_TYPES.forEach((filterType) => {
+        for (let i = 0; i < filters[filterType].length; i++) {
+            let filter = filters[filterType][i];
+            if (filter.checked == false) {
+                // If the filter is not checked, we need to remove it from the list.
+                filters[filterType].splice(i, 1);
                 i--;
-                offset++;
-                alreadyExists = true;
+            } else {
+                // If the filter is checked, we need to save it, but reset the count (since we'll count again).
+                filter.count = 0;
+                // Reset the display value.
+                filter.displayed = false;
             }
         }
-        if (alreadyExists) continue;
-        const li = document.createElement("li");
-        li.classList.add("sort-item");
-        li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
-        if (i < maxSubjects) {
-            $("#sort-subject-list")[0].appendChild(li);
-        } else if (i == maxSubjects) {
-            const span = document.createElement("span");
-            span.id = "subject-show-more";
-            span.innerHTML = "Show More...";
-            $("#sort-subject-list")[0].appendChild(span);
-            $("#subject-show-more").on("click", () => {
-                $("#subject-show-more").css("display", "none");
-                for (let j = maxSubjects; j < searchResultsSubjectsArray.length; j++) {
-                    let subject = searchResultsSubjectsArray[j - checkedCount + offset], alreadyExists = false;
-                    for (let k = 0; k < checkedCount; k++) {
-                        if ($("#sort-subject-list")[0].children[k].children[1].innerHTML == subject) {
-                            j--;
-                            offset++;
-                            alreadyExists = true;
-                        }
+    });
+
+    // Now we need to use the new list to recount and re-sort the filters.
+    FILTER_TYPES.forEach((filterType) => {
+        if (!filters[filterType]) {
+            filters[filterType] = [];
+        }
+        resultsArray.forEach((book) => {
+            // Attempt to find the filter in the filters array.
+            let filterItems;
+            switch (filterType) {
+                case "author":
+                    filterItems = book.authors;
+                    break;
+                case "medium":
+                    filterItems = [book.medium];
+                    break;
+                case "audience":
+                    filterItems = book.audience.toArray();
+                    break;
+                case "subject":
+                    filterItems = book.subjects;
+                    break;
+                case "type":
+                    filterItems = [book.ddc];
+                    break;
+            }
+            filterItems.forEach((filterItem) => {
+                if (filterType == "author") {
+                    filterItem = filterItem.lastName + ", " + filterItem.firstName;
+                } else if (filterType == "type") {
+                    if (filterItem == "FIC") {
+                        filterItem = "Fiction";
+                    } else {
+                        filterItem = "Non-Fiction";
                     }
-                    if (alreadyExists) continue;
-                    const li = document.createElement("li");
-                    li.classList.add("sort-item");
-                    li.innerHTML = "<input type=\"checkbox\" id=\"subject-" + i +"-checkbox\"><label for=\"subject-" + i +"-checkbox\">" + subject + "</label>";
-                    $("#sort-subject-list")[0].appendChild(li);
+                }
+                if (!filters[filterType].find((filter) => filter.value == filterItem)) {
+                    // If it doesn't exist, add it and set the count to 1.
+                    filters[filterType].push({value: filterItem, count: 1, checked: false, displayed: false});
+                } else {
+                    // If it does exist, increment the count.
+                    filters[filterType].find((filter) => filter.value == filterItem).count++;
                 }
             });
+        });
+        filters[filterType].sort((a, b) => b.count - a.count);
+    });
+
+    bulidFilterList();
+}
+
+function bulidFilterList() {
+    FILTER_TYPES.forEach((filterType) => {
+        $("#sort-" + filterType + "-list").empty();
+        filters[filterType].forEach((filter, index) => {
+            // Only display the first couple filters per section.
+            if (index >= 6) {
+                return;
+            }
+            let value = filter.value;
+            switch (filterType) {
+                case "author":
+                    break;
+                case "medium":
+                    switch (filter.value) {
+                        case "paperback":
+                            value = "Paperback";
+                            break;
+                        case "hardcover":
+                            value = "Hardcover";
+                            break;
+                        case "av":
+                            value = "Audio/Visual";
+                            break;
+                    }
+                    break;
+                case "audience":
+                    break;
+                case "subject":
+                    break;
+                case "type":
+                    break;
+            }
+            const li = document.createElement("li");
+            li.classList.add("sort-item");
+            let id = filterType + "-" + value + "-checkbox";
+            id = id.replace(/\s+/g, '-').toLowerCase();
+            id = id.replace(/[,./]/g, "");
+            li.innerHTML = "<input type=\"checkbox\" id=\"" + id + "\" name=\"" + filter.value + "\">" +
+                           "<label for=\"" + id + "\">" + value + "</label>" +
+                           "<span class=\"sort-frequency\">" + filter.count + "</span>";
+            $("#sort-" + filterType + "-list")[0].appendChild(li);
+            filter.displayed = true;
+            if (filter.checked) {
+                document.getElementById(id).checked = true;
+            }
+        });
+    });
+}
+
+/**
+ * @description Called by the "Apply Filters" button. Goes through the list of filters on the page and updates the filters variable based on the items that are checked.
+ */
+function applySearchFilters() {
+    $("#apply-filters-button").prop("disabled", true);
+    FILTER_TYPES.forEach((filterType) => {
+        // Clear all checks before looking for new ones.
+        filters[filterType].forEach((filter) => {
+            filter.checked = false;
+        });
+
+        // Check the filters that are checked.
+        $("#sort-" + filterType + "-list > li > input:checked").each((i, e) => {
+            let value = $(e).attr('name');
+            filters[filterType].find((filter) => filter.value == value).checked = true;
+        });
+    });
+
+    // If there is an author or subject filter, it's more efficient to just search for those books.
+    if (filters["author"].find((filter) => filter.checked == true) || filters["subject"].find((filter) => filter.checked == true)) {
+        updateBookDatabase().then(() => {
+            goToSearchPage(1, true);
+        });
+    } else {
+        goToSearchPage(1, true);
+    }
+}
+
+/**
+ * @description Iterates through the search cache and filters out the items that don't match the filters.
+ * @param {Book[]} resultsArray The array of books to filter.
+ * @returns {Book[]} The filtered array of books.
+ */
+function filterSearchResults(resultsArray) {
+    if (!filters || filters == {}) {
+        return resultsArray;
+    }
+    let results = [];
+    // Itterate through each item in the book list
+    for (let i = 0; i < resultsArray.length; i++) {
+        let currentBook = resultsArray[i];
+        let passesAllFilters = true;
+        // Itterate through each filter type
+        FILTER_TYPES.forEach((filterType) => {
+            // For each type, itterate through each filter
+            let passesFilter = false;
+            for (let j = 0; j < filters[filterType].length && passesAllFilters; j++) {
+                if (!filters[filterType][j].checked) {
+                    continue; // Skip this filter if it's not checked.
+                }
+                if (filterType == "author") {
+                    let authorFilter = filters.author[j].value;
+                    currentBook.authors.forEach((author) => {
+                        if (author.lastName + ", " + author.firstName == authorFilter) {
+                            passesFilter = true;
+                        }
+                    });
+                } else if (filterType == "medium") {
+                    let medium = filters.medium[j].value;
+                    if (medium.toUpperCase() == currentBook.medium.toUpperCase()) {
+                        passesFilter = true;
+                    }
+                } else if (filterType == "audience") {
+                    let audience = filters.audience[j].value;
+                    currentBook.audience.toArray().forEach((audienceItem) => {
+                        if (audience.toUpperCase() == audienceItem.toUpperCase()) {
+                            passesFilter = true;
+                        }
+                    });
+                } else if (filterType == "subject") {
+                    let subject = filters.subject[j].value;
+                    currentBook.subjects.forEach((subjectItem) => {
+                        if (subject.toUpperCase() == subjectItem.toUpperCase()) {
+                            passesFilter = true;
+                        }
+                    });
+                } else if (filterType == "type") {
+                    let type = filters.type[j].value;
+                    let bookType;
+                    if (currentBook.ddc == "FIC") {
+                        bookType = "Fiction";
+                    } else {
+                        bookType = "Non-Fiction";
+                    }
+                    if (type.toUpperCase() == bookType.toUpperCase()) {
+                        passesFilter = true;
+                    }
+                }
+                if (!passesFilter) {
+                    passesAllFilters = false;
+                }
+            }
+        });
+        // If it passes all filters, add it to the results
+        if (passesAllFilters) {
+            results.push(currentBook);
         }
     }
+    return results;
 }
 
 /**
@@ -470,12 +664,30 @@ export function setupResultPage(pageQuery) {
         });
     });
 
+    if (auth.currentUser) {
+        $("#result-page-email").css("display", "block");
+    }
+
     $("#result-page-email").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
+        let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
+        resultPageEmail(barcodeNumber).then(() => {
+            loadingModal();
+            openModal("success", "An email containing this book's information has been sent to the email address on file. Please check your inbox.", "Email Sent!");
+        }).catch((error) => {
+            console.error(error);
+            loadingModal();
+            openModal("error", "An error occured while sending the email. Please try again later.\n\nIf the problem persists, contact us at library@southchurch.com for assistance.",
+            "Error Sending Email");
+        });
     });
 
     $("#result-page-link").on("click", () => {
-        openModal("issue", "This feature is not yet implemented.");
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            let closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
+            window.setTimeout(() => {
+                closeModal();
+            }, 1200);
+        });
     });
 
     $("#result-page-print").on("click", () => {
@@ -710,6 +922,88 @@ function fillResultPage(barcodeNumber) {
     });
 }
 
+function resultPageEmail(barcodeNumber) {
+    return new Promise((resolve, reject) => {
+        getBookFromBarcode(barcodeNumber).then((book) => {
+            let message = "<p style='white-space:pre-wrap'>Hello,\n\nHere is the information you requested about the book with barcode " + book.barcodeNumber + ":</p>";
+            message += "<img src='" + book.coverImageLink + "' alt='Cover Image' style='width: 100%; max-width: 300px; height: auto;'>";
+            message += "<br><p style='white-space:pre-wrap'><b>Title:</b> " + book.title + "\n";
+            if (book.subtitle) {
+                message += "<b>Subtitle:</b> " + book.subtitle + "\n";
+            }
+            if (book.authors.length > 0) {
+                message += "<b>Author(s):</b> ";
+                for (let i = 0; i < book.authors.length; i++) {
+                    message += book.authors[i].lastName + ", " + book.authors[i].firstName;
+                    if (i != book.authors.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.illustrators.length > 0) {
+                message += "<b>Illustrator(s):</b> ";
+                for (let i = 0; i < book.illustrators.length; i++) {
+                    message += book.illustrators[i].lastName + ", " + book.illustrators[i].firstName;
+                    if (i != book.illustrators.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n\n";
+            }
+            if (book.subjects.length > 0) {
+                message += "<b>Subject(s):</b> ";
+                for (let i = 0; i < book.subjects.length; i++) {
+                    message += book.subjects[i];
+                    if (i != book.subjects.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.description) {
+                message += "<b>Description:</b> " + book.description + "\n\n";
+            }
+            if (book.publishers.length > 0) {
+                message += "<b>Publisher(s):</b> ";
+                for (let i = 0; i < book.publishers.length; i++) {
+                    message += book.publishers[i];
+                    if (i != book.publishers.length - 1) {
+                        message += "; ";
+                    }
+                }
+                message += "\n";
+            }
+            if (book.publishDate) {
+                let d = book.publishDate;
+                let date = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear();
+                message += "<b>Publish Date:</b> " + date + "\n";
+            }
+            if (book.isbn10) {
+                message += "<b>ISBN-10:</b> " + book.isbn10 + "\n";
+            }
+            if (book.isbn13) {
+                message += "<b>ISBN-13:</b> " + book.isbn13 + "\n";
+            }
+            message += "<b>Audience:</b> " + book.audience.toString() + "\n";
+            message += "<b>Medium:</b> " + book.medium + "\n";
+            message += "<b>Number of Pages:</b> " + book.numberOfPages + "\n";
+            message += "<b>Dewey Decimal Classification:</b> " + book.ddc + "\n\n";
+            message += "Thank you for using the South Church Library Catalog!\n\nSincerely,\nYour South Church Library Team</p>";
+            let to = [auth.currentUser.email];
+            let subject = "Book Information for " + book.title;
+            sendEmail(to, subject, undefined, message).then(() => {
+                resolve();
+            }).catch((error) => {
+                reject(error);
+            });
+        }).catch((error) => {
+            openModal("error", "There was an error sending an email. Please contact us at library@southchurch.com for assistance.\n" + error);
+            reject(error);
+        });
+    });
+}
+
 /**
  * @description Checks out a book. This function starts the process when the user clicks the checkout button on the result page.
  * @param {Number} barcodeNumber The barcode number of the book to be checked out.
@@ -817,88 +1111,6 @@ function scanCheckout() {
         }
     });
     */
-}
-
-/**
- * @description Goes through the list of filters on the page and creates arrays of the filters and the items that are checked.
- * @param {String} queryFromURL The query from the URL. This handles the case for Browse.
- */
-function applySearchFilters(queryFromURL) {
-    let filters = [], items = [];
-    for (let i = 0; i < $(".sort-section").length; i++) {
-        filters.push($(".sort-section")[i].children[0].innerHTML);
-        items.push([]);
-        for (let j = 0; j < $(".sort-section")[i].children[1].children.length; j++) {
-            if ($(".sort-section")[i].children[1].children[j].tagName == "LI" &&
-                $(".sort-section")[i].children[1].children[j].children[0].checked) {
-                items[items.length - 1].push($(".sort-section")[i].children[1].children[j].children[1].innerHTML);
-            }
-        }
-        if (items[items.length - 1].length == 0) {
-            filters.pop();
-            items.pop();
-        }
-    }
-    if (queryFromURL == "") {
-        updateBookDatabase().then(() => {
-            searchWithFilters(filters, items);
-        });
-    } else {
-        searchWithFilters(filters, items);
-    }
-}
-
-/**
- * @description Iterates through the search cache and filters out the items that don't match the filters.
- * @param {String[]} filters 
- * @param {String[][]} items 
- */
-function searchWithFilters(filters, items) {
-    let results = [];
-    for (let i = 0; i < searchCache.length; i++) {
-        let passesAllFilters = true;
-        for (let j = 0; j < filters.length && passesAllFilters; j++) {
-            let passesFilter = false;
-            for (let k = 0; k < items[j].length; k++) {
-                if (filters[j] == "Author") {
-                    if (passesFilter || (searchCache[i].authors[0] &&
-                        items[j][k] == searchCache[i].authors[0].lastName + ", " + searchCache[i].authors[0].firstName)
-                        || (searchCache[i].authors[1] &&
-                            items[j][k] == searchCache[i].authors[1].lastName + ", " + searchCache[i].authors[1].firstName)) {
-                        passesFilter = true;
-                    }
-                } else if (filters[j] == "Medium") {
-                    if (passesFilter || items[j][k].toUpperCase() == searchCache[i].medium.toUpperCase()) {
-                        passesFilter = true;
-                    }
-                } else if (filters[j] == "Audience") {
-                    if (passesFilter ||
-                        items[j][k] == "Children" && searchCache[i].audience.children ||
-                        items[j][k] == "Youth" && searchCache[i].audience.youth ||
-                        items[j][k] == "Adult" && searchCache[i].audience.adult) {
-                        passesFilter = true;
-                    }
-                } else if (filters[j] == "Subject") {
-                    if (passesFilter || searchCache[i].subjects.includes(items[j][k])) {
-                        passesFilter = true;
-                    }
-                } else if (filters[j] == "Type") {
-                    if (passesFilter ||
-                        items[j][k] == "Non-fiction" && searchCache[i].ddc != "FIC" ||
-                        items[j][k] == "Fiction" && searchCache[i].ddc == "FIC") {
-                        passesFilter = true;
-                    }
-                }
-            }
-            if (!passesFilter)
-                passesAllFilters = false;
-        }
-        if (passesAllFilters) {
-            results.push(searchCache[i]);
-        }
-    }
-
-    createSearchResultsPage(results, 1, filters, items);
 }
 
 console.log("search.js has Loaded!");

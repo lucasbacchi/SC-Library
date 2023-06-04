@@ -1,6 +1,6 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { addDoc, collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
 
@@ -10,7 +10,7 @@ BEGIN SEARCH
 
 /**
  * Searches the book database for books based on a query
- * @param {String} searchQuery The Query to search
+ * @param {String} searchQuery The query to search
  * @param {Number} start The start place in the results list
  * @param {Number} end The end place in the results list
  * @param {Boolean} viewHidden Determines if the function returns hidden books
@@ -49,6 +49,7 @@ export function updateBookDatabase(forced = false) {
                     });
                     bookDatabase.push(documentObject);
                 });
+                setBookDatabase(bookDatabase); // This may seem redundant, but it's not. It's to make sure that the bookDatabase is updated in indexedDB.
                 resolve();
             }).catch((error) => {
                 reject(error);
@@ -247,8 +248,20 @@ function distance(source, target) {
 
 /**********
 END SEARCH
-BEGIN URL VALUE
+BEGIN UTILS
 ***********/
+
+/**
+ * @description Formats a date object into a string.
+ * @param {Date} date The date object to format.
+ * @returns {String} The formatted date string.
+ */
+export function formatDate(date) {
+    if (!date) {
+        return "N/A";
+    }
+    return date.toLocaleString("en-US");
+}
 
 /**
  * 
@@ -285,7 +298,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
  */
 export function setURLValue(param, value, append = true) {
     // Get everything after the host
-    let string = window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1);
+    let string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
     let answer = "";
     // does param already exist?
     if (append && string.indexOf("?") != -1) {
@@ -299,7 +312,7 @@ export function setURLValue(param, value, append = true) {
                     answer += string.substring(answer.indexOf("&"), string.length);
                 }
             } else if (string.indexOf("&" + param + "=") > 0) {
-                answer = string.substring(0, string.indexOf("=", string.indexOf("&" + param + "=") + 1));
+                answer = string.substring(0, string.indexOf("=", string.indexOf("&" + param + "=")) + 1);
                 answer = answer + value;
                 if (string.indexOf("&", string.indexOf(param + "=")) >= 0) {
                     answer += string.substring(string.indexOf("&"), string.length);
@@ -312,7 +325,53 @@ export function setURLValue(param, value, append = true) {
         answer = string + "?" + param + "=" + value;
     }
 
-    historyManager.push(encodeURI(answer));
+    // If the URL is different, push it to the history
+    if (historyManager.get().name != "/" + answer) {
+        historyManager.push(encodeURI(answer));
+    }
+}
+
+/**
+ * @description Removes a parameter from the URL
+ * @param {String} param The parameter to remove
+ * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL. (Bypasses the warning)
+ */
+export function removeURLValue(param, mightReturnEmpty = false) {
+    // Get everything after the host
+    let string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
+    let answer = "";
+    if (string.indexOf(param) < 0) {
+        if (!mightReturnEmpty) {
+            console.warn("The key (\"" + param + "\") could not be be removed from the URL because it could not be found.");
+        }
+        return;
+    }
+    if (string.indexOf("?" + param + "=") >= 0) {
+        // If the parameter is the first one
+        if (string.indexOf("&", string.indexOf("?")) >= 0) {
+            // If there are more parameters after it
+            answer = "?" + string.substring(string.indexOf("&"), string.length);
+        } else {
+            // If there are no more parameters after it
+            answer = "";
+        }
+    } else if (string.indexOf("&" + param + "=") > 0) {
+        // If the parameter is not the first one
+        if (string.indexOf("&", string.indexOf(param + "=")) >= 0) {
+            // If there are more parameters after it
+            answer = string.substring(0, string.indexOf("&" + param));
+            answer += string.substring(string.indexOf("&", string.indexOf(param + "=")), string.length);
+        } else {
+            // If there are no more parameters after it
+            answer = string.substring(0, string.indexOf("&" + param));
+        }
+    }
+
+    answer = window.location.pathname + answer;
+    // If the URL is different, push it to the history
+    if (historyManager.get().name != "/" + answer) {
+        historyManager.push(encodeURI(answer));
+    }
 }
 
 const entityMap = {
@@ -326,14 +385,179 @@ const entityMap = {
     '=': '&#x3D;'
 };
 
+/**
+ * @description Encodes HTML characters to prevent XSS attacks.
+ * @param {String} string the string to encode
+ * @returns {String} the encoded string
+ */
 export function encodeHTML(string) {
     return String(string).replace(/[&<>"'`=/]/g, function (s) {
         return entityMap[s];
     });
 }
 
+
+/**
+ * @description Uses jQuery animaitons to scroll to a location on the page
+ * @param {Number} location the location (in pixels from the top) to scroll to
+ * @param {Number} time the time (in milliseconds) to take to scroll to the location
+ */
+export function windowScroll(location, time = 600) {
+    setIgnoreScroll(true);
+    $("html").css("scroll-behavior", "auto");
+    $("html, body").animate({ scrollTop: location }, time);
+    setTimeout(() => {
+        $("html").css("scroll-behavior", "smooth");
+        setIgnoreScroll(false);
+        updateScrollPosition();
+    }, time);
+}
+
+/**
+ * @description sets up a container to have rate limits for the execution of a function
+ */
+export class Throttle {
+    static count = 0;
+    /**
+     * @param {Function} fn the funciton that will be called after the delay (no delay for the first call)
+     * @param {Number} delay an integer representing the number of milliseconds to wait before calling the function again
+     */
+    constructor(fn, delay) {
+        this.fn = fn;
+        this.delay = delay;
+        this.timer = null;
+        this.resetTimer = null;
+        this.wait = false;
+        this.count = Throttle.count;
+        Throttle.count++;
+    }
+
+    /**
+     * @description sets up a funciton that rate limits the execution of a function.
+     * @returns {Function} a function that will call the function passed to it after the delay
+     */
+    get() {
+        return () => {
+            clearTimeout(this.resetTimer);
+            if (!this.timer) {
+                if (!this.wait) {
+                    this.wait = true;
+                    this.fn();
+                }
+                this.timer = setTimeout(() => {
+                    this.fn();
+                    this.resetTimer = setTimeout(() => {
+                        this.wait = false;
+                    }, this.delay);
+                    this.timer = null;
+                }, this.delay);
+            }
+        };
+    }
+}
+
+/**
+ * @global
+ * @type {Boolean}
+ * @description The global variable ignoreScroll which determines whether or not to update the scroll position in the history stack
+ */
+export let ignoreScroll = false;
+
+/**
+ * @global
+ * @param {Boolean} newIgnoreScroll The ignoreScroll value to set
+ * @description Sets the global variable ignoreScroll to the new ignoreScroll value.
+ */
+export function setIgnoreScroll(newIgnoreScroll) {
+    ignoreScroll = newIgnoreScroll;
+}
+
+/**
+ * @description Updates the scroll position in the history stack
+ */
+export let updateScrollPosition = new Throttle(() => {
+    if (ignoreScroll) {
+        return;
+    }
+    let scrollPosition = $(document).scrollTop();
+    let historyPage = historyManager.get(0);
+    let customData = historyPage?.customData;
+    if (!customData) {
+        customData = {};
+    }
+    customData["scrollRestoration"] = scrollPosition;
+    historyManager.update(null, customData);
+}, 200).get();
+
+
+export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
+    return new Promise((resolve, reject) => {
+        if (!to || !subject || (!text && !html)) {
+            reject("Missing required parameters");
+        }
+        let document = {
+            to: to,
+            message: {
+                subject: subject
+            }
+        };
+        if (cc) {
+            document.cc = cc;
+        }
+        if (bcc) {
+            document.bcc = bcc;
+        }
+        if (from) {
+            document.from = from;
+        }
+        if (replyTo) {
+            document.replyTo = replyTo;
+        }
+        if (headers) {
+            document.headers = headers;
+        }
+        if (text) {
+            document.message.text = text;
+        }
+        if (html) {
+            document.message.html = html;
+        }
+        if (attachments) {
+            document.message.attachments = attachments;
+        }
+        addDoc(collection(db, "mail"), document).then((docRef) => {
+            let unsub = onSnapshot(docRef, (doc) => {
+                if (!doc.exists) {
+                    return;
+                }
+                let data = doc.data();
+                if (!data.delivery) {
+                    return;
+                }
+                if (data.delivery.state == "SUCCESS") {
+                    unsub();
+                    resolve();
+                } else if (data.delivery.state == "ERROR") {
+                    unsub();
+                    reject(data.delivery.error);
+                }
+            });
+            // Give up after 10 seconds
+            window.setTimeout(() => {
+                unsub();
+                reject("Timeout");
+            }, 10000);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
+
+
+
+
 /**********
-END URL VALUE
+END UTILS
 BEGIN BUILD BOOK BOX
 ***********/
 
@@ -491,14 +715,14 @@ export function buildBookBox(obj, page, num = 0) {
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
             const a = document.createElement("a");
-            const img = document.createElement("img");
-            a.appendChild(img);
-            img.classList.add("icon");
+            const span = document.createElement("span");
+            a.appendChild(span);
+            span.classList.add("icon", "material-symbols-outlined");
             if (page == "edit-entry") {
-                img.src = "../img/paper.png";
+                span.innerText = "description";
                 a.href = "/result?id=" + obj.barcodeNumber;
             } else {
-                img.src = "../img/pencil.png";
+                span.innerText = "edit";
                 a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
             }
             div.appendChild(a);
@@ -532,7 +756,7 @@ BEGIN GET BOOK FROM BARCODE
 ***********/
 
 /**
- * 
+ * @description Gets a book from the database using its barcode number.
  * @param {number} barcodeNumber 1171100000 through 1171199999
  * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */

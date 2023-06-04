@@ -12,9 +12,9 @@ import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User
+    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { findURLValue, openModal } from "./common";
+import { encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
 
 // eslint-disable-next-line no-unused-vars
@@ -29,6 +29,7 @@ var fullExtension = path + query + hash;
 $(() => {
     initApp().then(() => {
         setupIndex();
+        setupIndexedDB();
         setHistoryManager(window.history.state);
         goToPage(fullExtension.substring(1), true);
         historyManager.first(fullExtension.substring(1));
@@ -150,10 +151,8 @@ function setupIndex() {
 
     // Manage Account Panel and animation
     $("#small-account-container").on("click", () => {
-        if ($("#large-account-container").css("display") == "none") {
-            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
-            $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "16px");
+        if ($("#large-account-container").css("opacity") == "0") {
+            openLargeAccount();
         } else {
             closeLargeAccount();
         }
@@ -164,10 +163,8 @@ function setupIndex() {
         if (event.key != "Enter") {
             return;
         }
-        if ($("#large-account-container").css("display") == "none") {
-            $("#large-account-container").css("right", "-500%"); // Set the right to -500% so it can animate in
-            $("#large-account-container").show(0).delay(10);
-            $("#large-account-container").css("right", "16px");
+        if ($("#large-account-container").css("opacity") == "none") {
+            openLargeAccount();
         } else {
             closeLargeAccount();
         }
@@ -176,12 +173,34 @@ function setupIndex() {
 
     // Watch for clicks outside of the account panel
     $(window).on("click", (event) => {
-        // If the click is not contained in the account panel or is the event panel itself
+        // If the click is not contained in the account panel or is the account panel itself
         // and isn't the small account container (Which will toggle itself), close it
         if ((!($.contains($("#large-account-container")[0], event.target) ||
             event.target == $("#large-account-container")[0])) && (!($.contains($("#small-account-container")[0], event.target) || event.target == $("#small-account-container")[0]))) {
             closeLargeAccount();
         }
+    });
+
+    // Watch for clicks outside of the account panel
+    $(window).on("touchstart", (event) => {
+        // If the click is not contained in the account panel or is the account panel itself
+        // and isn't the small account container (Which will toggle itself), close it
+        if ((!($.contains($("#large-account-container")[0], event.target) ||
+            event.target == $("#large-account-container")[0])) && (!($.contains($("#small-account-container")[0], event.target) || event.target == $("#small-account-container")[0]))) {
+            closeLargeAccount();
+        }
+    });
+
+    // Watch for clicks outside of the mobile nav menu
+    $(window).on("click", (event) => {
+        if ($("#close-button")[0] == event.target) {
+            closeNavMenu();
+            return;
+        }
+        if ($.contains($("nav"), event.target) || event.target == $("nav")[0] || event.target == $("#hamburger-button")[0]) {
+            return;
+        }
+        closeNavMenu();
     });
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
@@ -191,19 +210,102 @@ function setupIndex() {
         } else {
             $("header").css("box-shadow", "");
         }
+        closeLargeAccount();
+        closeNavMenu();
+        updateScrollPosition();
     });
 
-    // Setup a ResizeObserver to watch for changes in content div
+    // Setup a ResizeObserver to watch for changes in the content div
     let contentDiv = document.getElementById("content");
     let contentDivObserver = new ResizeObserver(() => {
-        let contentHeight = contentDiv.offsetHeight;
-        let minHeight = window.innerHeight - $("#header-spacer").height() - $("#footer-spacer").height() - 21;
+        // If we know the content is still loading, don't do anything
+        if (contentDiv.classList.contains("loading")) {
+            return;
+        }
+        let contentHeight = contentDiv.offsetHeight + 48; // 48px is the padding on the index container
+        let minHeight = window.innerHeight - $("#header-spacer").height() - $("#footer-spacer").height();
         if (contentHeight < minHeight) {
             contentHeight = minHeight;
         }
         $("#index-content-container").css("height", contentHeight);
     });
     contentDivObserver.observe(contentDiv);
+
+    // Setup a ResizeObserver to watch for changes the footer
+    let footer = document.getElementsByTagName("footer")[0];
+    let footerObserver = new ResizeObserver(() => {
+        let footerHeight = footer.offsetHeight;
+        $("#footer-spacer").css("height", footerHeight);
+    });
+    footerObserver.observe(footer);
+}
+
+/**
+ * @description This function sets up the IndexedDB database.
+ */
+function setupIndexedDB() {
+    // Setup IndexedDB
+    let openRequest = window.indexedDB.open("SCLibrary", 1);
+
+    // Runs if the database doesn't exist or the version number is newer
+    openRequest.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        db.createObjectStore("historyStates");
+        db.createObjectStore("globals");
+        // const bookObjectStore = db.createObjectStore("books", {keyPath: "id"});
+        // bookObjectStore.createIndex("id", "id", {unique: true});
+    };
+
+    openRequest.onerror = (event) => {
+        console.error("Error opening indexedDB");
+        console.log(event);
+    };
+
+    openRequest.onsuccess = () => {
+        // Load in any caches
+        const expectedCachedVars = ["bookDatabase", "timeLastSearched"];
+        setIDB(openRequest.result);
+        let transaction = iDB.transaction("globals", "readonly");
+        let globalsObjectStore = transaction.objectStore("globals");
+
+        expectedCachedVars.forEach((key) => {
+            let request = globalsObjectStore.get(key);
+            request.onsuccess = () => {
+                if (request.result == undefined) {
+                    console.warn("Cached variable not found: " + key);
+                    return;
+                }
+                if (key == "bookDatabase") {
+                    let tempBookDatabase = [];
+                    request.result.forEach((bookDoc) => {
+                        let books = [];
+                        bookDoc.books.forEach((book) => {
+                            books.push(Book.createFromObject(book));
+                        });
+                        let order = bookDoc.order;
+                        tempBookDatabase.push({books: books, order: order});
+                    });
+                    setBookDatabase(tempBookDatabase);
+                } else if (key == "timeLastSearched") {
+                    setTimeLastSearched(request.result);
+                } else {
+                    console.warn("Unexpected cached variable: " + key);
+                }
+            };
+        });
+
+        // Flush old history states from more than 2 weeks ago
+        let historyTransaction = iDB.transaction("historyStates", "readwrite");
+        let historyStatesObjectStore = historyTransaction.objectStore("historyStates");
+        const range = IDBKeyRange.upperBound(Date.now() - 604800000 * 2); // 604800000ms = 1 week
+        let request = historyStatesObjectStore.openCursor(range);
+        request.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (!cursor) return;
+            cursor.delete();
+            cursor.continue();
+        };
+    };
 }
 
 /**
@@ -217,13 +319,20 @@ function headerSearch() {
     goToPage("search?query=" + query);
 }
 
+/**
+ * @description Opens the large account panel
+ */
+function openLargeAccount() {
+    $("#large-account-container").addClass("large-account-show");
+    $("#large-account-container").removeClass("large-account-hide");
+}
 
 /**
  * @description Closes the large account panel
  */
 function closeLargeAccount() {
-    $("#large-account-container").delay(400).hide(0);
-    $("#large-account-container").css("right", "-500%");
+    $("#large-account-container").addClass("large-account-hide");
+    $("#large-account-container").removeClass("large-account-show");
 }
 
 /**
@@ -320,7 +429,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
-        if (currentPage && ((pageName == currentPage && pageName != "search")
+        if (currentPage && !goingBack && ((pageName == currentPage && pageName != "search")
             || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
             && (pageName + pageQuery + pageHash == currentPage + currentQuery + currentHash)) {
             reject("The user attempted to view the current page.");
@@ -349,6 +458,46 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
             }
         }
 
+        // Handle Scrolling
+        // Scroll to a specific part of the page if needed
+        if (pageHash && $(encodeHTML(pageHash)).length > 0) {
+            pageHash = "#" + encodeURIComponent(pageHash.substring(1));
+            setTimeout(() => {
+                windowScroll($(pageHash).offset().top - 90);
+            }, 350);
+        } else if (goingBack && historyManager && historyManager.get(0)?.customData?.scrollRestoration) {
+            // If there isn't a hash to scroll to, see if there's a scroll point in the history to go to.
+            let count = 0;
+            let maxScrollTop = $(document).height() - $(window).height();
+            let scrollRestoration = historyManager.get(0).customData.scrollRestoration;
+            setIgnoreScroll(true);
+            let loop = setInterval(() => {
+                count++;
+                if (count > 100) {
+                    clearInterval(loop);
+                    setIgnoreScroll(false);
+                    return;
+                }
+                maxScrollTop = $(document).height() - $(window).height();
+                // If the scroll point is greater than the max scroll point, then we need to wait for the page to load.
+                if (scrollRestoration > maxScrollTop) {
+                    return;
+                }
+                setTimeout(() => {
+                    windowScroll(scrollRestoration);
+                    setTimeout(() => {
+                        setIgnoreScroll(false);
+                    }, 600);
+                }, 20/count);
+                clearInterval(loop);
+            }, 50);
+        } else {
+            // If there isn't a hash or scroll point, scroll to the top of the page.
+            setTimeout(() => {
+                windowScroll(0);
+            }, 50);
+        }
+
         let delayTimer;
         let adminCheck;
         // Temporarily hide the content while the page is loading
@@ -356,13 +505,6 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         if (currentPage && currentPage != pageName && !(currentPage.includes("account") && pageName.includes("account"))) {
             $("#content").addClass("page-hidden");
             $("#content").removeClass("fade");
-            if (!goingBack) {
-                $("html").css("scroll-behavior", "auto");
-                $("html, body").animate({ scrollTop: 0 }, 600);
-                setTimeout(() => {
-                    $("html").css("scroll-behavior", "smooth");
-                }, 600);
-            }
             delayTimer = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve();
@@ -424,10 +566,14 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 function getPage(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve, reject) => {
         // Prepare the page for loading
+        $("#content").addClass("loading");
         if (window.innerWidth <= 570) {
             closeNavMenu();
         }
-        closeLargeAccount();
+
+        if ($("#large-account-container").css("opacity") != "none") {
+            closeLargeAccount();
+        }
 
 
         // If the user is going to a different panel on the account page, handle it with the other function and return.
@@ -476,6 +622,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                     historyManager.push(pageUrl.substring(1) + pageQuery + pageHash);
                 }
 
+                $("#content").removeClass("loading");
                 $("#content").html(xhttp.responseText);
 
                 // Set Title Correctly
@@ -695,14 +842,6 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
             }, 100);
         }
 
-        // Scroll to a specific part of the page if needed
-        if (pageHash && $(pageHash).length > 0) {
-            pageHash = "#" + encodeURIComponent(pageHash.substring(1));
-            setTimeout(() => {
-                $(document).scrollTop($(pageHash).offset().top - 90);
-            }, 350);
-        }
-
         if (pageName != "account") {
             setCurrentPanel(null);
         }
@@ -720,17 +859,13 @@ window.onpopstate = () => {
         return;
     }
 
+    historyManager.currentIndex = window.history.state.index;
+
     let path = document.location.pathname.substring(1);
     let search = document.location.search;
     let hash = document.location.hash;
 
     goToPage(path + search + hash, true).then(() => {
-        if (historyManager.currentIndex - 1 == window.history.state.index) {
-            historyManager.currentIndex--;
-        } else if (historyManager.currentIndex + 1 == window.history.state.index) {
-            historyManager.currentIndex++;
-        }
-
         // Give the past knowlege of the future
         window.history.replaceState({ stack: historyManager.stack, index: historyManager.currentIndex }, null);
     }).catch(() => {

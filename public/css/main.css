@@ -109,6 +109,8 @@ body {
 
 #index-content-container {
     transition: height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
+    overflow: hidden;
+    padding: 24px 0px;
 }
 
 /* Header */
@@ -135,6 +137,16 @@ header > * {
 }
 
 header > a,
+.navlink > a {
+    transition: 0.3s;
+}
+
+header > a:hover,
+.navlink > a:hover {
+    text-shadow: 0px 0px 8px #44444470;
+}
+
+header > a,
 header > a:visited,
 header > a > h1 {
     margin: 0;
@@ -157,6 +169,7 @@ nav {
 
 .nav-open {
     width: 60%;
+    box-shadow: 0px 0px 32px 4px var(--dark-teal);
 }
 
 .navlink {
@@ -190,6 +203,10 @@ nav {
     cursor: pointer;
 }
 
+#hamburger-button:hover {
+    text-shadow: 0px 0px 8px #000000a0;
+}
+
 #close-button {
     padding: 25px;
     padding-left: 24px;
@@ -200,6 +217,11 @@ nav {
     transition: 0.5s;
     cursor: pointer;
 }
+
+#close-button:hover {
+    text-shadow: 0px 0px 8px #000000a0;
+}
+
 
 #header-search-container {
     height: 100%;
@@ -246,10 +268,10 @@ div#nav-signup > a {
 }
 
 #large-account-container {
-    display: none;
+    opacity: 0;
     z-index: 20;
     position: absolute;
-    right: -500%;
+    right: 16px;
     top: 88px;
     width: 300px;
     background-color: #f9f9f9;
@@ -259,8 +281,49 @@ div#nav-signup > a {
     padding: 20px;
     padding-bottom: 0px;
     min-width: 125px;
-    transition: 1s ease;
+    transform-origin: top right;
 }
+
+.large-account-show {
+    animation: large-account-show 0.6s forwards cubic-bezier(0.4, 0, 0.4, 1);
+}
+
+@keyframes large-account-show {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.large-account-hide {
+    animation: large-account-hide 0.75s forwards cubic-bezier(0.4, 0, 0.25, 1);
+}
+
+@keyframes large-account-hide {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
 
 #large-account-image {
     margin: 10px auto;
@@ -344,6 +407,7 @@ footer {
     background-color: var(--teal);
     background: linear-gradient(180deg, var(--teal) 10%, var(--off-teal) 95%);
     display: block;
+    z-index: 39;
     width: 100%;
     text-align: center;
     position: absolute;
@@ -460,19 +524,25 @@ button {
     transition: 0.25s;
 }
 
-button:hover {
+button:hover:enabled {
     border-color: var(--dark-teal);
     box-shadow: rgba(0, 0, 0, .1) 0 1px 1px;
     color: var(--dark-teal);
 }
 
-button:focus {
+button:active:enabled {
     border-color: var(--mint);
     background-color: var(--mint);
     color: var(--dark-teal);
     outline: none;
 }
 
+button:disabled {
+    border: 1px solid #999999;
+    background-color: #aaaaaa;
+    color: #555555;
+    cursor: default;
+}
 
 
 
@@ -526,8 +596,9 @@ button:focus {
     height: auto;
 }
 
-img[src="../img/av-image.png"] {
-    box-shadow: none;
+img[src="../img/av-image.png"],
+img[src="/img/av-image.png"] {
+    box-shadow: none !important;
 }
 
 .welcome-text {
@@ -552,7 +623,6 @@ img[src="../img/av-image.png"] {
 div.login {
     display: flex;
     flex-direction: column;
-    float: left;
     width: 100%;
     margin: 4px;
     margin-bottom: 25px;
@@ -561,7 +631,7 @@ div.login {
 .sign-in-switch,
 a.sign-in-switch:visited {
     display: block;
-    float: left;
+    text-align: left;
     margin: auto;
     margin-bottom: 5px;
     font-size: 1em;
@@ -660,7 +730,8 @@ p.answer {
     border: 2px solid var(--mint);
 }
 
-.search-button:hover {
+.search-button:hover,
+.search-button:hover:enabled {
     border-color: var(--mint);
 }
 
@@ -698,34 +769,42 @@ div.basic-info {
     flex-shrink: 200;
 }
 
-.book:hover,
-.result-listing:hover {
-    cursor: pointer;
-    box-shadow: 0px 0px 6px 2px #cccccc;
-    transition: box-shadow 0.25s;
-}
-
 .book,
 .result-listing {
     opacity: 0;
     position: relative;
-    transition: box-shadow 0.25s, opacity 0.3s;
+    transition: box-shadow 0.3s, opacity 0.3s;
 }
 
-img.icon {
+.book:hover,
+.result-listing:hover {
+    cursor: pointer;
+    box-shadow: 0px 0px 12px 0px #bbb;
+}
+
+.icon {
     position: absolute;
     top: 0;
     right: 0;
-    margin: 5px;
+    margin: 4px;
+    padding: 4px;
+    border-radius: 8px;
     z-index: 29;
-    max-height: 32px;
-    max-width: 32px;
-    opacity: 0.15;
-    transition: 0.5s;
+    font-size: 36px;
+    background-color: #ffffff80;
+    box-shadow: 0px 0px 8px 4px #ffffffd0;
+    opacity: 0.2;
+    transition: 0.4s;
 }
 
-img.icon:hover {
-    opacity: 0.5;
+.book:hover > a > .icon,
+.result-listing:hover > a > .icon {
+    opacity: 0.6;
+}
+
+.icon:hover {
+    background-color: #ffffffc0;
+    opacity: 1 !important;
 }
 
 
@@ -991,6 +1070,7 @@ button.warning:focus {
         overflow: hidden;
         margin: 0;
         flex-direction: column;
+        text-shadow: 0px 0px 24px var(--dark-teal);
     }
 
     .navlink {
@@ -1025,10 +1105,6 @@ button.warning:focus {
         padding-top: 16px;
         max-height: none;
         height: auto;
-    }
-
-    div#footer-spacer {
-        height: 500px !important;
     }
 
     .modal {

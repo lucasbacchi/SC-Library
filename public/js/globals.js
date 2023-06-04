@@ -114,6 +114,11 @@ export let bookDatabase = null;
  */
 export function setBookDatabase(newBookDatabase) {
     bookDatabase = newBookDatabase;
+    if (iDB) {
+        iDB.transaction("globals", "readwrite").objectStore("globals").put(bookDatabase, "bookDatabase");
+    } else {
+        console.warn("IndexedDB wasn't updated.");
+    }
 }
 
 
@@ -148,6 +153,11 @@ export let timeLastSearched = null;
  */
 export function setTimeLastSearched(newTimeLastSearched) {
     timeLastSearched = newTimeLastSearched;
+    if (iDB) {
+        iDB.transaction("globals", "readwrite").objectStore("globals").put(timeLastSearched, "timeLastSearched");
+    } else {
+        console.warn("IndexedDB wasn't updated.");
+    }
 }
 
 
@@ -218,6 +228,45 @@ export function setCurrentPanel(newCurrentPanel) {
     currentPanel = newCurrentPanel;
 }
 
+/**
+ * @global
+ * @type {HistoryManager}
+ * @description The global variable historyManager which stores the history manager and the stack of history events.
+ */
+export let historyManager = null;
+
+/**
+ * @global
+ * @param {Object} state the history state stored in the browser history (if there is one).
+ * @description Sets the global variable historyManager to the new manager.
+ */
+export function setHistoryManager(state) {
+    if (state == undefined) {
+        // There was no history found in the browser, so create a blank manager.
+        // This happens on the first page load as well as any time the URL is edited manually.
+        historyManager = new HistoryManager([], -1);
+    } else {
+        // There was history found in the browser, so create a manager with the history. This will happen if the user reloads the page.
+        historyManager = new HistoryManager(state.stack, state.index);
+    }
+}
+
+/**
+ * @global
+ * @type {IDBDatabase}
+ * @description The global variable iDB which stores the current state of the indexedDB.
+ */
+export let iDB = null;
+
+/**
+ * @global
+ * @param {IDBDatabase} newIDB the new indexedDB to set
+ * @description Sets the global variable iDB to the new indexedDB.
+ */
+export function setIDB(newIDB) {
+    iDB = newIDB;
+}
+
 
 /**
  * @global
@@ -266,16 +315,21 @@ export class HistoryManager {
      * @param {Number} currentIndex The index of the current page in the stack. Useful for stepping back and forth through the stack.
      */
     constructor(stack, currentIndex) {
-        this.stack = stack;
+        let convertedStack = [];
+        stack.forEach((page) => {
+            convertedStack.push(new HistoryPage(page.name, page.customData, page.stateData));
+        });
+        this.stack = convertedStack;
         this.currentIndex = currentIndex;
     }
 
     /**
      * @param {String} name The name of the page to add to the stack. 
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} stateData Any state data to save. This is optional.
      * @description Adds the information to a HistoryPage, adds it to the stack and sets it as the current page using the currentIndex.
      */
-    push(name, customData = null, first = false) {
+    push(name, customData = null, stateData = null, first = false) {
         // If we are somewhere in the past, remove all pages after the current page
         if (this.currentIndex < this.stack.length - 1) {
             this.remove(this.currentIndex + 1, this.stack.length - this.currentIndex - 1);
@@ -283,28 +337,54 @@ export class HistoryManager {
         if (name.charAt(0) != "/") {
             name = "/" + name;
         }
-        this.stack.push(new HistoryPage(name, customData));
+        let stateDataKey = undefined; // Tells HistoryPage not to generate a key
+        // Save the state data
+        if (stateData != null) {
+            stateDataKey = null; // Will be set by HistoryPage
+        }
+        // Add the page to the stack
+        this.stack.push(new HistoryPage(name, customData, stateDataKey));
         this.currentIndex++;
+        // If this is not the first time we are running this, add to the browser history
         if (!first) {
             window.history.pushState({stack: this.stack, index: this.currentIndex}, null, name);
+        }
+        if (stateData != null) {
+            // Save the state data
+            stateDataKey = this.stack[this.currentIndex].stateData;
+            iDB.transaction("historyStates", "readwrite").objectStore("historyStates").put(stateData, stateDataKey);
         }
     }
 
     /**
      * @param {String} name The name of the page to add to the stack.
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} stateData Any state data to save. This is optional.
      * @description Updates the current page in the history stack and then updates the browser history.
      */
-    update(name, customData = null) {
+    update(name, customData = null, stateData = null) {
         if (name == undefined) {
             name = this.stack[this.currentIndex].name;
         } else if (name.charAt(0) != "/") {
             name = "/" + name;
         }
+        // Get the state data key
+        let stateDataKey = this.stack[this.currentIndex].stateData;
+        if (!stateDataKey && stateData) {
+            // If there is no state data key, but there is state data, generate a new key
+            this.stack[this.currentIndex] = new HistoryPage(name, customData, stateData);
+            stateDataKey = this.stack[this.currentIndex].stateData;
+        }
         // Update the current page in the stack
-        this.stack[this.currentIndex] = new HistoryPage(name, customData);
+        this.stack[this.currentIndex].update(name, customData);
         // Update the history
-        window.history.replaceState({stack: this.stack, index: this.currentIndex}, null, name);
+        setTimeout(() => {
+            window.history.replaceState({stack: this.stack, index: this.currentIndex}, null, name);
+        }, 10);
+        // Save the state data
+        if (stateData) {
+            iDB.transaction("historyStates", "readwrite").objectStore("historyStates").put(stateData, stateDataKey);
+        }
     }
 
     /**
@@ -314,6 +394,15 @@ export class HistoryManager {
     pop() {
         this.currentIndex--;
         return this.stack.pop();
+    }
+
+    /**
+     * @description Gets the page at the specified index relative to the current page.
+     * @param {Number} relativeIndex The index of the page relative to the current page. Defaults to 0.
+     * @returns {HistoryPage} The page at the specified index.
+     */
+    get(relativeIndex = 0) {
+        return this.stack[this.currentIndex + relativeIndex];
     }
 
     /**
@@ -340,43 +429,55 @@ export class HistoryManager {
     /**
      * @param {String} name The item to add to the stack.
      * @param {Object} customData Any custom data to add to the page. This is optional.
+     * @param {Object} stateData Any state data to save. This is optional.
      * @description Used to add the first item to the stack.
      */
-    first(name, customData = null) {
+    first(name, customData = null, stateData = null) {
         if (name.charAt(0) != "/") {
             name = "/" + name;
         }
         if (this.stack.length == 0 && this.currentIndex == -1) {
             // This will only run if there was no history found.
-            this.push(name, customData, true);
+            this.push(name, customData, stateData, true);
             window.history.replaceState({
                 stack: this.stack,
                 index: this.currentIndex
             }, null, name);
+            if (history.scrollRestoration) {
+                history.scrollRestoration = "manual";
+            }
         }
     }
-}
 
-/**
- * @global
- * @type {HistoryManager}
- * @description The global variable historyManager which stores the history manager and the stack of history events.
- */
-export let historyManager = null;
+    /**
+     * @description Used to get a state data object from IndexedDB.
+     * @param {String} stateDataKey 
+     * @returns {Promise<String>} A promise which resolves with the state data in the form of a string
+     */
+    static getFromIDB(stateDataKey) {
+        return new Promise((resolve, reject) => {
+            let request = iDB.transaction("historyStates").objectStore("historyStates").get(stateDataKey);
+            request.onsuccess = () => {
+                // Convert JSON Objects to Book Objects
+                if (request.result.searchPageData) {
+                    let searchPageData = request.result.searchPageData;
+                    searchPageData.books = searchPageData.books.map(book => Book.createFromObject(book));
+                    searchPageData.browseResultsArray = searchPageData.browseResultsArray.map(book => Book.createFromObject(book));
+                    searchPageData.resultsArray = searchPageData.resultsArray.map(book => Book.createFromObject(book));
+                    request.result.searchPageData = searchPageData;
+                }
+                if (request.result.homeBookBoxes) {
+                    let homeBookBoxes = request.result.homeBookBoxes;
+                    homeBookBoxes = homeBookBoxes.map(book => Book.createFromObject(book));
+                    request.result.homeBookBoxes = homeBookBoxes;
+                }
 
-/**
- * @global
- * @param {Object} state the history state stored in the browser history (if there is one).
- * @description Sets the global variable historyManager to the new manager.
- */
-export function setHistoryManager(state) {
-    if (state == undefined) {
-        // There was no history found in the browser, so create a blank manager.
-        // This happens on the first page load as well as any time the URL is edited manually.
-        historyManager = new HistoryManager([], -1);
-    } else {
-        // There was history found in the browser, so create a manager with the history. This will happen if the user reloads the page.
-        historyManager = new HistoryManager(state.stack, state.index);
+                resolve(request.result);
+            };
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
     }
 }
 
@@ -388,14 +489,35 @@ export function setHistoryManager(state) {
 export class HistoryPage {
     name = "";
     customData = null;
+    stateData = null;
     /**
      * 
      * @param {String} name A string containing the path of the page.
      * @param {Object} customData An object containing any custom data that should be stored with the page.
+     * @param {String} stateData A string containing the state data key. This is optional.
      */
-    constructor(name, customData) {
+    constructor(name, customData, stateData) {
         this.name = name;
         this.customData = customData;
+        if (!isNaN(Date.parse(stateData))) {
+            this.stateData = stateData;
+        } else if (stateData) {
+            this.stateData = new Date().toISOString();
+        } else {
+            this.stateData = null;
+        }
+    }
+
+    /**
+     * @description Updates and existing History Page, but keeps the state Data key the same.
+     * @param {String} name A string containing the path of the page.
+     * @param {Object} customData An object containing any custom data that should be stored with the page.
+     */
+    update(name, customData = null) {
+        this.name = name;
+        if (customData != null) {
+            this.customData = customData;
+        }
     }
 }
 
@@ -767,6 +889,23 @@ export class Audience {
             youth: this.youth,
             adult: this.adult
         };
+    }
+
+    /**
+     * @returns {Array} an array of strings representing the audience
+     */
+    toArray() {
+        let arr = [];
+        if (this.children) {
+            arr.push("Children");
+        }
+        if (this.youth) {
+            arr.push("Youth");
+        }
+        if (this.adult) {
+            arr.push("Adult");
+        }
+        return arr;
     }
 }
 
