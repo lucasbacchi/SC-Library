@@ -429,7 +429,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         }
         let currentQueryValue = findURLValue(currentQuery, "query", true);
         let pageQueryValue = findURLValue(pageQuery, "query", true);
-        if (currentPage && ((pageName == currentPage && pageName != "search")
+        if (currentPage && !goingBack && ((pageName == currentPage && pageName != "search")
             || (pageName == "search" && currentQueryValue == pageQueryValue && pageQueryValue != ""))
             && (pageName + pageQuery + pageHash == currentPage + currentQuery + currentHash)) {
             reject("The user attempted to view the current page.");

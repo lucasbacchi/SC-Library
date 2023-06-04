@@ -664,6 +664,10 @@ export function setupResultPage(pageQuery) {
         });
     });
 
+    if (auth.currentUser) {
+        $("#result-page-email").css("display", "block");
+    }
+
     $("#result-page-email").on("click", () => {
         let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber).then(() => {
