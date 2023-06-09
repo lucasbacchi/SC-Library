@@ -563,7 +563,7 @@ BEGIN BUILD BOOK BOX
 
 /**
  * 
- * @param {Object<book>} obj The Book object that is going to be created
+ * @param {Object<Book>} obj The Book object that is going to be created
  * @param {String} page The page this book box will be displayed on
  * @param {Number} num The number of days that the book is due in
  * @returns An HTMLDivElement with the book information

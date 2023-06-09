@@ -453,10 +453,10 @@ function createFilterList(resultsArray) {
         filters[filterType].sort((a, b) => b.count - a.count);
     });
 
-    bulidFilterList();
+    buildFilterList();
 }
 
-function bulidFilterList() {
+function buildFilterList() {
     FILTER_TYPES.forEach((filterType) => {
         $("#sort-" + filterType + "-list").empty();
         filters[filterType].forEach((filter, index) => {
