@@ -1,7 +1,7 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
 import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
-import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
-import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
+import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 var isBrowse;
@@ -1138,6 +1138,7 @@ function checkoutAddBook() {
             // If we get here, the book is available, so add it to the list of books to be checked out
             $("#checkout-list").append(buildBookBox(book, "checkout"));
             checkoutBooks.push(book.barcodeNumber);
+            $("#checkout-counter").text(checkoutBooks.length);
 
             $("#checkout-scanner-input").val("");
         }).catch((reason) => {
@@ -1187,7 +1188,7 @@ function verifyCheckout(book) {
                 reject("The user does not exist.");
                 return;
             }
-            if (!doc.data().canCheckoutBooks) {
+            if (!doc.data().canCheckOutBooks) {
                 openModal("error", "You are not authorized to check out books.");
                 reject("The user is not authorized to check out books.");
                 return;
@@ -1215,42 +1216,58 @@ function verifyCheckout(book) {
  * @description Checks out a book. This function starts the process when the user clicks the checkout button on the checkout page.
  * @param {Array<Number>} bookList The list of book barcode numbers that are being checked out.
  */
-function checkout(bookList) {
+function checkout() {
     // We have already verified that the user is logged in and authorized to check out books
     // We have also verified that the books are available and can be checked out
     let user = auth.currentUser;
     let cardNumber;
     let timestamp = new Date();
     let dueDate = new Date(Date.now() + 6.048e+8 * 2); // 2 weeks from now
-    dueDate = dueDate.setHours(23, 59, 59, 999); // Set the time to 11:59:59.999 PM
+    dueDate.setHours(23, 59, 59); // Set the time to 11:59:59 PM
+    let promises = [];
 
     // Get the user's barcode number
-    getDoc(doc(db, "users", user.uid)).then((doc) => {
-        if (!doc.exists()) {
+    getDoc(doc(db, "users", user.uid)).then((userDoc) => {
+        if (!userDoc.exists()) {
             openModal("error", "There was an error checking out this book.");
             console.log("The user does not exist.");
             return;
         }
-        cardNumber = doc.data().cardNumber;
+        cardNumber = userDoc.data().cardNumber;
 
-        bookList.forEach((barcodeNumber) => {
-            addDoc(collection(db, "checkouts"), {
-                barcodeNumber: barcodeNumber,
-                status: "IN_PROGRESS",
+        // Add the books to the checkout collection
+        checkoutBooks.forEach((barcodeNumber) => {
+            let checkout = new Checkout(barcodeNumber, false, timestamp, cardNumber, dueDate, [], timestamp,
+                null, 0, null, false, null, false, null, null, null, 0);
+            promises.push(addDoc(collection(db, "checkouts"), checkout.toObject()));
+        });
+
+        // Update the user's last checkout date
+        let userUpdate = updateDoc(doc(db, "users", user.uid), {
+            lastCheckoutTime: timestamp
+        });
+        promises.push(userUpdate);
+
+        Promise.all(promises).then(() => {
+            openModal("success", "The books have been checked out successfully!\n\nRemember to log out if you are finished using the library computer.");
+
+            logEvent("checkout", {
                 timestamp: timestamp,
                 cardNumber: cardNumber,
-                dueDate: dueDate,
-                adminApproved: false,
-                flags: "",
-                lastUpdated: timestamp,
-                overdueEmailSent: false,
-                overdueEmailSentDate: null,
-                overdueEmailSentCount: 0,
-                reminderEmailSent: false,
-                reminderEmailSentDate: null,
-                reminderEmailSentCount: 0,
-                userReturned: false
+                books: checkoutBooks
             });
+
+            // Clear the list of books to be checked out
+            checkoutBooks = [];
+
+            // Update the checkout counter
+            $("#checkout-counter").text(checkoutBooks.length);
+
+            // Send the user to the home page
+            goToPage("");
+        }).catch((error) => {
+            openModal("error", "There was an error checking out...\n" + error);
+            console.log(error);
         });
     });
 

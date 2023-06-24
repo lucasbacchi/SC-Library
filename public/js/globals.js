@@ -795,6 +795,153 @@ export class Book {
     }
 }
 
+
+/**
+ * @global
+ * @class
+ * @classdesc A class which represents a Checkout.
+ */
+export class Checkout {
+    /**
+     * @param {String} barcodeNumber The barcode number of the book being checked out
+     * @param {Boolean} complete The status of the checkout. Defaults to false.
+     * @param {Date} timestamp The timestamp of the checkout, also can be used as an ID to group checkouts together
+     * @param {String} cardNumber The card number of the user checking out the book
+     * @param {Date} dueDate The date the book is due back
+     * @param {Array<String>} flags An array of flags about a checkout (such as "LOST" or "DAMAGED").
+     * @param {Date} lastUpdated The last time this checkout object was updated.
+     * @param {Date} overdueEmailSentDate The date of the last overdue email
+     * @param {Number} overdueEmailSentCount The number of overdue emails sent about this checkout.
+     * @param {Date} reminderEmailSentDate The date of the last reminder email
+     * @param {Boolean} userReturned A boolean representing if the user has claimed to return the book
+     * @param {Date} userReturnedDate The date the user claimed to return the book
+     * @param {Boolean} librarianCheckedIn A boolean representing if the librarian has checked in the book
+     * @param {Date} librarianCheckedInDate The date the librarian checked in the book
+     * @param {String} librarianCheckedInBy The card number of the librarian who checked in the book
+     * @param {String} librarianCheckedInNotes Any notes the librarian made about the checkout
+     * @param {Number} renewals The number of times the book has been renewed
+     */
+    constructor(barcodeNumber = null, complete = false, timestamp = null, cardNumber = null, dueDate = null,
+        flags = [], lastUpdated = null, overdueEmailSentDate = null, overdueEmailSentCount = 0, reminderEmailSentDate = null,
+        userReturned = false, userReturnedDate = null, librarianCheckedIn = false, librarianCheckedInDate = null,
+        librarianCheckedInBy = null, librarianCheckedInNotes = null, renewals = 0) {
+        this.barcodeNumber = barcodeNumber;
+        this.complete = complete;
+        this.timestamp = timestamp;
+        this.cardNumber = cardNumber;
+        this.dueDate = dueDate;
+        this.flags = flags;
+        this.lastUpdated = lastUpdated;
+        this.overdueEmailSentDate = overdueEmailSentDate;
+        this.overdueEmailSentCount = overdueEmailSentCount;
+        this.reminderEmailSentDate = reminderEmailSentDate;
+        this.userReturned = userReturned;
+        this.userReturnedDate = userReturnedDate;
+        this.librarianCheckedIn = librarianCheckedIn;
+        this.librarianCheckedInDate = librarianCheckedInDate;
+        this.librarianCheckedInBy = librarianCheckedInBy;
+        this.librarianCheckedInNotes = librarianCheckedInNotes;
+        this.renewals = renewals;
+    }
+
+    /**
+     * @param {Object} jsonObject a json object imported from firebase
+     * @returns a new Checkout object with all of that data in it
+     */
+    static createFromObject(jsonObject) {
+        if (jsonObject instanceof Checkout) {
+            console.warn("tried to pass a Checkout object into Checkout.createFromObject");
+            return jsonObject;
+        }
+        if (jsonObject.timestamp) {
+            if (jsonObject.timestamp.seconds)
+                jsonObject.timestamp = new Date(jsonObject.timestamp.seconds * 1000);
+            else
+                jsonObject.timestamp = new Date(jsonObject.timestamp);
+        }
+        if (jsonObject.dueDate) {
+            if (jsonObject.dueDate.seconds)
+                jsonObject.dueDate = new Date(jsonObject.dueDate.seconds * 1000);
+            else
+                jsonObject.dueDate = new Date(jsonObject.dueDate);
+        }
+        if (jsonObject.lastUpdated) {
+            if (jsonObject.lastUpdated.seconds)
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
+            else
+                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated);
+        }
+        if (jsonObject.overdueEmailSentDate) {
+            if (jsonObject.overdueEmailSentDate.seconds)
+                jsonObject.overdueEmailSentDate = new Date(jsonObject.overdueEmailSentDate.seconds * 1000);
+            else
+                jsonObject.overdueEmailSentDate = new Date(jsonObject.overdueEmailSentDate);
+        }
+        if (jsonObject.reminderEmailSentDate) {
+            if (jsonObject.reminderEmailSentDate.seconds)
+                jsonObject.reminderEmailSentDate = new Date(jsonObject.reminderEmailSentDate.seconds * 1000);
+            else
+                jsonObject.reminderEmailSentDate = new Date(jsonObject.reminderEmailSentDate);
+        }
+        if (jsonObject.userReturnedDate) {
+            if (jsonObject.userReturnedDate.seconds)
+                jsonObject.userReturnedDate = new Date(jsonObject.userReturnedDate.seconds * 1000);
+            else
+                jsonObject.userReturnedDate = new Date(jsonObject.userReturnedDate);
+        }
+        if (jsonObject.librarianCheckedInDate) {
+            if (jsonObject.librarianCheckedInDate.seconds)
+                jsonObject.librarianCheckedInDate = new Date(jsonObject.librarianCheckedInDate.seconds * 1000);
+            else
+                jsonObject.librarianCheckedInDate = new Date(jsonObject.librarianCheckedInDate);
+        }
+        return new Checkout(jsonObject.barcodeNumber, jsonObject.complete, jsonObject.timestamp, jsonObject.cardNumber,
+            jsonObject.dueDate, jsonObject.flags, jsonObject.lastUpdated, jsonObject.overdueEmailSentDate,
+            jsonObject.overdueEmailSentCount, jsonObject.reminderEmailSentDate, jsonObject.userReturned,
+            jsonObject.userReturnedDate, jsonObject.librarianCheckedIn, jsonObject.librarianCheckedInDate,
+            jsonObject.librarianCheckedInBy, jsonObject.librarianCheckedInNotes, jsonObject.renewals);
+    }
+
+    /**
+     * @returns {Object} a vanilla JSON object representing a Checkout
+     */
+    toObject() {
+        return {
+            barcodeNumber: this.barcodeNumber,
+            complete: this.complete,
+            timestamp: this.timestamp,
+            cardNumber: this.cardNumber,
+            dueDate: this.dueDate,
+            flags: this.flags,
+            lastUpdated: this.lastUpdated,
+            overdueEmailSentDate: this.overdueEmailSentDate,
+            overdueEmailSentCount: this.overdueEmailSentCount,
+            reminderEmailSentDate: this.reminderEmailSentDate,
+            userReturned: this.userReturned,
+            userReturnedDate: this.userReturnedDate,
+            librarianCheckedIn: this.librarianCheckedIn,
+            librarianCheckedInDate: this.librarianCheckedInDate,
+            librarianCheckedInBy: this.librarianCheckedInBy,
+            librarianCheckedInNotes: this.librarianCheckedInNotes,
+            renewals: this.renewals
+        };
+    }
+
+    /**
+     * @description Checks if the current checkout is part of the same transaction as another checkout.
+     * @param {Checkout} checkout1 the first checkout to compare
+     * @param {Checkout} checkout2 the second checkout to compare
+     * @returns {Boolean} true if the checkouts are the same checkout, false otherwise
+     */
+    static isSameCheckout(checkout1, checkout2) {
+        if (checkout1.cardNumber == checkout2.cardNumber && checkout1.timestamp == checkout2.timestamp) {
+            return true;
+        }
+        return false;
+    }
+}
+
+
 /**
  * @global
  * @class
@@ -1025,57 +1172,6 @@ export class User {
             notificationsOn: this.notificationsOn,
             emailVerified: this.emailVerified,
             isDisabled: this.isDisabled
-        };
-    }
-}
-
-/**
- * @global
- * @class
- * @classdesc An object representing a checkout event and its status.
- */
-export class Checkout {
-    /**
-     * @param {Number} book the book's barcode number
-     * @param {Number} user the user's card number
-     * @param {Date} checkoutTime 
-     * @param {Date} dueDate 
-     * @param {Date} checkinTime
-     * @param {Boolean} resolved
-     */
-    constructor(book = null, user = null, checkoutTime = null, dueDate = null, checkinTime = null, resolved = false) {
-        this.book = book;
-        this.user = user;
-        this.checkoutTime = checkoutTime;
-        this.dueDate = dueDate;
-        this.checkinTime = checkinTime;
-        this.resolved = resolved;
-    }
-
-    /**
-     * @param {Object} jsonObject a json object imported from firebase
-     * @returns a new Checkout object with all of that data in it
-     */
-    static createFromObject(jsonObject) {
-        if (jsonObject instanceof Checkout) {
-            console.warn("tried to pass a Checkout object into Checkout.createFromObject");
-            return jsonObject;
-        }
-        return new Checkout(jsonObject.book, jsonObject.user, jsonObject.checkoutTime, jsonObject.dueDate,
-            jsonObject.checkinTime, jsonObject.resolved);
-    }
-
-    /**
-     * @returns {Object} a vanilla JSON object representing a Checkout
-     */
-    toObject() {
-        return {
-            book: this.book,
-            user: this.user,
-            checkoutTime: this.checkoutTime,
-            dueDate: this.dueDate,
-            checkinTime: this.checkinTime,
-            resolved: this.resolved
         };
     }
 }
