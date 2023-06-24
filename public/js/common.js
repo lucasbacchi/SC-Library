@@ -573,6 +573,9 @@ export function buildBookBox(obj, page, num = 0) {
     const div = document.createElement("div");
     a.appendChild(div);
     switch (page) {
+        case "checkout":
+            div.classList.add("checkout-book");
+        // eslint-disable-next-line no-fallthrough
         case "view":
         case "search":
             div.classList.add("result-listing");
@@ -712,22 +715,42 @@ export function buildBookBox(obj, page, num = 0) {
         description.appendChild(document.createTextNode(shortenDescription(obj.description)));
         div3.appendChild(description);
     }
-    isAdminCheck().then((isAdmin) => {
-        if (isAdmin) {
-            const a = document.createElement("a");
-            const span = document.createElement("span");
-            a.appendChild(span);
-            span.classList.add("icon", "material-symbols-outlined");
-            if (page == "edit-entry") {
-                span.innerText = "description";
-                a.href = "/result?id=" + obj.barcodeNumber;
-            } else {
-                span.innerText = "edit";
-                a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
-            }
-            div.appendChild(a);
+    if (page == "checkout") {
+        const barcode = document.createElement("p");
+        barcode.classList.add("barcode");
+        barcode.innerHTML = "Barcode: " + obj.barcodeNumber;
+        div2.appendChild(barcode);
+        /*const ddc = document.createElement("p");
+        ddc.classList.add("ddc");
+        ddc.innerHTML = "Dewey Decimal Classification: " + obj.ddc;
+        div2.appendChild(ddc);*/
+        const isbn = document.createElement("p");
+        isbn.classList.add("isbn");
+        if (obj.isbn13 != null) {
+            isbn.innerHTML = "ISBN 13: " + obj.isbn13;
+        } else if (obj.isbn10 != null) {
+            isbn.innerHTML = "ISBN 10: " + obj.isbn10;
         }
-    });
+        div2.appendChild(isbn);
+    }
+    if (page != "checkout") {
+        isAdminCheck().then((isAdmin) => {
+            if (isAdmin) {
+                const a = document.createElement("a");
+                const span = document.createElement("span");
+                a.appendChild(span);
+                span.classList.add("icon", "material-symbols-outlined");
+                if (page == "edit-entry") {
+                    span.innerText = "description";
+                    a.href = "/result?id=" + obj.barcodeNumber;
+                } else {
+                    span.innerText = "edit";
+                    a.href = "/admin/editEntry?new=false&id=" + obj.barcodeNumber;
+                }
+                div.appendChild(a);
+            }
+        });
+    }
     return a;
 }
 

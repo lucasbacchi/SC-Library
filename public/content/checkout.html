@@ -1,0 +1,25 @@
+<div id="checkout-info-bar">
+    <h3 id="checkout-info-bar-title">Checkout</h3>
+    <p id="checkout-info-bar-text"><b>Please ensure you have all your books before you start scanning.</b><br>To get started, please start scanning your books. If the scanner doesn't work, make sure the text box below is selected.</p>
+</div>
+
+<div id="checkout-container">
+    <div id="checkout-list-container">
+        <div id="checkout-scanner-container">
+            <input type="text" id="checkout-scanner-input" placeholder="Scan barcode here..."></input>
+            <button id="checkout-scanner-button">Add</button>
+        </div>
+        <div id="checkout-list"></div>
+    </div>
+    <div id="checkout-summary">
+        <h3 id="checkout-summary-title">Checkout Summary</h3>
+        <div id="checkout-summary-list">
+            <p><b><span id="checkout-counter">0</span></b> items scanned</p>
+            <p>Checkout Date: <span id="checkout-date"></span></p>
+            <p>Due Date: <span id="checkout-due-date"></span></p>
+            <p>Account: <span id="checkout-account-email"></span></p>
+            <span id="checkout-account-link">Not you?</span>
+        </div>
+        <button id="checkout-button">Checkout</button>
+    </div>
+</div>

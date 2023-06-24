@@ -746,7 +746,8 @@ p.author,
 p.due-date,
 p.audience,
 p.medium,
-p.barcode {
+p.barcode,
+p.isbn {
     text-align: right;
     margin: .25em 0;
 }

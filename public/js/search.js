@@ -1,7 +1,7 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
 import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
 import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 var isBrowse;
@@ -621,14 +621,6 @@ export function setupResultPage(pageQuery) {
     fillResultPage(barcodeNumber);
 
     // Create Event Listeners
-    $("#checkout-next-button").on("click", () => {
-        scanCheckout();
-    });
-
-    $("#checkout-cancel-button").on("click", () => {
-        cancelCheckout();
-    });
-
     $("#result-page-back-button").on("click", () => {
         // If we can go back without refreshing the page, do so, otherwise, send us home.
         if (historyManager.currentIndex > 0) {
@@ -731,14 +723,14 @@ function fillResultPage(barcodeNumber) {
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
-            $("#checkout-button").addClass("disabled");
-            $("#checkout-button").on("click", () => {
+            $("#borrow-button").addClass("disabled");
+            $("#borrow-button").on("click", () => {
                 openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
             });
         } else {
-            $("#checkout-button").show();
-            $("#checkout-button").on("click", () => {
-                checkout(barcodeNumber);
+            $("#borrow-button").show();
+            $("#borrow-button").on("click", () => {
+                goToPage("checkout?id=" + barcodeNumber);
             });
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
@@ -1004,113 +996,265 @@ function resultPageEmail(barcodeNumber) {
     });
 }
 
+var checkoutBooks = [];
 /**
- * @description Checks out a book. This function starts the process when the user clicks the checkout button on the result page.
- * @param {Number} barcodeNumber The barcode number of the book to be checked out.
+ * @description Sets up the checkout page.
  */
-function checkout(barcodeNumber) {
+export function setupCheckout() {
+    // Setup Event Listeners
+    $("#checkout-scanner-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            checkoutAddBook();
+        }
+    });
+
+    $("#checkout-scanner-button").on("click", () => {
+        checkoutAddBook();
+    });
+
+    $("#checkout-button").on("click", () => {
+        checkout();
+    });
+
+    // Keyboard Accessibility
+    $("#checkout-scanner-button").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        checkoutAddBook();
+    });
+
+    $("#checkout-button").on("keydown", (event) => {
+        if (event.key != "Enter") {
+            return;
+        }
+        checkout();
+    });
+
+    // Verify that the user is logged in
+    if (!auth.currentUser) {
+        openModal("error", "You must be logged in to checkout a book.");
+        if (historyManager.currentIndex > 0) {
+            window.history.back();
+        } else {
+            goToPage("");
+        }
+        return;
+    }
+
+    // Confirm that the user is in the library
+    Promise.all([getClientIP(), getLibraryIP()]).then((values) => {
+        if (values[0] != values[1]) {
+            openModal("info", "You must be in the South Church Library to checkout a book.\n\nPlease use the computer in the library.");
+            if (historyManager.currentIndex > 0) {
+                window.history.back();
+            } else {
+                goToPage("");
+            }
+            return;
+        }
+    }).catch((error) => {
+        openModal("error", "There was an error verrifying your location. Please try again later.\nPlease keep in mind that you may only checkout books from inside the library.\n" + error);
+        if (historyManager.currentIndex > 0) {
+            window.history.back();
+        } else {
+            goToPage("");
+        }
+        return;
+    });
+
+    $("#checkout-counter").text(checkoutBooks.length);
+    $("#checkout-date").text(new Date().toLocaleDateString());
+    $("#checkout-due-date").text(new Date(new Date().getTime() + 12096e5).toLocaleDateString());
+    $("#checkout-account-email").text(auth.currentUser.email);
+}
+
+/**
+ * @description Gets the IP address of the client using ipify.
+ * @returns {Promise} A promise that resolves to the IP address of the client.
+ */
+function getClientIP() {
+    return new Promise((resolve, reject) => {
+        const clientIPRequest = new XMLHttpRequest();
+        clientIPRequest.open("GET", "https://api.ipify.org?format=json", true);
+        clientIPRequest.onload = function () {
+            if (this.status >= 200 && this.status < 400) {
+                resolve(JSON.parse(this.response).ip);
+            } else {
+                reject(this.status);
+            }
+        };
+        clientIPRequest.onerror = function () {
+            reject(this.status);
+        };
+        clientIPRequest.send();
+    });
+}
+
+/**
+ * @description Gets the IP address of the library using Google's DNS server and Dynamic DNS.
+ * @returns {Promise} A promise that resolves to the IP address of the library.
+ */
+function getLibraryIP() {
+    return new Promise((resolve, reject) => {
+        const libraryIPRequest = new XMLHttpRequest();
+        libraryIPRequest.open("GET", "https://dns.google/resolve?name=southchurch.ath.cx&type=A", true);
+        libraryIPRequest.onload = function () {
+            if (this.status >= 200 && this.status < 400) {
+                resolve(JSON.parse(this.response).Answer[0].data);
+            } else {
+                reject(this.status);
+            }
+        };
+        libraryIPRequest.onerror = function () {
+            reject(this.status);
+        };
+        libraryIPRequest.send();
+    });
+}
+
+function checkoutAddBook() {
+    let barcodeNumber = $("#checkout-scanner-input").val();
+    $("#checkout-scanner-input").trigger("blur");
     if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
-        openModal("error", "There was an error checking out this book.");
+        openModal("error", "This is not a valid barcode.");
         console.log("The barcode number could not be identified.");
         return;
     }
-    openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
-    // $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
-    // $("#checkout-popup").show();
-    // $("#checkout-name").html(auth.currentUser.email);
-    // $("#checkout-next-button").show();
-}
 
-/**
- * @description Cancels the checkout process.
- */
-function cancelCheckout() {
-    $("#checkout-popup").hide();
-}
-
-/**
- * @description After the user has verfied their account, this starts the process of scanning the barcode on the book.
- *              Then it uploads the checkout event to the database.
- */
-function scanCheckout() {
-    // TODO: Delete after implementing
-    openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
-    return;
-    /*
-    $("#checkout-next-button").hide();
-    $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
-    $("#checkout-book-barcode").trigger("focus");
-    let barcodeNumber = $("#result-page-barcode-number").html();
-    $("#checkout-book-barcode").off("keydown");
-    $("#checkout-book-barcode").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            $("#checkout-book-barcode").off("blur");
-            if ($("#checkout-book-barcode").val() == barcodeNumber) {
-                $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
-                $("#checkout-security-barcode").trigger("focus");
-                $("#checkout-security-barcode").off("keydown");
-                $("#checkout-security-barcode").on("keydown", (event) => {
-                    if (event.key === "Enter") {
-                        $("#checkout-security-barcode").off("blur");
-                        // TODO: Change to something else
-                        if ($("#checkout-security-barcode").val() != "") {
-                            // At this point, they must have scanned both, so we check it out to them.
-                            let bookNumber = barcodeNumber - 1171100000;
-                            let bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
-                            bookNumber = bookNumber % 100;
-
-                            let d = new Date(2020);
-                            getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d),
-                                where("checkouts", "array-contains", barcodeNumber),
-                                orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
-                                    querySnapshot.forEach((docSnap) => {
-                                        docSnap.data().checkouts.forEach((checkoutObject) => {
-                                            if (checkoutObject.returnTime != null) {
-                                                openModal("error", "The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
-                                                return;
-                                            }
-                                        });
-                                    });
-                                });
-                            runTransaction(db, (transaction) => {
-                                return transaction.get(doc(db, "books", bookDocument)).then((docSnap) => {
-                                    if (!docSnap.exists()) {
-                                        openModal("error", "There was a problem with checking out that book.");
-                                        return;
-                                    }
-
-                                    let bookObject = docSnap.data().books[bookNumber];
-                                    if (bookObject.canBeCheckedOut == false) {
-                                        openModal("error", "We're sorry, but this is a reference book, and it may not be checked out.");
-                                        return;
-                                    }
-                                    let currentTime = Date.now();
-                                    // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(doc(db, "users", auth.currentUser.uid), {
-                                        checkouts: arrayUnion({
-                                            barcodeNumber: barcodeNumber,
-                                            outTime: currentTime,
-                                            inTime: null,
-                                            title: bookObject.title
-                                        })
-                                    });
-                                });
-                            }).then(() => {
-                                openModal("success", "This book has been checked out to you successfully.");
-                                goToPage("");
-                            });
-                        }
-                    }
-                });
-            } else {
-                openModal("error", "This is not the right book. Please view the correct book's page before checking it out.");
-                cancelCheckout();
-            }
+    getBookFromBarcode(barcodeNumber).then((book) => {
+        if (!book) {
+            openModal("error", "There was an error checking out this book.");
+            console.log("The book could not be found.");
+            return;
         }
+        if (!book.canBeCheckedOut) {
+            openModal("error", "This book cannot be checked out. It must be used in the library.");
+            console.log("The book cannot be checked out.");
+            return;
+        }
+
+        verifyCheckout(book).then(() => {
+            // If we get here, the book is available, so add it to the list of books to be checked out
+            $("#checkout-list").append(buildBookBox(book, "checkout"));
+            checkoutBooks.push(book.barcodeNumber);
+
+            $("#checkout-scanner-input").val("");
+        }).catch((reason) => {
+            console.log(reason);
+        });
+    }).catch((error) => {
+        openModal("error", "There was an error checking out this book.\n" + error);
+        console.log(error);
     });
-    */
+}
+
+
+function verifyCheckout(book) {
+    return new Promise((resolve, reject) => {
+        let promises = [];
+        // Check if the book is already in the list
+        if ($("#checkout-list").find("#" + book.barcodeNumber).length > 0) {
+            openModal("error", "This book is already in the checkout list.");
+            reject("The book is already in the checkout list.");
+            return;
+        }
+
+        // Check the status of the last checkout (if there is one)
+        let lastCheckoutPromise = getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", book.barcodeNumber), orderBy("timestamp", "desc"), limit(1))).then((docs) => {
+            docs.forEach((doc) => {
+                if (doc.data().status != "COMPLETE") {
+                    openModal("error", "This book is either already checked out or is in the process of being reshelved by a librarian.");
+                    reject("The book is already checked out.");
+                    return;
+                }
+            });
+        }).catch((error) => {
+            openModal("error", "There was an error checking out this book.\n" + error);
+            console.log(error);
+        });
+
+        // Check that the user is authorized to check out the book
+        let user = auth.currentUser;
+        if (!user) {
+            openModal("error", "You must be logged in to check out a book.");
+            reject("The user is not logged in.");
+            return;
+        }
+        let userPromise = getDoc(doc(db, "users", user.uid)).then((doc) => {
+            if (!doc.exists()) {
+                openModal("error", "There was an error checking out this book.");
+                reject("The user does not exist.");
+                return;
+            }
+            if (!doc.data().canCheckoutBooks) {
+                openModal("error", "You are not authorized to check out books.");
+                reject("The user is not authorized to check out books.");
+                return;
+            }
+            resolve();
+        }).catch((error) => {
+            openModal("error", "There was an error checking out this book.\n" + error);
+            console.log(error);
+        });
+
+        promises.push(lastCheckoutPromise);
+        promises.push(userPromise);
+
+        Promise.all(promises).then(() => {
+            resolve();
+        }).catch((error) => {
+            reject(error);
+            console.log(error);
+        });
+    });
+}
+
+
+/**
+ * @description Checks out a book. This function starts the process when the user clicks the checkout button on the checkout page.
+ * @param {Array<Number>} bookList The list of book barcode numbers that are being checked out.
+ */
+function checkout(bookList) {
+    // We have already verified that the user is logged in and authorized to check out books
+    // We have also verified that the books are available and can be checked out
+    let user = auth.currentUser;
+    let cardNumber;
+    let timestamp = new Date();
+    let dueDate = new Date(Date.now() + 6.048e+8 * 2); // 2 weeks from now
+    dueDate = dueDate.setHours(23, 59, 59, 999); // Set the time to 11:59:59.999 PM
+
+    // Get the user's barcode number
+    getDoc(doc(db, "users", user.uid)).then((doc) => {
+        if (!doc.exists()) {
+            openModal("error", "There was an error checking out this book.");
+            console.log("The user does not exist.");
+            return;
+        }
+        cardNumber = doc.data().cardNumber;
+
+        bookList.forEach((barcodeNumber) => {
+            addDoc(collection(db, "checkouts"), {
+                barcodeNumber: barcodeNumber,
+                status: "IN_PROGRESS",
+                timestamp: timestamp,
+                cardNumber: cardNumber,
+                dueDate: dueDate,
+                adminApproved: false,
+                flags: "",
+                lastUpdated: timestamp,
+                overdueEmailSent: false,
+                overdueEmailSentDate: null,
+                overdueEmailSentCount: 0,
+                reminderEmailSent: false,
+                reminderEmailSentDate: null,
+                reminderEmailSentCount: 0,
+                userReturned: false
+            });
+        });
+    });
+
+    // openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
 }
 
 console.log("search.js has Loaded!");

@@ -639,6 +639,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                     "about": "About Us",
                     "account": "Your Account",
                     "advancedSearch": "Advanced Search",
+                    "checkout": "Checkout",
                     "help": "Help",
                     "login": "Login",
                     "main": "Home",
@@ -816,6 +817,16 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
         else if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
+                resolve();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+        }
+
+        else if (pageName == "checkout") {
+            import('../css/search.css');
+            import('./search').then(({ setupCheckout }) => {
+                setupCheckout();
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
