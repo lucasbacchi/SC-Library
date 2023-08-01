@@ -330,10 +330,30 @@ function addStats() {
             }
         });
         $("#number-of-books").html(count);
-        // TODO: Number of Checked Out Books
-        $("#number-of-checked-out-books").html("0");
+        // TODO: Might want to also list overdue books, or books that are awaiting reshelving (separately).
+        getDocs(query(collection(db, "checkouts"), where("complete", "==", false))).then((querySnapshot) => {
+            let checkouts = [];
+            querySnapshot.forEach((docSnap) => {
+                if (!docSnap.exists()) {
+                    console.error("checkout document does not exist");
+                    return;
+                }
+                checkouts.push(Checkout.createFromObject(docSnap.data()));
+            });
+            let count = 0;
+            checkouts.forEach((checkout) => {
+                if (checkout.userReturned) {
+                    count++;
+                }
+            });
+            if (count == 0) {
+                $("#number-of-checked-out-books").html(checkouts.length);
+            } else {
+                $("#number-of-checked-out-books").html(checkouts.length + " (" + count + " awaiting reshelving)");
+            }
+        });
     });
-    // TODO: Number of Users
+    // TODO: Number of Users (in a less terrible way)
     getDoc(doc(db, "/config/writable_vars")).then((docSnap) => {
         let num = docSnap.data().maxCardNumber - 2171100000;
         $("#number-of-users").html(num);
