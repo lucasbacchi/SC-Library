@@ -1,6 +1,6 @@
 import { goToPage } from "./ajax";
-import { addBarcodeSpacing, encodeHTML, findURLValue, openModal, switchISBNformats, verifyISBN } from "./common";
-import { app, Audience, Book, db, historyManager, Person, setTimeLastSearched } from "./globals";
+import { addBarcodeSpacing, createOnClick, encodeHTML, findURLValue, openModal, softBack, switchISBNformats, verifyISBN } from "./common";
+import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
 
@@ -53,9 +53,14 @@ export function setupEditEntry(pageQuery) {
     $("#book-cover-image").on("mouseover", () => {
         showAccountImageOverlay();
     });
+    $("#book-cover-image").on("focus", () => {
+        showAccountImageOverlay();
+    });
     $("#book-cover-image-overlay").on("mouseleave", () => {
-        $("#book-cover-image-overlay").css("opacity", "0");
-        $("#book-cover-image-overlay").delay(300).hide(0);
+        hideAccountImageOverlay();
+    });
+    $("#book-cover-image").on("blur", () => {
+        hideAccountImageOverlay();
     });
     $("#book-cover-image-overlay").on("mouseover", () => {
         $("#book-cover-image-overlay").clearQueue().stop();
@@ -69,8 +74,18 @@ export function setupEditEntry(pageQuery) {
         }, 5);
     }
 
+    function hideAccountImageOverlay() {
+        $("#book-cover-image-overlay").css("opacity", "0");
+        $("#book-cover-image-overlay").delay(300).hide(0);
+    }
+
     // If a user clicks the button to change the book cover image, click the input button
-    $("#book-cover-image-overlay").on("click", () => {
+    createOnClick($("#book-cover-image-overlay"), () => {
+        if ($("#file-input")) {
+            $("#file-input").trigger("click");
+        }
+    });
+    createOnClick($("#book-cover-image"), () => {
         if ($("#file-input")) {
             $("#file-input").trigger("click");
         }
@@ -126,24 +141,13 @@ export function setupEditEntry(pageQuery) {
         loadFile(event);
     });
 
-    $("#edit-entry-save").on("click", () => {
-        editEntry();
-    });
-
-    $("#delete-entry").on("click", () => {
-        deleteEntry();
-    });
-
-    $("#edit-entry-cancel").on("click", () => {
-        cancelEditEntry();
-    });
-
-    $("#edit-entry-delete").on("click", () => {
+    // Create Event Listeners for the buttons
+    createOnClick($("#edit-entry-save"), editEntry);
+    createOnClick($("#edit-entry-cancel"), cancelEditEntry);
+    createOnClick($("#add-subject"), addSubject);
+    createOnClick($("#delete-entry"), deleteEntry);
+    createOnClick($("#edit-entry-delete"), () => {
         openModal("warning", "Are you sure you want to delete this entry? This action cannot be undone.", "Delete Forever", "Delete this Entry", deleteEntry, "Cancel");
-    });
-
-    $("#add-subject").on("click", () => {
-        addSubject();
     });
 
     watchForChanges();
@@ -161,7 +165,10 @@ function watchForChanges() {
     $("select").on("change", () => {
         changesDetected = true;
     });
-    $("#book-cover-image-overlay").on("click", () => {
+    createOnClick($("#book-cover-image-overlay"), () => {
+        changesDetected = true;
+    });
+    createOnClick($("#book-cover-image"), () => {
         changesDetected = true;
     });
 }
@@ -1616,12 +1623,7 @@ function loadFile(event) {
  */
 function cancelEditEntry() {
     $(window).off("beforeunload");
-    // If we can go back without refreshing the page, do so, otherwise, send us to the admin dashboard.
-    if (historyManager.currentIndex > 0) {
-        window.history.back();
-    } else {
-        goToPage("admin/main");
-    }
+    softBack("admin/main");
 }
 
 /**

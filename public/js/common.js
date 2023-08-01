@@ -1,7 +1,7 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { addDoc, collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { isAdminCheck } from "./ajax";
+import { goToPage, isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
 
 /************
@@ -396,6 +396,41 @@ export function encodeHTML(string) {
     });
 }
 
+/**
+ * @description Creates an onclick listener as well as a keyboard accessable listener (for the enter key) for an element that will call a function with the specified arguments.
+ * @param {JQuery} element The element (or elements) to add the listener to
+ * @param {Function} func The callback function to call when the element is clicked or the enter key is pressed
+ * @param {...any} args Any arguments to pass to the callback function
+ */
+export function createOnClick(element, func, ...args) {
+    // Handle regular click
+    element.on("click", () => {
+        func(...args);
+    });
+
+    // Handle enter key
+    element.on("keydown", (event) => {
+        if (event.key == "Enter") {
+            func(...args);
+        }
+    });
+
+    // Handle Keyboard slection
+    element.tabindex = 0;
+}
+
+/**
+ * @description Attempts to go back to the previous page, but if there is no history, it will go to the specified path.
+ * @param {String} path the path to go to if there is no history to go back to
+ */
+export function softBack(path = "") {
+    // If we can go back without refreshing the page, do so, otherwise, send us home.
+    if (historyManager.currentIndex > 0) {
+        window.history.back();
+    } else {
+        goToPage(path);
+    }
+}
 
 /**
  * @description Uses jQuery animaitons to scroll to a location on the page
@@ -737,6 +772,7 @@ export function buildBookBox(obj, page, num = 0) {
         isAdminCheck().then((isAdmin) => {
             if (isAdmin) {
                 const a = document.createElement("a");
+                a.classList.add("icon-link");
                 const span = document.createElement("span");
                 a.appendChild(span);
                 span.classList.add("icon", "material-symbols-outlined");
@@ -1078,6 +1114,9 @@ export function openModal(type, message, title, mainButtonText = "OK", mainCallb
     modalContainer.style.display = "block";
     setTimeout(() => {
         modalContainer.style.opacity = "1";
+        modalButtonMain.focus();
+        modalButtonMain.tabIndex = 1;
+        modalButtonSecondary.tabIndex = 1;
     }, 50);
 
     // Returns a function that closes the modal

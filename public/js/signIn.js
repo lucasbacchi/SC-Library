@@ -5,7 +5,7 @@ import {
 } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { findURLValue, openModal, sendEmailVerificationToUser } from "./common";
+import { createOnClick, findURLValue, openModal, sendEmailVerificationToUser } from "./common";
 import { analytics, auth, currentPage, db } from "./globals";
 
 /**
@@ -13,27 +13,15 @@ import { analytics, auth, currentPage, db } from "./globals";
  * @param {String} pageQuery The query string of the page.
  */
 export function setupSignIn(pageQuery) {
-    $("#submit").on("click", () => {
-        signInSubmit(pageQuery);
-    });
-
-    $("#password-reset").on("click", () => {
-        sendPasswordReset();
-    });
-
-    // Keyboard Accessability
-    $("#password-reset").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        sendPasswordReset();
-    });
+    createOnClick($("#submit"), signInSubmit, pageQuery);
+    createOnClick($("#password-reset"), sendPasswordReset);
 
     if (findURLValue(pageQuery, "redirect", true) != "") {
         createReAuthPage(pageQuery);
     }
 
-    $("#submit, .login > input").on("keydown", (event) => {
+    // If the user presses enter while in the input fields, submit the form
+    $(".login > input").on("keydown", (event) => {
         if (event.key === "Enter") {
             signInSubmit(pageQuery);
         }
@@ -68,9 +56,7 @@ function createReAuthPage(pageQuery) {
     btn.id = 'submit';
     btn.innerHTML = 'Submit';
     $(div2).append(btn);
-    btn.addEventListener('click', () => {
-        signInSubmit(pageQuery);
-    });
+    createOnClick($(btn), signInSubmit, pageQuery);
     $(div2).append(document.createElement('br'));
     $(div2).append(document.createElement('br'));
     $(div1).append(div2);

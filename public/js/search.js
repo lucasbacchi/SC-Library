@@ -1,5 +1,6 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
+import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, openModal,
+    removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from './common';
 import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
@@ -15,8 +16,23 @@ const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
+    // Set the tab index of the sort dropdown.
+    if (window.innerWidth > 786) {
+        $("#sort-main-title").attr("tabindex", "");
+    } else {
+        $("#sort-main-title").attr("tabindex", "0");
+    }
+    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
+    $(window).on("resize", () => {
+        if (window.innerWidth > 786) {
+            $("#sort-main-title").attr("tabindex", "");
+        } else {
+            $("#sort-main-title").attr("tabindex", "0");
+        }
+    });
+
     // Create Sort Dropdown Event Listener
-    $("#sort-main-title").on("click", () => {
+    createOnClick($("#sort-main-title"), () => {
         if (window.innerWidth <= 786) {
             $("#sort-sidebar").toggleClass("sort-open");
         } else {
@@ -30,11 +46,9 @@ export function setupSearch(pageQuery) {
         }
     });
 
-    $("#search-page-search-button").on("click", () => {
-        searchPageSearch();
-    });
+    createOnClick($("#search-page-search-button"), searchPageSearch);
 
-    $("#apply-filters-button").on("click", () => {
+    createOnClick($("#apply-filters-button"), () => {
         if (isBrowse) {
             browse(page).then((resultsArray) => {
                 applySearchFilters(resultsArray);
@@ -621,46 +635,10 @@ export function setupResultPage(pageQuery) {
     fillResultPage(barcodeNumber);
 
     // Create Event Listeners
-    $("#result-page-back-button").on("click", () => {
-        // If we can go back without refreshing the page, do so, otherwise, send us home.
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
-    });
+    createOnClick($("#result-page-back-button"), softBack);
+    createOnClick($(".result-page-image"), displayResultPageImagePopup, barcodeNumber);
 
-    $(".result-page-image").on("click", () => {
-        const imgContainer = document.createElement("div");
-        imgContainer.classList.add("modal-container");
-        imgContainer.style.backgroundColor = "#000000c0";
-        const img = document.createElement("img");
-        img.id = "result-page-popup-image";
-        imgContainer.appendChild(img);
-        getBookFromBarcode(barcodeNumber).then((bookObject) => {
-            img.src = bookObject.coverImageLink;
-            img.onload = () => {
-                imgContainer.style.display = "block";
-                imgContainer.style.opacity = "1";
-                img.classList.add("modal-show");
-            };
-            $("#content")[0].appendChild(imgContainer);
-            imgContainer.addEventListener("click", () => {
-                imgContainer.style.opacity = "0";
-                img.classList.remove("modal-show");
-                img.classList.add("modal-hide");
-                setTimeout(() => {
-                    $(".modal-container").remove();
-                }, 500);
-            });
-        });
-    });
-
-    if (auth.currentUser) {
-        $("#result-page-email").css("display", "block");
-    }
-
-    $("#result-page-email").on("click", () => {
+    createOnClick($("#result-page-email"), () => {
         let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber).then(() => {
             loadingModal();
@@ -673,7 +651,7 @@ export function setupResultPage(pageQuery) {
         });
     });
 
-    $("#result-page-link").on("click", () => {
+    createOnClick($("#result-page-link"), () => {
         navigator.clipboard.writeText(window.location.href).then(() => {
             let closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
             window.setTimeout(() => {
@@ -682,21 +660,64 @@ export function setupResultPage(pageQuery) {
         });
     });
 
-    $("#result-page-print").on("click", () => {
-        window.print();
-    });
+    createOnClick($("#result-page-print"), window.print);
+
+    if (auth.currentUser) {
+        $("#result-page-email").css("display", "block");
+    }
 
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
             $("#result-page-edit").css("display", "block");
-
-            $("#result-page-edit").on("click", () => {
-                goToPage("admin/editEntry?new=false&id=" + barcodeNumber);
-            });
+            createOnClick($("#result-page-edit"), goToPage, "admin/editEntry?new=false&id=" + barcodeNumber);
         }
     });
 }
 
+/**
+ * @description Creates and displays a popup containing a higher resolution version of the book image.
+ * @param {String} barcodeNumber The barcode number of the book to create the popup for.
+ */
+function displayResultPageImagePopup(barcodeNumber) {
+    // Construct Container
+    const imgContainer = document.createElement("div");
+    imgContainer.classList.add("modal-container");
+    imgContainer.style.backgroundColor = "#000000c0";
+    imgContainer.tabIndex = "0";
+    // Construct Image
+    const img = document.createElement("img");
+    img.id = "result-page-popup-image";
+    imgContainer.appendChild(img);
+    // Get the link from the database and display it.
+    getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        img.src = bookObject.coverImageLink;
+        img.onload = () => {
+            imgContainer.style.display = "block";
+            imgContainer.style.opacity = "1";
+            img.classList.add("modal-show");
+        };
+        $("#content")[0].appendChild(imgContainer);
+        // Create Event Listener to Close Popup
+        createOnClick($(imgContainer), () => {
+            imgContainer.style.opacity = "0";
+            img.classList.remove("modal-show");
+            img.classList.add("modal-hide");
+            setTimeout(() => {
+                $(".modal-container").remove();
+            }, 500);
+        });
+        // Keep focus set on the image so that the user can close it with the enter key.
+        $(".result-page-image").trigger("blur");
+        setInterval(() => {
+            $(".modal-container").trigger("focus");
+        }, 100);
+    });
+}
+
+/**
+ * @description Fills the result page with the book's information.
+ * @param {String} barcodeNumber The barcode number of the book to get the information for.
+ */
 function fillResultPage(barcodeNumber) {
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
@@ -724,12 +745,12 @@ function fillResultPage(barcodeNumber) {
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
             $("#borrow-button").addClass("disabled");
-            $("#borrow-button").on("click", () => {
+            createOnClick($("#borrow-button"), () => {
                 openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
             });
         } else {
             $("#borrow-button").show();
-            $("#borrow-button").on("click", () => {
+            createOnClick($("#borrow-button"), () => {
                 goToPage("checkout?id=" + barcodeNumber);
             });
         }
@@ -904,16 +925,16 @@ function fillResultPage(barcodeNumber) {
             item_id: barcodeNumber
         });
     }).catch((error) => {
-        // If we can go back without refreshing the page, do so, otherwise, send us home.
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
+        softBack();
         openModal("error", "No information could be found for that book.\n" + error);
     });
 }
 
+/**
+ * @description Sends an email to the user with the book's information.
+ * @param {String} barcodeNumber The barcode number of the book to get the information for.
+ * @returns {Promise<void>} A promise that resolves when the email has been sent.
+ */
 function resultPageEmail(barcodeNumber) {
     return new Promise((resolve, reject) => {
         getBookFromBarcode(barcodeNumber).then((book) => {
@@ -1008,37 +1029,13 @@ export function setupCheckout() {
         }
     });
 
-    $("#checkout-scanner-button").on("click", () => {
-        checkoutAddBook();
-    });
-
-    $("#checkout-button").on("click", () => {
-        checkout();
-    });
-
-    // Keyboard Accessibility
-    $("#checkout-scanner-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        checkoutAddBook();
-    });
-
-    $("#checkout-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        checkout();
-    });
+    createOnClick($("#checkout-scanner-button"), checkoutAddBook);
+    createOnClick($("#checkout-button"), checkout);
 
     // Verify that the user is logged in
     if (!auth.currentUser) {
         openModal("error", "You must be logged in to checkout a book.");
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
+        softBack();
         return;
     }
 
@@ -1046,20 +1043,12 @@ export function setupCheckout() {
     Promise.all([getClientIP(), getLibraryIP()]).then((values) => {
         if (values[0] != values[1]) {
             openModal("info", "You must be in the South Church Library to checkout a book.\n\nPlease use the computer in the library.");
-            if (historyManager.currentIndex > 0) {
-                window.history.back();
-            } else {
-                goToPage("");
-            }
+            softBack();
             return;
         }
     }).catch((error) => {
         openModal("error", "There was an error verrifying your location. Please try again later.\nPlease keep in mind that you may only checkout books from inside the library.\n" + error);
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
+        softBack();
         return;
     });
 

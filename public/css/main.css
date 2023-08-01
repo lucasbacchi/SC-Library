@@ -23,20 +23,22 @@
 
 
 /* Custom Scrollbar */
+/* TODO: Implement an overlay solution once that's viable again */
 /* width */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 14px;
 }
 
 /* Track */
 ::-webkit-scrollbar-track {
-    background-color: transparent;
+    background-color: white;
 }
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
     background-color: #888;
     border-radius: 20px;
+    border: 4px solid white;
 }
 
 /* Handle on hover */
@@ -321,6 +323,7 @@ div#nav-signup > a {
     100% {
         transform: scale(0);
         opacity: 0;
+        display: none;
     }
 }
 
@@ -783,7 +786,7 @@ div.basic-info {
     box-shadow: 0px 0px 12px 0px #bbb;
 }
 
-.icon {
+.icon-link {
     position: absolute;
     top: 0;
     right: 0;
@@ -791,6 +794,9 @@ div.basic-info {
     padding: 4px;
     border-radius: 8px;
     z-index: 29;
+}
+
+.icon {
     font-size: 36px;
     background-color: #ffffff80;
     box-shadow: 0px 0px 8px 4px #ffffffd0;
@@ -803,7 +809,7 @@ div.basic-info {
     opacity: 0.6;
 }
 
-.icon:hover {
+.icon:hover, .icon-link:focus > .icon {
     background-color: #ffffffc0;
     opacity: 1 !important;
 }
