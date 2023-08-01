@@ -64,7 +64,13 @@ function interceptLinkClick(event) {
 
     // Tell the browser not to respond to the link click
     event.preventDefault();
-    goToPage(target.getAttribute("href"));
+
+    // Handle link clicks with the control key to open in a new tab
+    if (event.ctrlKey) {
+        window.open(window.location.origin + target.getAttribute("href"), "_blank");
+    } else {
+        goToPage(target.getAttribute("href"));
+    }
 }
 
 
