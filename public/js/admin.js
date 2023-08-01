@@ -1,81 +1,42 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick } from "./common";
 import { Book, bookDatabase, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
  */
 export function setupAdminMain() {
-    $("#edit-entry-input").on("keydown", (event) => {
+    // Create an event listener for the search bar
+    $("#edit-entry-input").on("keyup", (event) => {
         if (event.key === "Enter") {
             adminSearch();
+            $("#edit-entry-input").trigger("blur");
         }
     });
 
+    // Create an event listener for the add entry input
     $("#add-entry-isbn").on("keydown", (event) => {
         if (event.key === "Enter") {
             addEntry();
+            $("#add-entry-isbn").trigger("blur");
         }
     });
 
-    $("#add-entry-without-isbn").on("click", () => {
-        addEntryWithoutISBN();
-    });
+    // Create other event listeners for all the buttons/links
+    createOnClick($("#add-entry-button"), addEntry);
+    createOnClick($("#add-entry-without-isbn"), addEntryWithoutISBN);
+    createOnClick($("#edit-entry-search"), adminSearch);
+    createOnClick($("#view-missing-barcodes"), viewMissingBarcodes);
+    createOnClick($("#import-link"), () => $("#import-input").trigger("click"));
+    createOnClick($("#export-link"), downloadDatabase);
 
-    $("#view-missing-barcodes").on("click", () => {
-        viewMissingBarcodes();
-    });
-
-    $("#import-link").on("click", () => {
-        $("#import-input").trigger("click");
-    });
-
-    // Keyboard Accessability
-    $("#add-entry-without-isbn").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        addEntryWithoutISBN();
-    });
-
-    $("#view-missing-barcodes").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        viewMissingBarcodes();
-    });
-
-    $("#import-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        $("#import-input").trigger("click");
-    });
-
+    // Create an event listener for the import input
     $("#import-input").on("change", (event) => {
         processImport(event);
     });
 
-    $("#export-link").on("click", () => {
-        downloadDatabase();
-    });
-
-    $("#export-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        downloadDatabase();
-    });
-
-    $("#add-entry-button").on("click", () => {
-        addEntry();
-    });
-
-    $("#edit-entry-search").on("click", () => {
-        adminSearch();
-    });
-
+    // Run the functions to fill in dynamic data
     recentlyCheckedOut();
     addStats();
 }
@@ -155,13 +116,31 @@ export function setupBarcodePage() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
 
-    $("#merge-one-barcode").on("click", () => {
-        createBarcode();
+    // Create event listeners for the inputs
+    $("#barcode-single-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode();
+            $("#barcode-single-input").trigger("blur");
+        }
     });
 
-    $("#merge-multiple-barcodes").on("click", () => {
-        createBarcode(true);
+    $("#barcode-multiple-input-start").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode(true);
+            $("#barcode-multiple-input-start").trigger("blur");
+        }
     });
+
+    $("#barcode-multiple-input-end").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode(true);
+            $("#barcode-multiple-input-end").trigger("blur");
+        }
+    });
+
+    // Create event listeners for the buttons
+    createOnClick($("#merge-one-barcode"), createBarcode);
+    createOnClick($("#merge-multiple-barcodes"), createBarcode, true);
 }
 
 /**
@@ -716,21 +695,11 @@ export function setupInventory() {
         openModal("error", "Error loading inventory: " + error);
     });
 
-    $("#restart-inventory").on("click", () => {
-        restartInventory();
-    });
-
-    $("#inventory-cancel-button").on("click", () => {
-        cancelInventory();
-    });
-
-    $("#inventory-next-button").on("click", () => {
-        continueScanning();
-    });
-
-    $("#continue-scanning-button").on("click", () => {
-        continueScanning();
-    });
+    // Set up the event listeners
+    createOnClick($("#restart-inventory"), restartInventory);
+    createOnClick($("#inventory-cancel-button"), cancelInventory);
+    createOnClick($("#inventory-next-button"), continueScanning);
+    createOnClick($("#continue-scanning-button"), continueScanning);
 }
 
 var cachedInventory = [];

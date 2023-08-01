@@ -6,7 +6,7 @@ import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
-import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
+import { onCLS, onFID, onLCP, onTTFB } from "web-vitals";
 
 
 import {
@@ -14,15 +14,8 @@ import {
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
     currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { createOnClick, encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
-
-// eslint-disable-next-line no-unused-vars
-var url = window.location.href;
-var path = window.location.pathname;
-var query = window.location.search;
-var hash = window.location.hash;
-var fullExtension = path + query + hash;
 
 
 // This is the first thing to run. It initializes everything and goes to the correct page when the page loads
@@ -31,8 +24,9 @@ $(() => {
         setupIndex();
         setupIndexedDB();
         setHistoryManager(window.history.state);
-        goToPage(fullExtension.substring(1), true);
-        historyManager.first(fullExtension.substring(1));
+        let page = window.location.pathname.substring(1) + window.location.search + window.location.hash;
+        goToPage(page, true);
+        historyManager.first(page);
     }).catch((error) => {
         console.error(error);
     });
@@ -97,52 +91,25 @@ function setupIndex() {
         }
     }, 100);
 
-    // Set up on click for header search button
-    $("#header-search-button").on("click", () => {
-        headerSearch();
-    });
-
-    // Set up listener for Enter key on header search bar
-    $("#header-search-input").on("keydown", (event) => {
-        if (event.key === "Enter") {
+    // Setup an event listener for the search bar
+    $("#header-search-input").on("keyup", (event) => {
+        if (event.key == "Enter") {
             headerSearch();
+            $("#header-search-input").trigger("blur");
         }
     });
 
-    // Set up on click for log out button
-    $("div#log-out").on("click", () => {
-        signOutUser();
-    });
+    // Setup on click for header search button
+    createOnClick($("#header-search-button"), headerSearch);
 
-    // Manage Menu Button event listener
-    $("#hamburger-button").on("click", () => {
-        openNavMenu();
-    });
+    // Setup an on click for the menu button
+    createOnClick($("#hamburger-button"), openNavMenu);
 
-    // Manage Menu Close Button event listener
-    $("#close-button").on("click", () => {
-        closeNavMenu();
-    });
+    // Setup an on click for the close button
+    createOnClick($("#close-button"), closeNavMenu);
 
-    // Keyboard Acessibility
-    $("div#log-out").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        signOutUser();
-    });
-    $("#hamburger-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        openNavMenu();
-    });
-    $("#close-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        closeNavMenu();
-    });
+    // Setup an on click for the logout button
+    createOnClick($("#log-out"), signOutUser);
 
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
@@ -150,25 +117,12 @@ function setupIndex() {
     });
 
     // Manage Account Panel and animation
-    $("#small-account-container").on("click", () => {
+    createOnClick($("#small-account-container"), () => {
         if ($("#large-account-container").css("opacity") == "0") {
             openLargeAccount();
         } else {
             closeLargeAccount();
         }
-
-    });
-    // Keyboard Acessibility
-    $("#small-account-container").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        if ($("#large-account-container").css("opacity") == "none") {
-            openLargeAccount();
-        } else {
-            closeLargeAccount();
-        }
-
     });
 
     // Watch for clicks outside of the account panel
@@ -1166,19 +1120,7 @@ export function updateUserAccountInfo() {
                 // Change Account Container Appearence
                 $("#nav-login-signup").hide();
                 $("#small-account-container").show();
-                $("#large-account-image").show();
-                $("#large-account-image").show();
-                $("#account-email").show();
-                $("#account-settings").show();
-                $("#log-out").html("Log Out").css("width", "50%").on("click", () => {
-                    signOutUser();
-                }).on("keydown", (event) => {
-                    // Keyboard accessibility
-                    if (event.key != "Enter") {
-                        return;
-                    }
-                    signOutUser();
-                });
+
                 resolve();
             }).catch((error) => {
                 console.error("Could not get the user information from the database: ", error);
@@ -1189,11 +1131,7 @@ export function updateUserAccountInfo() {
             // Change Account Container Appearence
             $("#nav-login-signup").show();
             $("#small-account-container").hide();
-            $("#large-account-image").hide();
-            $("#account-email").hide();
-            $("#account-name").html("No user signed in");
-            $("#account-settings").hide();
-            $("#log-out").html("<a href=\"/login.html\">Log In</a>").css("width", "100%").attr("onclick", "").off("click").off("keydown");
+
             resolve();
         }
     });

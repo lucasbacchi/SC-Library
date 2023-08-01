@@ -2,7 +2,7 @@ import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePas
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
+import { buildBookBox, createOnClick, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
@@ -60,17 +60,7 @@ export function setupAccountPage(pageQuery) {
     }
 
     // If a user clicks the button to change their pfp, click the input button
-    $("#account-image-overlay").on("click", () => {
-        if ($("#file-input")) {
-            $("#file-input").trigger("click");
-        }
-    });
-
-    // Keyboard accessibility
-    $("#account-image-overlay").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
+    createOnClick($("#account-image-overlay"), () => {
         if ($("#file-input")) {
             $("#file-input").trigger("click");
         }
@@ -145,21 +135,8 @@ function setupAccountOverview() {
         openModal("error", "There was an error getting your account information from the database. Please try again later.");
     });
 
-    $(".save-button").on("click", () => {
-        updateAccount();
-    });
-
-    $("#email-verified-link").on("click", () => {
-        sendEmailVerificationToUser();
-    });
-
-    // Keyboard accessibility
-    $("#email-verified-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        sendEmailVerificationToUser();
-    });
+    createOnClick($(".save-button"), updateAccount);
+    createOnClick($("#send-email-verification"), sendEmailVerificationToUser);
 
     // If the user attempts to leave, let them know if they have unsaved changes
     $(window).on("beforeunload", (event) => {
@@ -211,22 +188,15 @@ function setupAccountCheckouts() {
  * @description Sets up the account notifications page
  */
 function setupAccountNotifications() {
-    $(".save-button").on("click", () => {
-        updateAccount();
-    });
+    createOnClick($(".save-button"), updateAccount);
 }
 
 /**
  * @description Sets up the account security page
  */
 function setupAccountSecurity() {
-    $("#change-password").on("click", () => {
-        changePassword();
-    });
-
-    $("#delete-account-button").on("click", () => {
-        deleteAccount();
-    });
+    createOnClick($("#change-password"), changePassword);
+    createOnClick($("#delete-account-button"), deleteAccount);
 }
 
 /**
