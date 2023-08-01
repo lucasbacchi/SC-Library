@@ -24,7 +24,6 @@
     padding: 16px;
     display: inline-block;
     vertical-align: top;
-    margin-bottom: 20px;
 }
 
 
@@ -117,19 +116,27 @@ input.account-input {
     text-align: left;
 }
 
-button.save-button {
-    position: absolute;
-    bottom: 16px;
-}
-
 
 
 
 /* Account Checkouts */
 div.book-layout {
-    height: 110px;
-    width: 100%;
-    float: none;
+    padding-bottom: 12px;
+}
+
+div#account-checkouts-container {
+    overflow-y: scroll;
+    max-height: 1000px;
+    padding: 8px;
+}
+
+div#account-checkouts-container > a {
+    display: block;
+    margin-bottom: 12px;
+}
+
+#checkouts {
+    margin-bottom: 0px;
 }
 
 

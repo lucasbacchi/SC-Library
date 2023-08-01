@@ -684,10 +684,12 @@ export function buildBookBox(obj, page, num = 0) {
         let frontstr = "", boldstr = "" + num, backstr = "";
         if (num < 0) {
             boldstr = "Overdue";
+            div.classList.add("overdue");
         }
         else if (num == 0) {
             frontstr = "Due ";
             boldstr = "today";
+            div.classList.add("due-soon");
         }
         else if (num > 0) {
             frontstr = "Due in ";

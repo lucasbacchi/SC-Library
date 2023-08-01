@@ -1,9 +1,9 @@
 import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, createOnClick, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
-import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
+import { buildBookBox, createOnClick, encodeHTML, getBookFromBarcode, openModal, sendEmailVerificationToUser } from "./common";
+import { auth, Checkout, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 
 /**
@@ -180,8 +180,14 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
  * @description Sets up the account checkouts page
  */
 function setupAccountCheckouts() {
-    let checkouts = getCheckouts();
-    createCheckouts(checkouts, "checkouts");
+    getAccountInfoFromDatabase().then((user) => {
+        getCheckouts(user.cardNumber).then(checkouts => {
+            createCheckouts(checkouts, "checkouts");
+        });
+    }).catch((error) => {
+        console.error(error);
+        openModal("error", "There was an error getting your account information from the database. Please try again later.");
+    });
 }
 
 /**
@@ -201,29 +207,51 @@ function setupAccountSecurity() {
 
 /**
  * @description Gets the user's checked out books from the database
- * @returns {Array<Book>} The user's checked out history.
+ * @param {String} cardNumber The user's card number
+ * @returns {Promise<Array<Book>>} The user's checked out history.
  */
-function getCheckouts() {
-    // TODO: Get the user's checked out books from the database
-    return [];
+function getCheckouts(cardNumber) {
+    return getDocs(query(collection(db, "checkouts"), where("cardNumber", "==", cardNumber))).then((querySnapshot) => {
+        let checkouts = [];
+        querySnapshot.forEach((doc) => {
+            checkouts.push(Checkout.createFromObject(doc.data()));
+        });
+        return checkouts;
+    }).catch((error) => {
+        console.error(error);
+    });
 }
 
 /**
- * @param {Array<Book>} books the array of books to create HTML elements for
+ * @param {Array<Checkout>} checkouts the array of books to create HTML elements for
  * @param {String} str Used to determine which page the elements are being created for
  * @description Creates the HTML elements for a checkout listing.
  */
-function createCheckouts(books, str) {
-    if (books.length == 0) {
+function createCheckouts(checkouts, str) {
+    if (checkouts.length == 0) {
         if (str == "checkouts") {
             const p = document.createElement("p");
             p.appendChild(document.createTextNode("You have no books checked out."));
             $("#checkouts")[0].appendChild(p);
         }
     }
-    for (let i = 0; i < books.length; i++) {
-        if (str == "checkouts")
-            $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
+
+    // Sort the checkouts by due date
+    checkouts.sort((a, b) => {
+        return a.dueDate - b.dueDate;
+    });
+
+    // Create the HTML elements for each book
+    for (let i = 0; i < checkouts.length; i++) {
+        if (str == "checkouts") {
+            let d = new Date();
+            getBookFromBarcode(checkouts[i].barcodeNumber).then((book) => {
+                let dueDays = Math.floor((checkouts[i].dueDate - d) / (1000 * 60 * 60 * 24));
+                $("#account-checkouts-container")[0].appendChild(buildBookBox(book, "account", dueDays));
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
     }
 }
 
@@ -350,6 +378,7 @@ export function goToSettingsPanel(newPanel) {
                 }
 
                 setCurrentPanel(newPanel);
+                $("#content").removeClass("loading");
                 resolve();
             }
         };
