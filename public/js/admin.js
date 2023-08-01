@@ -1,7 +1,8 @@
-import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick } from "./common";
-import { Book, bookDatabase, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate,
+    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutGroupBox } from "./common";
+import { Book, bookDatabase, Checkout, CheckoutGroup, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
@@ -278,37 +279,36 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
  * @description Displays the list of recently checked out books on the admin dashboard.
  */
 function recentlyCheckedOut() {
-    /* TODO: Implement Checkout System
-    let d = new Date(2021, 1, 1);
-    // I don't know if we're storing checkouts in the users doc yet...
-    getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d), orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
-        let bookTimes = [];
-        querySnapshot.forEach((docSnapshot) => {
-            let co = docSnapshot.data().checkouts;
-            for (let i = 0; i < co.length; i++) {
-                bookTimes.push({ book: co[i].bookRef, barcode: co[i].barcodeNumber, time: co[i].timeOut });
-                if (bookTimes.length == 6) {
-                    bookTimes.sort((a, b) => a.time - b.time);
-                    bookTimes.pop();
+    getDocs(query(collection(db, "checkouts"), /*where("timestamp", ">", d), */orderBy("timestamp", "desc"), limit(10))).then((querySnapshot) => {
+        let checkoutList = [];
+        querySnapshot.forEach((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("checkout document does not exist");
+                return;
+            }
+            checkoutList.push(Checkout.createFromObject(docSnap.data()));
+        });
+        let checkoutsCombined = [];
+        // Combine the checkouts if they have the same timestamp
+        for (let i = 0; i < checkoutList.length; i++) {
+            let current = checkoutList[i];
+            let currentPairing = [current];
+            for (let j = i + 1; j < checkoutList.length; j++) {
+                if (Checkout.isSameCheckout(checkoutList[j], current)) {
+                    currentPairing.push(checkoutList[j]);
+                    i++;
                 }
             }
-        });
-        for (let i = 0; i < bookTimes.length; i++) {
-            let currentBook = bookTimes[i];
-            getDoc(currentBook.book).then((docSnap) => {
-                if (!docSnap.exists()) {
-                    // TODO: When (or if) a book is deleted from the database, you can't try to get it. This may or may not be a problem after testing.
-                    console.error("doc does not exist");
-                    return;
-                }
-                for (let j = 0; j < docSnap.data().books.length; j++) {
-                    if (docSnap.data().books[j].barcodeNumber == currentBook.barcode) {
-                        $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
-                    }
-                }
-            });
+            checkoutsCombined.push(new CheckoutGroup(currentPairing));
+            if (checkoutsCombined.length >= 5) {
+                break;
+            }
         }
-    });*/
+        // Create the HTML elements
+        checkoutsCombined.forEach((checkoutGroup) => {
+            $("#checked-out-books-container").append(buildCheckoutGroupBox(checkoutGroup));
+        });
+    });
 }
 
 /**

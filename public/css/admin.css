@@ -43,6 +43,8 @@ div.mgmt {
 #checked-out {
     grid-row: 1;
     grid-column: 3 / 5;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 #reports {
@@ -80,14 +82,28 @@ div.mgmt > h4 {
 
 div#checked-out-books-container {
     padding: 8px;
+    /* border: 2px solid var(--teal);*/
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: scroll;
+    scrollbar-gutter: stable both-edges;
     position: relative;
 }
 
-div#checked-out-books-container > .book {
-    width: 100%;
-    height: 120px;
-    margin: 0;
+div#checked-out-books-container > a > .book {
     margin-bottom: 12px;
+}
+
+.checkout-summary-bookimage-container {
+    width: 25%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10px, max-content));
+    margin-right: 80px;
+}
+
+.checkout-summary-bookimage {
+    position: relative;
+
 }
 
 #edit-entry-search-results {

@@ -934,10 +934,58 @@ export class Checkout {
      * @returns {Boolean} true if the checkouts are the same checkout, false otherwise
      */
     static isSameCheckout(checkout1, checkout2) {
-        if (checkout1.cardNumber == checkout2.cardNumber && checkout1.timestamp == checkout2.timestamp) {
+        if (checkout1.cardNumber == checkout2.cardNumber && checkout1.timestamp.valueOf() == checkout2.timestamp.valueOf()) {
             return true;
         }
         return false;
+    }
+}
+
+
+/**
+ * @global
+ * @class
+ * @classdesc A class which represents a group of checkouts.
+ */
+export class CheckoutGroup {
+    /**
+     * @param {Array<Checkout>} checkouts An array of checkout objects to handle as a group.
+     * @returns {<void>}
+     */
+    constructor(checkouts = []) {
+        // Ensure that the checkouts are all from the same event.
+        for (let i = 0; i < checkouts.length - 1; i++) {
+            if (!Checkout.isSameCheckout(checkouts[i], checkouts[i + 1])) {
+                console.warn("Tried to create a CheckoutGroup with a list of checkouts from different events.");
+                return;
+            }
+        }
+        this.checkouts = checkouts;
+        // Determine if the checkout group is complete
+        let completeStatus = true;
+        for (let i = 0; i < checkouts.length; i++) {
+            if (!checkouts[i].complete) {
+                completeStatus = false;
+                break;
+            }
+        }
+        this.complete = completeStatus;
+
+        this.timestamp = checkouts[0].timestamp;
+        this.cardNumber = checkouts[0].cardNumber;
+        // Lists all flags in the underlying checkouts
+        let flagsList = [];
+        for (let i = 0; i < checkouts.length; i++) {
+            flagsList = Array.from(new Set(flagsList.concat(checkouts[i].flags)));
+        }
+        this.flags = flagsList;
+        let earliestDueDate = checkouts[0].dueDate;
+        for (let i = 1; i < checkouts.length; i++) {
+            if (checkouts[i].dueDate < earliestDueDate) {
+                earliestDueDate = checkouts[i].dueDate;
+            }
+        }
+        this.dueDate = earliestDueDate;
     }
 }
 

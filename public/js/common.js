@@ -790,6 +790,84 @@ export function buildBookBox(obj, page, num = 0) {
     return a;
 }
 
+export function buildCheckoutGroupBox(checkoutGroup) {
+    const a = document.createElement("a");
+    const div = document.createElement("div");
+    a.appendChild(div);
+    div.classList.add("book");
+
+    const div1 = document.createElement("div");
+    const div2 = document.createElement("div");
+    div.appendChild(div1);
+    div.appendChild(div2);
+    div1.classList.add("checkout-summary-bookimage-container");
+    div2.classList.add("basic-info");
+    checkoutGroup.checkouts.forEach((checkout) => {
+        getBookFromBarcode(checkout.barcodeNumber).then((book) => {
+            const img = document.createElement("img");
+            img.classList.add("bookimage");
+            img.classList.add("checkout-summary-bookimage");
+            if (book.iconImageLink) {
+                img.src = book.iconImageLink;
+            } else if (book.thumbnailImageLink) {
+                img.src = book.thumbnailImageLink;
+            } else if (book.coverImageLink) {
+                img.src = book.coverImageLink;
+            } else {
+                if (book.medium == "av") {
+                    img.src = "../img/av-image.png";
+                } else {
+                    img.src = "../img/default-book.png";
+                }
+            }
+            img.onload = () => {
+                div.style.opacity = 1;
+            };
+            img.onerror = () => {
+                img.src = "../img/default-book.png";
+                img.onerror = null;
+            };
+            div1.appendChild(img);
+        });
+    });
+    const b = document.createElement("b");
+    const timestamp = document.createElement("p");
+    timestamp.classList.add("title");
+    timestamp.appendChild(document.createTextNode("Timestamp: " + formatDate(checkoutGroup.timestamp)));
+    b.appendChild(timestamp);
+    div2.appendChild(b);
+    const cardNumber = document.createElement("p");
+    cardNumber.classList.add("author");
+    cardNumber.appendChild(document.createTextNode("Card Number: " + checkoutGroup.cardNumber));
+    div2.appendChild(cardNumber);
+    const dueDate = document.createElement("p");
+    dueDate.classList.add("author");
+    dueDate.appendChild(document.createTextNode("Due Date: " + formatDate(checkoutGroup.dueDate)));
+    div2.appendChild(dueDate);
+    const complete = document.createElement("p");
+    complete.classList.add("author");
+    complete.appendChild(document.createTextNode("Complete: " + checkoutGroup.complete));
+    div2.appendChild(complete);
+    if (checkoutGroup.flags.length > 0) {
+        const flags = document.createElement("p");
+        flags.classList.add("author");
+        flags.appendChild(document.createTextNode("Flags: " + checkoutGroup.flags));
+        div2.appendChild(flags);
+    }
+    // Styling
+    if (checkoutGroup.flags.length > 0) {
+        div.classList.add("flagged");
+    } else if (checkoutGroup.complete) {
+        div.classList.add("complete");
+    } else if (checkoutGroup.dueDate < new Date()) {
+        div.classList.add("overdue");
+    } else if (checkoutGroup.dueDate < new Date(new Date().getTime() + 604800000)) {
+        div.classList.add("due-soon");
+    }
+    return a;
+}
+
+
 function listSubjects(subj) {
     let str = "";
     for (let i = 0; i < subj.length; i++) {

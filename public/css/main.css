@@ -814,6 +814,23 @@ div.basic-info {
     opacity: 1 !important;
 }
 
+.complete {
+    background-color: #b2e3b6;
+}
+
+.overdue {
+    background-color: #ffd095;
+}
+
+.due-soon {
+    background-color: #fff3ba;
+}
+
+.flagged {
+    background-color: #ffc7c7;
+}
+
+
 
 
 
