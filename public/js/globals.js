@@ -281,6 +281,7 @@ export let directory = [
     "admin/barcode",
     "admin/editEntry",
     "admin/editUser",
+    "admin/editCheckout",
     "admin/help",
     "admin/inventory",
     "admin/main",

@@ -593,6 +593,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                     "admin/barcode": "Generate Barcodes",
                     "admin/view": "View Database",
                     "admin/editUser": "Edit a User",
+                    "admin/editCheckout": "Edit a Checkout",
                     "admin/inventory": "Conduct Inventory",
                     "admin/help": "Admin Help",
                     "404": "404 | Page Not Found",
@@ -717,6 +718,17 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
             import('../css/admin.css');
             import('./admin').then(({ setupEditUser }) => {
                 setupEditUser();
+                resolve();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+        }
+
+        else if (pageName == "admin/editCheckout") {
+            import('../css/form.css');
+            import('../css/admin.css');
+            import('./admin').then(({ setupEditCheckout }) => {
+                setupEditCheckout();
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);

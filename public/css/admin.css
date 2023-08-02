@@ -11,7 +11,7 @@
     display: grid;
     width: 85%;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 3fr 2fr;
     gap: 16px 16px;
     justify-items: stretch;
     align-items: stretch;

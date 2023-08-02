@@ -50,6 +50,13 @@ export function setupEditUser() {
 }
 
 /**
+ * @description Sets up the page for editing a checkout.
+ */
+export function setupEditCheckout() {
+    console.error("TODO: Write this function");
+}
+
+/**
  * @description Called when the user adds an entry using an ISBN number.
  */
 function addEntry() {
