@@ -4,6 +4,7 @@ import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFr
 import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
+import { signOut } from 'firebase/auth';
 
 var isBrowse;
 var browseResultsArray;
@@ -1017,7 +1018,6 @@ function resultPageEmail(barcodeNumber) {
     });
 }
 
-var checkoutBooks = [];
 /**
  * @description Sets up the checkout page.
  */
@@ -1031,6 +1031,18 @@ export function setupCheckout() {
 
     createOnClick($("#checkout-scanner-button"), checkoutAddBook);
     createOnClick($("#checkout-button"), checkout);
+    createOnClick($("#checkout-account-link"), () => {
+        openModal("info", "You are currently signed in as: " + auth.currentUser.email + "\n\n" +
+            "If this is not you, please click \"Yes\" below. You will be logged out and redirected to the login page to sign in to a different account.", "Log Out?", "Yes", () => {
+            signOut(auth).then(() => {
+                openModal("success", "You have been logged out.", "Logged Out");
+                goToPage("login?redirect=checkout");
+            }).catch((error) => {
+                openModal("error", "There was an error logging you out. Please use click on the user image in the top-right corner of the screen then click \"Log Out\".\n\n" + error,
+                "Error Logging Out");
+            });
+        }, "No");
+    });
 
     // Verify that the user is logged in
     if (!auth.currentUser) {
@@ -1052,10 +1064,33 @@ export function setupCheckout() {
         return;
     });
 
-    $("#checkout-counter").text(checkoutBooks.length);
-    $("#checkout-date").text(new Date().toLocaleDateString());
-    $("#checkout-due-date").text(new Date(new Date().getTime() + 12096e5).toLocaleDateString());
-    $("#checkout-account-email").text(auth.currentUser.email);
+    let checkoutBooks;
+    let historyLookupPromise;
+    if (!historyManager.get().stateData) {
+        historyLookupPromise = Promise.resolve({});
+    } else {
+        historyLookupPromise = HistoryManager.getFromIDB(historyManager.get().stateData);
+    }
+
+    // TODO: Should consider using local storage to store the checkout books across individual history states.
+    historyLookupPromise.then((state) => {
+        checkoutBooks = state.checkoutBooks;
+        if (!checkoutBooks) {
+            checkoutBooks = [];
+            historyManager.update(undefined, undefined, {checkoutBooks: checkoutBooks});
+        }
+
+        // Display the books that are already scanned
+        checkoutBooks.forEach((barcodeNumber) => {
+            checkoutAddBook(barcodeNumber);
+        });
+
+        // Update info in UI
+        $("#checkout-counter").text(checkoutBooks.length);
+        $("#checkout-date").text(new Date().toLocaleDateString());
+        $("#checkout-due-date").text(new Date(new Date().getTime() + 12096e5).toLocaleDateString());
+        $("#checkout-account-email").text(auth.currentUser.email);
+    });
 }
 
 /**
@@ -1087,6 +1122,7 @@ function getClientIP() {
 function getLibraryIP() {
     return new Promise((resolve, reject) => {
         const libraryIPRequest = new XMLHttpRequest();
+        // TODO: Update the domain name once we've standardized it.
         libraryIPRequest.open("GET", "https://dns.google/resolve?name=southchurch.ath.cx&type=A", true);
         libraryIPRequest.onload = function () {
             if (this.status >= 200 && this.status < 400) {
@@ -1102,8 +1138,10 @@ function getLibraryIP() {
     });
 }
 
-function checkoutAddBook() {
-    let barcodeNumber = $("#checkout-scanner-input").val();
+function checkoutAddBook(barcodeNumber = undefined) {
+    if (!barcodeNumber) {
+        barcodeNumber = $("#checkout-scanner-input").val();
+    }
     $("#checkout-scanner-input").trigger("blur");
     if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
         openModal("error", "This is not a valid barcode.");
@@ -1126,16 +1164,40 @@ function checkoutAddBook() {
         verifyCheckout(book).then(() => {
             // If we get here, the book is available, so add it to the list of books to be checked out
             $("#checkout-list").append(buildBookBox(book, "checkout"));
-            checkoutBooks.push(book.barcodeNumber);
-            $("#checkout-counter").text(checkoutBooks.length);
+            createOnClick($("#checkout-list-" + book.barcodeNumber + " > .checkout-book > a > .xButton"), checkoutRemoveBook, book.barcodeNumber);
+            HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
+                if (!state.checkoutBooks.includes(book.barcodeNumber)) {
+                    state.checkoutBooks.push(book.barcodeNumber);
+                    historyManager.update(undefined, undefined, state);
+                }
 
-            $("#checkout-scanner-input").val("");
+                $("#checkout-counter").text(state.checkoutBooks.length);
+
+                $("#checkout-scanner-input").val("");
+            });
         }).catch((reason) => {
             console.log(reason);
         });
     }).catch((error) => {
         openModal("error", "There was an error checking out this book.\n" + error);
         console.log(error);
+    });
+}
+
+
+function checkoutRemoveBook(barcodeNumber) {
+    // Remove the book from the list
+    $("#checkout-list").find("#checkout-list-" + barcodeNumber).remove();
+    HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
+        if (!state.checkoutBooks.includes(barcodeNumber)) {
+            console.warn("The book was not in the list of books to be checked out.");
+        }
+        state.checkoutBooks = state.checkoutBooks.filter((item) => item != barcodeNumber);
+        historyManager.update(undefined, undefined, state);
+
+        $("#checkout-counter").text(state.checkoutBooks.length);
+
+        $("#checkout-scanner-input").val("");
     });
 }
 
@@ -1224,39 +1286,43 @@ function checkout() {
         }
         cardNumber = userDoc.data().cardNumber;
 
-        // Add the books to the checkout collection
-        checkoutBooks.forEach((barcodeNumber) => {
-            let checkout = new Checkout(barcodeNumber, false, timestamp, cardNumber, dueDate, [], timestamp,
-                null, 0, null, false, null, false, null, null, null, 0);
-            promises.push(addDoc(collection(db, "checkouts"), checkout.toObject()));
-        });
-
-        // Update the user's last checkout date
-        let userUpdate = updateDoc(doc(db, "users", user.uid), {
-            lastCheckoutTime: timestamp
-        });
-        promises.push(userUpdate);
-
-        Promise.all(promises).then(() => {
-            openModal("success", "The books have been checked out successfully!\n\nRemember to log out if you are finished using the library computer.");
-
-            logEvent("checkout", {
-                timestamp: timestamp,
-                cardNumber: cardNumber,
-                books: checkoutBooks
+        let checkoutBooks;
+        HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
+            checkoutBooks = state.checkoutBooks;
+            // Add the books to the checkout collection
+            checkoutBooks.forEach((barcodeNumber) => {
+                let checkout = new Checkout(barcodeNumber, false, timestamp, cardNumber, dueDate, [], timestamp,
+                    null, 0, null, false, null, false, null, null, null, 0);
+                promises.push(addDoc(collection(db, "checkouts"), checkout.toObject()));
             });
 
-            // Clear the list of books to be checked out
-            checkoutBooks = [];
+            // Update the user's last checkout date
+            let userUpdate = updateDoc(doc(db, "users", user.uid), {
+                lastCheckoutTime: timestamp
+            });
+            promises.push(userUpdate);
 
-            // Update the checkout counter
-            $("#checkout-counter").text(checkoutBooks.length);
+            Promise.all(promises).then(() => {
+                openModal("success", "The books have been checked out successfully!\n\nRemember to log out if you are finished using the library computer.");
 
-            // Send the user to the home page
-            goToPage("");
-        }).catch((error) => {
-            openModal("error", "There was an error checking out...\n" + error);
-            console.log(error);
+                logEvent("checkout", {
+                    timestamp: timestamp,
+                    cardNumber: cardNumber,
+                    books: checkoutBooks
+                });
+
+                // Clear the list of books to be checked out
+                checkoutBooks = [];
+
+                // Update the checkout counter
+                $("#checkout-counter").text(checkoutBooks.length);
+
+                // Send the user to the home page
+                goToPage("");
+            }).catch((error) => {
+                openModal("error", "There was an error checking out...\n" + error);
+                console.log(error);
+            });
         });
     });
 

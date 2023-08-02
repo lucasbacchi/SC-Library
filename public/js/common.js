@@ -706,6 +706,16 @@ export function buildBookBox(obj, page, num = 0) {
         due.appendChild(bold);
         due.appendChild(document.createTextNode(backstr));
         div2.appendChild(due);
+    } else if (page == "checkout") {
+        a.id = "checkout-list-" + obj.barcodeNumber;
+        const a2 = document.createElement("a");
+        a2.href = "#";
+        const xButton = document.createElement("div");
+        xButton.classList.add("xButton", "material-symbols-outlined");
+        xButton.dataset.barcode = obj.barcodeNumber;
+        xButton.appendChild(document.createTextNode("delete"));
+        a2.appendChild(xButton);
+        div.appendChild(a2);
     }
     if ((page == "search" && num > 0) || page == "view") {
         div.id = "result-number-" + num;

@@ -64,6 +64,11 @@ function interceptLinkClick(event) {
 
     // Tell the browser not to respond to the link click
     event.preventDefault();
+
+    // If href is just a hashtag, then don't do anything
+    if (href == "#") {
+        return;
+    }
     goToPage(target.getAttribute("href"));
 }
 
@@ -366,6 +371,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
             pageName = pageName.substring(1, pageName.length);
         }
 
+        // Set default names if the page name is blank
         if (pageName == "" || pageName == "index.html" || pageName == "index") {
             pageName = "main";
         }

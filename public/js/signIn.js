@@ -16,7 +16,7 @@ export function setupSignIn(pageQuery) {
     createOnClick($("#submit"), signInSubmit, pageQuery);
     createOnClick($("#password-reset"), sendPasswordReset);
 
-    if (findURLValue(pageQuery, "redirect", true) != "") {
+    if (findURLValue(pageQuery, "redirect", true) != "" && auth.currentUser) {
         createReAuthPage(pageQuery);
     }
 
@@ -97,8 +97,8 @@ function authRedirect(pageQuery) {
             console.error(error);
         });
     } else {
-        // If they do not have an email in the query
-        // TO DO: Add additional redirects as needed
+        // If they have no other details, we can just redirect them
+        // If there are other cases we need to handle, we can add them here
         goToPage(redirect);
     }
 }
@@ -109,7 +109,7 @@ function authRedirect(pageQuery) {
  */
 function signInSubmit(pageQuery = "") {
     let reAuth = false;
-    if (pageQuery.length > 1) {
+    if (findURLValue(pageQuery, "redirect", true) != "" && auth.currentUser) {
         reAuth = true;
     }
     let persistancePromise;
@@ -133,7 +133,7 @@ function signInSubmit(pageQuery = "") {
             authPromise = handleSignUp();
         }
         authPromise.then(() => {
-            if (reAuth) {
+            if (findURLValue(pageQuery, "redirect", true) != "") {
                 authRedirect(pageQuery);
             } else {
                 goToPage("");
