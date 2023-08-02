@@ -69,117 +69,295 @@ export function setupEditCheckout(pageQuery) {
             return;
         }
 
-        loadSingleCheckout(timestamp, barcodeNumber);
+        getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+            if (!checkout) {
+                openModal("issue", "The checkout you are looking for does not exist.");
+                softBack();
+                return;
+            }
+            loadSingleCheckout(checkout);
+        });
         $(".checkout-groups-only").hide();
     } else {
-        loadCheckoutGroup(timestamp);
+        getCheckoutInfo(timestamp).then((checkoutGroup) => {
+            loadCheckoutGroup(checkoutGroup);
+        });
         $(".individual-checkouts-only").hide();
     }
+
+    // Setup Event Listeners
+    // Group Actions
+
+    // Individual Actions
+
+    // Save and Cancel Buttons
+    createOnClick($("#edit-checkout-save"), saveCheckout);
+    createOnClick($("#edit-checkout-cancel"), cancelAdminForm);
 }
 
 /**
- * @description Loads in a single checkout from the database and fills in the page with the data.
+ * @description Used to get a checkout or a checkoutGroup from the database.
  * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
- * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load.
+ * @param {Boolean} group Whether or not to return a checkout group or a single checkout. Defaults to true.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load. Only used if group is false.
+ * @param {Boolean} getDocRef Whether or not to return the document reference instead of the checkout object. Defaults to false.
+ * @returns {Promise<CheckoutGroup|Checkout|DocumentReference|Array<DocumentReference>} A Promise containing the checkout, checkout group, document reference, or array of document references.
  */
-function loadSingleCheckout(timestamp, barcodeNumber) {
-    let checkout;
+function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, getDocRef = false) {
+    if (!timestamp) {
+        openModal("issue", "No timestamp was specified for the checkout lookup.");
+        return;
+    }
+    if (!group && !barcodeNumber) {
+        openModal("issue", "No barcode was specified for the checkout lookup.");
+        return;
+    }
     // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
     let start = new Date(timestamp.valueOf() - 1000);
     let end = new Date(timestamp.valueOf() + 1000);
-    getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+    return getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+        let answer = null;
+        let checkouts = [];
+        let refs = [];
         querySnapshot.forEach((docSnap) => {
             if (!docSnap.exists()) {
                 console.error("checkout document does not exist");
                 return;
             }
-            let temp = Checkout.createFromObject(docSnap.data());
-            if (temp.barcodeNumber == barcodeNumber) {
-                checkout = temp;
+
+            let checkout = Checkout.createFromObject(docSnap.data());
+            // If we just need a single doc ref, return it
+            if (getDocRef && !group) {
+                if (checkout.barcodeNumber == barcodeNumber) {
+                    answer = docSnap.ref;
+                }
             }
+            refs.push(docSnap.ref);
+            checkouts.push(checkout);
         });
 
-        // Fill out info at the top of the page
-        $("#timestamp").html(formatDate(checkout.timestamp));
-        $("#cardNumber").html(checkout.cardNumber);
-        $("#grouping").html("No <a href=\"/admin/editCheckout?timestamp=" + checkout.timestamp.valueOf() + "&group=true\">(Click here to view the group)</a>");
-        $("#complete").html((checkout.complete ? "True" : "False"));
+        // If we just need an array of doc refs, return it
+        if (getDocRef && group) {
+            answer = refs;
+        }
+        if (answer) {
+            return answer;
+        }
 
-        getBookFromBarcode(checkout.barcodeNumber).then((book) => {
-            // Fill in the book image
-            if (book.thumbnailImageLink) {
-                $("#book-cover-image").attr("src", book.thumbnailImageLink);
-            } else {
-                $("#book-cover-image").attr("src", book.coverImageLink);
-            }
+        let checkoutGroup = new CheckoutGroup(checkouts);
 
-            // Fill in the book info in the editable inputs
-            $("#barcode-number-input").val(book.barcodeNumber);
-            let month = checkout.dueDate.getMonth() + 1;
-            let day = checkout.dueDate.getDate();
-            let year = checkout.dueDate.getFullYear();
-            $("#checkout-due-date-month").val(month.toString());
-            $("#checkout-due-date-day").val(day.toString());
-            $("#checkout-due-date-year").val(year.toString());
-            $("#checkout-user-returned").val((checkout.userReturned ? "true" : "false"));
-            let flags = checkout.flags;
-            if (flags.includes("lost")) {
-                $("#checkout-flags-lost").prop("checked", true);
-            }
-            if (flags.includes("damaged")) {
-                $("#checkout-flags-damaged").prop("checked", true);
-            }
-            if (flags.includes("other")) {
-                $("#checkout-flags-other").prop("checked", true);
-            }
+        if (group) {
+            return checkoutGroup;
+        } else {
+            let checkout;
+            checkouts.forEach((temp) => {
+                if (temp.barcodeNumber == barcodeNumber) {
+                    checkout = temp;
+                }
+            });
+            return checkout;
+        }
+    });
+}
+
+/**
+ * @description Loads in the data for a single checkout on to the page.
+ * @param {Checkout} checkout The checkout object that we are loading.
+ */
+function loadSingleCheckout(checkout) {
+    // Fill out info at the top of the page
+    $("#timestamp").html(formatDate(checkout.timestamp));
+    $("#cardNumber").html(checkout.cardNumber);
+    $("#grouping").html("No <a href=\"/admin/editCheckout?timestamp=" + checkout.timestamp.valueOf() + "&group=true\">(Click here to view the group)</a>");
+    $("#complete").html((checkout.complete ? "True" : "False"));
+
+    getBookFromBarcode(checkout.barcodeNumber).then((book) => {
+        // Fill in the book image
+        if (book.thumbnailImageLink) {
+            $("#book-cover-image").attr("src", book.thumbnailImageLink);
+        } else {
+            $("#book-cover-image").attr("src", book.coverImageLink);
+        }
+
+        // Fill in the book info in the editable inputs
+        $("#barcode-number-input").val(book.barcodeNumber);
+        let month = checkout.dueDate.getMonth() + 1;
+        let day = checkout.dueDate.getDate();
+        let year = checkout.dueDate.getFullYear();
+        $("#checkout-due-date-month").val(month.toString());
+        $("#checkout-due-date-day").val(day.toString());
+        $("#checkout-due-date-year").val(year.toString());
+        $("#checkout-user-returned").val((checkout.userReturned ? "true" : "false"));
+        let flags = checkout.flags;
+        if (flags.includes("lost")) {
+            $("#checkout-flags-lost").prop("checked", true);
+        }
+        if (flags.includes("damaged")) {
+            $("#checkout-flags-damaged").prop("checked", true);
+        }
+        if (flags.includes("other")) {
+            $("#checkout-flags-other").prop("checked", true);
+        }
 
 
-            // Fill in the checkout info at the bottom of the page
-            $("#dueDate").html(formatDate(checkout.dueDate));
-            $("#librarianCheckedIn").html((checkout.librarianCheckedIn ? checkout.librarianCheckedIn : "N/A"));
-            $("#librarianCheckedInBy").html((checkout.librarianCheckedInBy ? checkout.librarianCheckedInBy : "N/A"));
-            $("#librarianCheckedInDate").html((checkout.librarianCheckedInDate ? formatDate(checkout.librarianCheckedInDate) : "N/A"));
-            $("#renewals").html(checkout.renewals);
-            $("#userReturned").html((checkout.userReturned ? "True" : "False"));
-            $("#userReturnedDate").html((checkout.userReturnedDate ? formatDate(checkout.userReturnedDate) : "N/A"));
-            $("#reminderEmailSentDate").html((checkout.reminderEmailSentDate ? formatDate(checkout.reminderEmailSentDate) : "N/A"));
-            $("#overdueEmailSentDate").html((checkout.overdueEmailSentDate ? formatDate(checkout.overdueEmailSentDate) : "N/A"));
-            $("#overdueEmailSentCount").html(checkout.overdueEmailSentCount);
-            let lastUpdated = checkout.lastUpdated;
-            $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
+        // Fill in the checkout info at the bottom of the page
+        $("#dueDate").html(formatDate(checkout.dueDate));
+        $("#librarianCheckedIn").html((checkout.librarianCheckedIn ? checkout.librarianCheckedIn : "N/A"));
+        $("#librarianCheckedInBy").html((checkout.librarianCheckedInBy ? checkout.librarianCheckedInBy : "N/A"));
+        $("#librarianCheckedInDate").html((checkout.librarianCheckedInDate ? formatDate(checkout.librarianCheckedInDate) : "N/A"));
+        $("#renewals").html(checkout.renewals);
+        $("#userReturned").html((checkout.userReturned ? "True" : "False"));
+        $("#userReturnedDate").html((checkout.userReturnedDate ? formatDate(checkout.userReturnedDate) : "N/A"));
+        $("#reminderEmailSentDate").html((checkout.reminderEmailSentDate ? formatDate(checkout.reminderEmailSentDate) : "N/A"));
+        $("#overdueEmailSentDate").html((checkout.overdueEmailSentDate ? formatDate(checkout.overdueEmailSentDate) : "N/A"));
+        $("#overdueEmailSentCount").html(checkout.overdueEmailSentCount);
+        let lastUpdated = checkout.lastUpdated;
+        $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
+    });
+}
+
+/**
+ * @description Loads in the data for checkoutGroup on to the page.
+ * @param {CheckoutGroup} checkoutGroup The checkoutGroup object that we are loading.
+ */
+function loadCheckoutGroup(checkoutGroup) {
+    checkoutGroup.checkouts.forEach((checkout) => {
+        $("#checkout-objects-container").append(buildCheckoutBox(checkout, false));
+    });
+
+    $("#timestamp").html(formatDate(checkoutGroup.timestamp));
+    $("#cardNumber").html(checkoutGroup.cardNumber);
+    $("#complete").html((checkoutGroup.complete ? "True" : "False"));
+    $("#grouping").html("Yes (" + checkoutGroup.checkouts.length + ")");
+}
+
+/**
+ * @description Called when the user clicks the cancel button on the edit checkout page.
+ */
+function cancelAdminForm() {
+    $(window).off("beforeunload");
+    softBack("admin/main");
+}
+
+
+function saveCheckout() {
+    // Get info from the URL
+    let timestampFromURL = new Date(parseInt(findURLValue(window.location.search, "timestamp")));
+    if (!timestampFromURL) {
+        openModal("issue", "No timestamp was specified in the URL.");
+        return;
+    }
+    let barcodeNumberFromURL = findURLValue(window.location.search, "barcodeNumber");
+    if (!barcodeNumberFromURL) {
+        openModal("issue", "No barcode was specified in the URL.");
+        return;
+    }
+
+    // Collect the potentially changed data from the page
+    let barcodeNumber = $("#barcode-number-input").val();
+    let dueDate = new Date($("#checkout-due-date-year").val(), $("#checkout-due-date-month").val() - 1, $("#checkout-due-date-day").val());
+    dueDate.setHours(23, 59, 59); // Set the time to 11:59:59 PM
+    let userReturned = ($("#checkout-user-returned").val() == "true");
+    let flags = [];
+    if ($("#checkout-flags-lost").prop("checked")) {
+        flags.push("lost");
+    }
+    if ($("#checkout-flags-damaged").prop("checked")) {
+        flags.push("damaged");
+    }
+    if ($("#checkout-flags-other").prop("checked")) {
+        flags.push("other");
+    }
+    let notes = $("#checkout-notes").val();
+
+    // Get the current state of the checkout in the database
+    getCheckoutInfo(timestampFromURL, false, barcodeNumberFromURL).then((checkout) => {
+        if (!checkout) {
+            openModal("issue", "The checkout you are looking for could not be found in the database. Aborting!");
+            cancelAdminForm();
+            return;
+        }
+
+        // Create a copy of the checkout before setting the changes.
+        let newCheckout = Checkout.createFromObject(checkout.toObject());
+        newCheckout.barcodeNumber = barcodeNumber;
+        newCheckout.dueDate = dueDate;
+        newCheckout.userReturned = userReturned;
+        newCheckout.flags = flags;
+        newCheckout.notes = notes;
+        newCheckout.lastUpdated = new Date();
+
+        if (!validateCheckoutChanges(checkout, newCheckout)) {
+            return;
+        }
+
+        let promises = [];
+
+        // Handle barcode number changes with warning.
+        if (barcodeNumber != checkout.barcodeNumber) {
+            promises.push(new Promise((resolve, reject) => {
+                openModal("warning", "You are changing the barcode number of this checkout. This will cause the checkout to be moved to a different book. Are you sure you want to do this?",
+                "Are you sure?", "Yes", () => {
+                    // The user clicked "yes"
+                    checkout.barcodeNumber = barcodeNumber;
+                    resolve();
+                }, "Cancel", () => {
+                    // The user clicked "no"
+                    reject();
+                });
+            }));
+        }
+
+        // Handle due date changes with warning.
+        if (dueDate.valueOf() != checkout.dueDate.valueOf()) {
+            promises.push(new Promise((resolve, reject) => {
+                openModal("warning", "You are changing the due date of this checkout.", "Are you sure?", "Yes", () => {
+                    // The user clicked "yes"
+                    checkout.dueDate = dueDate;
+                    resolve();
+                }, "Cancel", () => {
+                    // The user clicked "no"
+                    reject();
+                });
+            }));
+        }
+
+        Promise.all(promises).then(() => {
+            // Update the checkout in the database
+            getCheckoutInfo(timestampFromURL, false, barcodeNumberFromURL, true).then((checkoutRef) => {
+                updateDoc(checkoutRef, newCheckout.toObject()).then(() => {
+                    openModal("success", "The checkout was successfully updated.");
+                    cancelAdminForm();
+                }).catch((error) => {
+                    openModal("issue", "There was an issue updating the checkout. Error: " + error);
+                });
+            });
+        }).catch(() => {
+            // The user clicked cancel
+            return;
         });
     });
 }
 
 /**
- * @description Loads in a set of checkout documents from the database and fills in the page with the data.
- * @param {Date} timestamp The timestamp of the checkout group that we use to identify it.
+ * @description Validates the changes that the user made to the checkout.
+ * @param {Checkout} oldCheckout The old (current) verion of the checkout.
+ * @param {Checkout} newCheckout The new (changed) version of the checkout with the data from the page.
+ * @returns {Boolean} Whether or not the changes are valid.
  */
-function loadCheckoutGroup(timestamp) {
-    let checkoutGroup;
-    // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
-    let start = new Date(timestamp.valueOf() - 1000);
-    let end = new Date(timestamp.valueOf() + 1000);
-    getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
-        let checkouts = [];
-        querySnapshot.forEach((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("checkout document does not exist");
-                return;
-            }
-            checkouts.push(Checkout.createFromObject(docSnap.data()));
-        });
-        checkoutGroup = new CheckoutGroup(checkouts);
-
-        checkouts.forEach((checkout) => {
-            $("#checkout-objects-container").append(buildCheckoutBox(checkout, false));
-        });
-
-        $("#timestamp").html(formatDate(checkoutGroup.timestamp));
-        $("#cardNumber").html(checkoutGroup.cardNumber);
-        $("#complete").html((checkoutGroup.complete ? "True" : "False"));
-        $("#grouping").html("Grouped (" + checkoutGroup.checkouts.length + ")");
-    });
+function validateCheckoutChanges(oldCheckout, newCheckout) {
+    // Validate new barcode number
+    if (!(newCheckout.barcodeNumber > 1171100000 && newCheckout.barcodeNumber < 1171199999)) {
+        openModal("issue", "The barcode number you entered is not valid. Please try again.");
+        return false;
+    }
+    // Validate new due date
+    if (newCheckout.dueDate < new Date(2020, 0, 1) || newCheckout.dueDate > new Date().setFullYear(new Date().getFullYear() + 1)
+        && newCheckout.dueDate.valueOf() != oldCheckout.dueDate.valueOf()) {
+        openModal("issue", "The due date you entered is not valid. Please try again.");
+        return false;
+    }
+    return true;
 }
 
 

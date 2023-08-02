@@ -954,6 +954,12 @@ export class CheckoutGroup {
      * @returns {<void>}
      */
     constructor(checkouts = []) {
+        // Ensure that the list of checkouts is not empty.
+        if (checkouts.length == 0) {
+            console.warn("Tried to create a CheckoutGroup with an empty list of checkouts.");
+            return;
+        }
+
         // Ensure that the checkouts are all from the same event.
         for (let i = 0; i < checkouts.length - 1; i++) {
             if (!Checkout.isSameCheckout(checkouts[i], checkouts[i + 1])) {
