@@ -1,1 +1,112 @@
-<h3>Editing Checkouts Manually is still in development. Please check back later.</h3>
+<div id="form-container">
+    <h1 class="form-header checkout-groups-only">Edit This Checkout Group:</h1>
+    <h1 class="form-header individual-checkouts-only">Edit This Checkout:</h1>
+    <div class="form-section">
+        <h6 class="form-title no-underline">Timestamp: <span id="timestamp"></span></h6>
+        <!-- <h6 class="form-title no-underline individual-checkouts-only">Barcode Number: <span id="barcodeNumber"></span></h6> -->
+        <h6 class="form-title no-underline">Card Number: <span id="cardNumber"></span></h6>
+        <h6 class="form-title no-underline">Complete: <span id="complete"></span></h6>
+        <h6 class="form-title no-underline">Group: <span id="grouping"></span></h6>
+    </div>
+    <div class="form-section checkout-groups-only">
+        <h6 class="form-title">Checkouts</h6>
+        <p class="form-description">These are the underlying checkout objects in this checkout group. They are each individually editable.</p>
+        <div id="checkout-objects-container"></div>
+    </div>
+    <div class="form-section checkout-groups-only">
+        <h6 class="form-title">Group Actions</h6>
+        <p class="form-description">These actions will be applied to all checkouts in this group. Please note that these actions are applied immediately.</p>
+        <div id="checkout-actions-container">
+            <button id="edit-checkout-group-checkin">Check In</button>
+            <p>Will check-in all books in the group.</p>
+            <br>
+            <button id="edit-checkout-group-send-overdue-email">Send Overdue Email</button>
+            <p>Will send an overdue email to the cardholder.</p>
+            <br>
+            <button id="edit-checkout-group-send-reminder-email">Send Reminder Email</button>
+            <p>Will send a reminder email to the cardholder.</p>
+            <br>
+            <button id="edit-checkout-group-renew">Renew</button>
+            <p>Will add two weeks to the due date of all books in the group.</p>
+            <br>
+            <button id="edit-checkout-group-delete" class="delete-button">Delete</button>
+            <p>Will remove ALL reference to these books checked out.</p>
+        </div>
+    </div>
+    
+    <div class="form-section individual-checkouts-only">
+        <!-- <h6 class="form-title">Book Image</h6> -->
+        <div class="book-cover-image-container no-select">
+            <img id="book-cover-image" src="../img/favicon.ico">
+        </div>
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">Barcode Number</h6>
+        <p class="form-description">Required. This will change the book that is checked-out. Only change this if you really need to.</p>
+        <input id="barcode-number-input" placeholder="" class="long-form-input">
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">Due Date</h6>
+        <p class="form-description">Required.</p>
+        <input id="checkout-due-date-month" placeholder="Month" class="short-form-input" style="width: 60px;">
+        <span> / </span>
+        <input id="checkout-due-date-day" placeholder="Day" class="short-form-input" style="width: 60px;">
+        <span> / </span>
+        <input id="checkout-due-date-year" placeholder="Year" class="short-form-input" style="width: 120px;">
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">User Returned</h6>
+        <p class="form-description">Required.</p>
+        <select id="checkout-user-returned" name="user-returned">
+            <option value="">Select One …</option>
+            <option value="true">True</option>
+            <option value="false">False</option>
+        </select>
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">Flags</h6>
+        <p class="form-description">A set of flags you can apply to this checkout.</p>
+        <input type="checkbox" id="checkout-flags-lost" name="flags" value="lost">Lost
+        <input type="checkbox" id="checkout-flags-damaged" name="flags" value="damaged">Damaged
+        <input type="checkbox" id="checkout-flags-other" name="flags" value="other">Other (see notes)
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">Notes</h6>
+        <textarea id="checkout-notes" placeholder="Record any notes related to this checkout..." class="long-form-input"></textarea>
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title no-underline">Librarian Checked-In: <span id="librarianCheckedIn"></span></h6>
+        <h6 class="form-title no-underline">Checked-In By: <span id="librarianCheckedInBy"></span></h6>
+        <h6 class="form-title no-underline">Checked-In Date: <span id="librarianCheckedInDate"></span></h6>
+        <h6 class="form-title no-underline">Renewals: <span id="renewals"></span></h6>
+        <h6 class="form-title no-underline">User Returned: <span id="userReturned"></span></h6>
+        <h6 class="form-title no-underline">User Returned Date: <span id="userReturnedDate"></span></h6>
+        <h6 class="form-title no-underline">Reminder Email Sent Date: <span id="reminderEmailSentDate"></span></h6>
+        <h6 class="form-title no-underline">Overdue Email Sent Date: <span id="overdueEmailSentDate"></span></h6>
+        <h6 class="form-title no-underline"># of Overdue Emails Sent: <span id="overdueEmailSentCount"></span></h6>
+    </div>
+    <div class="form-section individual-checkouts-only">
+        <h6 class="form-title">Actions</h6>
+        <p class="form-description">Please note that these actions are applied immediately.</p>
+        <div id="checkout-actions-container">
+            <button id="edit-checkout-checkin">Check In</button>
+            <p>Checks-In the current book. This will mark it as reshelved, and able to be checked-out by another user.</p>
+            <br>
+            <button id="edit-checkout-send-overdue-email">Send Overdue Email</button>
+            <p>Will send an overdue email to the cardholder about this book.</p>
+            <br>
+            <button id="edit-checkout-send-reminder-email">Send Reminder Email</button>
+            <p>Will send a reminder email to the cardholder about this book.</p>
+            <br>
+            <button id="edit-checkout-renew">Renew</button>
+            <p>Will add two weeks to the due date of this book.</p>
+            <br>
+            <button id="edit-checkout-delete" class="delete-button">Delete</button>
+            <p>Will remove ALL reference to this book being checked out. (The parent group will remain if there are more books in the group.)</p>
+        </div>
+    </div>
+
+    <p id="last-updated" class="individual-checkouts-only"></p>
+    <button id="edit-checkout-save" class="individual-checkouts-only">Save</button>
+    <button id="edit-checkout-cancel">Cancel</button>
+</div>

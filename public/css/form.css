@@ -22,6 +22,11 @@
     margin-bottom: 8px;
 }
 
+.form-title > span {
+    font-weight: 500;
+    margin-left: 8px;
+}
+
 .no-underline {
     border-bottom: 0;
 }
@@ -67,7 +72,7 @@ select {
     font-size: 1em;
 }
 
-#edit-entry-header {
+.form-header {
     font-family: 'Poppins', sans-serif;
     margin-bottom: 18px;
 }
@@ -111,6 +116,25 @@ select {
     top: calc(50% - 12px);
 }
 
+#checkout-objects-container {
+    padding: 8px;
+    overflow-y: scroll;
+    max-height: 1000px;
+}
+
+#checkout-objects-container > a {
+    display: block;
+    margin-bottom: 12px;
+}
+
+#checkout-actions-container > button {
+    margin: 12px 0px;
+}
+
+#checkout-actions-container > p {
+    margin-left: 16px;
+    display: inline;
+}
 
 
 

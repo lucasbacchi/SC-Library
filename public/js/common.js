@@ -802,7 +802,7 @@ export function buildBookBox(obj, page, num = 0) {
     return a;
 }
 
-export function buildCheckoutGroupBox(checkoutGroup) {
+export function buildCheckoutBox(obj, group = true) {
     const a = document.createElement("a");
     const div = document.createElement("div");
     a.appendChild(div);
@@ -814,7 +814,11 @@ export function buildCheckoutGroupBox(checkoutGroup) {
     div.appendChild(div2);
     div1.classList.add("checkout-summary-bookimage-container");
     div2.classList.add("basic-info");
-    checkoutGroup.checkouts.forEach((checkout) => {
+    let iterable = obj.checkouts;
+    if (!group) {
+        iterable = [obj];
+    }
+    iterable.forEach((checkout) => {
         getBookFromBarcode(checkout.barcodeNumber).then((book) => {
             const img = document.createElement("img");
             img.classList.add("bookimage");
@@ -845,36 +849,48 @@ export function buildCheckoutGroupBox(checkoutGroup) {
     const b = document.createElement("b");
     const timestamp = document.createElement("p");
     timestamp.classList.add("title");
-    timestamp.appendChild(document.createTextNode("Timestamp: " + formatDate(checkoutGroup.timestamp)));
+    timestamp.appendChild(document.createTextNode("Timestamp: " + formatDate(obj.timestamp)));
     b.appendChild(timestamp);
     div2.appendChild(b);
-    const cardNumber = document.createElement("p");
-    cardNumber.classList.add("author");
-    cardNumber.appendChild(document.createTextNode("Card Number: " + checkoutGroup.cardNumber));
-    div2.appendChild(cardNumber);
+    if (group) {
+        const cardNumber = document.createElement("p");
+        cardNumber.classList.add("author");
+        cardNumber.appendChild(document.createTextNode("Card Number: " + obj.cardNumber));
+        div2.appendChild(cardNumber);
+    } else {
+        const barcodeNumber = document.createElement("p");
+        barcodeNumber.classList.add("author");
+        barcodeNumber.appendChild(document.createTextNode("Barcode Number: " + obj.barcodeNumber));
+        div2.appendChild(barcodeNumber);
+    }
     const dueDate = document.createElement("p");
     dueDate.classList.add("author");
-    dueDate.appendChild(document.createTextNode("Due Date: " + formatDate(checkoutGroup.dueDate)));
+    dueDate.appendChild(document.createTextNode("Due Date: " + formatDate(obj.dueDate)));
     div2.appendChild(dueDate);
     const complete = document.createElement("p");
     complete.classList.add("author");
-    complete.appendChild(document.createTextNode("Complete: " + checkoutGroup.complete));
+    complete.appendChild(document.createTextNode("Complete: " + obj.complete));
     div2.appendChild(complete);
-    if (checkoutGroup.flags.length > 0) {
+    if (obj.flags.length > 0) {
         const flags = document.createElement("p");
         flags.classList.add("author");
-        flags.appendChild(document.createTextNode("Flags: " + checkoutGroup.flags));
+        flags.appendChild(document.createTextNode("Flags: " + obj.flags));
         div2.appendChild(flags);
     }
     // Styling
-    if (checkoutGroup.flags.length > 0) {
+    if (obj.flags.length > 0) {
         div.classList.add("flagged");
-    } else if (checkoutGroup.complete) {
+    } else if (obj.complete) {
         div.classList.add("complete");
-    } else if (checkoutGroup.dueDate < new Date()) {
+    } else if (obj.dueDate < new Date()) {
         div.classList.add("overdue");
-    } else if (checkoutGroup.dueDate < new Date(new Date().getTime() + 604800000)) {
+    } else if (obj.dueDate < new Date(new Date().getTime() + 604800000)) {
         div.classList.add("due-soon");
+    }
+    if (group) {
+        a.href = "/admin/editCheckout?timestamp=" + obj.timestamp.valueOf() + "&group=true";
+    } else {
+        a.href = "/admin/editCheckout?timestamp=" + obj.timestamp.valueOf() + "&group=false&barcodeNumber=" + obj.barcodeNumber;
     }
     return a;
 }

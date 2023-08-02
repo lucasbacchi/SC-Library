@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate,
-    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutGroupBox } from "./common";
+    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack, getBookFromBarcode } from "./common";
 import { Book, bookDatabase, Checkout, CheckoutGroup, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -52,9 +52,136 @@ export function setupEditUser() {
 /**
  * @description Sets up the page for editing a checkout.
  */
-export function setupEditCheckout() {
-    console.error("TODO: Write this function");
+export function setupEditCheckout(pageQuery) {
+    let timestamp = new Date(parseInt(findURLValue(pageQuery, "timestamp")));
+    if (!timestamp) {
+        openModal("issue", "No timestamp was specified in the URL.");
+        softBack();
+        return;
+    }
+
+    let group = (findURLValue(pageQuery, "group") == "true");
+    if (!group) {
+        let barcodeNumber = findURLValue(pageQuery, "barcodeNumber");
+        if (!barcodeNumber) {
+            openModal("issue", "No barcode was specified in the URL.");
+            softBack();
+            return;
+        }
+
+        loadSingleCheckout(timestamp, barcodeNumber);
+        $(".checkout-groups-only").hide();
+    } else {
+        loadCheckoutGroup(timestamp);
+        $(".individual-checkouts-only").hide();
+    }
 }
+
+/**
+ * @description Loads in a single checkout from the database and fills in the page with the data.
+ * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load.
+ */
+function loadSingleCheckout(timestamp, barcodeNumber) {
+    let checkout;
+    // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
+    let start = new Date(timestamp.valueOf() - 1000);
+    let end = new Date(timestamp.valueOf() + 1000);
+    getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+        querySnapshot.forEach((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("checkout document does not exist");
+                return;
+            }
+            let temp = Checkout.createFromObject(docSnap.data());
+            if (temp.barcodeNumber == barcodeNumber) {
+                checkout = temp;
+            }
+        });
+
+        // Fill out info at the top of the page
+        $("#timestamp").html(formatDate(checkout.timestamp));
+        $("#cardNumber").html(checkout.cardNumber);
+        $("#grouping").html("No <a href=\"/admin/editCheckout?timestamp=" + checkout.timestamp.valueOf() + "&group=true\">(Click here to view the group)</a>");
+        $("#complete").html((checkout.complete ? "True" : "False"));
+
+        getBookFromBarcode(checkout.barcodeNumber).then((book) => {
+            // Fill in the book image
+            if (book.thumbnailImageLink) {
+                $("#book-cover-image").attr("src", book.thumbnailImageLink);
+            } else {
+                $("#book-cover-image").attr("src", book.coverImageLink);
+            }
+
+            // Fill in the book info in the editable inputs
+            $("#barcode-number-input").val(book.barcodeNumber);
+            let month = checkout.dueDate.getMonth() + 1;
+            let day = checkout.dueDate.getDate();
+            let year = checkout.dueDate.getFullYear();
+            $("#checkout-due-date-month").val(month.toString());
+            $("#checkout-due-date-day").val(day.toString());
+            $("#checkout-due-date-year").val(year.toString());
+            $("#checkout-user-returned").val((checkout.userReturned ? "true" : "false"));
+            let flags = checkout.flags;
+            if (flags.includes("lost")) {
+                $("#checkout-flags-lost").prop("checked", true);
+            }
+            if (flags.includes("damaged")) {
+                $("#checkout-flags-damaged").prop("checked", true);
+            }
+            if (flags.includes("other")) {
+                $("#checkout-flags-other").prop("checked", true);
+            }
+
+
+            // Fill in the checkout info at the bottom of the page
+            $("#dueDate").html(formatDate(checkout.dueDate));
+            $("#librarianCheckedIn").html((checkout.librarianCheckedIn ? checkout.librarianCheckedIn : "N/A"));
+            $("#librarianCheckedInBy").html((checkout.librarianCheckedInBy ? checkout.librarianCheckedInBy : "N/A"));
+            $("#librarianCheckedInDate").html((checkout.librarianCheckedInDate ? formatDate(checkout.librarianCheckedInDate) : "N/A"));
+            $("#renewals").html(checkout.renewals);
+            $("#userReturned").html((checkout.userReturned ? "True" : "False"));
+            $("#userReturnedDate").html((checkout.userReturnedDate ? formatDate(checkout.userReturnedDate) : "N/A"));
+            $("#reminderEmailSentDate").html((checkout.reminderEmailSentDate ? formatDate(checkout.reminderEmailSentDate) : "N/A"));
+            $("#overdueEmailSentDate").html((checkout.overdueEmailSentDate ? formatDate(checkout.overdueEmailSentDate) : "N/A"));
+            $("#overdueEmailSentCount").html(checkout.overdueEmailSentCount);
+            let lastUpdated = checkout.lastUpdated;
+            $("#last-updated").html("This entry was last updated on " + lastUpdated.toLocaleDateString('en-US') + " at " + lastUpdated.toLocaleTimeString('en-US'));
+        });
+    });
+}
+
+/**
+ * @description Loads in a set of checkout documents from the database and fills in the page with the data.
+ * @param {Date} timestamp The timestamp of the checkout group that we use to identify it.
+ */
+function loadCheckoutGroup(timestamp) {
+    let checkoutGroup;
+    // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
+    let start = new Date(timestamp.valueOf() - 1000);
+    let end = new Date(timestamp.valueOf() + 1000);
+    getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+        let checkouts = [];
+        querySnapshot.forEach((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("checkout document does not exist");
+                return;
+            }
+            checkouts.push(Checkout.createFromObject(docSnap.data()));
+        });
+        checkoutGroup = new CheckoutGroup(checkouts);
+
+        checkouts.forEach((checkout) => {
+            $("#checkout-objects-container").append(buildCheckoutBox(checkout, false));
+        });
+
+        $("#timestamp").html(formatDate(checkoutGroup.timestamp));
+        $("#cardNumber").html(checkoutGroup.cardNumber);
+        $("#complete").html((checkoutGroup.complete ? "True" : "False"));
+        $("#grouping").html("Grouped (" + checkoutGroup.checkouts.length + ")");
+    });
+}
+
 
 /**
  * @description Called when the user adds an entry using an ISBN number.
@@ -313,7 +440,7 @@ function recentlyCheckedOut() {
         }
         // Create the HTML elements
         checkoutsCombined.forEach((checkoutGroup) => {
-            $("#checked-out-books-container").append(buildCheckoutGroupBox(checkoutGroup));
+            $("#checked-out-books-container").append(buildCheckoutBox(checkoutGroup, true));
         });
     });
 }
@@ -371,7 +498,7 @@ function addStats() {
 /**
  * @description Called when the user clicks the "View Missing Barcodes" link.
  */
-// TODO: Remove this function after the system is fully updated to prevent wholes.
+// TODO: Remove this function after the system is fully updated to prevent holes.
 function viewMissingBarcodes() {
     let missingArray = [];
     bookDatabase.forEach((document) => {

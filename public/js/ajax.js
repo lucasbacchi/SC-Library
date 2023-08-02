@@ -728,7 +728,7 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
             import('../css/form.css');
             import('../css/admin.css');
             import('./admin').then(({ setupEditCheckout }) => {
-                setupEditCheckout();
+                setupEditCheckout(pageQuery);
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
