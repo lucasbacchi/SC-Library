@@ -30,7 +30,8 @@ export function setupAdminMain() {
     createOnClick($("#edit-entry-search"), adminSearch);
     createOnClick($("#view-missing-barcodes"), viewMissingBarcodes);
     createOnClick($("#import-link"), () => $("#import-input").trigger("click"));
-    createOnClick($("#export-link"), downloadDatabase);
+    createOnClick($("#export-link"), () => $(".hidden").toggle());
+    createOnClick($("#export-books"), downloadDatabase);
 
     // Create an event listener for the import input
     $("#import-input").on("change", (event) => {

@@ -133,6 +133,10 @@ div#edit-entry-search-results > * {
     max-width: 100px;
 }
 
+.hidden {
+    margin: 3px 50px;
+}
+
 
 
 
