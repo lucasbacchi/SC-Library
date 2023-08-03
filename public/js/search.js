@@ -722,7 +722,7 @@ function fillResultPage(barcodeNumber) {
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             openModal("error", "No information could be found for that book.");
-            goToPage("");
+            softBack();
             return;
         }
         changePageTitle(bookObject.title);
@@ -731,14 +731,14 @@ function fillResultPage(barcodeNumber) {
             $(".result-page-image").attr("src", "/img/av-image.png");
         } else {
             // Currently not checking for icons because they are too low quality. Could change that if needed.
-            if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
+            if (bookObject.thumbnailImageLink && bookObject.thumbnailImageLink?.indexOf("http") != -1) {
                 $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
-            } else if (bookObject.coverImageLink.indexOf("http") != -1) {
+            } else if (bookObject.coverImageLink && bookObject.coverImageLink?.indexOf("http") != -1) {
                 console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
                 $(".result-page-image").attr("src", bookObject.coverImageLink);
             } else {
                 console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
-                $(".result-page-image").attr("src", "/img/favicon.ico");
+                $(".result-page-image").attr("src", "/img/default-book.png");
             }
         }
 
