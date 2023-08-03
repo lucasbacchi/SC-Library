@@ -70,11 +70,16 @@ function interceptLinkClick(event) {
         return;
     }
 
+    // Add a leading slah if there isn't one
+    if (href.charAt(0) != "/") {
+        href = "/" + href;
+    }
+
     // Handle link clicks with the control key to open in a new tab
     if (event.ctrlKey) {
-        window.open(window.location.origin + target.getAttribute("href"), "_blank");
+        window.open(window.location.origin + href, "_blank");
     } else {
-        goToPage(target.getAttribute("href"));
+        goToPage(href);
     }
 }
 
