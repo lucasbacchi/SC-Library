@@ -1260,10 +1260,13 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                     // Get the existing list of books
                     let existingBooks = docSnap.data().books;
+                    let currentBook = Book.createFromObject(existingBooks[bookNumber]);
 
                     let imageUploadPromise;
-                    if (!skipImages) {
+                    if (currentBook.coverImageLink || !skipImages) {
                         pageData.generateImageLinks();
+                    }
+                    if (!skipImages) {
                         imageUploadPromise = processImages(pageData.barcodeNumber);
                     } else {
                         imageUploadPromise = Promise.resolve();
