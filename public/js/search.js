@@ -1,5 +1,5 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, openModal,
+import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, getCheckoutFromBarcode, openModal,
     removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from './common';
 import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
@@ -744,17 +744,30 @@ function fillResultPage(barcodeNumber) {
         }
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
-        if (!bookObject.canBeCheckedOut) {
-            $("#borrow-button").addClass("disabled");
-            createOnClick($("#borrow-button"), () => {
-                openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
-            });
-        } else {
-            $("#borrow-button").show();
-            createOnClick($("#borrow-button"), () => {
-                goToPage("checkout?id=" + barcodeNumber);
-            });
-        }
+
+        // Check if the book is checked out and update the borrow button accordingly.
+        getCheckoutFromBarcode(barcodeNumber).then((checkoutArray) => {
+            let checkoutObject = checkoutArray[0];
+            if (!bookObject.canBeCheckedOut) {
+                // If the book cannot be checked out, disable the borrow button and display a message if clicked.
+                $("#borrow-button").addClass("disabled");
+                createOnClick($("#borrow-button"), () => {
+                    openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
+                });
+            } else if (checkoutObject && !checkoutObject.complete) {
+                // If the book is checked out, disable the borrow button and display a message if clicked.
+                $("#borrow-button").addClass("disabled");
+                createOnClick($("#borrow-button"), () => {
+                    openModal("info", "This book is currently checked out. It should be back in the library in a few weeks.", "This Book is Checked Out");
+                });
+            } else {
+                $("#borrow-button").removeClass("disabled");
+                createOnClick($("#borrow-button"), () => {
+                    goToPage("checkout?id=" + barcodeNumber);
+                });
+            }
+        });
+
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
             $("#result-page-isbn-number").html("None");
@@ -1213,14 +1226,12 @@ function verifyCheckout(book) {
         }
 
         // Check the status of the last checkout (if there is one)
-        let lastCheckoutPromise = getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", book.barcodeNumber), orderBy("timestamp", "desc"), limit(1))).then((docs) => {
-            docs.forEach((doc) => {
-                if (doc.data().status != "COMPLETE") {
-                    openModal("error", "This book is either already checked out or is in the process of being reshelved by a librarian.");
-                    reject("The book is already checked out.");
-                    return;
-                }
-            });
+        let lastCheckoutPromise = getCheckoutFromBarcode(book.barcodeNumber).then((checkout) => {
+            if (!checkout.complete) {
+                openModal("error", "This book is either already checked out or is in the process of being reshelved by a librarian.");
+                reject("The book is already checked out.");
+                return;
+            }
         }).catch((error) => {
             openModal("error", "There was an error checking out this book.\n" + error);
             console.log(error);
