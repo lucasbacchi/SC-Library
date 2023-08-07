@@ -547,6 +547,34 @@ button:disabled {
     cursor: default;
 }
 
+.image-overlay {
+    width: 100%;
+    height: 100%;
+    background-color: #ffffffaa;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s;
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    cursor: pointer;
+}
+
+.image-overlay > span {
+    position: relative;
+    top: calc(50% - 0.5em);
+}
+
+.image-overlay-container > img {
+    display: block;
+}
+
+.image-overlay-container:hover > .image-overlay,
+.image-overlay:focus {
+    opacity: 1;
+}
+
 
 
 

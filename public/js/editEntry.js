@@ -48,44 +48,8 @@ export function setupEditEntry(pageQuery) {
         }
     }
 
-    // Create Event Listeners to handle book cover image changes
-    // All are required to handle leaving the element and coming back again
-    $("#book-cover-image").on("mouseover", () => {
-        showAccountImageOverlay();
-    });
-    $("#book-cover-image").on("focus", () => {
-        showAccountImageOverlay();
-    });
-    $("#book-cover-image-overlay").on("mouseleave", () => {
-        hideAccountImageOverlay();
-    });
-    $("#book-cover-image").on("blur", () => {
-        hideAccountImageOverlay();
-    });
-    $("#book-cover-image-overlay").on("mouseover", () => {
-        $("#book-cover-image-overlay").clearQueue().stop();
-        showAccountImageOverlay();
-    });
-
-    function showAccountImageOverlay() {
-        $("#book-cover-image-overlay").show();
-        setTimeout(() => {
-            $("#book-cover-image-overlay").css("opacity", "1");
-        }, 5);
-    }
-
-    function hideAccountImageOverlay() {
-        $("#book-cover-image-overlay").css("opacity", "0");
-        $("#book-cover-image-overlay").delay(300).hide(0);
-    }
-
     // If a user clicks the button to change the book cover image, click the input button
     createOnClick($("#book-cover-image-overlay"), () => {
-        if ($("#file-input")) {
-            $("#file-input").trigger("click");
-        }
-    });
-    createOnClick($("#book-cover-image"), () => {
         if ($("#file-input")) {
             $("#file-input").trigger("click");
         }
