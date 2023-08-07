@@ -27,38 +27,6 @@ export function setupAccountPage(pageQuery) {
         goToSettingsPanel("overview");
     }
 
-    // Create Event Listeners to handle changes to the user's profile picture
-    // All are required to handle leaving the element and coming back again
-    $("#account-page-image").on("mouseover", () => {
-        showAccountImageOverlay();
-    });
-    $("#account-image-overlay").on("mouseleave", () => {
-        $("#account-image-overlay").css("opacity", "0");
-    });
-    $("#account-image-overlay").on("mouseover", () => {
-        $("#account-image-overlay").clearQueue().stop();
-        showAccountImageOverlay();
-    });
-
-    // Keyboard accessibility
-    $("#account-page-image").on("focus", () => {
-        showAccountImageOverlay();
-    });
-    $("#account-image-overlay").on("blur", () => {
-        $("#account-image-overlay").css("opacity", "0");
-    });
-    $("#account-image-overlay").on("focus", () => {
-        $("#account-image-overlay").clearQueue().stop();
-        showAccountImageOverlay();
-    });
-
-    function showAccountImageOverlay() {
-        $("#account-image-overlay").show();
-        setTimeout(() => {
-            $("#account-image-overlay").css("opacity", "1");
-        }, 5);
-    }
-
     // If a user clicks the button to change their pfp, click the input button
     createOnClick($("#account-image-overlay"), () => {
         if ($("#file-input")) {
