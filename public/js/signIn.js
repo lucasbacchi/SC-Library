@@ -86,6 +86,7 @@ function authRedirect(pageQuery) {
                     $("#email-verified").show();
                 }
                 updateEmailinUI(email);
+                sendEmailVerificationToUser();
                 openModal("success", "Your email was saved successfully.");
                 goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
             }).catch((error) => {

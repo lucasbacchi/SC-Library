@@ -1305,7 +1305,7 @@ function checkout() {
             Promise.all(promises).then(() => {
                 openModal("success", "The books have been checked out successfully!\n\nRemember to log out if you are finished using the library computer.");
 
-                logEvent("checkout", {
+                logEvent(analytics, "checkout", {
                     timestamp: timestamp,
                     cardNumber: cardNumber,
                     books: checkoutBooks
