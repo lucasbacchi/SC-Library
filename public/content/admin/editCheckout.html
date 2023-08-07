@@ -17,20 +17,17 @@
         <h6 class="form-title">Group Actions</h6>
         <p class="form-description">These actions will be applied to all checkouts in this group. Please note that these actions are applied immediately and you will lose any unsaved changes to the fields above.</p>
         <div id="checkout-actions-container">
-            <button id="edit-checkout-group-checkin">Check In</button>
+            <button id="edit-checkout-group-check-in">Check In</button>
             <p>Will check-in all books in the group.</p>
             <br>
-            <button id="edit-checkout-group-send-overdue-email">Send Overdue Email</button>
-            <p>Will send an overdue email to the cardholder.</p>
-            <br>
-            <button id="edit-checkout-group-send-reminder-email">Send Reminder Email</button>
-            <p>Will send a reminder email to the cardholder.</p>
+            <button id="edit-checkout-group-send-email">Send Email</button>
+            <p>Will send an email to the cardholder about the status of their book(s).</p>
             <br>
             <button id="edit-checkout-group-renew">Renew</button>
             <p>Will add two weeks to the due date of all books in the group.</p>
             <br>
             <button id="edit-checkout-group-delete" class="delete-button">Delete</button>
-            <p>Will remove ALL reference to these books checked out.</p>
+            <p>Will remove ALL reference to this checkout event ever happening.</p>
         </div>
     </div>
     
@@ -89,20 +86,17 @@
         <h6 class="form-title">Actions</h6>
         <p class="form-description">Please note that these actions are applied immediately and you will lose any unsaved changes to the fields above.</p>
         <div id="checkout-actions-container">
-            <button id="edit-checkout-checkin">Check In</button>
+            <button id="edit-checkout-check-in">Check In</button>
             <p>Checks-In the current book. This will mark it as reshelved, and able to be checked-out by another user.</p>
             <br>
-            <button id="edit-checkout-send-overdue-email">Send Overdue Email</button>
-            <p>Will send an overdue email to the cardholder about this book.</p>
-            <br>
-            <button id="edit-checkout-send-reminder-email">Send Reminder Email</button>
-            <p>Will send a reminder email to the cardholder about this book.</p>
+            <button id="edit-checkout-send-email">Send Email</button>
+            <p>Will send an email to the cardholder about the status of their book.</p>
             <br>
             <button id="edit-checkout-renew">Renew</button>
             <p>Will add two weeks to the due date of this book.</p>
             <br>
             <button id="edit-checkout-delete" class="delete-button">Delete</button>
-            <p>Will remove ALL reference to this book being checked out. (The parent group will remain if there are more books in the group.)</p>
+            <p>Will remove ALL reference to this checkout event ever happening. (The parent group will remain if there are more books in the group.)</p>
         </div>
     </div>
 

@@ -1,7 +1,7 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate,
-    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack, getBookFromBarcode } from "./common";
+    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack, getBookFromBarcode, sendEmail, getUserFromBarcode, getUser } from "./common";
 import { Book, bookDatabase, Checkout, CheckoutGroup, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -57,7 +57,7 @@ export function setupEditCheckout(pageQuery) {
     let timestamp = new Date(parseInt(findURLValue(pageQuery, "timestamp")));
     if (!timestamp) {
         openModal("issue", "No timestamp was specified in the URL.");
-        softBack();
+        softBack("admin/main");
         return;
     }
 
@@ -66,30 +66,56 @@ export function setupEditCheckout(pageQuery) {
         let barcodeNumber = findURLValue(pageQuery, "barcodeNumber");
         if (!barcodeNumber) {
             openModal("issue", "No barcode was specified in the URL.");
-            softBack();
+            softBack("admin/main");
             return;
         }
 
         getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
             if (!checkout) {
                 openModal("issue", "The checkout you are looking for does not exist.");
-                softBack();
+                softBack("admin/main");
                 return;
             }
             loadSingleCheckout(checkout);
+
+            // Individual Actions
+            createOnClick($("#edit-checkout-renew"), checkoutAction, [checkout], "renew");
+            createOnClick($("#edit-checkout-send-email"), checkoutAction, [checkout], "send-email");
+            createOnClick($("#edit-checkout-check-in"), checkoutAction, [checkout], "check-in");
+            createOnClick($("#edit-checkout-delete"), checkoutAction, [checkout], "delete");
+
+            // Disable buttons if the checkout is complete
+            if (checkout.complete) {
+                $("#edit-checkout-renew").prop("disabled", true);
+                $("#edit-checkout-send-email").prop("disabled", true);
+                $("#edit-checkout-check-in").prop("disabled", true);
+            }
         });
         $(".checkout-groups-only").hide();
     } else {
         getCheckoutInfo(timestamp).then((checkoutGroup) => {
+            if (!checkoutGroup || !checkoutGroup.checkouts) {
+                openModal("issue", "The checkout group you are looking for does not exist.");
+                softBack("admin/main");
+                return;
+            }
             loadCheckoutGroup(checkoutGroup);
+
+            // Group Actions
+            createOnClick($("#edit-checkout-group-renew"), checkoutAction, checkoutGroup.checkouts, "renew");
+            createOnClick($("#edit-checkout-group-send-email"), checkoutAction, checkoutGroup.checkouts, "send-email");
+            createOnClick($("#edit-checkout-group-check-in"), checkoutAction, checkoutGroup.checkouts, "check-in");
+            createOnClick($("#edit-checkout-group-delete"), checkoutAction, checkoutGroup.checkouts, "delete");
+
+            // Disable buttons if the checkout group is complete
+            if (checkoutGroup.complete) {
+                $("#edit-checkout-group-renew").prop("disabled", true);
+                $("#edit-checkout-group-send-email").prop("disabled", true);
+                $("#edit-checkout-group-check-in").prop("disabled", true);
+            }
         });
         $(".individual-checkouts-only").hide();
     }
-
-    // Setup Event Listeners
-    // Group Actions
-
-    // Individual Actions
 
     // Save and Cancel Buttons
     createOnClick($("#edit-checkout-save"), saveCheckout);
@@ -202,8 +228,7 @@ function loadSingleCheckout(checkout) {
 
 
         // Fill in the checkout info at the bottom of the page
-        $("#dueDate").html(formatDate(checkout.dueDate));
-        $("#librarianCheckedIn").html((checkout.librarianCheckedIn ? checkout.librarianCheckedIn : "N/A"));
+        $("#librarianCheckedIn").html((checkout.librarianCheckedIn ? "True" : "False"));
         $("#librarianCheckedInBy").html((checkout.librarianCheckedInBy ? checkout.librarianCheckedInBy : "N/A"));
         $("#librarianCheckedInDate").html((checkout.librarianCheckedInDate ? formatDate(checkout.librarianCheckedInDate) : "N/A"));
         $("#renewals").html(checkout.renewals);
@@ -222,6 +247,10 @@ function loadSingleCheckout(checkout) {
  * @param {CheckoutGroup} checkoutGroup The checkoutGroup object that we are loading.
  */
 function loadCheckoutGroup(checkoutGroup) {
+    // Empty the checkout objects container
+    $("#checkout-objects-container").empty();
+
+    // Fill in the checkout objects container
     checkoutGroup.checkouts.forEach((checkout) => {
         $("#checkout-objects-container").append(buildCheckoutBox(checkout, false));
     });
@@ -240,7 +269,9 @@ function cancelAdminForm() {
     softBack("admin/main");
 }
 
-
+/**
+ * @description Called when the user clicks the save button on the edit checkout page. Only used for individual checkouts.
+ */
 function saveCheckout() {
     // Get info from the URL
     let timestampFromURL = new Date(parseInt(findURLValue(window.location.search, "timestamp")));
@@ -359,6 +390,307 @@ function validateCheckoutChanges(oldCheckout, newCheckout) {
         return false;
     }
     return true;
+}
+
+
+/**
+ * @description A generalized function that handles performing actions on a list of checkouts (and tracking their sucesses and failures).
+ * @param {Array<Checkout>} checkouts The list of checkouts to perform the action on.
+ * @param {String} action The action to perform on the checkouts. Current options are "renew", "send-email", "check-in", and "delete".
+ */
+function checkoutAction(checkouts, action) {
+    if (!checkouts || !(checkouts instanceof Array) || checkouts.length == 0) {
+        openModal("issue", "No checkouts were specified.");
+        return;
+    }
+    // Create a write batch to perform the updates
+    let batch = writeBatch(db);
+
+    // Create a loading modal
+    let loadingModal = openModal("info", "Please wait...", "Loading...");
+
+    // Perform the action on each checkout
+    let promises = [];
+    for (let i = 0; i < checkouts.length; i++) {
+        switch (action) {
+            case "renew":
+                promises.push(renew(checkouts[i].timestamp, checkouts[i].barcodeNumber, batch));
+                break;
+            case "send-email":
+                promises.push(sendCheckoutEmail(checkouts[i].timestamp, checkouts[i].barcodeNumber, batch));
+                break;
+            case "check-in":
+                promises.push(checkIn(checkouts[i].timestamp, checkouts[i].barcodeNumber, batch));
+                break;
+            case "delete":
+                promises.push(deleteCheckout(checkouts[i].timestamp, checkouts[i].barcodeNumber, batch));
+                break;
+            default:
+                openModal("issue", "The action you specified is not valid.");
+        }
+    }
+
+    Promise.all(promises).then(() => {
+        // This will occur if all the underlying promises resolve
+        batch.commit().then(() => {
+            loadingModal();
+            openModal("success", "Your actions were all completed successfully.");
+
+            // Refresh the content on the page
+            let timestamp = new Date(parseInt(findURLValue(window.location.search, "timestamp")));
+            if (!timestamp) {
+                openModal("issue", "No timestamp was specified in the URL.");
+                return;
+            }
+            let group = (findURLValue(window.location.search, "group") == "true");
+            if (!group) {
+                let barcodeNumber = findURLValue(window.location.search, "barcodeNumber");
+                if (!barcodeNumber) {
+                    openModal("issue", "No barcode was specified in the URL.");
+                    return;
+                }
+
+                getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+                    if (!checkout) {
+                        softBack("admin/main");
+                        return;
+                    }
+
+                    loadSingleCheckout(checkout);
+                });
+            } else {
+                getCheckoutInfo(timestamp).then((checkoutGroup) => {
+                    if (!checkoutGroup || !checkoutGroup.checkouts) {
+                        softBack("admin/main");
+                        return;
+                    }
+
+                    loadCheckoutGroup(checkoutGroup);
+                });
+            }
+        }).catch((error) => {
+            loadingModal();
+            openModal("issue", "There was an issue performing your actions. From the look of it, this is a database issue. Error: " + error);
+        });
+    }).catch((issue) => {
+        loadingModal();
+        if (issue == "Action cancelled by user") {
+            return;
+        }
+        openModal("issue", "There was an issue performing your actions. The first issue we ran into was...\n\n" + issue);
+    });
+}
+
+/**
+ * @description Checks to see if an individual checkout can be renewed. If it can, it adds the update to the provided batched write.
+ * @param {Date} timestamp The timestamp of the checkout to identify it.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to update.
+ * @param {WriteBatch} batch A Firestore WriteBatch object to add the update to.
+ * @returns {Promise} A promise that resolves when the update has been added to the batch (or the reason why it couldn't be added).
+ */
+function renew(timestamp, barcodeNumber, batch) {
+    return getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+        if (!checkout) {
+            return Promise.reject("The checkout you are looking for does not exist.");
+        }
+        if (checkout.complete) {
+            return Promise.reject("This checkout has already been completed. It cannot be renewed.");
+        }
+        if (checkout.userReturned) {
+            return Promise.reject("This checkout has already been returned by the user. It cannot be renewed.");
+        }
+        if (checkout.renewals >= 2) {
+            return Promise.reject("This checkout has already been renewed twice. It cannot be renewed again.");
+        }
+
+        let newCheckout = Checkout.createFromObject(checkout.toObject());
+        newCheckout.renewals++;
+        newCheckout.dueDate = new Date(newCheckout.dueDate.valueOf() + 1209600000); // Add 2 weeks
+        newCheckout.lastUpdated = new Date();
+
+        return getCheckoutInfo(timestamp, false, barcodeNumber, true).then((checkoutRef) => {
+            batch.update(checkoutRef, newCheckout.toObject());
+            return Promise.resolve();
+        });
+    });
+}
+
+/**
+ * @description Sends an email to the user associated with an individual checkout. If the book is overdue, it will be an overdue email. Otherwise, it will be a reminder email.
+ * @param {Date} timestamp The timestamp of the checkout to identify it.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which book.
+ * @param {WriteBatch} batch The Firestore WriteBatch object to add the update to.
+ * @returns {Promise} A promise that resolves when the email has been sent (or the reason why it couldn't be sent).
+ */
+function sendCheckoutEmail(timestamp, barcodeNumber, batch) {
+    return getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+        if (!checkout) {
+            return Promise.reject("The checkout you are looking for does not exist.");
+        }
+        if (checkout.complete) {
+            return Promise.reject("This checkout has already been completed. An email cannot be sent.");
+        }
+        if (checkout.userReturned) {
+            return Promise.reject("This checkout has already been returned by the user. An email cannot be sent.");
+        }
+        if (checkout.reminderEmailSentDate && checkout.dueDate.valueOf() > new Date().valueOf()) {
+            return Promise.reject("This checkout has already had a reminder email sent.");
+        }
+        if (checkout.overdueEmailSentDate && checkout.overdueEmailSentDate.valueOf() > new Date().valueOf() - 604800000) {
+            return Promise.reject("This checkout has already had an overdue email sent within the past week.");
+        }
+
+        // At this point we're going to send some kind of email, so we need to get the user's info and the book info.
+        let promises = [];
+        promises.push(getUserFromBarcode(checkout.cardNumber));
+        promises.push(getBookFromBarcode(checkout.barcodeNumber));
+        return Promise.all(promises).then((results) => {
+            let user = results[0];
+            let book = results[1];
+            if (!user) {
+                return Promise.reject("The user you are looking for does not exist.");
+            }
+            if (!user.email) {
+                return Promise.reject("The user you are looking for does not have an email address on file.");
+            }
+
+            let to = user.email;
+            let subject = "South Church Library - ";
+            let text;
+            let newCheckout = Checkout.createFromObject(checkout.toObject());
+            let emailPromise;
+
+            if (checkout.dueDate.valueOf() > new Date().valueOf()) {
+                // Send reminder email
+                newCheckout.reminderEmailSentDate = new Date();
+                newCheckout.lastUpdated = new Date();
+
+                subject += "Checkout Reminder";
+                text = "Hello!\n\nThis is a reminder that you have a book titled \"" + book.title
+                + "\" checked out from the South Church Library that is due on " + formatDate(checkout.dueDate, true) + ".\n\nSincerely,\nYour South Church Library Team";
+                emailPromise = sendEmail(to, subject, text);
+            } else {
+                // Send overdue email
+                newCheckout.overdueEmailSentDate = new Date();
+                newCheckout.overdueEmailSentCount++;
+                newCheckout.lastUpdated = new Date();
+
+                subject += "Overdue Notice";
+                text = "Hello,\n\nThis is an overdue notice for a book titled \"" + book.title
+                + "\" that you checked out from the South Church Library. The book was due on " + formatDate(checkout.dueDate, true)
+                + ". Kindly return the book at your earliest convenience.\n\nSincerely,\nYour South Church Library Team";
+                emailPromise = sendEmail(to, subject, text);
+            }
+
+            return emailPromise.then(() => {
+                return getCheckoutInfo(timestamp, false, barcodeNumber, true).then((checkoutRef) => {
+                    batch.update(checkoutRef, newCheckout.toObject());
+                    return Promise.resolve();
+                }).catch((error) => {
+                    return Promise.reject("The email was sent, but there was an issue updating the checkout to reflect this. Error: " + error);
+                });
+            }).catch((error) => {
+                return Promise.reject("There was an issue sending the email. Error: " + error);
+            });
+        });
+    }).catch((error) => {
+        return Promise.reject(error);
+    });
+}
+
+/**
+ * @description Checks in an individual checkout. If the user never indicated that they returned the book, it will ask the librarian to verify that they are holding the book.
+ * @param {Date} timestamp The timestamp of the checkout to identify it.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which book.
+ * @param {WriteBatch} batch The Firestore WriteBatch object to add the update to.
+ * @returns {Promise} A promise that resolves when the checkout has been checked in (or the reason why it couldn't be checked in).
+ */
+function checkIn(timestamp, barcodeNumber, batch) {
+    return getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+        if (!checkout) {
+            return Promise.reject("The checkout you are looking for does not exist.");
+        }
+        if (checkout.complete) {
+            return Promise.reject("This checkout has already been completed. It cannot be checked in again.");
+        }
+        if (checkout.librarianCheckedIn) {
+            return Promise.reject("This checkout has already been checked in by a librarian. It cannot be checked in again.");
+        }
+        let verifyPromise = Promise.resolve();
+        if (!checkout.userReturned) {
+            verifyPromise = new Promise((resolve, reject) => {
+                openModal("warning", "The user never indicated that they returned this book. Please verify that you are holding a book with barcode number \""
+                + checkout.barcodeNumber + "\" in your hands.",
+                "Are you sure?", "Yes", () => {
+                    // The user clicked "yes"
+                    resolve();
+                }, "Cancel", () => {
+                    // The user clicked "no"
+                    reject();
+                });
+            });
+        }
+
+        let now = new Date();
+        return verifyPromise.then(() => {
+            // The user clicked "yes"
+            // Get the current user's card number so we can track who checked in the book.
+            return getUser().then((user) => {
+                let newCheckout = Checkout.createFromObject(checkout.toObject());
+                newCheckout.userReturned = true;
+                newCheckout.userReturnedDate = now;
+                newCheckout.librarianCheckedIn = true;
+                newCheckout.librarianCheckedInBy = user.cardNumber;
+                newCheckout.librarianCheckedInDate = now;
+                newCheckout.complete = true;
+                newCheckout.lastUpdated = now;
+
+                return getCheckoutInfo(timestamp, false, barcodeNumber, true).then((checkoutRef) => {
+                    batch.update(checkoutRef, newCheckout.toObject());
+                    return Promise.resolve();
+                });
+            });
+        }).catch(() => {
+            // The user clicked cancel
+            return Promise.reject("Action cancelled by user");
+        });
+    });
+}
+
+/**
+ * @description Deletes an individual checkout. It will ask the user to verify that they want to delete the checkout.
+ * @param {Date} timestamp The timestamp of the checkout to identify it.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which book.
+ * @param {WriteBatch} batch The Firestore WriteBatch object to add the update to.
+ * @returns {Promise} A promise that resolves when the checkout has been deleted (or the reason why it couldn't be deleted).
+ */
+function deleteCheckout(timestamp, barcodeNumber, batch) {
+    return getCheckoutInfo(timestamp, false, barcodeNumber).then((checkout) => {
+        if (!checkout) {
+            return Promise.reject("The checkout you are looking for does not exist.");
+        }
+        let verifyPromise = new Promise((resolve, reject) => {
+            openModal("warning", "Are you sure you want to delete this checkout? This action cannot be undone.",
+            "Are you sure?", "Yes", () => {
+                // The user clicked "yes"
+                resolve();
+            }, "Cancel", () => {
+                // The user clicked "no"
+                reject();
+            });
+        });
+
+        return verifyPromise.then(() => {
+            // The user clicked "yes"
+            return getCheckoutInfo(timestamp, false, barcodeNumber, true).then((checkoutRef) => {
+                batch.delete(checkoutRef);
+                return Promise.resolve();
+            });
+        }).catch(() => {
+            // The user clicked cancel
+            return Promise.reject("Action cancelled by user");
+        });
+    });
 }
 
 

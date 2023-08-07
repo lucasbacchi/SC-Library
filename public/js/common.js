@@ -1,8 +1,8 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
-import { addDoc, collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, Checkout } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -256,11 +256,17 @@ BEGIN UTILS
  * @param {Date} date The date object to format.
  * @returns {String} The formatted date string.
  */
-export function formatDate(date) {
+export function formatDate(date, noTime = false) {
     if (!date) {
         return "N/A";
     }
-    return date.toLocaleString("en-US");
+    let dateString = "";
+    if (noTime) {
+        dateString = date.toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric" });
+    } else {
+        dateString = date.toLocaleString();
+    }
+    return dateString;
 }
 
 /**
@@ -525,6 +531,19 @@ export let updateScrollPosition = new Throttle(() => {
 }, 200).get();
 
 
+/**
+ * @description Sends an email using the email service by adding a document to the mail collection in the database.
+ * @param {String|Array<String>} to The email address(es) to send the email to
+ * @param {String} subject The subject of the email
+ * @param {String} text The plaintext content of the email
+ * @param {String} html The HTML content of the email
+ * @param {String|Array<String>} cc The email address(es) to cc
+ * @param {String|Array<String>} bcc The email address(es) to bcc
+ * @param {String} from The email address to send the email from
+ * @param {String} replyTo The email address that will be listed as reply-to
+ * @param {Object} headers An opject containing custom email headers
+ * @param {Array<Object>} attachments An array of objects containing the attachments to send. See https://nodemailer.com/message/attachments/ for more information. 
+ */
 export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
     return new Promise((resolve, reject) => {
         if (!to || !subject || (!text && !html)) {
@@ -588,6 +607,86 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
     });
 }
 
+/**
+ * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
+ * @param {String} barcode The barcode number of the user to get from the database.
+ * @returns {User} The user object that was retrieved from the database.
+ */
+export function getUserFromBarcode(barcode) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
+            if (querySnapshot.size == 0) {
+                reject("No user found with barcode number " + barcode);
+                return;
+            }
+            if (querySnapshot.size > 1) {
+                reject("Multiple users found with barcode number " + barcode);
+                return;
+            }
+            let user = User.createFromObject(querySnapshot.docs[0].data());
+            resolve(user);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
+
+
+/**
+ * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
+ * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
+ * @returns {Promise<User>} The user object from the database
+ */
+export function getUser(uid = null) {
+    return new Promise((resolve, reject) => {
+        if (!uid) {
+            uid = auth.currentUser.uid;
+        }
+
+        // Get the stored data from the database
+        getDoc(doc(db, "users", uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("The user document could not be found.");
+                reject();
+                return;
+            }
+
+            let user = User.createFromObject(docSnap.data());
+            resolve(user);
+        }).catch((error) => {
+            console.log("Failed to get the database file for this user", error);
+            reject();
+        });
+    });
+}
+
+
+/**
+ * @description Gets the most recent checkouts for a given barcode number
+ * @param {String} barcode The barcode number of the book to get the checkouts for
+ * @param {Number} num The number of checkouts to get. Defaults to 1.
+ * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
+ */
+export function getCheckoutFromBarcode(barcode, num = 1) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode), orderBy("timestamp", "desc"), limit(num))).then((docs) => {
+            let checkouts = [];
+            docs.forEach((doc) => {
+                if (!doc.exists()) {
+                    console.error("The checkout document could not be found.");
+                    reject();
+                    return;
+                }
+                let checkout = Checkout.createFromObject(doc.data());
+                checkouts.push(checkout);
+            });
+            resolve(checkouts);
+        }).catch((error) => {
+            openModal("error", "There was an error getting the checkouts information from the database.\n" + error);
+            console.log(error);
+        });
+    });
+}
 
 
 
@@ -865,12 +964,18 @@ export function buildCheckoutBox(obj, group = true) {
     }
     const dueDate = document.createElement("p");
     dueDate.classList.add("author");
-    dueDate.appendChild(document.createTextNode("Due Date: " + formatDate(obj.dueDate)));
+    dueDate.appendChild(document.createTextNode("Due Date: " + formatDate(obj.dueDate, true)));
     div2.appendChild(dueDate);
-    const complete = document.createElement("p");
-    complete.classList.add("author");
-    complete.appendChild(document.createTextNode("Complete: " + obj.complete));
-    div2.appendChild(complete);
+    const status = document.createElement("p");
+    status.classList.add("author");
+    let statusString = "Status: ";
+    if (obj.complete) {
+        statusString += "Complete";
+    } else {
+        statusString += "Incomplete";
+    }
+    status.appendChild(document.createTextNode(statusString));
+    div2.appendChild(status);
     if (obj.flags.length > 0) {
         const flags = document.createElement("p");
         flags.classList.add("author");

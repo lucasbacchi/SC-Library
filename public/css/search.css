@@ -192,7 +192,7 @@ h6.sort-title {
     gap: 16px 16px;
     justify-items: stretch;
     align-items: stretch;
-    grid-template-columns: 15% 1fr 1fr 1fr 1fr;
+    grid-template-columns: clamp(20%, 30%, 40%) 1fr 1fr 1fr;
     border-radius: 24px;
     background-color: #f8f8f8;
     box-shadow: 0px 0px 8px 2px #cccccc;
@@ -203,7 +203,7 @@ h6.sort-title {
 
 #result-page-header {
     grid-row: 1 / 2;
-    grid-column: 1 / 6;
+    grid-column: 1 / 5;
     color: var(--teal);
     font-size: 20px;
     font-weight: 600;
@@ -249,13 +249,13 @@ h6.sort-title {
 
 #result-page-image-container {
     grid-row: 2 / 3;
-    grid-column: 1 / 3;
-    margin-right: 32px;
+    grid-column: 1 / 2;
+    margin-right: 48px;
 }
 
 .result-page-image {
     width: 100%;
-    max-width: 300px;
+    max-width: 400px;
     display: block;
     box-shadow: 0px 0px 14px -4px var(--teal);
     cursor: pointer;
@@ -269,8 +269,7 @@ h6.sort-title {
 }
 
 #result-page-info-bar {
-    /* grid-row: 4 / 6; */
-    grid-column: 1 / 3;
+    grid-column: 1 / 2;
     margin-right: 32px;
 }
 
@@ -296,7 +295,7 @@ h6.sort-title {
 
 #result-page-details {
     grid-row: 2 / 5;
-    grid-column: 3 / 6;
+    grid-column: 2 / 5;
 }
 
 #result-page-details > h6,
@@ -531,6 +530,10 @@ div#result-page-info-bar > h6:first-of-type {
         width: 95%;
     }
 
+    #result-page-info-bar, #result-page-image-container {
+        margin-right: 24px;
+    }
+
     .advanced-info {
         flex-basis: 50%;
     }
@@ -579,12 +582,11 @@ div#result-page-info-bar > h6:first-of-type {
     }
 
     #result-page-container {
-        padding: 16px;
-        padding-top: 24px;
+        padding: 24px;
     }
 
     #result-page-info-bar, #result-page-image-container {
-        margin-right: 8px;
+        margin-right: 16px;
     }
 
     .advanced-info {
