@@ -129,6 +129,10 @@ function browse(page = 1) {
     });
 }
 
+/**
+ * @description Gets the next set of books for browsing. Serves as the callback for the browse function in a recursive loop.
+ * @returns {Promise<Array<Book>>} A promise that resolves with the next set of books for browsing.
+ */
 function browseNext() {
     return new Promise((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
@@ -286,7 +290,7 @@ function getNewBooksForSearch(page) {
 
 /**
  * @description Creates a search results page. Adds the book objects, pagination, and filters to the page.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
 function createSearchResultsPage(resultsArray, page = 1) {
@@ -338,6 +342,11 @@ function createSearchResultsPage(resultsArray, page = 1) {
     $("#content").removeClass("loading");
 }
 
+/**
+ * @description Creates the paginator for the search results page.
+ * @param {Array<Book>} resultsArray The array of books that are going to appear on the page (to determine length).
+ * @param {Number} page The current page number.
+ */
 function createPaginator(resultsArray, page) {
     $("#paginator").empty();
     $("#paginator").css("display", "flex");
@@ -392,7 +401,7 @@ function createPaginator(resultsArray, page) {
 
 /**
  * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  */
 function createFilterList(resultsArray) {
     // If the filters object is empty, we need to create the data type.
@@ -470,6 +479,9 @@ function createFilterList(resultsArray) {
     buildFilterList();
 }
 
+/**
+ * @description Creates the HTML elements for the filters.
+ */
 function buildFilterList() {
     FILTER_TYPES.forEach((filterType) => {
         $("#sort-" + filterType + "-list").empty();
@@ -549,8 +561,8 @@ function applySearchFilters() {
 
 /**
  * @description Iterates through the search cache and filters out the items that don't match the filters.
- * @param {Book[]} resultsArray The array of books to filter.
- * @returns {Book[]} The filtered array of books.
+ * @param {Array<Book>} resultsArray The array of books to filter.
+ * @returns {Array<Book>} The filtered array of books.
  */
 function filterSearchResults(resultsArray) {
     if (!filters || filters == {}) {
@@ -690,6 +702,9 @@ function displayResultPageImagePopup(barcodeNumber) {
     imgContainer.appendChild(img);
     // Get the link from the database and display it.
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        if (!bookObject.coverImageLink) {
+            return;
+        }
         img.src = bookObject.coverImageLink;
         img.onload = () => {
             imgContainer.style.display = "block";
@@ -729,7 +744,11 @@ function fillResultPage(barcodeNumber) {
 
         if (bookObject.medium == "av") {
             $(".result-page-image").attr("src", "/img/av-image.png");
+            $(".result-page-image").removeAttr("tabindex");
+            $(".result-page-image").css("cursor", "default");
         } else {
+            $(".result-page-image").attr("tabindex", "0");
+            $(".result-page-image").css("cursor", "pointer");
             // Currently not checking for icons because they are too low quality. Could change that if needed.
             if (bookObject.thumbnailImageLink && bookObject.thumbnailImageLink?.indexOf("http") != -1) {
                 $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
@@ -739,6 +758,8 @@ function fillResultPage(barcodeNumber) {
             } else {
                 console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
                 $(".result-page-image").attr("src", "/img/default-book.png");
+                $(".result-page-image").removeAttr("tabindex");
+                $(".result-page-image").css("cursor", "default");
             }
         }
 
@@ -765,6 +786,7 @@ function fillResultPage(barcodeNumber) {
             callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
+        // TODO: Make sure that items with no author are not stored as empty person objects so this works.
         if (bookObject.authors.length != 0) {
             callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
         } else {
