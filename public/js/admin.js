@@ -1,7 +1,8 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate,
-    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack, getBookFromBarcode, sendEmail, getUserFromBarcode, getUser } from "./common";
+    windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack,
+    getBookFromBarcode, sendEmail, getUserFromBarcode, getUser, setupWindowBeforeUnload } from "./common";
 import { Book, bookDatabase, Checkout, CheckoutGroup, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -90,6 +91,8 @@ export function setupEditCheckout(pageQuery) {
                 $("#edit-checkout-send-email").prop("disabled", true);
                 $("#edit-checkout-check-in").prop("disabled", true);
             }
+
+            setupWindowBeforeUnload(checkForChangedFields, checkout);
         });
         $(".checkout-groups-only").hide();
     } else {
@@ -691,6 +694,60 @@ function deleteCheckout(timestamp, barcodeNumber, batch) {
             return Promise.reject("Action cancelled by user");
         });
     });
+}
+
+
+/**
+ * @description Used to check an individual checkout for changes on the edit checkout page.
+ * @param {Checkout} obj The checkout object to check for changes.
+ * @returns {Boolean} Whether or not the checkout has changed.
+ */
+function checkForChangedFields(obj) {
+    let changed = false;
+    let barcodeNumber = $("#barcode-number-input").val();
+    let dueDate = new Date($("#checkout-due-date-year").val(), $("#checkout-due-date-month").val() - 1, $("#checkout-due-date-day").val());
+    dueDate.setHours(23, 59, 59); // Set the time to 11:59:59 PM
+    let userReturned = ($("#checkout-user-returned").val() == "true");
+    let flags = [];
+    if ($("#checkout-flags-lost").prop("checked")) {
+        flags.push("lost");
+    }
+    if ($("#checkout-flags-damaged").prop("checked")) {
+        flags.push("damaged");
+    }
+    if ($("#checkout-flags-other").prop("checked")) {
+        flags.push("other");
+    }
+    let notes = $("#checkout-notes").val();
+
+    if (obj.barcodeNumber != barcodeNumber) {
+        changed = true;
+    }
+    if (obj.dueDate.valueOf() != dueDate.valueOf()) {
+        changed = true;
+    }
+    if (obj.userReturned != userReturned) {
+        changed = true;
+    }
+    if (obj.flags.length != flags.length) {
+        changed = true;
+    } else {
+        for (let i = 0; i < flags.length; i++) {
+            if (!obj.flags.includes(flags[i])) {
+                changed = true;
+                break;
+            }
+        }
+    }
+    let librarianCheckedInNotes = obj.librarianCheckedInNotes;
+    if (!librarianCheckedInNotes) {
+        librarianCheckedInNotes = "";
+    }
+    if (librarianCheckedInNotes != notes) {
+        changed = true;
+    }
+
+    return changed;
 }
 
 
