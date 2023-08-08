@@ -1,8 +1,8 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
-import { addDoc, collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -588,7 +588,74 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
     });
 }
 
+/**
+ * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
+ * @param {String} barcode The barcode number of the user to get from the database.
+ * @returns {User} The user object that was retrieved from the database.
+ */
+export function getUserFromBarcode(barcode) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
+            if (querySnapshot.size == 0) {
+                reject("No user found with barcode number " + barcode);
+                return;
+            }
+            if (querySnapshot.size > 1) {
+                reject("Multiple users found with barcode number " + barcode);
+                return;
+            }
+            let user = User.createFromObject(querySnapshot.docs[0].data());
+            resolve(user);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
 
+
+/**
+ * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
+ * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
+ * @returns {Promise<User>} The user object from the database
+ */
+export function getUser(uid = null) {
+    return new Promise((resolve, reject) => {
+        if (!uid) {
+            uid = auth.currentUser.uid;
+        }
+
+        // Get the stored data from the database
+        getDoc(doc(db, "users", uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("The user document could not be found.");
+                reject();
+                return;
+            }
+
+            let user = User.createFromObject(docSnap.data());
+            resolve(user);
+        }).catch((error) => {
+            console.log("Failed to get the database file for this user", error);
+            reject();
+        });
+    });
+}
+
+/**
+ * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
+ * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
+ * @param  {...any} args Any arguments to pass to the checkForChanges function
+ */
+export function setupWindowBeforeUnload(checkForChanges, ...args) {
+    $(window).on("beforeunload", (event) => {
+        if (checkForChanges(...args) && !confirm("You have unsaved changes. Are you sure you want to leave?")) {
+            event.preventDefault();
+            event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        } else {
+            $(window).off("beforeunload");
+        }
+    });
+}
 
 
 /**********

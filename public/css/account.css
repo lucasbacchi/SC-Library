@@ -43,6 +43,7 @@
     margin: 0 auto;
     position: relative;
     margin-bottom: 16px;
+    border-radius: 600px;
 }
 
 #account-page-image {

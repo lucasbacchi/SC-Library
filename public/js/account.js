@@ -1,9 +1,9 @@
 import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, createOnClick, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
-import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
+import { buildBookBox, createOnClick, encodeHTML, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload } from "./common";
+import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 
 /**
@@ -44,7 +44,7 @@ export function setupAccountPage(pageQuery) {
  * @description Updates the account page (outer frame) with the user's information from the database
  */
 function updateAccountPageInfo() {
-    getAccountInfoFromDatabase().then((userObject) => {
+    getUser().then((userObject) => {
         $("#account-page-name").text(userObject.firstName + " " + userObject.lastName);
 
         let email = userObject.email;
@@ -62,42 +62,15 @@ function updateAccountPageInfo() {
     });
 }
 
-var userObject;
-/**
- * @description Gets the user's account information from the database
- * @returns {Promise<User>} The user object from the database
- */
-function getAccountInfoFromDatabase() {
-    return new Promise((resolve, reject) => {
-        let user = auth.currentUser;
-
-        // If the user object has already been loaded, return it, then load the data for the next time.
-        if (userObject) {
-            resolve(userObject);
-        }
-        // Get the stored data from the database
-        getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                reject();
-                return;
-            }
-            userObject = User.createFromObject(docSnap.data());
-
-            resolve(userObject);
-        }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-            reject();
-        });
-    });
-}
-
 /**
  * @description Sets up the account overview panel including filling the fields with the user's information and creating event listeners.
  */
 function setupAccountOverview() {
-    getAccountInfoFromDatabase().then((user) => {
+    getUser().then((user) => {
         fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
+
+        // If the user attempts to leave, let them know if they have unsaved changes.
+        setupWindowBeforeUnload(checkForChangedFields, user);
     }).catch((error) => {
         console.error(error);
         openModal("error", "There was an error getting your account information from the database. Please try again later.");
@@ -105,16 +78,6 @@ function setupAccountOverview() {
 
     createOnClick($(".save-button"), updateAccount);
     createOnClick($("#send-email-verification"), sendEmailVerificationToUser);
-
-    // If the user attempts to leave, let them know if they have unsaved changes
-    $(window).on("beforeunload", (event) => {
-        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-            event.preventDefault();
-            return "You have unsaved changes! Please save changes before leaving!";
-        } else {
-            $(window).off("beforeunload");
-        }
-    });
 }
 
 /**
@@ -200,66 +163,65 @@ function createCheckouts(books, str) {
  */
 function updateAccount() {
     let user = auth.currentUser;
-    if (!checkForChangedFields()) {
-        openModal("info", "There are no changes to save.");
-        return;
-    }
+    getUser().then((userObject) => {
+        if (!checkForChangedFields(userObject)) {
+            openModal("info", "There are no changes to save.");
+            return;
+        }
 
-    // If the names were changed, update them.
-    if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
-        ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
-        updateDoc(doc(db, "users", user.uid), {
-            firstName: $("#setting-first-name").val(),
-            lastName: $("#setting-last-name").val(),
-            lastUpdated: new Date()
-        }).then(() => {
-            // Assuming there was no problem with the update, set the new values on the index page and the account page.
-            updateUserAccountInfo();
-            updateAccountPageInfo();
-            openModal("success", "Your name was saved successfully.");
-        }).catch((error) => {
-            openModal("error", "An error has occured. Please try again later.");
-            console.error(error);
-        });
-    }
-
-    // If the email was changed update it.
-    if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-        let newEmail = $("#setting-email").val().toString();
-        updateEmail(user, newEmail).then(() => {
+        // If the names were changed, update them.
+        if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
+            ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
             updateDoc(doc(db, "users", user.uid), {
-                email: newEmail,
+                firstName: $("#setting-first-name").val(),
+                lastName: $("#setting-last-name").val(),
                 lastUpdated: new Date()
             }).then(() => {
-                let email = user.email;
-                if (!user.emailVerified) {
-                    $("#email-verified").show(); // The new email will likely not be verified
-                }
                 // Assuming there was no problem with the update, set the new values on the index page and the account page.
-                updateEmailinUI(email);
+                updateUserAccountInfo();
                 updateAccountPageInfo();
-                openModal("success", "Your email was saved successfully.");
+                openModal("success", "Your name was saved successfully.");
             }).catch((error) => {
-                openModal("error", "There was an error updating your email. Please try again later.");
+                openModal("error", "An error has occured. Please try again later.");
                 console.error(error);
             });
-        }).catch((error) => {
-            // If the user needs to reauthenticate:
-            if (error.code == "auth/requires-recent-login") {
-                if (confirm("Please re-enter your password to complete this operation.")) {
-                    goToPage("login?redirect=account&email=" + newEmail, null, true);
-                }
-            } else if (error.code == "auth/email-already-in-use") {
-                openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
-            } else {
-                openModal("error", "An error has occured when trying to update your email. Please try again later.");
-                console.error(error);
-            }
-        });
-    }
+        }
 
-    // Prevent the cached data from being used again.
-    userObject = null;
+        // If the email was changed update it.
+        if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
+            let newEmail = $("#setting-email").val().toString();
+            updateEmail(user, newEmail).then(() => {
+                updateDoc(doc(db, "users", user.uid), {
+                    email: newEmail,
+                    lastUpdated: new Date()
+                }).then(() => {
+                    let email = user.email;
+                    if (!user.emailVerified) {
+                        $("#email-verified").show(); // The new email will likely not be verified
+                    }
+                    // Assuming there was no problem with the update, set the new values on the index page and the account page.
+                    updateEmailinUI(email);
+                    updateAccountPageInfo();
+                    openModal("success", "Your email was saved successfully.");
+                }).catch((error) => {
+                    openModal("error", "There was an error updating your email. Please try again later.");
+                    console.error(error);
+                });
+            }).catch((error) => {
+                // If the user needs to reauthenticate:
+                if (error.code == "auth/requires-recent-login") {
+                    if (confirm("Please re-enter your password to complete this operation.")) {
+                        goToPage("login?redirect=account&email=" + newEmail, null, true);
+                    }
+                } else if (error.code == "auth/email-already-in-use") {
+                    openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
+                } else {
+                    openModal("error", "An error has occured when trying to update your email. Please try again later.");
+                    console.error(error);
+                }
+            });
+        }
+    });
 }
 
 /**
@@ -334,7 +296,7 @@ export function goToSettingsPanel(newPanel) {
  * @description Returns true if the user has unsaved changes on the overview panel, otherwise, returns false
  * @returns {Boolean} A boolean value indicating whether or not the user has unsaved changes.
  */
-function checkForChangedFields() {
+function checkForChangedFields(userObject) {
     let answer = false;
     if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
         answer = true;

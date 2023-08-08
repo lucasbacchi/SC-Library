@@ -1,5 +1,5 @@
 import { goToPage } from "./ajax";
-import { addBarcodeSpacing, createOnClick, encodeHTML, findURLValue, openModal, softBack, switchISBNformats, verifyISBN } from "./common";
+import { addBarcodeSpacing, createOnClick, encodeHTML, findURLValue, openModal, setupWindowBeforeUnload, softBack, switchISBNformats, verifyISBN } from "./common";
 import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
@@ -9,6 +9,7 @@ var newEntry = null;
 var barcodeNumber;
 var isbn;
 var imageChanged;
+var changesDetected = false;
 
 /**
  * @description This function sets up the edit entry page, and starts the process of getting the data from the database or Open Library.
@@ -56,14 +57,7 @@ export function setupEditEntry(pageQuery) {
     });
 
     // If the user attempts to leave, let them know if they have unsaved changes
-    $(window).on("beforeunload", function (event) {
-        if (changesDetected && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-            event.preventDefault();
-            return "If you leave the page now, your changes will not be saved. If this is a new entry, you will be left with a blank entry";
-        } else {
-            $(window).off("beforeunload");
-        }
-    });
+    setupWindowBeforeUnload(checkForChanges);
 
     $("#book-medium")[0].addEventListener("input", (event) => {
         if (event.target.value == "av") {
@@ -114,14 +108,7 @@ export function setupEditEntry(pageQuery) {
         openModal("warning", "Are you sure you want to delete this entry? This action cannot be undone.", "Delete Forever", "Delete this Entry", deleteEntry, "Cancel");
     });
 
-    watchForChanges();
-}
-
-var changesDetected = false;
-/**
- * @description Watches for changes to the input fields and sets changesDetected to true if any changes are detected
- */
-function watchForChanges() {
+    // Watch for changes to the input fields
     changesDetected = false;
     $("input, textarea").on("input", () => {
         changesDetected = true;
@@ -135,6 +122,14 @@ function watchForChanges() {
     createOnClick($("#book-cover-image"), () => {
         changesDetected = true;
     });
+}
+
+/**
+ * @description Checks for changes to the input fields returns true if any changes are detected
+ * @returns {Boolean} True if any changes are detected, false otherwise
+ */
+function checkForChanges() {
+    return changesDetected;
 }
 
 /**
