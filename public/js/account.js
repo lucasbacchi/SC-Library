@@ -1,9 +1,9 @@
 import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
-import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, createOnClick, encodeHTML, getBookFromBarcode, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload } from "./common";
-import { Checkout, auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
+import { buildBookBox, createOnClick, encodeHTML, getBookFromBarcode, getCheckoutsByUser, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload } from "./common";
+import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 
 /**
@@ -112,7 +112,7 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
  */
 function setupAccountCheckouts() {
     getUser().then((user) => {
-        getCheckouts(user.cardNumber).then(checkouts => {
+        getCheckoutsByUser(user.cardNumber).then(checkouts => {
             createCheckouts(checkouts, "checkouts");
         });
     }).catch((error) => {
@@ -134,23 +134,6 @@ function setupAccountNotifications() {
 function setupAccountSecurity() {
     createOnClick($("#change-password"), changePassword);
     createOnClick($("#delete-account-button"), deleteAccount);
-}
-
-/**
- * @description Gets the user's checked out books from the database
- * @param {String} cardNumber The user's card number
- * @returns {Promise<Array<Book>>} The user's checked out history.
- */
-function getCheckouts(cardNumber) {
-    return getDocs(query(collection(db, "checkouts"), where("cardNumber", "==", cardNumber))).then((querySnapshot) => {
-        let checkouts = [];
-        querySnapshot.forEach((doc) => {
-            checkouts.push(Checkout.createFromObject(doc.data()));
-        });
-        return checkouts;
-    }).catch((error) => {
-        console.error(error);
-    });
 }
 
 /**
@@ -229,6 +212,7 @@ function updateAccount() {
                     }
                     // Assuming there was no problem with the update, set the new values on the index page and the account page.
                     updateEmailinUI(email);
+                    sendEmailVerificationToUser();
                     updateAccountPageInfo();
                     openModal("success", "Your email was saved successfully.");
                 }).catch((error) => {

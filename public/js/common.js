@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { goToPage, isAdminCheck } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, Checkout } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, Checkout, CheckoutGroup } from "./globals";
 
 /************
 BEGIN SEARCH
@@ -634,13 +634,18 @@ export function getUserFromBarcode(barcode) {
 
 /**
  * @description Gets the most recent checkouts for a given barcode number
- * @param {String} barcode The barcode number of the book to get the checkouts for
- * @param {Number} num The number of checkouts to get. Defaults to 1.
+ * @param {String|Number} barcodeNumber The barcode number of the book to get the checkouts for
+ * @param {Number} num The number of checkouts to get. Defaults to null (all).
  * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
  */
-export function getCheckoutFromBarcode(barcode, num = 1) {
+export function getCheckoutsByBook(barcodeNumber, num = null) {
     return new Promise((resolve, reject) => {
-        getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode.toString()), orderBy("timestamp", "desc"), limit(num))).then((docs) => {
+        let barcode = barcodeNumber.toString();
+        let querySelection = query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode), orderBy("timestamp", "desc"));
+        if (num) {
+            querySelection = query(querySelection, limit(num));
+        }
+        getDocs(querySelection).then((docs) => {
             let checkouts = [];
             docs.forEach((doc) => {
                 if (!doc.exists()) {
@@ -689,6 +694,70 @@ export function getUser(uid = null) {
 }
 
 /**
+ * @description Used to get a checkout or a checkoutGroup from the database.
+ * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
+ * @param {Boolean} group Whether or not to return a checkout group or a single checkout. Defaults to true.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load. Only used if group is false.
+ * @param {Boolean} getDocRef Whether or not to return the document reference instead of the checkout object. Defaults to false.
+ * @returns {Promise<CheckoutGroup|Checkout|DocumentReference|Array<DocumentReference>} A Promise containing the checkout, checkout group, document reference, or array of document references.
+ */
+export function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, getDocRef = false) {
+    return new Promise((resolve, reject) => {
+        if (!timestamp) {
+            openModal("issue", "No timestamp was specified for the checkout lookup.");
+            return reject("No timestamp was specified for the checkout lookup.");
+        }
+        if (!group && !barcodeNumber) {
+            openModal("issue", "No barcode was specified for the checkout lookup.");
+            return reject("No barcode was specified for the checkout lookup.");
+        }
+
+        // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
+        let start = new Date(timestamp.valueOf() - 1000);
+        let end = new Date(timestamp.valueOf() + 1000);
+        getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+            let checkouts = [];
+            let refs = [];
+
+            // Loop through the query snapshot and add the checkouts to the array
+            for (let i = 0; i < querySnapshot.size; i++) {
+                let docSnap = querySnapshot.docs[i];
+                if (!docSnap.exists()) {
+                    console.error("checkout document does not exist");
+                    return reject("checkout document does not exist");
+                }
+
+                checkouts.push(Checkout.createFromObject(docSnap.data()));
+                refs.push(docSnap.ref);
+            }
+
+            // If we're looking for a group
+            if (group) {
+                // If we're looking for a reference, return the array of references
+                if (getDocRef) {
+                    return resolve(refs);
+                }
+                // Else return a checkout group
+                return resolve(new CheckoutGroup(checkouts));
+            }
+
+            // If we're looking for a single checkout/reference, loop through the checkouts find one that matches the barcode number
+            for (let i = 0; i < checkouts.length; i++) {
+                if (checkouts[i].barcodeNumber == barcodeNumber) {
+                    // If we're looking for a reference, return the reference
+                    if (getDocRef) {
+                        return resolve(refs[i]);
+                    }
+                    // Else return the checkout
+                    return resolve(checkouts[i]);
+                }
+            }
+        });
+    });
+}
+
+
+/**
  * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
  * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
  * @param  {...any} args Any arguments to pass to the checkForChanges function
@@ -703,6 +772,33 @@ export function setupWindowBeforeUnload(checkForChanges, ...args) {
         }
     });
 }
+
+
+/**
+ * @description Gets a checked out books from the database using their card number
+ * @param {String} cardNumber The user's card number to get the checked out books for
+ * @param {Number} num The number of checkouts to get. Defaults to null (all).
+ * @returns {Promise<Array<Checkout>>} A Promise that resolves to the user's checked out history.
+ */
+export function getCheckoutsByUser(cardNumber, num = null) {
+    return new Promise((resolve, reject) => {
+        let querySelection = query(collection(db, "checkouts"), where("cardNumber", "==", cardNumber), orderBy("timestamp", "desc"));
+        if (num) {
+            querySelection = query(querySelection, limit(num));
+        }
+        getDocs(querySelection).then((docs) => {
+            let checkouts = [];
+            docs.forEach((doc) => {
+                checkouts.push(Checkout.createFromObject(doc.data()));
+            });
+            resolve(checkouts);
+        }).catch((error) => {
+            console.error(error);
+            reject(error);
+        });
+    });
+}
+
 
 
 /**********

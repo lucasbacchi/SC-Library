@@ -2,7 +2,7 @@ import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, se
 import { goToPage } from "./ajax";
 import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate,
     windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick, buildCheckoutBox, softBack,
-    getBookFromBarcode, sendEmail, getUserFromBarcode, getUser, setupWindowBeforeUnload } from "./common";
+    getBookFromBarcode, sendEmail, getUserFromBarcode, getUser, getCheckoutInfo, setupWindowBeforeUnload } from "./common";
 import { Book, bookDatabase, Checkout, CheckoutGroup, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
@@ -64,6 +64,7 @@ export function setupEditCheckout(pageQuery) {
 
     let group = (findURLValue(pageQuery, "group") == "true");
     if (!group) {
+        // Individual Checkout
         let barcodeNumber = findURLValue(pageQuery, "barcodeNumber");
         if (!barcodeNumber) {
             openModal("issue", "No barcode was specified in the URL.");
@@ -96,6 +97,7 @@ export function setupEditCheckout(pageQuery) {
         });
         $(".checkout-groups-only").hide();
     } else {
+        // Checkout Group
         getCheckoutInfo(timestamp).then((checkoutGroup) => {
             if (!checkoutGroup || !checkoutGroup.checkouts) {
                 openModal("issue", "The checkout group you are looking for does not exist.");
@@ -123,71 +125,6 @@ export function setupEditCheckout(pageQuery) {
     // Save and Cancel Buttons
     createOnClick($("#edit-checkout-save"), saveCheckout);
     createOnClick($("#edit-checkout-cancel"), cancelAdminForm);
-}
-
-/**
- * @description Used to get a checkout or a checkoutGroup from the database.
- * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
- * @param {Boolean} group Whether or not to return a checkout group or a single checkout. Defaults to true.
- * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load. Only used if group is false.
- * @param {Boolean} getDocRef Whether or not to return the document reference instead of the checkout object. Defaults to false.
- * @returns {Promise<CheckoutGroup|Checkout|DocumentReference|Array<DocumentReference>} A Promise containing the checkout, checkout group, document reference, or array of document references.
- */
-function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, getDocRef = false) {
-    if (!timestamp) {
-        openModal("issue", "No timestamp was specified for the checkout lookup.");
-        return;
-    }
-    if (!group && !barcodeNumber) {
-        openModal("issue", "No barcode was specified for the checkout lookup.");
-        return;
-    }
-    // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
-    let start = new Date(timestamp.valueOf() - 1000);
-    let end = new Date(timestamp.valueOf() + 1000);
-    return getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
-        let answer = null;
-        let checkouts = [];
-        let refs = [];
-        querySnapshot.forEach((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("checkout document does not exist");
-                return;
-            }
-
-            let checkout = Checkout.createFromObject(docSnap.data());
-            // If we just need a single doc ref, return it
-            if (getDocRef && !group) {
-                if (checkout.barcodeNumber == barcodeNumber) {
-                    answer = docSnap.ref;
-                }
-            }
-            refs.push(docSnap.ref);
-            checkouts.push(checkout);
-        });
-
-        // If we just need an array of doc refs, return it
-        if (getDocRef && group) {
-            answer = refs;
-        }
-        if (answer) {
-            return answer;
-        }
-
-        let checkoutGroup = new CheckoutGroup(checkouts);
-
-        if (group) {
-            return checkoutGroup;
-        } else {
-            let checkout;
-            checkouts.forEach((temp) => {
-                if (temp.barcodeNumber == barcodeNumber) {
-                    checkout = temp;
-                }
-            });
-            return checkout;
-        }
-    });
 }
 
 /**
@@ -319,7 +256,7 @@ function saveCheckout() {
         newCheckout.dueDate = dueDate;
         newCheckout.userReturned = userReturned;
         newCheckout.flags = flags;
-        newCheckout.notes = notes;
+        newCheckout.librarianCheckedInNotes = notes;
         newCheckout.lastUpdated = new Date();
 
         if (!validateCheckoutChanges(checkout, newCheckout)) {
@@ -478,9 +415,11 @@ function checkoutAction(checkouts, action) {
     }).catch((issue) => {
         loadingModal();
         if (issue == "Action cancelled by user") {
+            openModal("info", "One or more of your actions were cancelled, so none of them were performed.");
             return;
         }
-        openModal("issue", "There was an issue performing your actions. The first issue we ran into was...\n\n" + issue);
+        openModal("issue", "There was an issue performing your actions. None of them were written to the database. "
+        + "Please note that other actions (such as sending emails) may have occurred. The first issue we ran into was...\n\n" + issue);
     });
 }
 
@@ -673,7 +612,8 @@ function deleteCheckout(timestamp, barcodeNumber, batch) {
             return Promise.reject("The checkout you are looking for does not exist.");
         }
         let verifyPromise = new Promise((resolve, reject) => {
-            openModal("warning", "Are you sure you want to delete this checkout? This action cannot be undone.",
+            openModal("warning", "You are about to delete the checkout record for book " + barcodeNumber + " at the following timestamp " + formatDate(timestamp)
+            + ". Are you sure you want to delete this checkout? This action cannot be undone.",
             "Are you sure?", "Yes", () => {
                 // The user clicked "yes"
                 resolve();

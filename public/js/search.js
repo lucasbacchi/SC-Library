@@ -1,5 +1,5 @@
 import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, getCheckoutFromBarcode, openModal,
+import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, getCheckoutsByBook, getUser, openModal,
     removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from './common';
 import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
@@ -746,7 +746,7 @@ function fillResultPage(barcodeNumber) {
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
 
         // Check if the book is checked out and update the borrow button accordingly.
-        getCheckoutFromBarcode(barcodeNumber).then((checkoutArray) => {
+        getCheckoutsByBook(barcodeNumber, 1).then((checkoutArray) => {
             let checkoutObject = checkoutArray[0];
             if (!bookObject.canBeCheckedOut) {
                 // If the book cannot be checked out, disable the borrow button and display a message if clicked.
@@ -1093,16 +1093,31 @@ export function setupCheckout() {
             historyManager.update(undefined, undefined, {checkoutBooks: checkoutBooks});
         }
 
+        // Get info from URL
+        let id = findURLValue(window.location.search, "id");
+        let addID = true;
+
         // Display the books that are already scanned
         checkoutBooks.forEach((barcodeNumber) => {
-            checkoutAddBook(barcodeNumber);
+            if (barcodeNumber == id) {
+                addID = false;
+            }
+            checkoutAddBook(barcodeNumber, true);
         });
+
+        if (addID) {
+            checkoutAddBook(id);
+        }
 
         // Update info in UI
         $("#checkout-counter").text(checkoutBooks.length);
         $("#checkout-date").text(new Date().toLocaleDateString());
         $("#checkout-due-date").text(new Date(new Date().getTime() + 12096e5).toLocaleDateString());
         $("#checkout-account-email").text(auth.currentUser.email);
+    }).catch((error) => {
+        openModal("error", "There was an error loading your checkout history. Please try again later.\n" + error);
+        softBack();
+        return;
     });
 }
 
@@ -1151,7 +1166,12 @@ function getLibraryIP() {
     });
 }
 
-function checkoutAddBook(barcodeNumber = undefined) {
+/**
+ * @description Adds a book to the list of books to be checked out, updates the UI, and saves the book to the history.
+ * @param {String} barcodeNumber The barcode number of the book to add to the list. If undefined, the value of the input field will be used.
+ * @param {Boolean} bypassHistory Whether or not to bypass checking the history for the book. (Useful for adding books from the history.)
+ */
+function checkoutAddBook(barcodeNumber = undefined, bypassHistory = false) {
     if (!barcodeNumber) {
         barcodeNumber = $("#checkout-scanner-input").val();
     }
@@ -1174,7 +1194,7 @@ function checkoutAddBook(barcodeNumber = undefined) {
             return;
         }
 
-        verifyCheckout(book).then(() => {
+        verifyCheckout(book, bypassHistory).then(() => {
             // If we get here, the book is available, so add it to the list of books to be checked out
             $("#checkout-list").append(buildBookBox(book, "checkout"));
             createOnClick($("#checkout-list-" + book.barcodeNumber + " > .checkout-book > a > .xButton"), checkoutRemoveBook, book.barcodeNumber);
@@ -1197,7 +1217,10 @@ function checkoutAddBook(barcodeNumber = undefined) {
     });
 }
 
-
+/**
+ * @description Removes a book from the list of books to be checked out, updates the UI, and removes the book from the history.
+ * @param {String} barcodeNumber The barcode number of the book to remove from the list.
+ */
 function checkoutRemoveBook(barcodeNumber) {
     // Remove the book from the list
     $("#checkout-list").find("#checkout-list-" + barcodeNumber).remove();
@@ -1215,7 +1238,13 @@ function checkoutRemoveBook(barcodeNumber) {
 }
 
 
-function verifyCheckout(book) {
+/**
+ * @description Verifies that a book can be checked out, verifies that the user is authorized to check out the book, and verifies that the book is not already checked out.
+ * @param {Book} book The book to verify.
+ * @param {Boolean} bypassHistory Whether or not to bypass checking the history for the book. (Useful for adding books from the history.)
+ * @returns {Promise<void>} A promise that resolves when the book has been verified.
+ */
+function verifyCheckout(book, bypassHistory) {
     return new Promise((resolve, reject) => {
         let promises = [];
         // Check if the book is already in the list
@@ -1225,9 +1254,22 @@ function verifyCheckout(book) {
             return;
         }
 
+        let historyPromise = Promise.resolve();
+        if (!bypassHistory) {
+            // Check if the book is in the history
+            historyPromise = HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
+                if (state.checkoutBooks.includes(book.barcodeNumber)) {
+                    openModal("error", "This book is already in the checkout list.");
+                    reject("The book is already in the checkout list.");
+                    return;
+                }
+            });
+        }
+
         // Check the status of the last checkout (if there is one)
-        let lastCheckoutPromise = getCheckoutFromBarcode(book.barcodeNumber).then((checkout) => {
-            if (!checkout.complete) {
+        let lastCheckoutPromise = getCheckoutsByBook(book.barcodeNumber).then((checkoutsArray) => {
+            let checkout = checkoutsArray[0];
+            if (checkout && !checkout.complete) {
                 openModal("error", "This book is either already checked out or is in the process of being reshelved by a librarian.");
                 reject("The book is already checked out.");
                 return;
@@ -1261,6 +1303,7 @@ function verifyCheckout(book) {
             console.log(error);
         });
 
+        promises.push(historyPromise);
         promises.push(lastCheckoutPromise);
         promises.push(userPromise);
 
@@ -1281,21 +1324,14 @@ function verifyCheckout(book) {
 function checkout() {
     // We have already verified that the user is logged in and authorized to check out books
     // We have also verified that the books are available and can be checked out
-    let user = auth.currentUser;
-    let cardNumber;
     let timestamp = new Date();
     let dueDate = new Date(Date.now() + 6.048e+8 * 2); // 2 weeks from now
     dueDate.setHours(23, 59, 59); // Set the time to 11:59:59 PM
     let promises = [];
 
     // Get the user's barcode number
-    getDoc(doc(db, "users", user.uid)).then((userDoc) => {
-        if (!userDoc.exists()) {
-            openModal("error", "There was an error checking out this book.");
-            console.log("The user does not exist.");
-            return;
-        }
-        cardNumber = userDoc.data().cardNumber;
+    getUser().then((user) => {
+        let cardNumber = user.cardNumber;
 
         let checkoutBooks;
         HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
