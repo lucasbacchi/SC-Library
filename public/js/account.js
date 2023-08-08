@@ -2,8 +2,8 @@ import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePas
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, createOnClick, encodeHTML, getBookFromBarcode, getUser, openModal, sendEmailVerificationToUser } from "./common";
-import { auth, Checkout, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
+import { buildBookBox, createOnClick, encodeHTML, getBookFromBarcode, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload } from "./common";
+import { Checkout, auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 
 /**
@@ -68,6 +68,9 @@ function updateAccountPageInfo() {
 function setupAccountOverview() {
     getUser().then((user) => {
         fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
+
+        // If the user attempts to leave, let them know if they have unsaved changes.
+        setupWindowBeforeUnload(checkForChangedFields, user);
     }).catch((error) => {
         console.error(error);
         openModal("error", "There was an error getting your account information from the database. Please try again later.");
@@ -75,16 +78,6 @@ function setupAccountOverview() {
 
     createOnClick($(".save-button"), updateAccount);
     createOnClick($("#send-email-verification"), sendEmailVerificationToUser);
-
-    // If the user attempts to leave, let them know if they have unsaved changes
-    $(window).on("beforeunload", (event) => {
-        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-            event.preventDefault();
-            return "You have unsaved changes! Please save changes before leaving!";
-        } else {
-            $(window).off("beforeunload");
-        }
-    });
 }
 
 /**
@@ -199,7 +192,7 @@ function createCheckouts(checkouts, str) {
 function updateAccount() {
     let user = auth.currentUser;
     getUser().then((userObject) => {
-        if (!checkForChangedFields()) {
+        if (!checkForChangedFields(userObject)) {
             openModal("info", "There are no changes to save.");
             return;
         }

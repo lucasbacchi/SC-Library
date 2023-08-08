@@ -626,7 +626,7 @@ function filterSearchResults(resultsArray) {
  * @param {String} pageQuery The query string from the URL.
  */
 export function setupResultPage(pageQuery) {
-    let barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
+    let barcodeNumber = findURLValue(pageQuery, "id");
     if (!barcodeNumber) {
         openModal("error", "A valid barcode was not provided.");
         goToPage("");

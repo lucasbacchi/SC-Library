@@ -633,6 +633,34 @@ export function getUserFromBarcode(barcode) {
 
 
 /**
+ * @description Gets the most recent checkouts for a given barcode number
+ * @param {String} barcode The barcode number of the book to get the checkouts for
+ * @param {Number} num The number of checkouts to get. Defaults to 1.
+ * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
+ */
+export function getCheckoutFromBarcode(barcode, num = 1) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode.toString()), orderBy("timestamp", "desc"), limit(num))).then((docs) => {
+            let checkouts = [];
+            docs.forEach((doc) => {
+                if (!doc.exists()) {
+                    console.error("The checkout document could not be found.");
+                    reject();
+                    return;
+                }
+                let checkout = Checkout.createFromObject(doc.data());
+                checkouts.push(checkout);
+            });
+            resolve(checkouts);
+        }).catch((error) => {
+            openModal("error", "There was an error getting the checkouts information from the database.\n" + error);
+            console.log(error);
+        });
+    });
+}
+
+
+/**
  * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
  * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
  * @returns {Promise<User>} The user object from the database
@@ -660,34 +688,21 @@ export function getUser(uid = null) {
     });
 }
 
-
 /**
- * @description Gets the most recent checkouts for a given barcode number
- * @param {String} barcode The barcode number of the book to get the checkouts for
- * @param {Number} num The number of checkouts to get. Defaults to 1.
- * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
+ * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
+ * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
+ * @param  {...any} args Any arguments to pass to the checkForChanges function
  */
-export function getCheckoutFromBarcode(barcode, num = 1) {
-    return new Promise((resolve, reject) => {
-        getDocs(query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode), orderBy("timestamp", "desc"), limit(num))).then((docs) => {
-            let checkouts = [];
-            docs.forEach((doc) => {
-                if (!doc.exists()) {
-                    console.error("The checkout document could not be found.");
-                    reject();
-                    return;
-                }
-                let checkout = Checkout.createFromObject(doc.data());
-                checkouts.push(checkout);
-            });
-            resolve(checkouts);
-        }).catch((error) => {
-            openModal("error", "There was an error getting the checkouts information from the database.\n" + error);
-            console.log(error);
-        });
+export function setupWindowBeforeUnload(checkForChanges, ...args) {
+    $(window).on("beforeunload", (event) => {
+        if (checkForChanges(...args) && !confirm("You have unsaved changes. Are you sure you want to leave?")) {
+            event.preventDefault();
+            event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        } else {
+            $(window).off("beforeunload");
+        }
     });
 }
-
 
 
 /**********
