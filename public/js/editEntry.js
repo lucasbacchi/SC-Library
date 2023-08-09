@@ -1,5 +1,5 @@
 import { goToPage } from "./ajax";
-import { addBarcodeSpacing, createOnClick, encodeHTML, findURLValue, openModal, setupWindowBeforeUnload, softBack, switchISBNformats, verifyISBN } from "./common";
+import { addBarcodeSpacing, createOnClick, encodeHTML, findURLValue, getBookFromBarcode, openModal, setupWindowBeforeUnload, softBack, switchISBNformats, verifyISBN } from "./common";
 import { app, Audience, Book, db, Person, setTimeLastSearched } from "./globals";
 import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, where } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
@@ -45,6 +45,7 @@ export function setupEditEntry(pageQuery) {
                 console.warn("Could not find an entry in Open Library for this isbn", error);
             });
         } else {
+            // TODO: Move the one barcode update to here, and don't bother calling this function if it's a new entry
             loadDataOnToEditEntryPage(true);
         }
     }
@@ -128,6 +129,7 @@ export function setupEditEntry(pageQuery) {
  * @description Checks for changes to the input fields returns true if any changes are detected
  * @returns {Boolean} True if any changes are detected, false otherwise
  */
+// TODO: Update this to actaully check for changes against the database
 function checkForChanges() {
     return changesDetected;
 }
@@ -143,10 +145,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
         return;
     }
 
-    let document = (Math.floor(barcodeNumber / 100) % 100).toString().padStart(3, "0");
-    getDoc(doc(db, "books/" + document)).then((docSnap) => {
-        let data = Book.createFromObject(docSnap.data().books[barcodeNumber % 100]);
-
+    getBookFromBarcode(barcodeNumber, true).then((data) => {
         if (!data) {
             openModal("error", "We could not find any data for a book with barcode number " + barcodeNumber);
             goToPage("admin/main");
@@ -241,6 +240,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
  * @returns {Promise<Array<Boolean, Object, Object, Object>>} An array containing any information found in Open Library.
  *          Ideally, noISBN, the book object, the author object, and the works object.
  */
+// TODO: Make this fuction less... janky...
 function gatherExternalInformation(isbn) {
     return (new Promise((resolve) => {
         if (isbn == "") {
@@ -288,7 +288,7 @@ function lookupBook(isbn) {
         let xhttp = new XMLHttpRequest();
 
         xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
-        xhttp.onreadystatechange = function () {
+        xhttp.onreadystatechange = () => {
             if (this.status == 404 || this.status == 403 || this.status == 400) {
                 reject("Invalid Response");
             }
@@ -329,7 +329,7 @@ function lookupAuthor(bookObject) {
                 xhttp.send();
 
                 total++;
-                xhttp.onreadystatechange = function () {
+                xhttp.onreadystatechange = () => {
                     if (this.status == 404 || this.status == 403 || this.status == 400) {
                         reject("Invalid Response");
                     }
@@ -372,7 +372,7 @@ function lookupWorks(bookObject, authorObject) {
 
             xhttp.send();
             total++;
-            xhttp.onreadystatechange = function () {
+            xhttp.onreadystatechange = () => {
                 if (this.status == 404 || this.status == 403 || this.status == 400) {
                     reject("Invalid Response");
                 }
@@ -388,7 +388,6 @@ function lookupWorks(bookObject, authorObject) {
     });
 }
 
-// Run in the event of a new entry being created. It takes the information from Open Library.
 /**
  * @description Runs in the event of a new entry being created. It takes the information from Open Library and loads it onto the page.
  * @param {Boolean} noISBN A boolean representing whether or not the book had an ISBN number when we searched for it.
@@ -902,8 +901,8 @@ function validateEntry() {
             let rect = $("#book-title")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-title")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-title")[0].focus();}, 800);
-            $("#book-title")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-title")[0].focus();}, 800);
+            $("#book-title")[0].onkeydown = () => {
                 $("#book-title")[0].style.borderColor = "";
             };
             resolve(false);
@@ -915,12 +914,12 @@ function validateEntry() {
             window.scrollBy(0, rect.top - 180);
             $("#book-author-1-last")[0].style.borderColor = "red";
             $("#book-author-1-first")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-author-1-last")[0].focus();}, 800);
-            $("#book-author-1-last")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-author-1-last")[0].focus();}, 800);
+            $("#book-author-1-last")[0].onkeydown = () => {
                 $("#book-author-1-last")[0].style.borderColor = "";
                 $("#book-author-1-first")[0].style.borderColor = "";
             };
-            $("#book-author-1-first")[0].onkeydown = function() {
+            $("#book-author-1-first")[0].onkeydown = () => {
                 $("#book-author-1-last")[0].style.borderColor = "";
                 $("#book-author-1-first")[0].style.borderColor = "";
             };
@@ -932,8 +931,8 @@ function validateEntry() {
             let rect = $("#book-medium")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-medium")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-medium")[0].focus();}, 800);
-            $("#book-medium")[0].onclick = function() {
+            setTimeout(() => {$("#book-medium")[0].focus();}, 800);
+            $("#book-medium")[0].onclick = () => {
                 $("#book-medium")[0].style.borderColor = "";
             };
             resolve(false);
@@ -945,8 +944,8 @@ function validateEntry() {
             let rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
-            setTimeout(function() {$("#book-cover-image")[0].focus();}, 800);
-            $("#book-cover-image")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-cover-image")[0].focus();}, 800);
+            $("#book-cover-image")[0].onkeydown = () => {
                 $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #aaaaaa4a";
             };
             resolve(false);
@@ -957,8 +956,8 @@ function validateEntry() {
             let rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-subject-1")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-subject-1")[0].focus();}, 800);
-            $("#book-subject-1")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-subject-1")[0].focus();}, 800);
+            $("#book-subject-1")[0].onkeydown = () => {
                 $("#book-subject-1")[0].style.borderColor = "";
             };
             resolve(false);
@@ -969,8 +968,8 @@ function validateEntry() {
             let rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-description")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-description")[0].focus();}, 800);
-            $("#book-description")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-description")[0].focus();}, 800);
+            $("#book-description")[0].onkeydown = () => {
                 $("#book-description")[0].style.borderColor = "";
             };
             resolve(false);
@@ -985,8 +984,8 @@ function validateEntry() {
             $("#book-audience-youth")[0].style.outline = "2px solid red";
             $("#book-audience-adult")[0].style.outline = "2px solid red";
             $("#book-audience-none")[0].style.outline = "2px solid red";
-            setTimeout(function() {$("#book-audience-children")[0].focus();}, 800);
-            $("#book-audience-children")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-audience-children")[0].focus();}, 800);
+            $("#book-audience-children")[0].onkeydown = () => {
                 $("#book-audience-children")[0].style.outline = "";
                 $("#book-audience-youth")[0].style.outline = "";
                 $("#book-audience-adult")[0].style.outline = "";
@@ -1000,8 +999,8 @@ function validateEntry() {
             let rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-10")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-isbn-10")[0].focus();}, 800);
-            $("#book-isbn-10")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-isbn-10")[0].focus();}, 800);
+            $("#book-isbn-10")[0].onkeydown = () => {
                 $("#book-isbn-10")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1012,8 +1011,8 @@ function validateEntry() {
             let rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-13")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-isbn-13")[0].focus();}, 800);
-            $("#book-isbn-13")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-isbn-13")[0].focus();}, 800);
+            $("#book-isbn-13")[0].onkeydown = () => {
                 $("#book-isbn-13")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1026,12 +1025,12 @@ function validateEntry() {
                 window.scrollBy(0, rect.top - 180);
                 $("#book-isbn-10")[0].style.borderColor = "red";
                 $("#book-isbn-13")[0].style.borderColor = "red";
-                setTimeout(function() {$("#book-isbn-10")[0].focus();}, 800);
-                $("#book-isbn-10")[0].onkeydown = function() {
+                setTimeout(() => {$("#book-isbn-10")[0].focus();}, 800);
+                $("#book-isbn-10")[0].onkeydown = () => {
                     $("#book-isbn-10")[0].style.borderColor = "";
                     $("#book-isbn-13")[0].style.borderColor = "";
                 };
-                $("#book-isbn-13")[0].onkeydown = function() {
+                $("#book-isbn-13")[0].onkeydown = () => {
                     $("#book-isbn-10")[0].style.borderColor = "";
                     $("#book-isbn-13")[0].style.borderColor = "";
                 };
@@ -1044,8 +1043,8 @@ function validateEntry() {
             let rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publisher-1")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-publisher-1")[0].focus();}, 800);
-            $("#book-publisher-1")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-publisher-1")[0].focus();}, 800);
+            $("#book-publisher-1")[0].onkeydown = () => {
                 $("#book-publisher-1")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1058,18 +1057,18 @@ function validateEntry() {
             $("#book-publish-month")[0].style.borderColor = "red";
             $("#book-publish-day")[0].style.borderColor = "red";
             $("#book-publish-year")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-publish-month")[0].focus();}, 800);
-            $("#book-publish-month")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-publish-month")[0].focus();}, 800);
+            $("#book-publish-month")[0].onkeydown = () => {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
             };
-            $("#book-publish-day")[0].onkeydown = function() {
+            $("#book-publish-day")[0].onkeydown = () => {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
             };
-            $("#book-publish-year")[0].onkeydown = function() {
+            $("#book-publish-year")[0].onkeydown = () => {
                 $("#book-publish-month")[0].style.borderColor = "";
                 $("#book-publish-day")[0].style.borderColor = "";
                 $("#book-publish-year")[0].style.borderColor = "";
@@ -1082,8 +1081,8 @@ function validateEntry() {
             let rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-pages")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-pages")[0].focus();}, 800);
-            $("#book-pages")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-pages")[0].focus();}, 800);
+            $("#book-pages")[0].onkeydown = () => {
                 $("#book-pages")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1094,8 +1093,8 @@ function validateEntry() {
             let rect = $("#book-dewey")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-dewey")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-dewey")[0].focus();}, 800);
-            $("#book-dewey")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-dewey")[0].focus();}, 800);
+            $("#book-dewey")[0].onkeydown = () => {
                 $("#book-dewey")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1108,18 +1107,18 @@ function validateEntry() {
             $("#book-purchase-month")[0].style.borderColor = "red";
             $("#book-purchase-day")[0].style.borderColor = "red";
             $("#book-purchase-year")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-purchase-month")[0].focus();}, 800);
-            $("#book-purchase-month")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-purchase-month")[0].focus();}, 800);
+            $("#book-purchase-month")[0].onkeydown = () => {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
             };
-            $("#book-purchase-day")[0].onkeydown = function() {
+            $("#book-purchase-day")[0].onkeydown = () => {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
             };
-            $("#book-purchase-year")[0].onkeydown = function() {
+            $("#book-purchase-year")[0].onkeydown = () => {
                 $("#book-purchase-month")[0].style.borderColor = "";
                 $("#book-purchase-day")[0].style.borderColor = "";
                 $("#book-purchase-year")[0].style.borderColor = "";
@@ -1132,8 +1131,8 @@ function validateEntry() {
             let rect = $("#book-purchase-price")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-price")[0].style.borderColor = "red";
-            setTimeout(function() {$("#book-purchase-price")[0].focus();}, 800);
-            $("#book-purchase-price")[0].onkeydown = function() {
+            setTimeout(() => {$("#book-purchase-price")[0].focus();}, 800);
+            $("#book-purchase-price")[0].onkeydown = () => {
                 $("#book-purchase-price")[0].style.borderColor = "";
             };
             resolve(false);
@@ -1235,8 +1234,8 @@ function storeData(isDeletedValue = false, skipImages = false) {
                     existingBooks[bookNumber] = pageData.toObject();
 
                     // Update the book
-                    imageUploadPromise.then(() => {
-                        transaction.update(doc(booksPath, bookDocument), {
+                    return imageUploadPromise.then(() => {
+                        transaction.update(path, {
                             books: existingBooks
                         });
                         resolve();
@@ -1382,7 +1381,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
  *              Then it will delete all of the old images from Firebase Storage.
  *              Finally, it will upload the new images to Firebase Storage and return the links. 
  * @param {Number} barcodeNumber The barcode number of the book that we are saving images for.
- * @returns {Promise<String[]>} An promise representing the 3 image links
+ * @returns {Promise<Array<String>>} An promise representing the 3 image links
  */
 function processImages(barcodeNumber) {
     return new Promise((resolve, reject) => {
@@ -1433,7 +1432,7 @@ function getImage() {
             let xhr = new XMLHttpRequest();
             xhr.open('GET', $("#book-cover-image").attr("src"), true);
             xhr.responseType = 'blob';
-            xhr.onload = function() {
+            xhr.onload = () => {
                 if (this.status == 200) {
                     if (this.responseURL.substring(0, 5) != "https") {
                         openModal("error", "This image was not able to be saved securely. Please download it from the internet, re-upload it on the edit entry page, and try again.");
@@ -1503,7 +1502,7 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
 
         let maxHeight;
         if (type == "original") {
-            maxHeight = 800;
+            maxHeight = 1000;
         } else if (type == "thumbnail") {
             maxHeight = 400;
         } else if (type == "icon") {
@@ -1572,8 +1571,9 @@ function loadFile(event) {
         file = event.target.files[0];
         let output = document.getElementById('book-cover-image');
         output.src = URL.createObjectURL(file);
+        // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
         /* This is bad because then the canvas elements can't use the link
-        output.onload = function() {
+        output.onload = () => {
             URL.revokeObjectURL(output.src); // free memory
         };*/
         imageChanged = true;
@@ -1610,8 +1610,8 @@ function deleteEntry() {
 
 /**
  * @description This function will clean up the keywords list by removing common words.
- * @param {String[]} searchArray An array of keywords to be cleaned up
- * @returns {String[]} The cleaned up array of keywords
+ * @param {Array<String>} searchArray An array of keywords to be cleaned up
+ * @returns {Array<String>} The cleaned up array of keywords
  */
 function cleanUpSearchTerm(searchArray) {
     // List of words to remove from the keywords list

@@ -16,53 +16,7 @@ const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
-    // Set the tab index of the sort dropdown.
-    if (window.innerWidth > 786) {
-        $("#sort-main-title").attr("tabindex", "");
-    } else {
-        $("#sort-main-title").attr("tabindex", "0");
-    }
-    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
-    $(window).on("resize", () => {
-        if (window.innerWidth > 786) {
-            $("#sort-main-title").attr("tabindex", "");
-        } else {
-            $("#sort-main-title").attr("tabindex", "0");
-        }
-    });
-
-    // Create Sort Dropdown Event Listener
-    createOnClick($("#sort-main-title"), () => {
-        if (window.innerWidth <= 786) {
-            $("#sort-sidebar").toggleClass("sort-open");
-        } else {
-            $("#sort-sidebar").removeClass("sort-open");
-        }
-    });
-
-    $("#search-page-search-input").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            searchPageSearch();
-        }
-    });
-
-    createOnClick($("#search-page-search-button"), searchPageSearch);
-
-    createOnClick($("#apply-filters-button"), () => {
-        if (isBrowse) {
-            browse(page).then((resultsArray) => {
-                applySearchFilters(resultsArray);
-            });
-        } else {
-            applySearchFilters(searchCache);
-        }
-    });
-
     let queryFromURL = findURLValue(pageQuery, "query", true);
-
-    $("#search-page-search-input").val(queryFromURL);
-
-    // If you are entering the page without a search completed
     if (queryFromURL == "") {
         isBrowse = true;
     } else {
@@ -76,12 +30,58 @@ export function setupSearch(pageQuery) {
         page = parseInt(page);
     }
 
+    // Set the search bar value to the query from the URL.
+    $("#search-page-search-input").val(queryFromURL);
+
     docsUsed = [];
     browseResultsArray = [];
     filters = null;
     setSearchCache(null);
 
     goToSearchPage(page);
+
+
+    // Set the tab index of the sort dropdown.
+    function sortTabResize() {
+        if (window.innerWidth > 786) {
+            $("#sort-main-title").attr("tabindex", "");
+        } else {
+            $("#sort-main-title").attr("tabindex", "0");
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    }
+
+    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
+    $(window).on("resize", () => { sortTabResize(); });
+    sortTabResize();
+
+    // Create Sort Dropdown Event Listener
+    createOnClick($("#sort-main-title"), () => {
+        if (window.innerWidth <= 786) {
+            $("#sort-sidebar").toggleClass("sort-open");
+        } else {
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    });
+
+    // Setup Search Page Search Bar Event Listeners
+    $("#search-page-search-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            searchPageSearch();
+        }
+    });
+    createOnClick($("#search-page-search-button"), searchPageSearch);
+
+    // Apply Filters Event Listener
+    createOnClick($("#apply-filters-button"), () => {
+        if (isBrowse) {
+            browse(page).then((resultsArray) => {
+                applySearchFilters(resultsArray);
+            });
+        } else {
+            applySearchFilters(searchCache);
+        }
+    });
 }
 
 /**

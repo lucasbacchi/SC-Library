@@ -77,7 +77,7 @@ function authRedirect(pageQuery) {
 
         let user = auth.currentUser;
         // Attempt to update the account
-        updateEmail(user, newEmail).then(function () {
+        updateEmail(user, newEmail).then(() => {
             updateDoc(doc(db, "users", user.uid), {
                 email: newEmail
             }).then(() => {
@@ -86,6 +86,7 @@ function authRedirect(pageQuery) {
                     $("#email-verified").show();
                 }
                 updateEmailinUI(email);
+                sendEmailVerificationToUser();
                 openModal("success", "Your email was saved successfully.");
                 goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
             }).catch((error) => {
@@ -153,63 +154,54 @@ function signIn(reAuth = false) {
         let user = auth.currentUser;
         if (user && !reAuth) {
             openModal("error", "Another user is currently signed in. Please sign out first.");
-        } else {
-            let email;
-            if (reAuth) email = user.email;
-            else email = document.getElementById('email').value;
-            let password = document.getElementById('password').value;
-            if (email.length < 4) {
-                openModal("issue", 'Please enter an email address.');
-                reject("no-email-address");
-            }
-            if (password.length < 4) {
-                openModal("issue", 'Please enter a password.');
-                reject("no-password");
-            }
-            if (!reAuth) {
-                // Sign in with email and password
-                signInWithEmailAndPassword(auth, email, password).then(() => {
-                    user = auth.currentUser;
-                    logEvent(analytics, "login", {
-                        method: "email",
-                        userId: user.uid
-                    });
-                    resolve(reAuth);
-                }).catch(function (error) {
-                    // Handle Errors here.
-                    let errorCode = error.code;
-                    let errorMessage = error.message;
-                    if (errorCode === 'auth/wrong-password') {
-                        openModal("issue", 'Wrong password.');
-                    } else {
-                        openModal("error", errorMessage);
-                        console.error(error);
-                        $('#email').val('');
-                    }
-                    $('#password').val('');
-                    reject(errorCode);
-                });
-            } else {
-                // Reauthenticate
-                const credential = EmailAuthProvider.credential(email, password);
-                reauthenticateWithCredential(user, credential).then(() => {
-                    // User re-authenticated.
-                    resolve(reAuth);
-                }).catch((error) => {
-                    // An error happened.
-                    let errorCode = error.code;
-                    let errorMessage = error.message;
-                    if (errorCode === 'auth/wrong-password') {
-                        openModal("issue", 'Wrong password.');
-                    } else {
-                        openModal("error", errorMessage);
-                        console.error(error);
-                        $('#email').val('');
-                    }
-                    $('#password').val('');
-                });
-            }
+            reject("user-already-signed-in");
+            return;
         }
+
+        let email;
+        if (reAuth) email = user.email;
+        else email = document.getElementById('email').value;
+        let password = document.getElementById('password').value;
+        if (email.length < 4) {
+            openModal("issue", 'Please enter an email address.');
+            reject("no-email-address");
+            return;
+        }
+        if (password.length < 4) {
+            openModal("issue", 'Please enter a password.');
+            reject("no-password");
+            return;
+        }
+
+        let signInFunction;
+        const credential = EmailAuthProvider.credential(email, password);
+        if (reAuth) {
+            signInFunction = reauthenticateWithCredential(user, credential);
+        } else {
+            signInFunction = signInWithEmailAndPassword(auth, email, password);
+        }
+
+        signInFunction.then(() => {
+            user = auth.currentUser;
+            logEvent(analytics, "login", {
+                method: "email",
+                userId: user.uid
+            });
+            resolve(reAuth);
+        }).catch((error) => {
+            // Handle Errors here.
+            let errorCode = error.code;
+            let errorMessage = error.message;
+            if (errorCode === 'auth/wrong-password') {
+                openModal("issue", 'Wrong password.');
+            } else {
+                openModal("error", errorMessage);
+                console.error(error);
+                $('#email').val('');
+            }
+            $('#password').val('');
+            reject(errorCode);
+        });
     });
 }
 
@@ -281,48 +273,53 @@ function handleSignUp() {
             return;
         }
 
-        // Creates user with email and password, then logs them in.
-        createUserWithEmailAndPassword(auth, email, password).catch((error) => {
-            // Handle Errors here.
-            let errorCode = error.code;
-            let errorMessage = error.message;
-            if (errorCode == 'auth/weak-password') {
-                openModal("issue", 'The password is too weak. Please try another password.');
-            } else if (errorCode == 'auth/email-already-in-use') {
-                openModal("issue", "This email is already in use. If you already have an account, please try signing in instead.");
-            } else {
-                openModal("error", errorMessage);
-                console.error(error);
-            }
-            reject();
-        }).then(() => {
-            // Database updates are now handled by the beforeCreate function in the cloud functions.
-            // However, we must update information from the page that the cloud function didn't have.
-            updateDoc(doc(db, "users", auth.currentUser.uid), {
-                firstName: firstName,
-                lastName: lastName,
-                phone: phone,
-                address: address + ", " + town + ", " + state + " " + zip,
-                lastSignInTime: new Date(),
-                lastUpdated: new Date()
+        // For now, a new user will only persist for the session.
+        // TODO: Add a "Remember Me" checkbox that will set the persistence to local for signup.
+        setPersistence(auth, browserSessionPersistence).then(() => {
+            // Creates user with email and password, then logs them in.
+            createUserWithEmailAndPassword(auth, email, password).catch((error) => {
+                // Handle Errors here.
+                let errorCode = error.code;
+                let errorMessage = error.message;
+                if (errorCode == 'auth/weak-password') {
+                    openModal("issue", 'The password is too weak. Please try another password.');
+                } else if (errorCode == 'auth/email-already-in-use') {
+                    openModal("issue", "This email is already in use. If you already have an account, please try signing in instead. "
+                     + "If you don't remember your password, you can reset it from the login page, or contact the librarian for help.");
+                } else {
+                    openModal("error", errorMessage);
+                    console.error(error);
+                }
+                reject();
             }).then(() => {
-                // After both writes complete, send the user to the edit page and take it from there.
-                updateUserAccountInfo();
-                sendEmailVerificationToUser();
-                logEvent(analytics, "sign_up", {
-                    method: "email",
+                // Database updates are now handled by the beforeCreate function in the cloud functions.
+                // However, we must update information from the page that the cloud function didn't have.
+                updateDoc(doc(db, "users", auth.currentUser.uid), {
                     firstName: firstName,
                     lastName: lastName,
-                    userId: auth.currentUser.uid,
-                    email: email,
                     phone: phone,
-                    address: address + ", " + town + ", " + state + " " + zip
+                    address: address + ", " + town + ", " + state + " " + zip,
+                    lastSignInTime: new Date(),
+                    lastUpdated: new Date()
+                }).then(() => {
+                    // After both writes complete, send the user to the edit page and take it from there.
+                    updateUserAccountInfo();
+                    sendEmailVerificationToUser();
+                    logEvent(analytics, "sign_up", {
+                        method: "email",
+                        firstName: firstName,
+                        lastName: lastName,
+                        userId: auth.currentUser.uid,
+                        email: email,
+                        phone: phone,
+                        address: address + ", " + town + ", " + state + " " + zip
+                    });
+                    resolve();
+                }).catch((error) => {
+                    openModal("error", "There was an error creating your account. Please try again.");
+                    console.error(error);
+                    reject("auth-error");
                 });
-                resolve();
-            }).catch((error) => {
-                openModal("error", "There was an error creating your account. Please try again.");
-                console.error(error);
-                reject("auth-error");
             });
         });
     });

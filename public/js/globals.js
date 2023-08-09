@@ -697,8 +697,7 @@ export class Book {
      */
     generateImageLinks() {
         let time = new Date();
-        let timeString = time.getFullYear().toString() + "-" + (time.getMonth()+1).toString().padStart(2, "0") + "-" + time.getDate().toString().padStart(2, "0") + "_"
-            + time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0") + ":" + time.getSeconds().toString().padStart(2, "0");
+        let timeString = time.valueOf();
         if (!this.barcodeNumber) {
             console.warn("cannot generate image links for a book without a barcode number");
             return;
