@@ -4,12 +4,16 @@ import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, w
 import { goToPage, isAdminCheck } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User } from "./globals";
 
+
+
 /************
 BEGIN SEARCH
 *************/
 
+
+
 /**
- * Searches the book database for books based on a query
+ * @description Searches the book database for books based on a query
  * @param {String} searchQuery The query to search
  * @param {Number} start The start place in the results list
  * @param {Number} end The end place in the results list
@@ -27,6 +31,11 @@ export function search(searchQuery, viewHidden = false) {
     });
 }
 
+/**
+ * @description Gets the books from the database and saves them to the bookDatabase global variable.
+ * @param {Boolean} forced Determines if the function should force an update of the book database, or if it is allowed to use the cached version. Defaults to false.
+ * @returns {Promise<void>} A promise that resolves when the book database has been updated.
+ */
 export function updateBookDatabase(forced = false) {
     return new Promise((resolve, reject) => {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
@@ -71,6 +80,12 @@ const TITLE_WEIGHT = 15;
 const BARCODE_WEIGHT = 50;
 const ISBN_WEIGHT = 50;
 
+/**
+ * @description Performs a search on the book database and returns the results. Also updates the search cache.
+ * @param {String} searchQuery The query to search
+ * @param {Boolean} viewHidden A boolean representing if the function should return hidden books
+ * @returns {Promise<Array<Book>>} A Promise containing an array of Book results.
+ */
 function performSearch(searchQuery, viewHidden = false) {
     return new Promise((resolve, reject) => {
         let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
@@ -144,12 +159,10 @@ function performSearch(searchQuery, viewHidden = false) {
 
             // Sort the array by score
             scoresArray.sort((a, b) => {
-                // Custom Sort
                 return b.score - a.score;
             });
 
             let returnArray = [];
-            // console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
                 if (item.score < 1) { return; }
                 if (isNaN(item.score)) {
@@ -172,6 +185,13 @@ function performSearch(searchQuery, viewHidden = false) {
     });
 }
 
+/**
+ * @description Counts the number of times that the items in an array occur in a second array.
+ * @param {Array<String>} arr The array to search through
+ * @param {Array<String>} searchQueryArray The array of items to search for
+ * @param {Boolean} strict A boolean representing if the search should be strict. If true, the search will require strict equality, if false, the search will use searchCompare().
+ * @returns {Number} The number of times that the items in searchQueryArray occur in arr.
+ */
 function countInArray(arr, searchQueryArray, strict = false) {
     let count = 0;
     for (let i = 0; i < arr.length; i++) {
@@ -188,6 +208,12 @@ function countInArray(arr, searchQueryArray, strict = false) {
     return count;
 }
 
+/**
+ * @description Compares two strings and returns a number between 0 and 1 representing how similar the two strings are. Calls distance() to do the calculations.
+ * @param {String} a The first string to compare
+ * @param {String} b The second string to compare
+ * @returns {Number} A number between 0 and 1 representing how similar the two strings are. 0 is not similar at all, 1 is identical.
+ */
 function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
@@ -200,13 +226,15 @@ function searchCompare(a, b) {
     if (similarity < 0.7) {
         return 0;
     } else {
-        // console.log(b + " was very similar to... " + a);
         return similarity;
     }
 }
 
 /**
- * Calculates the Damerau-Levenshtein distance between two strings.
+ * @description Calculates the Damerau-Levenshtein distance between two strings.
+ * @param {String} source The first string to compare
+ * @param {String} target The second string to compare
+ * @returns {Number} The Damerau-Levenshtein distance between the two strings
  * @author Isaac Sukin
  * @link Source: https://gist.github.com/IceCreamYou/8396172
  */
@@ -246,10 +274,14 @@ function distance(source, target) {
     return score[m + 1][n + 1];
 }
 
+
+
 /**********
 END SEARCH
 BEGIN UTILS
 ***********/
+
+
 
 /**
  * @description Formats a date object into a string.
@@ -264,7 +296,7 @@ export function formatDate(date) {
 }
 
 /**
- * 
+ * @description Searches through a string for a value and returns the value that follows it using the formatting of a URL query.
  * @param {String} string The String of text to search through
  * @param {String} key The name of the value that you are searching for
  * @param {Boolean} mightReturnEmpty Could the key be missing?
@@ -403,6 +435,12 @@ export function encodeHTML(string) {
  * @param {...any} args Any arguments to pass to the callback function
  */
 export function createOnClick(element, func, ...args) {
+    if (!element) {
+        console.error("Element is null");
+        return;
+    }
+    element = $(element);
+
     // Handle regular click
     element.on("click", () => {
         func(...args);
@@ -525,6 +563,19 @@ export let updateScrollPosition = new Throttle(() => {
 }, 200).get();
 
 
+/**
+ * @description Sends an email using the email service by adding a document to the mail collection in the database.
+ * @param {String|Array<String>} to The email address(es) to send the email to
+ * @param {String} subject The subject of the email
+ * @param {String} text The plaintext content of the email
+ * @param {String} html The HTML content of the email
+ * @param {String|Array<String>} cc The email address(es) to cc
+ * @param {String|Array<String>} bcc The email address(es) to bcc
+ * @param {String} from The email address to send the email from
+ * @param {String} replyTo The email address that will be listed as reply-to
+ * @param {Object} headers An opject containing custom email headers
+ * @param {Array<Object>} attachments An array of objects containing the attachments to send. See https://nodemailer.com/message/attachments/ for more information. 
+ */
 export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
     return new Promise((resolve, reject) => {
         if (!to || !subject || (!text && !html)) {
@@ -589,59 +640,6 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
 }
 
 /**
- * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
- * @param {String} barcode The barcode number of the user to get from the database.
- * @returns {User} The user object that was retrieved from the database.
- */
-export function getUserFromBarcode(barcode) {
-    return new Promise((resolve, reject) => {
-        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
-            if (querySnapshot.size == 0) {
-                reject("No user found with barcode number " + barcode);
-                return;
-            }
-            if (querySnapshot.size > 1) {
-                reject("Multiple users found with barcode number " + barcode);
-                return;
-            }
-            let user = User.createFromObject(querySnapshot.docs[0].data());
-            resolve(user);
-        }).catch((error) => {
-            reject(error);
-        });
-    });
-}
-
-
-/**
- * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
- * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
- * @returns {Promise<User>} The user object from the database
- */
-export function getUser(uid = null) {
-    return new Promise((resolve, reject) => {
-        if (!uid) {
-            uid = auth.currentUser.uid;
-        }
-
-        // Get the stored data from the database
-        getDoc(doc(db, "users", uid)).then((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                reject();
-                return;
-            }
-
-            let user = User.createFromObject(docSnap.data());
-            resolve(user);
-        }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-            reject();
-        });
-    });
-}
-
-/**
  * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
  * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
  * @param {...any} args Any arguments to pass to the checkForChanges function
@@ -658,13 +656,16 @@ export function setupWindowBeforeUnload(checkForChanges, ...args) {
 }
 
 
+
 /**********
 END UTILS
 BEGIN BUILD BOOK BOX
 ***********/
 
+
+
 /**
- * 
+ * @description Builds a book box out of HTML for a book object.
  * @param {Object<Book>} obj The Book object that is going to be created
  * @param {String} page The page this book box will be displayed on
  * @param {Number} num The number of days that the book is due in
@@ -834,6 +835,11 @@ export function buildBookBox(obj, page, num = 0) {
     return a;
 }
 
+/**
+ * @description A helper function to turn an array of subjects into a string.
+ * @param {Array<String>} subj The array of subjects
+ * @returns {String} The string of subjects
+ */
 function listSubjects(subj) {
     let str = "";
     for (let i = 0; i < subj.length; i++) {
@@ -842,6 +848,11 @@ function listSubjects(subj) {
     return str.substring(0, str.length - 2);
 }
 
+/**
+ * @description A helper function to shorten a description to a reasonable length.
+ * @param {String} desc The description to shorten
+ * @returns {String} The shortened description (including "..." at the end)
+ */
 function shortenDescription(desc) {
     const MIN_LEN = 300;
     let cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
@@ -853,10 +864,14 @@ function shortenDescription(desc) {
     }
 }
 
+
+
 /**********
 END BUILD BOOK BOX
-BEGIN GET BOOK FROM BARCODE
+BEGIN GET DATABASE INFO
 ***********/
+
+
 
 /**
  * @description Gets a book from the database using its barcode number.
@@ -885,10 +900,66 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
     });
 }
 
+/**
+ * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
+ * @param {String} barcode The barcode number of the user to get from the database.
+ * @returns {User} The user object that was retrieved from the database.
+ */
+export function getUserFromBarcode(barcode) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
+            if (querySnapshot.size == 0) {
+                reject("No user found with barcode number " + barcode);
+                return;
+            }
+            if (querySnapshot.size > 1) {
+                reject("Multiple users found with barcode number " + barcode);
+                return;
+            }
+            let user = User.createFromObject(querySnapshot.docs[0].data());
+            resolve(user);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
+
+/**
+ * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
+ * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
+ * @returns {Promise<User>} The user object from the database
+ */
+export function getUser(uid = null) {
+    return new Promise((resolve, reject) => {
+        if (!uid) {
+            uid = auth.currentUser.uid;
+        }
+
+        // Get the stored data from the database
+        getDoc(doc(db, "users", uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
+                console.error("The user document could not be found.");
+                reject();
+                return;
+            }
+
+            let user = User.createFromObject(docSnap.data());
+            resolve(user);
+        }).catch((error) => {
+            console.log("Failed to get the database file for this user", error);
+            reject();
+        });
+    });
+}
+
+
+
 /**********
-END GET BOOK FROM BARCODE
+END GET DATABASE INFO
 BEGIN ADD BARCODE SPACING
 ***********/
+
+
 
 /**
  * @description Adds spaces to a barcode to make it easier to read.
@@ -911,13 +982,17 @@ export function addBarcodeSpacing(barcode) {
     return str;
 }
 
+
+
 /**********
 END ADD BARCODE SPACING
 BEGIN ISBN UTILS
 ***********/
 
+
+
 /**
- * 
+ * @description Calculates the ISBN check digit for a 10 or 13 digit ISBN number.
  * @param {Number} number The ISBN number (without a check digit)
  * @returns A String containing the ISBN check digit
  */
@@ -961,6 +1036,11 @@ export function calculateISBNCheckDigit(number) {
     }
 }
 
+/**
+ * @description Switches the format of an ISBN number between 10 and 13 digits. It accepts both 10 and 13 digit ISBN numbers.
+ * @param {String|Number} number The ISBN number to switch the format of.
+ * @returns {String} The ISBN number in the other format.
+ */
 export function switchISBNformats(number) {
     number = number.toString();
     if (number.substring(0, 3) == "978") {
@@ -970,10 +1050,14 @@ export function switchISBNformats(number) {
         number = number.substring(0, number.length - 1);
     }
     number = number + calculateISBNCheckDigit(number);
-    // number = parseInt(number);
     return number;
 }
 
+/**
+ * @description Verifies that an ISBN number is valid.
+ * @param {String|Number} number The ISBN number to verify
+ * @returns {Boolean} True if the ISBN number is valid, false if it is not.
+ */
 export function verifyISBN(number) {
     if (number.toString().length == 10) {
         number = number.toString();
@@ -1026,14 +1110,16 @@ export function verifyISBN(number) {
 }
 
 
+
 /**********
 END ISBN UTILS
 BEGIN AUTH
 ***********/
 
 
+
 /**
- * Sends an email verification to the user.
+ * @description Sends an email verification to the user.
  */
 export function sendEmailVerificationToUser() {
     let user = auth.currentUser;
@@ -1048,6 +1134,8 @@ export function sendEmailVerificationToUser() {
 END AUTH
 BEGIN MODALS
 ***********/
+
+
 
 /**
  * @description Opens a modal that covers the screen and displays info to the user.
