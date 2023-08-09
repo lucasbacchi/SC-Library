@@ -48,7 +48,9 @@
     <div class="form-section no-av">
         <h6 class="form-title">Cover</h6>
         <p class="form-description">An image of the cover of the book. If one does not automatically load, then try
-            finding a picture of it online. Worst case scenario, you can always take a picture of it and upload it.</p>
+            finding a picture of it online. Try to ensure that the image is at least 1000px tall. 
+            If you can't find an image that looks like the cover of the book, or if you can't find one that's high quality, 
+            take a picture of the book and upload the image here.</p>
         <div class="book-cover-image-container image-overlay-container no-select">
             <img id="book-cover-image" src="../img/favicon.ico">
             <div id="book-cover-image-overlay" tabindex="0" class="image-overlay"><span>Change Photo</span></div>
@@ -57,22 +59,22 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Subject</h6>
-        <p class="form-description">List as many subjects as is appropriate for the book. If you don't know the book,
-            perhaps a google search might help.</p>
+        <p class="form-description">List as many subjects as is appropriate for the book. If you can't find a list of subjects, 
+            try looking up on the book on Google or the Library of Congress.</p>
         <input id="book-subject-1" placeholder="" class="normal-form-input subject-field">
         <button id="add-subject">Add a Subject Field</button>
     </div>
     <div class="form-section">
         <h6 class="form-title">Description</h6>
         <p class="form-description">If a description did not load automatically, please enter a brief description. These
-            can be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes
+            can often be found on the back of the book, or sometimes on the inside cover. Ensure that the description includes
             keywords that someone might use to search for the book.</p>
         <textarea id="book-description" placeholder="Enter a description" class="long-form-input"></textarea>
     </div>
     <div class="form-section">
         <h6 class="form-title">Audience</h6>
-        <p class="form-description">This should be found on the card. If not, take your best guess, or just check
-            "None".</p>
+        <p class="form-description">This is used to determine the call number as well as to help people filter for the book. 
+            "Children" takes first presidence, followed by "Youth" and then "Adult". If none apply, just check "None".</p>
         <input type="checkbox" id="book-audience-children" name="audience" value="children">Children
         <input type="checkbox" id="book-audience-youth" name="audience" value="youth">Youth
         <input type="checkbox" id="book-audience-adult" name="audience" value="adult">Adult
@@ -119,14 +121,13 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Dewey Decimal Class</h6>
-        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, if it's not on the book or the card,
-            you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
+        <p class="form-description">If the book is fiction, enter "FIC". Otherwise, there should be a number on the book's spine.
+            If you can't find anything, you can try to look it up <a href="http://classify.oclc.org/classify2/" target="_blank">here</a>.</p>
         <input id="book-dewey" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Can this book be checked out?</h6>
-        <p class="form-description">Some books, like reference books, cannot be checked out. If you're not sure, ask
-            someone.</p>
+        <p class="form-description">Some books, like reference books, cannot be checked out. This will add "REF" to the call number and prevent users from checking out the book.</p>
         <select id="book-can-be-checked-out" name="cbco">
             <option value="y">Yes</option>
             <option value="">No</option>
@@ -134,7 +135,7 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Should this book be unlisted?</h6>
-        <p class="form-description">Some books should be hidden in search results. If you're not sure, ask someone.</p>
+        <p class="form-description">This will hide the book from public searches.</p>
         <select id="book-is-hidden" name="hidden">
             <option value="">No</option>
             <option value="y">Yes</option>
@@ -142,8 +143,7 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Date of Purchase</h6>
-        <p class="form-description">The date the book was purchased for the library. Hopefully this is on the card from
-            the card catalog.</p>
+        <p class="form-description">The date the book was purchased for the library.</p>
         <input id="book-purchase-month" placeholder="Month" class="short-form-input" style="width: 60px;"><span> /
         </span>
         <input id="book-purchase-day" placeholder="Day" class="short-form-input" style="width: 60px;"><span> / </span>
@@ -151,14 +151,12 @@
     </div>
     <div class="form-section">
         <h6 class="form-title">Purchase Price</h6>
-        <p class="form-description">The price of the book when purchased for the library. Hopefully this is on the card
-            from the card catalog.</p>
+        <p class="form-description">The price of the book when purchased for the library.</p>
         <span>$ </span><input id="book-purchase-price" placeholder="" class="short-form-input">
     </div>
     <div class="form-section">
         <h6 class="form-title">Vendor</h6>
-        <p class="form-description">The name of the place where this book was bought. Hopefully this on the card from
-            the card catalog.</p>
+        <p class="form-description">The name of the place where this book was bought. If it was a donation, please enter "Donation"</p>
         <input id="book-vendor" placeholder="" class="short-form-input">
     </div>
     <p id="last-updated"></p>

@@ -397,7 +397,7 @@ const entityMap = {
  * @returns {String} the encoded string
  */
 export function encodeHTML(string) {
-    return String(string).replace(/[&<>"'`=/]/g, function (s) {
+    return String(string).replace(/[&<>"'`=/]/g, (s) => {
         return entityMap[s];
     });
 }
@@ -760,7 +760,7 @@ export function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, g
 /**
  * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
  * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
- * @param  {...any} args Any arguments to pass to the checkForChanges function
+ * @param {...any} args Any arguments to pass to the checkForChanges function
  */
 export function setupWindowBeforeUnload(checkForChanges, ...args) {
     $(window).on("beforeunload", (event) => {
@@ -1139,15 +1139,16 @@ BEGIN GET BOOK FROM BARCODE
 /**
  * @description Gets a book from the database using its barcode number.
  * @param {number} barcodeNumber 1171100000 through 1171199999
+ * @param {boolean} forced If true, the local copy of the database will be updated before searching for the book.
  * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */
-export function getBookFromBarcode(barcodeNumber) {
+export function getBookFromBarcode(barcodeNumber, forced = false) {
     return new Promise((resolve, reject) => {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
         }
 
-        updateBookDatabase().then(() => {
+        updateBookDatabase(forced).then(() => {
             let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
             let bookNumber = barcodeNumber % 100;
             if (bookDatabase[documentNumber] && bookDatabase[documentNumber].books[bookNumber]) {

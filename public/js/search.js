@@ -17,53 +17,7 @@ const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
-    // Set the tab index of the sort dropdown.
-    if (window.innerWidth > 786) {
-        $("#sort-main-title").attr("tabindex", "");
-    } else {
-        $("#sort-main-title").attr("tabindex", "0");
-    }
-    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
-    $(window).on("resize", () => {
-        if (window.innerWidth > 786) {
-            $("#sort-main-title").attr("tabindex", "");
-        } else {
-            $("#sort-main-title").attr("tabindex", "0");
-        }
-    });
-
-    // Create Sort Dropdown Event Listener
-    createOnClick($("#sort-main-title"), () => {
-        if (window.innerWidth <= 786) {
-            $("#sort-sidebar").toggleClass("sort-open");
-        } else {
-            $("#sort-sidebar").removeClass("sort-open");
-        }
-    });
-
-    $("#search-page-search-input").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            searchPageSearch();
-        }
-    });
-
-    createOnClick($("#search-page-search-button"), searchPageSearch);
-
-    createOnClick($("#apply-filters-button"), () => {
-        if (isBrowse) {
-            browse(page).then((resultsArray) => {
-                applySearchFilters(resultsArray);
-            });
-        } else {
-            applySearchFilters(searchCache);
-        }
-    });
-
     let queryFromURL = findURLValue(pageQuery, "query", true);
-
-    $("#search-page-search-input").val(queryFromURL);
-
-    // If you are entering the page without a search completed
     if (queryFromURL == "") {
         isBrowse = true;
     } else {
@@ -77,12 +31,58 @@ export function setupSearch(pageQuery) {
         page = parseInt(page);
     }
 
+    // Set the search bar value to the query from the URL.
+    $("#search-page-search-input").val(queryFromURL);
+
     docsUsed = [];
     browseResultsArray = [];
     filters = null;
     setSearchCache(null);
 
     goToSearchPage(page);
+
+
+    // Set the tab index of the sort dropdown.
+    function sortTabResize() {
+        if (window.innerWidth > 786) {
+            $("#sort-main-title").attr("tabindex", "");
+        } else {
+            $("#sort-main-title").attr("tabindex", "0");
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    }
+
+    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
+    $(window).on("resize", () => { sortTabResize(); });
+    sortTabResize();
+
+    // Create Sort Dropdown Event Listener
+    createOnClick($("#sort-main-title"), () => {
+        if (window.innerWidth <= 786) {
+            $("#sort-sidebar").toggleClass("sort-open");
+        } else {
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    });
+
+    // Setup Search Page Search Bar Event Listeners
+    $("#search-page-search-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            searchPageSearch();
+        }
+    });
+    createOnClick($("#search-page-search-button"), searchPageSearch);
+
+    // Apply Filters Event Listener
+    createOnClick($("#apply-filters-button"), () => {
+        if (isBrowse) {
+            browse(page).then((resultsArray) => {
+                applySearchFilters(resultsArray);
+            });
+        } else {
+            applySearchFilters(searchCache);
+        }
+    });
 }
 
 /**
@@ -130,6 +130,10 @@ function browse(page = 1) {
     });
 }
 
+/**
+ * @description Gets the next set of books for browsing. Serves as the callback for the browse function in a recursive loop.
+ * @returns {Promise<Array<Book>>} A promise that resolves with the next set of books for browsing.
+ */
 function browseNext() {
     return new Promise((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
@@ -287,7 +291,7 @@ function getNewBooksForSearch(page) {
 
 /**
  * @description Creates a search results page. Adds the book objects, pagination, and filters to the page.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
 function createSearchResultsPage(resultsArray, page = 1) {
@@ -339,6 +343,11 @@ function createSearchResultsPage(resultsArray, page = 1) {
     $("#content").removeClass("loading");
 }
 
+/**
+ * @description Creates the paginator for the search results page.
+ * @param {Array<Book>} resultsArray The array of books that are going to appear on the page (to determine length).
+ * @param {Number} page The current page number.
+ */
 function createPaginator(resultsArray, page) {
     $("#paginator").empty();
     $("#paginator").css("display", "flex");
@@ -393,7 +402,7 @@ function createPaginator(resultsArray, page) {
 
 /**
  * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  */
 function createFilterList(resultsArray) {
     // If the filters object is empty, we need to create the data type.
@@ -471,6 +480,9 @@ function createFilterList(resultsArray) {
     buildFilterList();
 }
 
+/**
+ * @description Creates the HTML elements for the filters.
+ */
 function buildFilterList() {
     FILTER_TYPES.forEach((filterType) => {
         $("#sort-" + filterType + "-list").empty();
@@ -550,8 +562,8 @@ function applySearchFilters() {
 
 /**
  * @description Iterates through the search cache and filters out the items that don't match the filters.
- * @param {Book[]} resultsArray The array of books to filter.
- * @returns {Book[]} The filtered array of books.
+ * @param {Array<Book>} resultsArray The array of books to filter.
+ * @returns {Array<Book>} The filtered array of books.
  */
 function filterSearchResults(resultsArray) {
     if (!filters || filters == {}) {
@@ -691,6 +703,9 @@ function displayResultPageImagePopup(barcodeNumber) {
     imgContainer.appendChild(img);
     // Get the link from the database and display it.
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        if (!bookObject.coverImageLink) {
+            return;
+        }
         img.src = bookObject.coverImageLink;
         img.onload = () => {
             imgContainer.style.display = "block";
@@ -730,7 +745,11 @@ function fillResultPage(barcodeNumber) {
 
         if (bookObject.medium == "av") {
             $(".result-page-image").attr("src", "/img/av-image.png");
+            $(".result-page-image").removeAttr("tabindex");
+            $(".result-page-image").css("cursor", "default");
         } else {
+            $(".result-page-image").attr("tabindex", "0");
+            $(".result-page-image").css("cursor", "pointer");
             // Currently not checking for icons because they are too low quality. Could change that if needed.
             if (bookObject.thumbnailImageLink && bookObject.thumbnailImageLink?.indexOf("http") != -1) {
                 $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
@@ -740,6 +759,8 @@ function fillResultPage(barcodeNumber) {
             } else {
                 console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
                 $(".result-page-image").attr("src", "/img/default-book.png");
+                $(".result-page-image").removeAttr("tabindex");
+                $(".result-page-image").css("cursor", "default");
             }
         }
 
@@ -781,6 +802,7 @@ function fillResultPage(barcodeNumber) {
             callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
+        // TODO: Make sure that items with no author are not stored as empty person objects so this works.
         if (bookObject.authors.length != 0) {
             callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
         } else {

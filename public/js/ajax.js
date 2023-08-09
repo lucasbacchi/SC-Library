@@ -12,9 +12,9 @@ import { onCLS, onFID, onLCP, onTTFB } from "web-vitals";
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
+    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { createOnClick, encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
 
 
@@ -197,7 +197,7 @@ function setupIndex() {
         if (contentHeight < minHeight) {
             contentHeight = minHeight;
         }
-        $("#index-content-container").css("height", contentHeight);
+        $("#index-content-container").css("min-height", contentHeight);
     });
     contentDivObserver.observe(contentDiv);
 
@@ -582,7 +582,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
         };
 
         // Set the content of the page
-        xhttp.onreadystatechange = function () {
+        xhttp.onreadystatechange = () => {
             if (this.readyState == 4 && this.status == 200) {
                 let pageUrl = "/" + pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
@@ -599,7 +599,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 // Set Title Correctly
                 let titleList = {
                     "admin/editEntry": "Edit an Entry",
-                    "admin/main": "Admin Console",
+                    "admin/main": "Admin Dashboard",
                     "admin/report": "Run a Report",
                     "admin/barcode": "Generate Barcodes",
                     "admin/view": "View Database",
@@ -1130,13 +1130,7 @@ export function updateUserAccountInfo() {
         if (user) {
             // User is signed in.
             // Get the information about the current user from the database.
-            getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-                if (!docSnap.exists()) {
-                    throw "The user document could not be found. Ignore if the user just signed up.";
-                }
-
-                let userObject = User.createFromObject(docSnap.data());
-
+            getUser().then((userObject) => {
                 // Update the UI with the information from the doc
                 $("#account-name").text(userObject.firstName + " " + userObject.lastName);
                 updateEmailinUI(userObject.email);

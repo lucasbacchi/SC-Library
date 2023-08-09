@@ -7,8 +7,8 @@ import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./g
 
 
 /**
- * @param {String} pageQuery The query string of the page from goToPage() 
  * @description Sets up the account page. This includes loading the user's information from the database and setting up the event listeners for the page.
+ * @param {String} pageQuery The query string of the page from goToPage()
  */
 export function setupAccountPage(pageQuery) {
     let user = auth.currentUser;
@@ -81,11 +81,11 @@ function setupAccountOverview() {
 }
 
 /**
+ * @description Fills the account overview fields with the user's information.
  * @param {String} firstName the user's first name
  * @param {String} lastName the user's last name
  * @param {String} email the user's email address
  * @param {Number} cardNumber the user's card number
- * @description Fills the account overview fields with the user's information.
  */
 function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     if (firstName && firstName != "") {
@@ -137,9 +137,9 @@ function setupAccountSecurity() {
 }
 
 /**
+ * @description Creates the HTML elements for a checkout listing.
  * @param {Array<Checkout>} checkouts the array of books to create HTML elements for
  * @param {String} str Used to determine which page the elements are being created for
- * @description Creates the HTML elements for a checkout listing.
  */
 function createCheckouts(checkouts, str) {
     if (checkouts.length == 0) {
@@ -252,9 +252,9 @@ function deleteAccount() {
 
 const xhttp = new XMLHttpRequest();
 /**
+ * @description Changes the account panel to the one specified by newPanel
  * @param {String} newPanel the path to the panel to load.
  * @returns {Promise<void>}
- * @description Changes the account panel to the one specified by newPanel
  */
 export function goToSettingsPanel(newPanel) {
     return new Promise((resolve, reject) => {
@@ -273,7 +273,7 @@ export function goToSettingsPanel(newPanel) {
         xhttp.send();
 
         // Set the content of the page
-        xhttp.onreadystatechange = function() {
+        xhttp.onreadystatechange = () => {
             if (this.readyState == 4 && this.status == 200) {
                 if (currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
@@ -381,8 +381,9 @@ function processAccountImage() {
         if (file) {
             let output = document.getElementById('account-page-image');
             output.src = encodeURI(URL.createObjectURL(file));
+            // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
             /* This is bad because then the canvas elements can't use the link
-            output.onload = function() {
+            output.onload = () => {
                 URL.revokeObjectURL(output.src); // free memory
             };*/
             output.onload = () => {
