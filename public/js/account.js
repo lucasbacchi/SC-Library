@@ -260,7 +260,7 @@ export function goToSettingsPanel(newPanel) {
 
         // Set the content of the page
         xhttp.onreadystatechange = () => {
-            if (this.readyState == 4 && this.status == 200) {
+            if (xhttp.readyState == 4 && xhttp.status == 200) {
                 if (currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
                 }

@@ -289,10 +289,10 @@ function lookupBook(isbn) {
 
         xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
         xhttp.onreadystatechange = () => {
-            if (this.status == 404 || this.status == 403 || this.status == 400) {
+            if (xhttp.status == 404 || xhttp.status == 403 || xhttp.status == 400) {
                 reject("Invalid Response");
             }
-            if (this.readyState == 4 && this.status == 200) {
+            if (xhttp.readyState == 4 && xhttp.status == 200) {
                 resolve(JSON.parse(xhttp.responseText));
             }
         };
@@ -330,10 +330,10 @@ function lookupAuthor(bookObject) {
 
                 total++;
                 xhttp.onreadystatechange = () => {
-                    if (this.status == 404 || this.status == 403 || this.status == 400) {
+                    if (xhttp.status == 404 || xhttp.status == 403 || xhttp.status == 400) {
                         reject("Invalid Response");
                     }
-                    if (this.readyState == 4 && this.status == 200) {
+                    if (xhttp.readyState == 4 && xhttp.status == 200) {
                         let authorObject = [];
                         authorObject[i] = JSON.parse(xhttp.responseText);
                         // Only resolve if all of the xhttp requests have been completed
@@ -373,10 +373,10 @@ function lookupWorks(bookObject, authorObject) {
             xhttp.send();
             total++;
             xhttp.onreadystatechange = () => {
-                if (this.status == 404 || this.status == 403 || this.status == 400) {
+                if (xhttp.status == 404 || xhttp.status == 403 || xhttp.status == 400) {
                     reject("Invalid Response");
                 }
-                if (this.readyState == 4 && this.status == 200) {
+                if (xhttp.readyState == 4 && xhttp.status == 200) {
                     let worksObject = [];
                     worksObject[i] = JSON.parse(xhttp.responseText);
                     if (i == total - 1) {
@@ -1433,16 +1433,16 @@ function getImage() {
             xhr.open('GET', $("#book-cover-image").attr("src"), true);
             xhr.responseType = 'blob';
             xhr.onload = () => {
-                if (this.status == 200) {
-                    if (this.responseURL.substring(0, 5) != "https") {
+                if (xhr.status == 200) {
+                    if (xhr.responseURL.substring(0, 5) != "https") {
                         openModal("error", "This image was not able to be saved securely. Please download it from the internet, re-upload it on the edit entry page, and try again.");
                         reject("Insecure Image URL");
                     }
-                    file = this.response;
+                    file = xhr.response;
                     resolve(file);
                 }
 
-                if (this.readyState == 4 && this.status != 200) {
+                if (xhr.readyState == 4 && xhr.status != 200) {
                     reject("Image Not Found. Please upload another image.");
                 }
             };

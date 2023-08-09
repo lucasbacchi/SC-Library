@@ -582,7 +582,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
 
         // Set the content of the page
         xhttp.onreadystatechange = () => {
-            if (this.readyState == 4 && this.status == 200) {
+            if (xhttp.readyState == 4 && xhttp.status == 200) {
                 let pageUrl = "/" + pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
                     pageUrl = "/";
