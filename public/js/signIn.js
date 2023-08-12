@@ -1,11 +1,9 @@
 import { logEvent } from "firebase/analytics";
-import {
-    browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
-    reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, updateEmail
-} from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, createUserWithEmailAndPassword, EmailAuthProvider,
+    reauthenticateWithCredential, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
-import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { createOnClick, findURLValue, openModal, sendEmailVerificationToUser } from "./common";
+import { goToPage, updateUserAccountInfo } from "./ajax";
+import { createOnClick, findURLValue, openModal, sendEmailVerificationToUser, updateUserEmail } from "./common";
 import { analytics, auth, currentPage, db } from "./globals";
 
 /**
@@ -74,25 +72,9 @@ function authRedirect(pageQuery) {
     // If they are being redirected with an email (to the account page)
     if (pageQuery.includes("email")) {
         let newEmail = findURLValue(pageQuery, "email");
-
-        let user = auth.currentUser;
-        // Attempt to update the account
-        updateEmail(user, newEmail).then(() => {
-            updateDoc(doc(db, "users", user.uid), {
-                email: newEmail
-            }).then(() => {
-                let email = user.email;
-                if (!user.emailVerified) {
-                    $("#email-verified").show();
-                }
-                updateEmailinUI(email);
-                sendEmailVerificationToUser();
-                openModal("success", "Your email was saved successfully.");
-                goToPage(redirect); // Removed passing back the email, because that doesn't seem to be needed anymore
-            }).catch((error) => {
-                openModal("error", "There was an error updating your email. Please try again later.");
-                console.error(error);
-            });
+        updateUserEmail(newEmail).then(() => {
+            openModal("success", "Your email was saved successfully.");
+            goToPage(redirect);
         }).catch((error) => {
             openModal("error", "There was an error updating your email. Please try again later.");
             console.error(error);

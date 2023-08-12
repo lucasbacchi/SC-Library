@@ -1366,7 +1366,7 @@ function storeData(isDeletedValue = false, skipImages = false) {
             openModal("success", "Edits were made successfully!");
         }
         setTimeLastSearched(null);
-        goToPage('admin/main');
+        softBack('admin/main');
     }).catch(() => {
         openModal("error", "An error has occurred, but we couldn't identify the problem. Your changes have not been saved.");
     }).finally(() => {

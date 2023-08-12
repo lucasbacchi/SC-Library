@@ -1,8 +1,8 @@
-import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, createOnClick, encodeHTML, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload } from "./common";
+import { goToPage, updateUserAccountInfo } from "./ajax";
+import { buildBookBox, createOnClick, encodeHTML, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload, updateUserEmail } from "./common";
 import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 
@@ -190,32 +190,23 @@ function updateAccount() {
         // If the email was changed update it.
         if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
             let newEmail = $("#setting-email").val().toString();
-            updateEmail(user, newEmail).then(() => {
-                updateDoc(doc(db, "users", user.uid), {
-                    email: newEmail,
-                    lastUpdated: new Date()
-                }).then(() => {
-                    let email = user.email;
-                    if (!user.emailVerified) {
-                        $("#email-verified").show(); // The new email will likely not be verified
-                    }
-                    // Assuming there was no problem with the update, set the new values on the index page and the account page.
-                    updateEmailinUI(email);
-                    sendEmailVerificationToUser();
-                    updateAccountPageInfo();
-                    openModal("success", "Your email was saved successfully.");
-                }).catch((error) => {
-                    openModal("error", "There was an error updating your email. Please try again later.");
-                    console.error(error);
-                });
+            updateUserEmail(newEmail).then(() => {
+                if (!user.emailVerified) {
+                    $("#email-verified").show(); // The new email will likely not be verified
+                }
+                updateAccountPageInfo();
+                openModal("success", "Your email was saved successfully.");
             }).catch((error) => {
                 // If the user needs to reauthenticate:
-                if (error.code == "auth/requires-recent-login") {
-                    if (confirm("Please re-enter your password to complete this operation.")) {
+                if (error.code && error.code == "auth/requires-recent-login") {
+                    let closeModal = openModal("info", "For your security, you will be redirected to the login page to re-enter your password", "Redirecting...", "OK", () => {
+                        closeModal();
                         goToPage("login?redirect=account&email=" + newEmail, null, true);
-                    }
-                } else if (error.code == "auth/email-already-in-use") {
-                    openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
+                    }, "Cancel", () => {
+                        closeModal();
+                        // Reset the email field to the old email
+                        fillAccountOverviewFields(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
+                    });
                 } else {
                     openModal("error", "An error has occured when trying to update your email. Please try again later.");
                     console.error(error);

@@ -1,7 +1,7 @@
 import { logEvent } from "firebase/analytics";
-import { sendEmailVerification } from "firebase/auth";
-import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { goToPage, isAdminCheck } from "./ajax";
+import { sendEmailVerification, updateEmail } from "firebase/auth";
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User } from "./globals";
 
 
@@ -15,8 +15,6 @@ BEGIN SEARCH
 /**
  * @description Searches the book database for books based on a query
  * @param {String} searchQuery The query to search
- * @param {Number} start The start place in the results list
- * @param {Number} end The end place in the results list
  * @param {Boolean} viewHidden Determines if the function returns hidden books
  * @returns {Promise<Array>} An array of results
  */
@@ -25,8 +23,7 @@ export function search(searchQuery, viewHidden = false) {
         updateBookDatabase().then(() => {
             resolve(performSearch(searchQuery, viewHidden));
         }).catch((error) => {
-            console.error("Search function failed to update the book database", error);
-            reject();
+            reject(error);
         });
     });
 }
@@ -39,15 +36,13 @@ export function search(searchQuery, viewHidden = false) {
 export function updateBookDatabase(forced = false) {
     return new Promise((resolve, reject) => {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
-            // It hasn't searched since the page loaded, or it's been 15 mins since last page load
+            // It hasn't searched since the page loaded, or it's been 15 mins since last search
             setTimeLastSearched(new Date());
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
                 setBookDatabase([]);
                 querySnapshot.forEach((doc) => {
                     if (!doc.exists()) {
-                        console.error("books document does not exist");
-                        reject();
-                        return;
+                        throw new Error("Document does not exist: " + doc.id);
                     }
                     let documentObject = {
                         books: [],
@@ -69,7 +64,7 @@ export function updateBookDatabase(forced = false) {
     });
 }
 
-
+// Constants for the search algorithm
 const AUTHOR_WEIGHT = 5;
 const ILLUSTRATOR_WEIGHT = 1;
 const KEYWORDS_WEIGHT = 10;
@@ -88,8 +83,8 @@ const ISBN_WEIGHT = 50;
  */
 function performSearch(searchQuery, viewHidden = false) {
     return new Promise((resolve, reject) => {
+        // Remove all punctuation and make it lowercase and split it into an array
         let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
-
         let scoresArray = [];
 
         isAdminCheck().then((isAdmin) => {
@@ -98,7 +93,8 @@ function performSearch(searchQuery, viewHidden = false) {
                 for (let i = 0; i < document.books.length; i++) {
                     // Iterate through each of the 100 books in each doc
                     let book = document.books[i];
-                    if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
+                    if (book.isDeleted || (book.isHidden && !viewHidden && !isAdmin)) {
+                        console.log("Skipping book " + book.barcodeNumber + " because it is deleted or hidden.");
                         continue;
                     }
                     if (searchQuery == "") {
@@ -189,7 +185,7 @@ function performSearch(searchQuery, viewHidden = false) {
  * @description Counts the number of times that the items in an array occur in a second array.
  * @param {Array<String>} arr The array to search through
  * @param {Array<String>} searchQueryArray The array of items to search for
- * @param {Boolean} strict A boolean representing if the search should be strict. If true, the search will require strict equality, if false, the search will use searchCompare().
+ * @param {Boolean} strict A boolean representing if the search should be strict. If true, the search will require strict equality, if false, the search will use searchCompare(). Defaults to false.
  * @returns {Number} The number of times that the items in searchQueryArray occur in arr.
  */
 function countInArray(arr, searchQueryArray, strict = false) {
@@ -297,9 +293,9 @@ export function formatDate(date) {
 
 /**
  * @description Searches through a string for a value and returns the value that follows it using the formatting of a URL query.
- * @param {String} string The String of text to search through
+ * @param {String} string The string of text to search through
  * @param {String} key The name of the value that you are searching for
- * @param {Boolean} mightReturnEmpty Could the key be missing?
+ * @param {Boolean} mightReturnEmpty Could the key be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  * @returns {String} The value from string that matches key
  */
 export function findURLValue(string, key, mightReturnEmpty = false) {
@@ -326,7 +322,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
  * @description Sets the value of a parameter in the URL. If the parameter already exists, it will be replaced.
  * @param {String} param The parameter to set
  * @param {String} value The value to set the parameter to
- * @param {Boolean} append A boolean representing if the existing queries should be kept
+ * @param {Boolean} append A boolean representing if the existing queries should be kept. Defaults to true.
  */
 export function setURLValue(param, value, append = true) {
     // Get everything after the host
@@ -366,7 +362,7 @@ export function setURLValue(param, value, append = true) {
 /**
  * @description Removes a parameter from the URL
  * @param {String} param The parameter to remove
- * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL. (Bypasses the warning)
+ * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  */
 export function removeURLValue(param, mightReturnEmpty = false) {
     // Get everything after the host
@@ -471,9 +467,9 @@ export function softBack(path = "") {
 }
 
 /**
- * @description Uses jQuery animaitons to scroll to a location on the page
- * @param {Number} location the location (in pixels from the top) to scroll to
- * @param {Number} time the time (in milliseconds) to take to scroll to the location
+ * @description Uses jQuery animaitons to scroll to a location on the page.
+ * @param {Number} location the location (in pixels from the top) to scroll to on the page.
+ * @param {Number} time the amount of time (in milliseconds) to take to scroll to the location. Defaults to 600.
  */
 export function windowScroll(location, time = 600) {
     setIgnoreScroll(true);
@@ -627,6 +623,10 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
                     unsub();
                     reject(data.delivery.error);
                 }
+            }, (error) => {
+                unsub();
+                console.error(error);
+                reject(error);
             });
             // Give up after 10 seconds
             window.setTimeout(() => {
@@ -883,6 +883,7 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
     return new Promise((resolve, reject) => {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
+            return;
         }
 
         updateBookDatabase(forced).then(() => {
@@ -925,7 +926,7 @@ export function getUserFromBarcode(barcode) {
 }
 
 /**
- * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
+ * @description Gets a user's information from the database. If no uid is provided, the current user's uid is used.
  * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
  * @returns {Promise<User>} The user object from the database
  */
@@ -938,16 +939,13 @@ export function getUser(uid = null) {
         // Get the stored data from the database
         getDoc(doc(db, "users", uid)).then((docSnap) => {
             if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                reject();
-                return;
+                throw new Error("The user document could not be found.");
             }
 
             let user = User.createFromObject(docSnap.data());
             resolve(user);
         }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-            reject();
+            reject("Failed to get the database file for this user", error);
         });
     });
 }
@@ -1120,11 +1118,54 @@ BEGIN AUTH
 
 /**
  * @description Sends an email verification to the user.
+ * @returns {Promise<void>} A promise that resolves when the email has been sent
  */
 export function sendEmailVerificationToUser() {
     let user = auth.currentUser;
-    sendEmailVerification(user).then(() => {
+    return sendEmailVerification(user).then(() => {
         openModal("success", "Email Verification Sent! Please check your email!");
+    }).catch((error) => {
+        openModal("error", "There was an error sending the email verification. Please try again later.");
+        console.error(error);
+    });
+}
+
+/**
+ * @description Updates the current user's email address in the database and the authentication system.
+ * @param {String} newEmail The new email to update the user's email to
+ * @returns {Promise<void>} A promise that resolves when the email has been updated
+ */
+export function updateUserEmail(newEmail) {
+    return new Promise((resolve, reject) => {
+        let user = auth.currentUser;
+        // Update the email in the authentication system
+        updateEmail(user, newEmail).then(() => {
+            // Update the email in the database
+            updateDoc(doc(db, "users", user.uid), {
+                email: newEmail,
+                emailVerified: false
+            }).then(() => {
+                // Update the email in the UI
+                let email = user.email;
+                updateEmailinUI(email);
+                // Send an email verification to the user with the new email
+                sendEmailVerificationToUser().then(() => {
+                    resolve();
+                });
+            }).catch((error) => {
+                reject("Error updating email in the database: " + error);
+            });
+        }).catch((error) => {
+            if (error.code == "auth/requires-recent-login") {
+                // This will be handled by account.js
+                reject(error);
+                return;
+            } else if (error.code == "auth/email-already-in-use") {
+                openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
+            } else {
+                reject("Error updating email in the auth system: " + error);
+            }
+        });
     });
 }
 
