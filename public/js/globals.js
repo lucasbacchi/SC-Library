@@ -838,6 +838,155 @@ export class Person {
 
 /**
  * @global
+ * @type {Array<String>}
+ * @description A list of valid event types
+ */
+export const EVENT_TYPES = ["user_login", "user_signup", "delete_book", "search"];
+
+/**
+ * @global
+ * @class
+ * @classdesc An event, such as a user login or book deletion, to be stored in the event log
+ */
+export class LibraryEvent {
+    /**
+     * @param {String} type the type of event, as determined by EVENT_TYPES
+     * @param {Object} data the data associated with the event, if any
+     */
+    constructor(type = null, data = null) {
+        if (!EVENT_TYPES.includes(type)) {
+            throw new SyntaxError("Incorrect event type: " + type);
+        }
+        this.type = type;
+        this.data = data;
+        this.timestamp = new Date();
+        this.uid = (auth.currentUser) ? auth.currentUser.uid : null;
+    }
+
+    /**
+     * @description Determines if two events are the same event. This is determined by comparing all information concerning the event.
+     * @param {LibraryEvent} event1 the first event to compare
+     * @param {LibraryEvent} event2 the second event to compare
+     * @returns {Boolean} true iff the two events are the same event.
+     */
+    static isSameEvent(event1, event2) {
+        if (!event1 || !event2) {
+            return false;
+        }
+        if (event1.type == event2.type && event1.uid == event2.uid
+            && event1.timestamp.valueOf() == event2.timestamp.valueOf()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @returns a vanilla JSON object representing a Person
+     */
+    toObject() {
+        return {
+            type: this.type,
+            data: this.data,
+            timestamp: this.timestamp,
+            uid: this.uid
+        };
+    }
+}
+
+/**
+ * @global
+ * @class
+ * @classdesc An event that relates to a book
+ * @extends LibraryEvent
+ */
+export class BookEvent extends LibraryEvent {
+    /**
+     * @param {String} type the type of event, as determined by EVENT_TYPES
+     * @param {Object} data the data associated with the event, if any
+     * @param {Book} book the book associated with the event
+     */
+    constructor(type = null, data = null, book = null) {
+        super(type, data);
+        this.book = {
+            barcodeNumber: book.barcodeNumber,
+            title: book.title,
+            authors: book.authors,
+            medium: book.medium
+        };
+    }
+
+    /**
+     * @description Determines if two events are the same event. This is determined by comparing all information concerning the event.
+     * @param {BookEvent} event1 the first event to compare
+     * @param {BookEvent} event2 the second event to compare
+     * @returns {Boolean} true iff the two events are the same event.
+     */
+    static isSameEvent(event1, event2) {
+        if (!super.isSameEvent(event1, event2)) {
+            return false;
+        }
+        if (event1.book.barcodeNumber == event2.book.barcodeNumber) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @returns a vanilla JSON object representing a BookEvent
+     */
+    toObject() {
+        return {...super.toObject(), book: this.book};
+    }
+}
+
+/**
+ * @global
+ * @class
+ * @classdesc An event that relates to a user
+ * @extends LibraryEvent
+ */
+export class UserEvent extends LibraryEvent {
+    /**
+     * @param {String} type the type of event, as determined by EVENT_TYPES
+     * @param {Object} data the data associated with the event, if any
+     * @param {User} user the user associated with the event
+     */
+    constructor(type = null, data = null, user = null) {
+        super(type, data);
+        this.user = {
+            cardNumber: user.cardNumber,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            uid: user.uid
+        };
+    }
+
+    /**
+     * @description Determines if two events are the same event. This is determined by comparing all information concerning the event.
+     * @param {UserEvent} event1 the first event to compare
+     * @param {UserEvent} event2 the second event to compare
+     * @returns {Boolean} true iff the two events are the same event.
+     */
+    static isSameEvent(event1, event2) {
+        if (!super.isSameEvent(event1, event2)) {
+            return false;
+        }
+        if (event1.user.cardNumber == event2.user.cardNumber) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @returns a vanilla JSON object representing a UserEvent
+     */
+    toObject() {
+        return {...super.toObject(), user: this.user};
+    }
+}
+
+/**
+ * @global
  * @class
  * @classdesc The audience for a book
  */

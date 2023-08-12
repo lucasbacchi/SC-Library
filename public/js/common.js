@@ -2,7 +2,7 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification, updateEmail } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, EVENT_TYPES, LibraryEvent } from "./globals";
 
 
 
@@ -171,6 +171,13 @@ function performSearch(searchQuery, viewHidden = false) {
             logEvent(analytics, "search", {
                 search_term: searchQuery,
                 viewHidden: viewHidden
+            });
+
+            storeEvent(new LibraryEvent("search", {
+                searchQuery: searchQuery,
+                viewHidden: viewHidden
+            })).catch((error) => {
+                console.log("An error occurred while storing the event: " + error);
             });
 
             setSearchCache(returnArray);
@@ -1173,6 +1180,36 @@ export function updateUserEmail(newEmail) {
 
 /**********
 END AUTH
+BEGIN EVENTS
+***********/
+
+
+
+/**
+ * @description Adds an event to logs.
+ * @param {LibraryEvent} event The event to add to the logs
+ * @returns {Promise<void>} A promise that resolves when the event has been added to the logs
+ */
+export function storeEvent(event) {
+    return new Promise((resolve, reject) => {
+        if (event == null || !EVENT_TYPES.includes(event.type)) {
+            reject("Invalid event.");
+            return;
+        }
+        let path = collection(db, "events", event.type, "event");
+        addDoc(path, event.toObject()).then(() => {
+            resolve();
+        }).catch((error) => {
+            reject(error);
+            return;
+        });
+    });
+}
+
+
+
+/**********
+END EVENTS
 BEGIN MODALS
 ***********/
 
