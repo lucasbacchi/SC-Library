@@ -1,18 +1,20 @@
 import { logEvent } from "firebase/analytics";
-import { sendEmailVerification } from "firebase/auth";
-import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { goToPage, isAdminCheck } from "./ajax";
+import { sendEmailVerification, updateEmail } from "firebase/auth";
+import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
 import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, Checkout, CheckoutGroup } from "./globals";
+
+
 
 /************
 BEGIN SEARCH
 *************/
 
+
+
 /**
- * Searches the book database for books based on a query
+ * @description Searches the book database for books based on a query
  * @param {String} searchQuery The query to search
- * @param {Number} start The start place in the results list
- * @param {Number} end The end place in the results list
  * @param {Boolean} viewHidden Determines if the function returns hidden books
  * @returns {Promise<Array>} An array of results
  */
@@ -21,24 +23,26 @@ export function search(searchQuery, viewHidden = false) {
         updateBookDatabase().then(() => {
             resolve(performSearch(searchQuery, viewHidden));
         }).catch((error) => {
-            console.error("Search function failed to update the book database", error);
-            reject();
+            reject(error);
         });
     });
 }
 
+/**
+ * @description Gets the books from the database and saves them to the bookDatabase global variable.
+ * @param {Boolean} forced Determines if the function should force an update of the book database, or if it is allowed to use the cached version. Defaults to false.
+ * @returns {Promise<void>} A promise that resolves when the book database has been updated.
+ */
 export function updateBookDatabase(forced = false) {
     return new Promise((resolve, reject) => {
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
-            // It hasn't searched since the page loaded, or it's been 15 mins since last page load
+            // It hasn't searched since the page loaded, or it's been 15 mins since last search
             setTimeLastSearched(new Date());
             getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
                 setBookDatabase([]);
                 querySnapshot.forEach((doc) => {
                     if (!doc.exists()) {
-                        console.error("books document does not exist");
-                        reject();
-                        return;
+                        throw new Error("Document does not exist: " + doc.id);
                     }
                     let documentObject = {
                         books: [],
@@ -60,7 +64,7 @@ export function updateBookDatabase(forced = false) {
     });
 }
 
-
+// Constants for the search algorithm
 const AUTHOR_WEIGHT = 5;
 const ILLUSTRATOR_WEIGHT = 1;
 const KEYWORDS_WEIGHT = 10;
@@ -71,10 +75,16 @@ const TITLE_WEIGHT = 15;
 const BARCODE_WEIGHT = 50;
 const ISBN_WEIGHT = 50;
 
+/**
+ * @description Performs a search on the book database and returns the results. Also updates the search cache.
+ * @param {String} searchQuery The query to search
+ * @param {Boolean} viewHidden A boolean representing if the function should return hidden books
+ * @returns {Promise<Array<Book>>} A Promise containing an array of Book results.
+ */
 function performSearch(searchQuery, viewHidden = false) {
     return new Promise((resolve, reject) => {
+        // Remove all punctuation and make it lowercase and split it into an array
         let searchQueryArray = searchQuery.replace(/-/g, " ").replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase().split(" ");
-
         let scoresArray = [];
 
         isAdminCheck().then((isAdmin) => {
@@ -83,7 +93,8 @@ function performSearch(searchQuery, viewHidden = false) {
                 for (let i = 0; i < document.books.length; i++) {
                     // Iterate through each of the 100 books in each doc
                     let book = document.books[i];
-                    if (book.isDeleted || (book.isHidden && viewHidden == false) || (book.isHidden && (!viewHidden || !isAdmin))/* || !book.lastUpdated*/) {
+                    if (book.isDeleted || (book.isHidden && !viewHidden && !isAdmin)) {
+                        console.log("Skipping book " + book.barcodeNumber + " because it is deleted or hidden.");
                         continue;
                     }
                     if (searchQuery == "") {
@@ -144,12 +155,10 @@ function performSearch(searchQuery, viewHidden = false) {
 
             // Sort the array by score
             scoresArray.sort((a, b) => {
-                // Custom Sort
                 return b.score - a.score;
             });
 
             let returnArray = [];
-            // console.log("Scores for \"%s\": %o", searchQuery, scoresArray);
             scoresArray.forEach((item) => {
                 if (item.score < 1) { return; }
                 if (isNaN(item.score)) {
@@ -172,6 +181,13 @@ function performSearch(searchQuery, viewHidden = false) {
     });
 }
 
+/**
+ * @description Counts the number of times that the items in an array occur in a second array.
+ * @param {Array<String>} arr The array to search through
+ * @param {Array<String>} searchQueryArray The array of items to search for
+ * @param {Boolean} strict A boolean representing if the search should be strict. If true, the search will require strict equality, if false, the search will use searchCompare(). Defaults to false.
+ * @returns {Number} The number of times that the items in searchQueryArray occur in arr.
+ */
 function countInArray(arr, searchQueryArray, strict = false) {
     let count = 0;
     for (let i = 0; i < arr.length; i++) {
@@ -188,6 +204,12 @@ function countInArray(arr, searchQueryArray, strict = false) {
     return count;
 }
 
+/**
+ * @description Compares two strings and returns a number between 0 and 1 representing how similar the two strings are. Calls distance() to do the calculations.
+ * @param {String} a The first string to compare
+ * @param {String} b The second string to compare
+ * @returns {Number} A number between 0 and 1 representing how similar the two strings are. 0 is not similar at all, 1 is identical.
+ */
 function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
@@ -200,13 +222,15 @@ function searchCompare(a, b) {
     if (similarity < 0.7) {
         return 0;
     } else {
-        // console.log(b + " was very similar to... " + a);
         return similarity;
     }
 }
 
 /**
- * Calculates the Damerau-Levenshtein distance between two strings.
+ * @description Calculates the Damerau-Levenshtein distance between two strings.
+ * @param {String} source The first string to compare
+ * @param {String} target The second string to compare
+ * @returns {Number} The Damerau-Levenshtein distance between the two strings
  * @author Isaac Sukin
  * @link Source: https://gist.github.com/IceCreamYou/8396172
  */
@@ -246,10 +270,14 @@ function distance(source, target) {
     return score[m + 1][n + 1];
 }
 
+
+
 /**********
 END SEARCH
 BEGIN UTILS
 ***********/
+
+
 
 /**
  * @description Formats a date object into a string.
@@ -270,10 +298,10 @@ export function formatDate(date, noTime = false) {
 }
 
 /**
- * 
- * @param {String} string The String of text to search through
+ * @description Searches through a string for a value and returns the value that follows it using the formatting of a URL query.
+ * @param {String} string The string of text to search through
  * @param {String} key The name of the value that you are searching for
- * @param {Boolean} mightReturnEmpty Could the key be missing?
+ * @param {Boolean} mightReturnEmpty Could the key be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  * @returns {String} The value from string that matches key
  */
 export function findURLValue(string, key, mightReturnEmpty = false) {
@@ -300,7 +328,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
  * @description Sets the value of a parameter in the URL. If the parameter already exists, it will be replaced.
  * @param {String} param The parameter to set
  * @param {String} value The value to set the parameter to
- * @param {Boolean} append A boolean representing if the existing queries should be kept
+ * @param {Boolean} append A boolean representing if the existing queries should be kept. Defaults to true.
  */
 export function setURLValue(param, value, append = true) {
     // Get everything after the host
@@ -340,7 +368,7 @@ export function setURLValue(param, value, append = true) {
 /**
  * @description Removes a parameter from the URL
  * @param {String} param The parameter to remove
- * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL. (Bypasses the warning)
+ * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  */
 export function removeURLValue(param, mightReturnEmpty = false) {
     // Get everything after the host
@@ -409,6 +437,12 @@ export function encodeHTML(string) {
  * @param {...any} args Any arguments to pass to the callback function
  */
 export function createOnClick(element, func, ...args) {
+    if (!element) {
+        console.error("Element is null");
+        return;
+    }
+    element = $(element);
+
     // Handle regular click
     element.on("click", () => {
         func(...args);
@@ -439,9 +473,9 @@ export function softBack(path = "") {
 }
 
 /**
- * @description Uses jQuery animaitons to scroll to a location on the page
- * @param {Number} location the location (in pixels from the top) to scroll to
- * @param {Number} time the time (in milliseconds) to take to scroll to the location
+ * @description Uses jQuery animaitons to scroll to a location on the page.
+ * @param {Number} location the location (in pixels from the top) to scroll to on the page.
+ * @param {Number} time the amount of time (in milliseconds) to take to scroll to the location. Defaults to 600.
  */
 export function windowScroll(location, time = 600) {
     setIgnoreScroll(true);
@@ -595,6 +629,10 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
                     unsub();
                     reject(data.delivery.error);
                 }
+            }, (error) => {
+                unsub();
+                console.error(error);
+                reject(error);
             });
             // Give up after 10 seconds
             window.setTimeout(() => {
@@ -606,156 +644,6 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
         });
     });
 }
-
-/**
- * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
- * @param {String} barcode The barcode number of the user to get from the database.
- * @returns {User} The user object that was retrieved from the database.
- */
-export function getUserFromBarcode(barcode) {
-    return new Promise((resolve, reject) => {
-        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
-            if (querySnapshot.size == 0) {
-                reject("No user found with barcode number " + barcode);
-                return;
-            }
-            if (querySnapshot.size > 1) {
-                reject("Multiple users found with barcode number " + barcode);
-                return;
-            }
-            let user = User.createFromObject(querySnapshot.docs[0].data());
-            resolve(user);
-        }).catch((error) => {
-            reject(error);
-        });
-    });
-}
-
-
-/**
- * @description Gets the most recent checkouts for a given barcode number
- * @param {String|Number} barcodeNumber The barcode number of the book to get the checkouts for
- * @param {Number} num The number of checkouts to get. Defaults to null (all).
- * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
- */
-export function getCheckoutsByBook(barcodeNumber, num = null) {
-    return new Promise((resolve, reject) => {
-        let barcode = barcodeNumber.toString();
-        let querySelection = query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode), orderBy("timestamp", "desc"));
-        if (num) {
-            querySelection = query(querySelection, limit(num));
-        }
-        getDocs(querySelection).then((docs) => {
-            let checkouts = [];
-            docs.forEach((doc) => {
-                if (!doc.exists()) {
-                    console.error("The checkout document could not be found.");
-                    reject();
-                    return;
-                }
-                let checkout = Checkout.createFromObject(doc.data());
-                checkouts.push(checkout);
-            });
-            resolve(checkouts);
-        }).catch((error) => {
-            openModal("error", "There was an error getting the checkouts information from the database.\n" + error);
-            console.log(error);
-        });
-    });
-}
-
-
-/**
- * @description Gets the a user's information from the database. If no uid is provided, the current user's uid is used.
- * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
- * @returns {Promise<User>} The user object from the database
- */
-export function getUser(uid = null) {
-    return new Promise((resolve, reject) => {
-        if (!uid) {
-            uid = auth.currentUser.uid;
-        }
-
-        // Get the stored data from the database
-        getDoc(doc(db, "users", uid)).then((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                reject();
-                return;
-            }
-
-            let user = User.createFromObject(docSnap.data());
-            resolve(user);
-        }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-            reject();
-        });
-    });
-}
-
-/**
- * @description Used to get a checkout or a checkoutGroup from the database.
- * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
- * @param {Boolean} group Whether or not to return a checkout group or a single checkout. Defaults to true.
- * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load. Only used if group is false.
- * @param {Boolean} getDocRef Whether or not to return the document reference instead of the checkout object. Defaults to false.
- * @returns {Promise<CheckoutGroup|Checkout|DocumentReference|Array<DocumentReference>} A Promise containing the checkout, checkout group, document reference, or array of document references.
- */
-export function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, getDocRef = false) {
-    return new Promise((resolve, reject) => {
-        if (!timestamp) {
-            openModal("issue", "No timestamp was specified for the checkout lookup.");
-            return reject("No timestamp was specified for the checkout lookup.");
-        }
-        if (!group && !barcodeNumber) {
-            openModal("issue", "No barcode was specified for the checkout lookup.");
-            return reject("No barcode was specified for the checkout lookup.");
-        }
-
-        // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
-        let start = new Date(timestamp.valueOf() - 1000);
-        let end = new Date(timestamp.valueOf() + 1000);
-        getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
-            let checkouts = [];
-            let refs = [];
-
-            // Loop through the query snapshot and add the checkouts to the array
-            for (let i = 0; i < querySnapshot.size; i++) {
-                let docSnap = querySnapshot.docs[i];
-                if (!docSnap.exists()) {
-                    console.error("checkout document does not exist");
-                    return reject("checkout document does not exist");
-                }
-
-                checkouts.push(Checkout.createFromObject(docSnap.data()));
-                refs.push(docSnap.ref);
-            }
-
-            // If we're looking for a group
-            if (group) {
-                // If we're looking for a reference, return the array of references
-                if (getDocRef) {
-                    return resolve(refs);
-                }
-                // Else return a checkout group
-                return resolve(new CheckoutGroup(checkouts));
-            }
-
-            // If we're looking for a single checkout/reference, loop through the checkouts find one that matches the barcode number
-            for (let i = 0; i < checkouts.length; i++) {
-                if (checkouts[i].barcodeNumber == barcodeNumber) {
-                    // If we're looking for a reference, return the reference
-                    if (getDocRef) {
-                        return resolve(refs[i]);
-                    }
-                    // Else return the checkout
-                    return resolve(checkouts[i]);
-                }
-            }
-        });
-    });
-}
-
 
 /**
  * @description Sets an event listener for the window's beforeunload event that will call the checkForChanges function and display a confirmation dialog if there are changes.
@@ -774,44 +662,20 @@ export function setupWindowBeforeUnload(checkForChanges, ...args) {
 }
 
 
-/**
- * @description Gets a checked out books from the database using their card number
- * @param {String} cardNumber The user's card number to get the checked out books for
- * @param {Number} num The number of checkouts to get. Defaults to null (all).
- * @returns {Promise<Array<Checkout>>} A Promise that resolves to the user's checked out history.
- */
-export function getCheckoutsByUser(cardNumber, num = null) {
-    return new Promise((resolve, reject) => {
-        let querySelection = query(collection(db, "checkouts"), where("cardNumber", "==", cardNumber), orderBy("timestamp", "desc"));
-        if (num) {
-            querySelection = query(querySelection, limit(num));
-        }
-        getDocs(querySelection).then((docs) => {
-            let checkouts = [];
-            docs.forEach((doc) => {
-                checkouts.push(Checkout.createFromObject(doc.data()));
-            });
-            resolve(checkouts);
-        }).catch((error) => {
-            console.error(error);
-            reject(error);
-        });
-    });
-}
-
-
 
 /**********
 END UTILS
 BEGIN BUILD BOOK BOX
 ***********/
 
+
+
 /**
- * 
- * @param {Object<Book>} obj The Book object that is going to be created
+ * @description Builds a book box out of HTML for a book object.
+ * @param {Book} obj The Book object that is going to be created
  * @param {String} page The page this book box will be displayed on
  * @param {Number} num The number of days that the book is due in
- * @returns An HTMLDivElement with the book information
+ * @returns {HTMLDivElement} An HTMLDivElement with the book information
  */
 export function buildBookBox(obj, page, num = 0) {
     const a = document.createElement("a");
@@ -1012,6 +876,12 @@ export function buildBookBox(obj, page, num = 0) {
     return a;
 }
 
+/**
+ * @description Builds a checkout box out of HTML for a Checkout object.
+ * @param {CheckoutGroup|Checkout} obj The Book object that is going to be created
+ * @param {Boolean} group Whether or not this is a group of checkouts.
+ * @returns {HTMLDivElement} An HTMLDivElement with the book information
+ */
 export function buildCheckoutBox(obj, group = true) {
     const a = document.createElement("a");
     const div = document.createElement("div");
@@ -1111,7 +981,11 @@ export function buildCheckoutBox(obj, group = true) {
     return a;
 }
 
-
+/**
+ * @description A helper function to turn an array of subjects into a string.
+ * @param {Array<String>} subj The array of subjects
+ * @returns {String} The string of subjects
+ */
 function listSubjects(subj) {
     let str = "";
     for (let i = 0; i < subj.length; i++) {
@@ -1120,6 +994,11 @@ function listSubjects(subj) {
     return str.substring(0, str.length - 2);
 }
 
+/**
+ * @description A helper function to shorten a description to a reasonable length.
+ * @param {String} desc The description to shorten
+ * @returns {String} The shortened description (including "..." at the end)
+ */
 function shortenDescription(desc) {
     const MIN_LEN = 300;
     let cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
@@ -1131,10 +1010,14 @@ function shortenDescription(desc) {
     }
 }
 
+
+
 /**********
 END BUILD BOOK BOX
-BEGIN GET BOOK FROM BARCODE
+BEGIN GET DATABASE INFO
 ***********/
+
+
 
 /**
  * @description Gets a book from the database using its barcode number.
@@ -1146,6 +1029,7 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
     return new Promise((resolve, reject) => {
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
+            return;
         }
 
         updateBookDatabase(forced).then(() => {
@@ -1163,10 +1047,183 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
     });
 }
 
+/**
+ * @description Gets a user's information from the database based on their barcode number, converts it to a User object, and returns it.
+ * @param {String} barcode The barcode number of the user to get from the database.
+ * @returns {User} The user object that was retrieved from the database.
+ */
+export function getUserFromBarcode(barcode) {
+    return new Promise((resolve, reject) => {
+        getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode))).then((querySnapshot) => {
+            if (querySnapshot.size == 0) {
+                reject("No user found with barcode number " + barcode);
+                return;
+            }
+            if (querySnapshot.size > 1) {
+                reject("Multiple users found with barcode number " + barcode);
+                return;
+            }
+            let user = User.createFromObject(querySnapshot.docs[0].data());
+            resolve(user);
+        }).catch((error) => {
+            reject(error);
+        });
+    });
+}
+
+/**
+ * @description Gets a user's information from the database. If no uid is provided, the current user's uid is used.
+ * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
+ * @returns {Promise<User>} The user object from the database
+ */
+export function getUser(uid = null) {
+    return new Promise((resolve, reject) => {
+        if (!uid) {
+            uid = auth.currentUser.uid;
+        }
+
+        // Get the stored data from the database
+        getDoc(doc(db, "users", uid)).then((docSnap) => {
+            if (!docSnap.exists()) {
+                throw new Error("The user document could not be found.");
+            }
+
+            let user = User.createFromObject(docSnap.data());
+            resolve(user);
+        }).catch((error) => {
+            reject("Failed to get the database file for this user", error);
+        });
+    });
+}
+
+/**
+ * @description Used to get a checkout or a checkoutGroup from the database.
+ * @param {Date} timestamp The timestamp of the checkout that we use to identify it.
+ * @param {Boolean} group Whether or not to return a checkout group or a single checkout. Defaults to true.
+ * @param {String} barcodeNumber The barcode number of the book in the checkout to determine which checkout to load. Only used if group is false.
+ * @param {Boolean} getDocRef Whether or not to return the document reference instead of the checkout object. Defaults to false.
+ * @returns {Promise<CheckoutGroup|Checkout|DocumentReference|Array<DocumentReference>} A Promise containing the checkout, checkout group, document reference, or array of document references.
+ */
+export function getCheckoutInfo(timestamp, group = true, barcodeNumber = null, getDocRef = false) {
+    return new Promise((resolve, reject) => {
+        if (!timestamp) {
+            openModal("issue", "No timestamp was specified for the checkout lookup.");
+            return reject("No timestamp was specified for the checkout lookup.");
+        }
+        if (!group && !barcodeNumber) {
+            openModal("issue", "No barcode was specified for the checkout lookup.");
+            return reject("No barcode was specified for the checkout lookup.");
+        }
+
+        // Account for the fact that the timestamp is only accurate to the second (but firebase keeps track of nanoseconds)
+        let start = new Date(timestamp.valueOf() - 1000);
+        let end = new Date(timestamp.valueOf() + 1000);
+        getDocs(query(collection(db, "checkouts"), where("timestamp", ">=", start), where("timestamp", "<=", end))).then((querySnapshot) => {
+            let checkouts = [];
+            let refs = [];
+
+            // Loop through the query snapshot and add the checkouts to the array
+            for (let i = 0; i < querySnapshot.size; i++) {
+                let docSnap = querySnapshot.docs[i];
+                if (!docSnap.exists()) {
+                    console.error("checkout document does not exist");
+                    return reject("checkout document does not exist");
+                }
+
+                checkouts.push(Checkout.createFromObject(docSnap.data()));
+                refs.push(docSnap.ref);
+            }
+
+            // If we're looking for a group
+            if (group) {
+                // If we're looking for a reference, return the array of references
+                if (getDocRef) {
+                    return resolve(refs);
+                }
+                // Else return a checkout group
+                return resolve(new CheckoutGroup(checkouts));
+            }
+
+            // If we're looking for a single checkout/reference, loop through the checkouts find one that matches the barcode number
+            for (let i = 0; i < checkouts.length; i++) {
+                if (checkouts[i].barcodeNumber == barcodeNumber) {
+                    // If we're looking for a reference, return the reference
+                    if (getDocRef) {
+                        return resolve(refs[i]);
+                    }
+                    // Else return the checkout
+                    return resolve(checkouts[i]);
+                }
+            }
+        });
+    });
+}
+
+/**
+ * @description Gets the most recent checkouts for a given barcode number
+ * @param {String|Number} barcodeNumber The barcode number of the book to get the checkouts for
+ * @param {Number} num The number of checkouts to get. Defaults to null (all).
+ * @returns {Promise<Array<Checkout>>} A Promise that will resolve to an array of Checkout objects
+ */
+export function getCheckoutsByBook(barcodeNumber, num = null) {
+    return new Promise((resolve, reject) => {
+        let barcode = barcodeNumber.toString();
+        let querySelection = query(collection(db, "checkouts"), where("barcodeNumber", "==", barcode), orderBy("timestamp", "desc"));
+        if (num) {
+            querySelection = query(querySelection, limit(num));
+        }
+        getDocs(querySelection).then((docs) => {
+            let checkouts = [];
+            docs.forEach((doc) => {
+                if (!doc.exists()) {
+                    console.error("The checkout document could not be found.");
+                    reject();
+                    return;
+                }
+                let checkout = Checkout.createFromObject(doc.data());
+                checkouts.push(checkout);
+            });
+            resolve(checkouts);
+        }).catch((error) => {
+            openModal("error", "There was an error getting the checkouts information from the database.\n" + error);
+            console.log(error);
+        });
+    });
+}
+
+/**
+ * @description Gets a checked out books from the database using their card number
+ * @param {String} cardNumber The user's card number to get the checked out books for
+ * @param {Number} num The number of checkouts to get. Defaults to null (all).
+ * @returns {Promise<Array<Checkout>>} A Promise that resolves to the user's checked out history.
+ */
+export function getCheckoutsByUser(cardNumber, num = null) {
+    return new Promise((resolve, reject) => {
+        let querySelection = query(collection(db, "checkouts"), where("cardNumber", "==", cardNumber), orderBy("timestamp", "desc"));
+        if (num) {
+            querySelection = query(querySelection, limit(num));
+        }
+        getDocs(querySelection).then((docs) => {
+            let checkouts = [];
+            docs.forEach((doc) => {
+                checkouts.push(Checkout.createFromObject(doc.data()));
+            });
+            resolve(checkouts);
+        }).catch((error) => {
+            console.error(error);
+            reject(error);
+        });
+    });
+}
+
+
+
 /**********
-END GET BOOK FROM BARCODE
+END GET DATABASE INFO
 BEGIN ADD BARCODE SPACING
 ***********/
+
+
 
 /**
  * @description Adds spaces to a barcode to make it easier to read.
@@ -1189,13 +1246,17 @@ export function addBarcodeSpacing(barcode) {
     return str;
 }
 
+
+
 /**********
 END ADD BARCODE SPACING
 BEGIN ISBN UTILS
 ***********/
 
+
+
 /**
- * 
+ * @description Calculates the ISBN check digit for a 10 or 13 digit ISBN number.
  * @param {Number} number The ISBN number (without a check digit)
  * @returns A String containing the ISBN check digit
  */
@@ -1239,6 +1300,11 @@ export function calculateISBNCheckDigit(number) {
     }
 }
 
+/**
+ * @description Switches the format of an ISBN number between 10 and 13 digits. It accepts both 10 and 13 digit ISBN numbers.
+ * @param {String|Number} number The ISBN number to switch the format of.
+ * @returns {String} The ISBN number in the other format.
+ */
 export function switchISBNformats(number) {
     number = number.toString();
     if (number.substring(0, 3) == "978") {
@@ -1248,10 +1314,14 @@ export function switchISBNformats(number) {
         number = number.substring(0, number.length - 1);
     }
     number = number + calculateISBNCheckDigit(number);
-    // number = parseInt(number);
     return number;
 }
 
+/**
+ * @description Verifies that an ISBN number is valid.
+ * @param {String|Number} number The ISBN number to verify
+ * @returns {Boolean} True if the ISBN number is valid, false if it is not.
+ */
 export function verifyISBN(number) {
     if (number.toString().length == 10) {
         number = number.toString();
@@ -1304,19 +1374,64 @@ export function verifyISBN(number) {
 }
 
 
+
 /**********
 END ISBN UTILS
 BEGIN AUTH
 ***********/
 
 
+
 /**
- * Sends an email verification to the user.
+ * @description Sends an email verification to the user.
+ * @returns {Promise<void>} A promise that resolves when the email has been sent
  */
 export function sendEmailVerificationToUser() {
     let user = auth.currentUser;
-    sendEmailVerification(user).then(() => {
+    return sendEmailVerification(user).then(() => {
         openModal("success", "Email Verification Sent! Please check your email!");
+    }).catch((error) => {
+        openModal("error", "There was an error sending the email verification. Please try again later.");
+        console.error(error);
+    });
+}
+
+/**
+ * @description Updates the current user's email address in the database and the authentication system.
+ * @param {String} newEmail The new email to update the user's email to
+ * @returns {Promise<void>} A promise that resolves when the email has been updated
+ */
+export function updateUserEmail(newEmail) {
+    return new Promise((resolve, reject) => {
+        let user = auth.currentUser;
+        // Update the email in the authentication system
+        updateEmail(user, newEmail).then(() => {
+            // Update the email in the database
+            updateDoc(doc(db, "users", user.uid), {
+                email: newEmail,
+                emailVerified: false
+            }).then(() => {
+                // Update the email in the UI
+                let email = user.email;
+                updateEmailinUI(email);
+                // Send an email verification to the user with the new email
+                sendEmailVerificationToUser().then(() => {
+                    resolve();
+                });
+            }).catch((error) => {
+                reject("Error updating email in the database: " + error);
+            });
+        }).catch((error) => {
+            if (error.code == "auth/requires-recent-login") {
+                // This will be handled by account.js
+                reject(error);
+                return;
+            } else if (error.code == "auth/email-already-in-use") {
+                openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
+            } else {
+                reject("Error updating email in the auth system: " + error);
+            }
+        });
     });
 }
 
@@ -1326,6 +1441,8 @@ export function sendEmailVerificationToUser() {
 END AUTH
 BEGIN MODALS
 ***********/
+
+
 
 /**
  * @description Opens a modal that covers the screen and displays info to the user.

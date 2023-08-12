@@ -1,9 +1,9 @@
-import { changePageTitle, goToPage, isAdminCheck } from './ajax';
+import { changePageTitle, goToPage, isAdminCheck } from "./ajax";
 import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, getCheckoutsByBook, getUser, openModal,
-    removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from './common';
-import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
-import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
-import { logEvent } from 'firebase/analytics';
+    removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from "./common";
+import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from "./globals";
+import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { logEvent } from "firebase/analytics";
 import { signOut } from 'firebase/auth';
 
 var isBrowse;
@@ -277,14 +277,20 @@ function getNewBooksForSearch(page) {
         // Filter the results array.
         resultsArray = filterSearchResults(resultsArray);
         createSearchResultsPage(resultsArray, page);
-        clearTimeout(timer);
-        if (loadingModal) {
-            loadingModal();
-        }
+
         if (page > 1) {
             setURLValue("page", page);
         } else {
             removeURLValue("page", true);
+        }
+    }).catch((error) => {
+        openModal("error", "There was an error getting the books. Please try again later.", "Error Getting Books");
+        console.error(error);
+        softBack();
+    }).finally(() => {
+        clearTimeout(timer);
+        if (loadingModal) {
+            loadingModal();
         }
     });
 }
@@ -654,13 +660,13 @@ export function setupResultPage(pageQuery) {
     createOnClick($("#result-page-email"), () => {
         let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber).then(() => {
-            loadingModal();
             openModal("success", "An email containing this book's information has been sent to the email address on file. Please check your inbox.", "Email Sent!");
         }).catch((error) => {
             console.error(error);
-            loadingModal();
             openModal("error", "An error occured while sending the email. Please try again later.\n\nIf the problem persists, contact us at library@southchurch.com for assistance.",
             "Error Sending Email");
+        }).finally(() => {
+            loadingModal();
         });
     });
 
