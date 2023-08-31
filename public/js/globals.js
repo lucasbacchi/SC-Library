@@ -474,6 +474,9 @@ export class HistoryManager {
      */
     static getFromIDB(stateDataKey) {
         return new Promise((resolve, reject) => {
+            if (!stateDataKey) {
+                throw new Error("stateDataKey is undefined");
+            }
             let request = iDB.transaction("historyStates").objectStore("historyStates").get(stateDataKey);
             request.onsuccess = () => {
                 // Convert JSON Objects to Book Objects

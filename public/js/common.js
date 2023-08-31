@@ -457,7 +457,7 @@ export function createOnClick(element, func, ...args) {
     });
 
     // Handle Keyboard slection
-    element.tabindex = 0;
+    $(element).attr("tabindex", 0);
 }
 
 /**
