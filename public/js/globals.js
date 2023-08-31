@@ -267,6 +267,22 @@ export function setIDB(newIDB) {
     iDB = newIDB;
 }
 
+/**
+ * @global
+ * @type {Boolean}
+ * @description The global variable inLibrary which stores whether or not the user is currently in the library.
+ */
+export let inLibrary = false;
+
+/**
+ * @global
+ * @param {Boolean} newInLibrary The new value of inLibrary to set
+ * @description Sets the global variable inLibrary to the new value.
+ */
+export function setInLibrary(newInLibrary) {
+    inLibrary = newInLibrary;
+}
+
 
 /**
  * @global
@@ -291,6 +307,7 @@ export let directory = [
     "about",
     "account",
     "advancedSearch",
+    "checkin",
     "checkout",
     "help",
     "login",

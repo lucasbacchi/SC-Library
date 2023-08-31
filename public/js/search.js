@@ -1,5 +1,5 @@
 import { changePageTitle, goToPage, isAdminCheck } from "./ajax";
-import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, getCheckoutsByBook, getUser, openModal,
+import { addBarcodeSpacing, buildBookBox, checkLocation, createOnClick, findURLValue, getBookFromBarcode, getCheckoutsByBook, getUser, openModal,
     removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from "./common";
 import { analytics, auth, Book, bookDatabase, Checkout, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from "./globals";
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
@@ -1093,8 +1093,8 @@ export function setupCheckout() {
     }
 
     // Confirm that the user is in the library
-    Promise.all([getClientIP(), getLibraryIP()]).then((values) => {
-        if (values[0] != values[1]) {
+    checkLocation(true).then((inLibrary) => {
+        if (!inLibrary) {
             openModal("info", "You must be in the South Church Library to checkout a book.\n\nPlease use the computer in the library.");
             softBack();
             return;
@@ -1122,8 +1122,11 @@ export function setupCheckout() {
         }
 
         // Get info from URL
-        let id = findURLValue(window.location.search, "id");
+        let id = findURLValue(window.location.search, "id", true);
         let addID = true;
+        if (!id) {
+            addID = false;
+        }
 
         // Display the books that are already scanned
         checkoutBooks.forEach((barcodeNumber) => {
@@ -1146,51 +1149,6 @@ export function setupCheckout() {
         openModal("error", "There was an error loading your checkout history. Please try again later.\n" + error);
         softBack();
         return;
-    });
-}
-
-/**
- * @description Gets the IP address of the client using ipify.
- * @returns {Promise} A promise that resolves to the IP address of the client.
- */
-function getClientIP() {
-    return new Promise((resolve, reject) => {
-        const clientIPRequest = new XMLHttpRequest();
-        clientIPRequest.open("GET", "https://api.ipify.org?format=json", true);
-        clientIPRequest.onload = function () {
-            if (this.status >= 200 && this.status < 400) {
-                resolve(JSON.parse(this.response).ip);
-            } else {
-                reject(this.status);
-            }
-        };
-        clientIPRequest.onerror = function () {
-            reject(this.status);
-        };
-        clientIPRequest.send();
-    });
-}
-
-/**
- * @description Gets the IP address of the library using Google's DNS server and Dynamic DNS.
- * @returns {Promise} A promise that resolves to the IP address of the library.
- */
-function getLibraryIP() {
-    return new Promise((resolve, reject) => {
-        const libraryIPRequest = new XMLHttpRequest();
-        // TODO: Update the domain name once we've standardized it.
-        libraryIPRequest.open("GET", "https://dns.google/resolve?name=southchurch.ath.cx&type=A", true);
-        libraryIPRequest.onload = function () {
-            if (this.status >= 200 && this.status < 400) {
-                resolve(JSON.parse(this.response).Answer[0].data);
-            } else {
-                reject(this.status);
-            }
-        };
-        libraryIPRequest.onerror = function () {
-            reject(this.status);
-        };
-        libraryIPRequest.send();
     });
 }
 
@@ -1226,6 +1184,10 @@ function checkoutAddBook(barcodeNumber = undefined, bypassHistory = false) {
             // If we get here, the book is available, so add it to the list of books to be checked out
             $("#checkout-list").append(buildBookBox(book, "checkout"));
             createOnClick($("#checkout-list-" + book.barcodeNumber + " > .checkout-book > a > .xButton"), checkoutRemoveBook, book.barcodeNumber);
+            let stateDataKey = historyManager.get().stateData;
+            if (!stateDataKey) {
+                throw new Error("The state data key is undefined.");
+            }
             HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
                 if (!state.checkoutBooks.includes(book.barcodeNumber)) {
                     state.checkoutBooks.push(book.barcodeNumber);
@@ -1237,11 +1199,11 @@ function checkoutAddBook(barcodeNumber = undefined, bypassHistory = false) {
                 $("#checkout-scanner-input").val("");
             });
         }).catch((reason) => {
-            console.log(reason);
+            console.warn(reason);
         });
     }).catch((error) => {
         openModal("error", "There was an error checking out this book.\n" + error);
-        console.log(error);
+        console.error(error);
     });
 }
 
@@ -1285,6 +1247,7 @@ function verifyCheckout(book, bypassHistory) {
         let historyPromise = Promise.resolve();
         if (!bypassHistory) {
             // Check if the book is in the history
+            console.log(historyManager.get());
             historyPromise = HistoryManager.getFromIDB(historyManager.get().stateData).then((state) => {
                 if (state.checkoutBooks.includes(book.barcodeNumber)) {
                     openModal("error", "This book is already in the checkout list.");
@@ -1402,6 +1365,11 @@ function checkout() {
     });
 
     // openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
+}
+
+
+export function setupCheckin() {
+    // TODO: Implement checkin
 }
 
 console.log("search.js has Loaded!");

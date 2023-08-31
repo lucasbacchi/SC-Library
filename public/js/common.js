@@ -2,7 +2,8 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification, updateEmail } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, Checkout, CheckoutGroup } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth,
+    historyManager, analytics, Book, User, Checkout, CheckoutGroup, inLibrary, setInLibrary } from "./globals";
 
 
 
@@ -1574,4 +1575,83 @@ export function openModal(type, message, title, mainButtonText = "OK", mainCallb
 
 /**********
 END MODALS
+BEGIN LOCATION
+***********/
+
+
+
+/**
+ * @description Checks if the user is in the library.
+ * @param {Boolean} recheck Whether or not to recheck the user's location. Defaults to false.
+ * @returns {Promise<Boolean>} A promise that resolves to true if the user is in the library, and false if they are not.
+ */
+export function checkLocation(recheck = false) {
+    return new Promise((resolve, reject) => {
+        if (inLibrary && !recheck) {
+            resolve(inLibrary);
+        } else {
+            Promise.all([getClientIP(), getLibraryIP()]).then((values) => {
+                if (values[0] == values[1]) {
+                    setInLibrary(true);
+                    resolve(true);
+                } else {
+                    setInLibrary(false);
+                    resolve(false);
+                }
+            }).catch((error) => {
+                reject("Error checking location: " + error);
+            });
+        }
+    });
+}
+
+/**
+ * @description Gets the IP address of the client using ipify.
+ * @returns {Promise<String>} A promise that resolves to the IP address of the client.
+ */
+function getClientIP() {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open("GET", "https://api.ipify.org?format=json", true);
+        request.onload = () => {
+            if (request.status >= 200 && request.status < 400) {
+                resolve(JSON.parse(request.response).ip);
+            } else {
+                reject(request.status);
+            }
+        };
+        request.onerror = () => {
+            reject(request.status);
+        };
+        request.send();
+    });
+}
+
+/**
+ * @description Gets the IP address of the library using Google's DNS server and Dynamic DNS.
+ * @returns {Promise<String>} A promise that resolves to the IP address of the library.
+ */
+function getLibraryIP() {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        // TODO: Update the domain name once we've standardized it.
+        request.open("GET", "https://dns.google/resolve?name=southchurch.ath.cx&type=A", true);
+        request.onload = () => {
+            if (request.status >= 200 && request.status < 400) {
+                resolve(JSON.parse(request.response).Answer[0].data);
+            } else {
+                reject(request.status);
+            }
+        };
+        request.onerror = () => {
+            reject(request.status);
+        };
+        request.send();
+    });
+}
+
+
+
+/**********
+END LOCATION
 ***********/

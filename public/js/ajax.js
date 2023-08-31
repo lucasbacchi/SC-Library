@@ -14,7 +14,7 @@ import {
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
     currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { checkLocation, createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
 
 
 
@@ -208,6 +208,15 @@ function setupIndex() {
         $("#footer-spacer").css("height", footerHeight);
     });
     footerObserver.observe(footer);
+
+    // Check if the user is in the library, and if so, setup the checkin button
+    checkLocation().then((inLibrary) => {
+        if (inLibrary) {
+            $("#library-buttons-container").css("display", "flex");
+            createOnClick($("#check-in-button"), goToPage, "checkin");
+            createOnClick($("#check-out-button"), goToPage, "checkout");
+        }
+    });
 }
 
 /**
@@ -611,6 +620,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                     "about": "About Us",
                     "account": "Your Account",
                     "advancedSearch": "Advanced Search",
+                    "checkin": "Return Items",
                     "checkout": "Checkout",
                     "help": "Help",
                     "login": "Login",
@@ -800,6 +810,16 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
         else if (pageName == "sitemap") {
             import('./sitemap').then(({ setupSitemap }) => {
                 setupSitemap();
+                resolve();
+            }).catch((error) => {
+                console.error("Problem importing", error);
+            });
+        }
+
+        else if (pageName == "checkin") {
+            import('../css/search.css');
+            import('./search').then(({ setupCheckin }) => {
+                setupCheckin();
                 resolve();
             }).catch((error) => {
                 console.error("Problem importing", error);
