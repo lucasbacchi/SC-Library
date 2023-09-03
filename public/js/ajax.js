@@ -14,7 +14,7 @@ import {
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
     currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { checkLocation, createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { checkLocation, createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, softBack, updateScrollPosition, windowScroll } from "./common";
 
 
 
@@ -25,7 +25,11 @@ $(() => {
         setupIndexedDB();
         setHistoryManager(window.history.state);
         let page = window.location.pathname.substring(1) + window.location.search + window.location.hash;
-        goToPage(page, true);
+        goToPage(page, true).catch((error) => {
+            if (error != "restoreHistory") {
+                console.error("Problem with initial page load:", error);
+            }
+        });
         historyManager.first(page);
     }).catch((error) => {
         console.error(error);
@@ -130,6 +134,7 @@ function setupIndex() {
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
         closeNavMenu();
+        resizeContentDiv();
     });
 
     // Manage Account Panel and animation
@@ -175,39 +180,50 @@ function setupIndex() {
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
     $(window).on("scroll", () => {
+        let banners = ($("#banner-container > div:visible").length > 0) ? true : false;
+
         if ($(document).scrollTop() > 0) {
-            $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
+            if (!banners) {
+                $("header").css("box-shadow", "0px 0px 16px 0px var(--teal)");
+            } else {
+                $("#banner-container").css("box-shadow", "0px 0px 16px 0px #eee");
+            }
         } else {
             $("header").css("box-shadow", "");
+            $("#banner-container").css("box-shadow", "");
         }
+
         closeLargeAccount();
         closeNavMenu();
         updateScrollPosition();
     });
 
+    // Remove the preload class after the initial animations.
+    setTimeout(() => {
+        $(".preload").removeClass("preload");
+    }, 500);
+
     // Setup a ResizeObserver to watch for changes in the content div
-    let contentDiv = document.getElementById("content");
-    let contentDivObserver = new ResizeObserver(() => {
+    let contentDivObserver = new ResizeObserver(resizeContentDiv);
+    contentDivObserver.observe($("#content")[0]);
+
+    function resizeContentDiv() {
         // If we know the content is still loading, don't do anything
-        if (contentDiv.classList.contains("loading")) {
+        if ($("#content").hasClass("loading")) {
             return;
         }
-        let contentHeight = contentDiv.offsetHeight + 48; // 48px is the padding on the index container
-        let minHeight = window.innerHeight - $("#header-spacer").height() - $("#footer-spacer").height();
-        if (contentHeight < minHeight) {
-            contentHeight = minHeight;
-        }
-        $("#index-content-container").css("min-height", contentHeight);
-    });
-    contentDivObserver.observe(contentDiv);
 
-    // Setup a ResizeObserver to watch for changes the footer
-    let footer = document.getElementsByTagName("footer")[0];
-    let footerObserver = new ResizeObserver(() => {
-        let footerHeight = footer.offsetHeight;
-        $("#footer-spacer").css("height", footerHeight);
-    });
-    footerObserver.observe(footer);
+        let contentHeight = $("#content").height() + $("#index-content-container").innerHeight() - $("#index-content-container").height(); // Add the padding of the content container
+        let otherHeights = 0;
+        $("body").children().each((index, element) => {
+            if (element.id != "index-content-container" && element.id != "cover") {
+                otherHeights += $(element).outerHeight(true);
+            }
+        });
+        let minHeight = window.innerHeight - otherHeights;
+
+        $("#index-content-container").css("height", Math.max(contentHeight, minHeight));
+    }
 
     // Check if the user is in the library, and if so, setup the checkin button
     checkLocation().then((inLibrary) => {
@@ -354,7 +370,7 @@ export function isAdminCheck(recheck = false) {
  * Called every time the user wants to go to a new page. The function checks if the page change is valid.
  * If the page change is valid, the function will go to the new page by calling getPage().
  * @param {String} pageName The name of the page to go to.
- * @param {Boolean} goingBack Whether the user is going forward or backward in the history. (Prevents new history entries)
+ * @param {Boolean} goingBack Whether the user is going forward or backward in the history. This prevents new history entries, but a .catch must be added to the goToPage() call if true.
  * @param {Boolean} bypassUnload Whether to bypass the unload event.
  * @returns {Promise<void>} A promise representing the loading progress of the page.
  */
@@ -504,17 +520,20 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
                 goToPage("");
                 return;
             }
-            getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
-                pageSetup(pageName, goingBack, pageHash, pageQuery).then(() => {
+            return getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
+                return pageSetup(pageName, goingBack, pageHash, pageQuery).then(() => {
+                    if (pageName != "account") {
+                        setCurrentPanel(null);
+                    }
+                    setCurrentPage(pageName);
+                    setCurrentQuery(pageQuery);
+                    setCurrentHash(pageHash);
                     resolve();
                 });
             });
+        }).catch((error) => {
+            reject(error);
         });
-    }).then(() => {
-        // Will Run after goToPage resolves
-        $("#cover").hide();
-        $("body").addClass("fade");
-        $("body").css("overflow", "");
     }).catch((error) => {
         if (error == "Cancelled by BeforeUnload Event") {
             console.log("goToPage function cancelled by BeforeUnload Event");
@@ -530,7 +549,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 
         // Trigger catch in the history function
         if (goingBack) {
-            return Promise.reject();
+            return Promise.reject("restoreHistory");
         }
     });
 }
@@ -543,7 +562,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
  * @param {String} pageQuery The query of the page to load.
  * @returns {Promise<void>} A promise that represents the loading prgress of the page.
  */
-function getPage(pageName, goingBack, pageHash, pageQuery) {
+function getPage(pageName, goingBack, pageHash = "", pageQuery = "") {
     return new Promise((resolve, reject) => {
         // Prepare the page for loading
         $("#content").addClass("loading");
@@ -586,8 +605,14 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
 
         xhttp.timeout = 5000;
         xhttp.ontimeout = (event) => {
-            reject();
+            reject("Page load timed out.");
             console.error(event);
+            softBack();
+        };
+        xhttp.onerror = (event) => {
+            reject("Page load failed.");
+            console.error(event);
+            softBack();
         };
 
         // Set the content of the page
@@ -641,8 +666,29 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 }
 
                 resolve();
+            } else if (xhttp.readyState == 4 && xhttp.status == 404) {
+                reject("404: Page not found: " + pageName);
+                getPage("404", goingBack).then(() => {
+                    resolve();
+                });
             }
         };
+    }).then(() => {
+        // Change Index Page Frame if needed
+        if (pageName != "result") {
+            $("#header-search-input").val(findURLValue(pageQuery, "query", true));
+        }
+
+        // Start fading the page in
+        if (currentPage != pageName) {
+            window.setTimeout(() => {
+                $("#content").removeClass("page-hidden");
+                $("#content").addClass("fade");
+            }, 100);
+        }
+        $("#cover").hide();
+        $("body").addClass("fade");
+        $("body").css("overflow", "");
     });
 }
 
@@ -656,7 +702,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
  */
 function pageSetup(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve) => {
-        // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
+        // No function for help, about, advancedSearch, or 404 so just resolve
         if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
             resolve();
         }
