@@ -134,6 +134,7 @@ function setupIndex() {
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
         closeNavMenu();
+        resizeContentDiv();
     });
 
     // Manage Account Panel and animation
@@ -193,6 +194,28 @@ function setupIndex() {
     setTimeout(() => {
         $(".preload").removeClass("preload");
     }, 500);
+
+    // Setup a ResizeObserver to watch for changes in the content div
+    let contentDivObserver = new ResizeObserver(resizeContentDiv);
+    contentDivObserver.observe($("#content")[0]);
+
+    function resizeContentDiv() {
+        // If we know the content is still loading, don't do anything
+        if ($("#content").hasClass("loading")) {
+            return;
+        }
+
+        let contentHeight = $("#content").height() + $("#index-content-container").innerHeight() - $("#index-content-container").height(); // Add the padding of the content container
+        let otherHeights = 0;
+        $("body").children().each((index, element) => {
+            if (element.id != "index-content-container" && element.id != "cover") {
+                otherHeights += $(element).outerHeight(true);
+            }
+        });
+        let minHeight = window.innerHeight - otherHeights;
+
+        $("#index-content-container").css("height", Math.max(contentHeight, minHeight));
+    }
 }
 
 /**

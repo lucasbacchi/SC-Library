@@ -109,10 +109,10 @@ body {
 }
 
 #index-content-container {
-    transition: min-height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
+    transition: height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
     overflow: hidden;
     padding: 24px 0px;
-    /* flex-grow: 1; */
+    flex-grow: 1;
 }
 
 /* Header */
@@ -419,9 +419,6 @@ footer {
     text-align: center;
     margin-top: auto;
     user-select: none;
-    height: 200px;
-    max-height: 200px;
-    padding-bottom: 32px;
 }
 
 .footer-div {
@@ -458,12 +455,10 @@ footer {
     background-color: var(--dark-teal);
     color: #ffffff;
     width: 100%;
-    margin-top: 20px;
+    margin-top: 8px;
     text-align: center;
     padding: 3px;
     font-size: 14px;
-    position: absolute;
-    bottom: 0;
 }
 
 
