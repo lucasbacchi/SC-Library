@@ -5,12 +5,10 @@
     <!-- Load Bundled Scripts -->
     <script src="/dist/runtime.bundle.js"></script>
     <script src="/dist/ajax.bundle.js"></script>
-    <!-- <script src="/dist/worker.bundle.js"></script> -->
 
     <!-- Meta Tags -->
     <meta charset="utf-8">
-    <meta name="keywords"
-        content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
+    <meta name="keywords" content="south church library, library catalog, andover, andover MA, books, digital catalog, library, church library">
     <meta name="description" content="Official Library Catalog of South Church in Andover!">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1">
     <meta name="theme-color" content="#3D7A8B">
@@ -50,7 +48,7 @@
                 <img id="small-account-image" src="../img/default-user.jpg">
                 <span class="material-symbols-outlined" id="account-arrow">arrow_drop_down</span>
             </div>
-            <div id="large-account-container" class="large-account-hide">
+            <div id="large-account-container" class="preload large-account-hide">
                 <img id="large-account-image" src="../img/default-user.jpg" class="no-select">
                 <div id="account-information-container">
                     <p id="account-name"></p>
@@ -64,8 +62,8 @@
             </div>
         </div>
     </header>
-    <!-- Required to make sure the header doesn't overlay on other content. -->
-    <div id="header-spacer" style="clear: both; height: 80px;"></div>
+    <div id="banner-container">
+    </div>
 
     <div id="index-content-container">
         <div id="content" class="page-hidden"></div>
@@ -74,8 +72,7 @@
     <div id="cover"
         style="height: 100%; width: 100%; z-index: 100; overflow: hidden; position: fixed; top: 0; left: 0; background-color: white;">
     </div>
-    <!-- Required to make sure the footer doesn't overlay on other content. -->
-    <div id="footer-spacer" style="clear: both; height: 200px;"></div>
+
     <footer>
         <div class="footer-div">
             <h2 class="footer-title no-select">Contact Us</h2>

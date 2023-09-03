@@ -97,22 +97,22 @@
 /* Page Frame */
 html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
-    overflow-y: overlay;
 }
 
 body {
     min-height: 100vh;
     position: relative;
-    overflow-y: hidden;
     margin: 0px;
     font-family: "Montserrat", sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 #index-content-container {
-    transition: height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
+    transition: min-height 1s cubic-bezier(0.1, 0.8, 0.4, 1);
     overflow: hidden;
     padding: 24px 0px;
+    /* flex-grow: 1; */
 }
 
 /* Header */
@@ -121,11 +121,10 @@ header {
     width: 100%;
     background: var(--teal);
     background: linear-gradient(180deg, var(--off-teal) 0%, var(--teal) 100%);
-    margin-bottom: 20px;
     font-family: "Poppins", sans-serif;
     display: flex;
     justify-content: space-between;
-    position: fixed;
+    position: sticky;
     top: 0;
     left: 0;
     z-index: 50;
@@ -327,6 +326,11 @@ div#nav-signup > a {
     }
 }
 
+.preload {
+    animation-duration: 0s !important;
+    -webkit-animation-duration: 0s !important;
+    transition: background-color 0s, opacity 0s, color 0s, width 0s, height 0s, padding 0s, margin 0s !important;
+}
 
 #large-account-image {
     margin: 10px auto;
@@ -413,8 +417,7 @@ footer {
     z-index: 39;
     width: 100%;
     text-align: center;
-    position: absolute;
-    bottom: 0;
+    margin-top: auto;
     user-select: none;
     height: 200px;
     max-height: 200px;

@@ -290,7 +290,6 @@ export let directory = [
     "about",
     "account",
     "advancedSearch",
-    "autogenindex",
     "help",
     "login",
     "main",
