@@ -180,11 +180,19 @@ function setupIndex() {
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
     $(window).on("scroll", () => {
+        let banners = ($("#banner-container > div:visible").length > 0) ? true : false;
+
         if ($(document).scrollTop() > 0) {
-            $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
+            if (!banners) {
+                $("header").css("box-shadow", "0px 0px 16px 0px var(--teal)");
+            } else {
+                $("#banner-container").css("box-shadow", "0px 0px 16px 0px #eee");
+            }
         } else {
             $("header").css("box-shadow", "");
+            $("#banner-container").css("box-shadow", "");
         }
+
         closeLargeAccount();
         closeNavMenu();
         updateScrollPosition();

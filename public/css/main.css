@@ -162,6 +162,14 @@ header > a > h1 {
     white-space: nowrap;
 }
 
+#banner-container {
+    width: 100%;
+    position: sticky;
+    top: 80px;
+    z-index: 49;
+    transition: box-shadow 0.5s;
+}
+
 nav {
     display: flex;
     font-size: 24px;
