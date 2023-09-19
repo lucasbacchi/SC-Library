@@ -368,7 +368,7 @@ function viewMissingBarcodes() {
  * @description Called when the user clicks the "Export" link. Downloads the database as a JSON file.
  */
 function downloadDatabase() {
-    updateBookDatabase().then(() => {
+    updateBookDatabase(true).then(() => {
         let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
