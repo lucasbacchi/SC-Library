@@ -772,28 +772,37 @@ function fillResultPage(barcodeNumber) {
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
 
-        // Check if the book is checked out and update the borrow button accordingly.
-        getCheckoutsByBook(barcodeNumber, 1).then((checkoutArray) => {
-            let checkoutObject = checkoutArray[0];
-            if (!bookObject.canBeCheckedOut) {
-                // If the book cannot be checked out, disable the borrow button and display a message if clicked.
-                $("#borrow-button").addClass("disabled");
-                createOnClick($("#borrow-button"), () => {
-                    openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
-                });
-            } else if (checkoutObject && !checkoutObject.complete) {
-                // If the book is checked out, disable the borrow button and display a message if clicked.
-                $("#borrow-button").addClass("disabled");
-                createOnClick($("#borrow-button"), () => {
-                    openModal("info", "This book is currently checked out. It should be back in the library in a few weeks.", "This Book is Checked Out");
-                });
-            } else {
-                $("#borrow-button").removeClass("disabled");
-                createOnClick($("#borrow-button"), () => {
-                    goToPage("checkout?id=" + barcodeNumber);
-                });
-            }
-        });
+        if (!auth.currentUser) {
+            // If the user is not logged in, disable the borrow button and display a message if clicked.
+            $("#borrow-button").addClass("disabled");
+            createOnClick($("#borrow-button"), () => {
+                openModal("info", "You must be logged in to checkout a book. If you'd like to log in or sign up, click the appropriate button in the top right corner of the page.",
+                "You Must be Logged In");
+            });
+        } else {
+            // Check if the book is checked out and update the borrow button accordingly.
+            getCheckoutsByBook(barcodeNumber, 1).then((checkoutArray) => {
+                let checkoutObject = checkoutArray[0];
+                if (!bookObject.canBeCheckedOut) {
+                    // If the book cannot be checked out, disable the borrow button and display a message if clicked.
+                    $("#borrow-button").addClass("disabled");
+                    createOnClick($("#borrow-button"), () => {
+                        openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
+                    });
+                } else if (checkoutObject && !checkoutObject.complete) {
+                    // If the book is checked out, disable the borrow button and display a message if clicked.
+                    $("#borrow-button").addClass("disabled");
+                    createOnClick($("#borrow-button"), () => {
+                        openModal("info", "This book is currently checked out. It should be back in the library in a few weeks.", "This Book is Checked Out");
+                    });
+                } else {
+                    $("#borrow-button").removeClass("disabled");
+                    createOnClick($("#borrow-button"), () => {
+                        goToPage("checkout?id=" + barcodeNumber);
+                    });
+                }
+            });
+        }
 
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
