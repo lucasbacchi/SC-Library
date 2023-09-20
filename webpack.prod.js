@@ -8,5 +8,9 @@ const common = require("./webpack.common");
 // This is just a javascript module that exports the config to webpack
 // @ts-ignore
 module.exports = merge(common, {
-    mode: "production"
+    mode: "production",
+    optimization: {
+        runtimeChunk: "single",
+        minimize: true
+    }
 });
