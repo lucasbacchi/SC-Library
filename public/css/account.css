@@ -42,6 +42,8 @@
     max-width: fit-content;
     margin: 0 auto;
     position: relative;
+    margin-bottom: 16px;
+    border-radius: 600px;
 }
 
 #account-page-image {
@@ -53,22 +55,8 @@
 }
 
 #account-image-overlay {
-    width: 100%;
-    height: calc(100% - 5px);
-    padding-top: calc(50% - 1em);
-    background-color: #ffffff9a;
-    margin: 0 auto;
     border-radius: 600px;
-    z-index: 2;
     border: 3px solid #ffffff;
-    opacity: 0;
-    transition: 0.3s;
-    /* display: none; Removed for Accessibility */
-    position: absolute;
-    top: 0;
-    left: 0;
-    text-align: center;
-    cursor: pointer;
 }
 
 .menu-list > li {

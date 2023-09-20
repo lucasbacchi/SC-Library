@@ -1,81 +1,42 @@
 import { arrayUnion, collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { goToPage } from "./ajax";
-import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle } from "./common";
+import { search, buildBookBox, findURLValue, verifyISBN, openModal, updateBookDatabase, formatDate, windowScroll, ignoreScroll, setIgnoreScroll, Throttle, createOnClick } from "./common";
 import { Book, bookDatabase, db, historyManager, setBookDatabase, setCurrentHash, setTimeLastSearched, User } from "./globals";
 
 /**
  * @description Sets up the main page for the admin including all the event listeners.
  */
 export function setupAdminMain() {
-    $("#edit-entry-input").on("keydown", (event) => {
+    // Create an event listener for the search bar
+    $("#edit-entry-input").on("keyup", (event) => {
         if (event.key === "Enter") {
             adminSearch();
+            $("#edit-entry-input").trigger("blur");
         }
     });
 
+    // Create an event listener for the add entry input
     $("#add-entry-isbn").on("keydown", (event) => {
         if (event.key === "Enter") {
             addEntry();
+            $("#add-entry-isbn").trigger("blur");
         }
     });
 
-    $("#add-entry-without-isbn").on("click", () => {
-        addEntryWithoutISBN();
-    });
+    // Create other event listeners for all the buttons/links
+    createOnClick($("#add-entry-button"), addEntry);
+    createOnClick($("#add-entry-without-isbn"), addEntryWithoutISBN);
+    createOnClick($("#edit-entry-search"), adminSearch);
+    createOnClick($("#view-missing-barcodes"), viewMissingBarcodes);
+    createOnClick($("#import-link"), () => $("#import-input").trigger("click"));
+    createOnClick($("#export-link"), downloadDatabase);
 
-    $("#view-missing-barcodes").on("click", () => {
-        viewMissingBarcodes();
-    });
-
-    $("#import-link").on("click", () => {
-        $("#import-input").trigger("click");
-    });
-
-    // Keyboard Accessability
-    $("#add-entry-without-isbn").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        addEntryWithoutISBN();
-    });
-
-    $("#view-missing-barcodes").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        viewMissingBarcodes();
-    });
-
-    $("#import-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        $("#import-input").trigger("click");
-    });
-
+    // Create an event listener for the import input
     $("#import-input").on("change", (event) => {
         processImport(event);
     });
 
-    $("#export-link").on("click", () => {
-        downloadDatabase();
-    });
-
-    $("#export-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        downloadDatabase();
-    });
-
-    $("#add-entry-button").on("click", () => {
-        addEntry();
-    });
-
-    $("#edit-entry-search").on("click", () => {
-        adminSearch();
-    });
-
+    // Run the functions to fill in dynamic data
     recentlyCheckedOut();
     addStats();
 }
@@ -130,7 +91,7 @@ function adminSearch() {
 
 /**
  * @description A helper function for adminSearch(). Calls buildBookBox() for each book in the array.
- * @param {Books[]} objects The books to display in the edit entry search results.
+ * @param {Array<Book>} objects The books to display in the edit entry search results.
  */
 function adminBookBoxes(objects) {
     let maxResults = 10;
@@ -155,13 +116,31 @@ export function setupBarcodePage() {
     canvas = document.getElementById("canvas");
     ctx = canvas.getContext("2d");
 
-    $("#merge-one-barcode").on("click", () => {
-        createBarcode();
+    // Create event listeners for the inputs
+    $("#barcode-single-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode();
+            $("#barcode-single-input").trigger("blur");
+        }
     });
 
-    $("#merge-multiple-barcodes").on("click", () => {
-        createBarcode(true);
+    $("#barcode-multiple-input-start").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode(true);
+            $("#barcode-multiple-input-start").trigger("blur");
+        }
     });
+
+    $("#barcode-multiple-input-end").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            createBarcode(true);
+            $("#barcode-multiple-input-end").trigger("blur");
+        }
+    });
+
+    // Create event listeners for the buttons
+    createOnClick($("#merge-one-barcode"), createBarcode);
+    createOnClick($("#merge-multiple-barcodes"), createBarcode, true);
 }
 
 /**
@@ -259,13 +238,12 @@ function createBarcode(multiple = false) {
 /**
  * @description Loads the 12 individual images into the canvas. Once all are loaded, it renders the canvas to a png and downloads it.
  * @param {Number} num the number of the image 0-11 which is being loaded. 0 is the first bar, 11 is the last bar.
- * @param {Image[]} imageObjArray The array contianing the image objects.
- * @param {Boolean[]} imageObjLoadedArray An array containing a boolean that represents whether the image has loaded or not.
+ * @param {Array<Image>} imageObjArray The array contianing the image objects.
+ * @param {Array<Boolean>} imageObjLoadedArray An array containing a boolean that represents whether the image has loaded or not.
  * @param {String} currentBarcodeString The current barcode string.
  */
 function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
-    imageObjArray[num].onload = function () {
-        // console.log("Image #" + num + " has loaded");
+    imageObjArray[num].onload = () => {
         ctx.globalAlpha = 1;
         let position = 110 * 0.6 * num + 160;
         if (num != 0) {
@@ -365,7 +343,7 @@ function addStats() {
 /**
  * @description Called when the user clicks the "View Missing Barcodes" link.
  */
-// TODO: Remove this function after the system is fully updated to prevent wholes.
+// TODO: Remove this function after the system is fully updated to prevent holes.
 function viewMissingBarcodes() {
     let missingArray = [];
     bookDatabase.forEach((document) => {
@@ -390,7 +368,7 @@ function viewMissingBarcodes() {
  * @description Called when the user clicks the "Export" link. Downloads the database as a JSON file.
  */
 function downloadDatabase() {
-    updateBookDatabase().then(() => {
+    updateBookDatabase(true).then(() => {
         let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
@@ -425,35 +403,48 @@ function importFile(event) {
  * @param {InputEvent} event the onchange event that is generated when the user selects a file.
  */
 function processImport(event) {
+    let bookDatabasePromise = updateBookDatabase(true);
     importFile(event).then((file) => {
         if (file.type != "application/json") {
             openModal("error", "File type not recognized. Please upload a JSON file.");
             return;
         }
-        file.text().then((text) => {
-            try {
-                let dataToUpload = JSON.parse(text);
-                let newDatabase = [], modified = 0;
-                for (let i = 0; i < dataToUpload.length; i++) {
-                    let newDoc = [];
-                    for (let j = 0; j < dataToUpload[i].books.length; j++) {
-                        let newBook = Book.createFromObject(dataToUpload[i].books[j]);
-                        newDoc.push(newBook);
-                        if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
-                            modified++;
-                        }
+        let fileConversionPromise = file.text();
+        Promise.all([fileConversionPromise, bookDatabasePromise]).then((text) => {
+            let dataToUpload = JSON.parse(text[0]);
+            let newDatabase = [];
+            let modified = 0;
+
+            // Convert the data to an array of arrays of books and count the number of books that will be modified
+            for (let i = 0; i < dataToUpload.length; i++) {
+                let newDoc = [];
+                for (let j = 0; j < dataToUpload[i].books.length; j++) {
+                    let newBook = Book.createFromObject(dataToUpload[i].books[j]);
+                    newDoc.push(newBook);
+                    if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
+                        modified++;
                     }
-                    newDatabase.push(newDoc);
                 }
-                let ndlen = newDatabase.length, bdlen = bookDatabase.length;
-                let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
-                // Open a modal to confirm the import
-                openModal("warning",
-                    "This will overwrite the entire books database.<br>" +
-                    "<span id=\"import-added\">0</span> books added<br>" +
-                    "<span id=\"import-deleted\">0</span> books deleted<br>" +
-                    "<span id=\"import-modified\">0</span> books modified",
-                    "Are you sure?", "Yes, Import", () => {
+                newDatabase.push(newDoc);
+            }
+            let ndlen = newDatabase.length, bdlen = bookDatabase.length;
+            let diff = 100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
+            // Open a modal to confirm the import
+            openModal("warning",
+                "This will overwrite the entire books database.<br>" +
+                "<span id=\"import-added\">0</span> books added<br>" +
+                "<span id=\"import-deleted\">0</span> books deleted<br>" +
+                "<span id=\"import-modified\">0</span> books modified",
+                "Are you sure?", "Yes, Import",
+                () => {
+                    // The user confirmed the import
+                    let loadingModal = openModal("info", "Please wait. This may take a while. Do not close this window or navigate to a new page.", "Importing Database...", "");
+                    // If an error occurs somewhere in this process, tell the user after 10 seconds
+                    let loadingTimer = window.setTimeout(() => {
+                        loadingModal();
+                        openModal("issue", "We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
+                    }, 30000);
+
                     importDatabase(newDatabase).then(() => {
                         setBookDatabase(null);
                         setTimeLastSearched(null);
@@ -466,19 +457,25 @@ function processImport(event) {
                         loadingModal();
                     });
                 }, "No, Cancel", () => {
+                    // The user cancelled the import
                     $("#import-input").val("");
-                });
-                fillImportModal(diff, modified);
-            } catch (error) {
-                console.error(error);
-                openModal("error", "Something went wrong. Please check the file you are trying to import.");
-            }
+                }
+            );
+            fillImportModal(diff, modified);
+        }).catch((error) => {
+            console.error(error);
+            openModal("error", "Something went wrong. Please check the file you are trying to import.");
         });
     }).catch(() => {
         console.log("The user did not upload a valid file.");
     });
 }
 
+/**
+ * @description Fills in the import modal with the number of books that will be added/deleted and modified.
+ * @param {Number} diff The difference in the number of books between the current database and the one being imported.
+ * @param {Number} modified The number of books that will be modified.
+ */
 function fillImportModal(diff = 0, modified = 0) {
     if (diff > 0) {
         $("#import-added").html(diff);
@@ -490,48 +487,31 @@ function fillImportModal(diff = 0, modified = 0) {
     $("#import-modified").html(modified);
 }
 
-var loadingTimer;
-var loadingModal;
+/**
+ * @description Imports the processed database from a file into the firestore database.
+ * @param {Array<Array<Book>>} database An array of arrays of books to import. Does not include the order field (that will be handled by this function).
+ * @returns {Promise<void>} A promise that resolves when the database is imported.
+ */
 function importDatabase(database) {
-    loadingModal = openModal("info", "Please wait. This may take a while. Do not close this window or navigate to a new page.", "Importing Database...", "");
-    // If an error occurs somewhere in this process, tell the user after 10 seconds
-    loadingTimer = window.setTimeout(() => {
-        loadingModal();
-        openModal("issue", "We did not complete the import process in 30 seconds. An error has likely occurred. Your changes may not have been saved.");
-    }, 30000);
     return new Promise((resolve) => {
         // Get a new write batch
         let batch = writeBatch(db);
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then((querySnapshot) => {
+            // Set each doc for deletion (in case the new database is smaller)
             querySnapshot.forEach((docSnap) => {
                 if (!docSnap.exists()) {
                     throw "The books document doesn't exist";
                 }
-                // Set each doc for deletion
                 batch.delete(docSnap.ref);
             });
+
+            // Add all the new docs
             for (let i = 0; i < database.length; i++) {
                 // Create a new doc and add all the books to be imported into it
                 let newDoc = [];
                 for (let j = 0; j < database[i].length; j++) {
                     let newBook = database[i][j].toObject();
-                    // temporarily renaming things to old scheme
-                    // for (let k = 0; k < 2; k++) {
-                    //     if (newBook.authors[k]) {
-                    //         newBook.authors[k] = {
-                    //             first: newBook.authors[k].firstName,
-                    //             last: newBook.authors[k].lastName
-                    //         };
-                    //     }
-                    //     if (newBook.illustrators[k]) {
-                    //         newBook.illustrators[k] = {
-                    //             first: newBook.illustrators[k].firstName,
-                    //             last: newBook.illustrators[k].lastName
-                    //         };
-                    //     }
-                    // }
-                    // newBook.audience = [newBook.audience.children, newBook.audience.youth, newBook.audience.adult,
-                    //     !(newBook.audience.children || newBook.audience.youth || newBook.audience.adult)];
+                    // If we need to programatically edit the formatting of the database, do it here
                     newDoc.push(newBook);
                 }
                 // Set the new doc for addition
@@ -540,6 +520,7 @@ function importDatabase(database) {
                     order: i
                 });
             }
+
             // Commit all the staged writes
             batch.commit().then(() => {
                 resolve();
@@ -555,7 +536,7 @@ function importDatabase(database) {
 export function setupView(pageQuery) {
     let type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        updateBookDatabase().then(() => {
+        updateBookDatabase(true).then(() => {
             bookDatabase.forEach((doc, docIndex) => {
                 doc.books.forEach((book, bookIndex) => {
                     $("div#view-container")[0].appendChild(buildBookBox(book, "view", docIndex*100 + bookIndex));
@@ -563,7 +544,7 @@ export function setupView(pageQuery) {
             });
         });
     } else if (type == "users") {
-        getAllUsers().then(() => {
+        getAllUsers().then((userDatabase) => {
             userDatabase.forEach((user, index) => {
                 $("div#view-container")[0].appendChild(buildUserBox(user, "view", index));
             });
@@ -666,15 +647,14 @@ function buildUserBox(obj, page, num = 0) {
     return a;
 }
 
-var userDatabase = [];
 /**
- * @description Gets all the users from the database and stores them in the userDatabase array.
- * @returns {Promise<void>} A promise that resolves when the userDatabase is loaded.
+ * @description Gets all the users from the database, converts them to User objects, and returns them.
+ * @returns {Promise<Array<User>>} A promise that resolves to an array of User objects.
  */
 function getAllUsers() {
     return new Promise((resolve) => {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then((querySnapshot) => {
-            userDatabase = [];
+            let userDatabase = [];
             querySnapshot.forEach((docSnap) => {
                 if (!docSnap.exists()) {
                     console.error("user document does not exist");
@@ -682,7 +662,7 @@ function getAllUsers() {
                 }
                 userDatabase.push(User.createFromObject(docSnap.data()));
             });
-            resolve();
+            resolve(userDatabase);
         });
     });
 }
@@ -716,21 +696,11 @@ export function setupInventory() {
         openModal("error", "Error loading inventory: " + error);
     });
 
-    $("#restart-inventory").on("click", () => {
-        restartInventory();
-    });
-
-    $("#inventory-cancel-button").on("click", () => {
-        cancelInventory();
-    });
-
-    $("#inventory-next-button").on("click", () => {
-        continueScanning();
-    });
-
-    $("#continue-scanning-button").on("click", () => {
-        continueScanning();
-    });
+    // Set up the event listeners
+    createOnClick($("#restart-inventory"), restartInventory);
+    createOnClick($("#inventory-cancel-button"), cancelInventory);
+    createOnClick($("#inventory-next-button"), continueScanning);
+    createOnClick($("#continue-scanning-button"), continueScanning);
 }
 
 var cachedInventory = [];

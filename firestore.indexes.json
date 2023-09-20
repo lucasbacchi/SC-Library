@@ -1,11 +1,45 @@
 {
   "indexes": [
-    { 
+    {
+      "collectionGroup": "checkouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "barcodeNumber",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "checkouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cardNumber",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "checkouts", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "lastCheckoutTime", "order": "ASCENDING" }
+        {
+          "fieldPath": "checkouts",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "lastCheckoutTime",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

@@ -6,23 +6,16 @@ import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
-import { onCLS, onFID, onLCP, onTTFB } from 'web-vitals';
+import { onCLS, onFID, onLCP, onTTFB } from "web-vitals";
 
 
 import {
     currentPage, db, directory, app, setApp, setCurrentPage, setCurrentPanel,
     setDb, setPerformance, setStorage, setAnalytics, analytics, setAuth, auth, setCurrentQuery,
-    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, User, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
+    currentQuery, historyManager, setHistoryManager, setCurrentHash, currentHash, performance, setBookDatabase, iDB, setIDB, setTimeLastSearched, Book
 } from "./globals";
-import { encodeHTML, findURLValue, openModal, setIgnoreScroll, updateScrollPosition, windowScroll } from "./common";
+import { createOnClick, encodeHTML, findURLValue, getUser, openModal, setIgnoreScroll, softBack, updateScrollPosition, windowScroll } from "./common";
 
-
-// eslint-disable-next-line no-unused-vars
-var url = window.location.href;
-var path = window.location.pathname;
-var query = window.location.search;
-var hash = window.location.hash;
-var fullExtension = path + query + hash;
 
 
 // This is the first thing to run. It initializes everything and goes to the correct page when the page loads
@@ -31,8 +24,13 @@ $(() => {
         setupIndex();
         setupIndexedDB();
         setHistoryManager(window.history.state);
-        goToPage(fullExtension.substring(1), true);
-        historyManager.first(fullExtension.substring(1));
+        let page = window.location.pathname.substring(1) + window.location.search + window.location.hash;
+        goToPage(page, true).catch((error) => {
+            if (error != "restoreHistory") {
+                console.error("Problem with initial page load:", error);
+            }
+        });
+        historyManager.first(page);
     }).catch((error) => {
         console.error(error);
     });
@@ -70,7 +68,23 @@ function interceptLinkClick(event) {
 
     // Tell the browser not to respond to the link click
     event.preventDefault();
-    goToPage(target.getAttribute("href"));
+
+    // If href is just a hashtag, then don't do anything
+    if (href == "#") {
+        return;
+    }
+
+    // Add a leading slah if there isn't one
+    if (href.charAt(0) != "/") {
+        href = "/" + href;
+    }
+
+    // Handle link clicks with the control key to open in a new tab
+    if (event.ctrlKey) {
+        window.open(window.location.origin + href, "_blank");
+    } else {
+        goToPage(href);
+    }
 }
 
 
@@ -97,78 +111,39 @@ function setupIndex() {
         }
     }, 100);
 
-    // Set up on click for header search button
-    $("#header-search-button").on("click", () => {
-        headerSearch();
-    });
-
-    // Set up listener for Enter key on header search bar
-    $("#header-search-input").on("keydown", (event) => {
-        if (event.key === "Enter") {
+    // Setup an event listener for the search bar
+    $("#header-search-input").on("keyup", (event) => {
+        if (event.key == "Enter") {
             headerSearch();
+            $("#header-search-input").trigger("blur");
         }
     });
 
-    // Set up on click for log out button
-    $("div#log-out").on("click", () => {
-        signOutUser();
-    });
+    // Setup on click for header search button
+    createOnClick($("#header-search-button"), headerSearch);
 
-    // Manage Menu Button event listener
-    $("#hamburger-button").on("click", () => {
-        openNavMenu();
-    });
+    // Setup an on click for the menu button
+    createOnClick($("#hamburger-button"), openNavMenu);
 
-    // Manage Menu Close Button event listener
-    $("#close-button").on("click", () => {
-        closeNavMenu();
-    });
+    // Setup an on click for the close button
+    createOnClick($("#close-button"), closeNavMenu);
 
-    // Keyboard Acessibility
-    $("div#log-out").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        signOutUser();
-    });
-    $("#hamburger-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        openNavMenu();
-    });
-    $("#close-button").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        closeNavMenu();
-    });
+    // Setup an on click for the logout button
+    createOnClick($("#log-out"), signOutUser);
 
     // Manage Nav Links when screen gets small
     $(window).on("resize", () => {
         closeNavMenu();
+        resizeContentDiv();
     });
 
     // Manage Account Panel and animation
-    $("#small-account-container").on("click", () => {
+    createOnClick($("#small-account-container"), () => {
         if ($("#large-account-container").css("opacity") == "0") {
             openLargeAccount();
         } else {
             closeLargeAccount();
         }
-
-    });
-    // Keyboard Acessibility
-    $("#small-account-container").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        if ($("#large-account-container").css("opacity") == "none") {
-            openLargeAccount();
-        } else {
-            closeLargeAccount();
-        }
-
     });
 
     // Watch for clicks outside of the account panel
@@ -205,39 +180,50 @@ function setupIndex() {
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
     $(window).on("scroll", () => {
+        let banners = ($("#banner-container > div:visible").length > 0) ? true : false;
+
         if ($(document).scrollTop() > 0) {
-            $("header").css("box-shadow", "0px -7px 16px 5px var(--teal)");
+            if (!banners) {
+                $("header").css("box-shadow", "0px 0px 16px 0px var(--teal)");
+            } else {
+                $("#banner-container").css("box-shadow", "0px 0px 16px 0px #eee");
+            }
         } else {
             $("header").css("box-shadow", "");
+            $("#banner-container").css("box-shadow", "");
         }
+
         closeLargeAccount();
         closeNavMenu();
         updateScrollPosition();
     });
 
+    // Remove the preload class after the initial animations.
+    setTimeout(() => {
+        $(".preload").removeClass("preload");
+    }, 500);
+
     // Setup a ResizeObserver to watch for changes in the content div
-    let contentDiv = document.getElementById("content");
-    let contentDivObserver = new ResizeObserver(() => {
+    let contentDivObserver = new ResizeObserver(resizeContentDiv);
+    contentDivObserver.observe($("#content")[0]);
+
+    function resizeContentDiv() {
         // If we know the content is still loading, don't do anything
-        if (contentDiv.classList.contains("loading")) {
+        if ($("#content").hasClass("loading")) {
             return;
         }
-        let contentHeight = contentDiv.offsetHeight + 48; // 48px is the padding on the index container
-        let minHeight = window.innerHeight - $("#header-spacer").height() - $("#footer-spacer").height();
-        if (contentHeight < minHeight) {
-            contentHeight = minHeight;
-        }
-        $("#index-content-container").css("height", contentHeight);
-    });
-    contentDivObserver.observe(contentDiv);
 
-    // Setup a ResizeObserver to watch for changes the footer
-    let footer = document.getElementsByTagName("footer")[0];
-    let footerObserver = new ResizeObserver(() => {
-        let footerHeight = footer.offsetHeight;
-        $("#footer-spacer").css("height", footerHeight);
-    });
-    footerObserver.observe(footer);
+        let contentHeight = $("#content").height() + $("#index-content-container").innerHeight() - $("#index-content-container").height(); // Add the padding of the content container
+        let otherHeights = 0;
+        $("body").children().each((index, element) => {
+            if (element.id != "index-content-container" && element.id != "cover") {
+                otherHeights += $(element).outerHeight(true);
+            }
+        });
+        let minHeight = window.innerHeight - otherHeights;
+
+        $("#index-content-container").css("height", Math.max(contentHeight, minHeight));
+    }
 }
 
 /**
@@ -375,7 +361,7 @@ export function isAdminCheck(recheck = false) {
  * Called every time the user wants to go to a new page. The function checks if the page change is valid.
  * If the page change is valid, the function will go to the new page by calling getPage().
  * @param {String} pageName The name of the page to go to.
- * @param {Boolean} goingBack Whether the user is going forward or backward in the history. (Prevents new history entries)
+ * @param {Boolean} goingBack Whether the user is going forward or backward in the history. This prevents new history entries, but a .catch must be added to the goToPage() call if true.
  * @param {Boolean} bypassUnload Whether to bypass the unload event.
  * @returns {Promise<void>} A promise representing the loading progress of the page.
  */
@@ -524,17 +510,20 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
                 goToPage("");
                 return;
             }
-            getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
-                pageSetup(pageName, goingBack, pageHash, pageQuery).then(() => {
+            return getPage(pageName, goingBack, pageHash, pageQuery).then(() => {
+                return pageSetup(pageName, goingBack, pageHash, pageQuery).then(() => {
+                    if (pageName != "account") {
+                        setCurrentPanel(null);
+                    }
+                    setCurrentPage(pageName);
+                    setCurrentQuery(pageQuery);
+                    setCurrentHash(pageHash);
                     resolve();
                 });
             });
+        }).catch((error) => {
+            reject(error);
         });
-    }).then(() => {
-        // Will Run after goToPage resolves
-        $("#cover").hide();
-        $("body").addClass("fade");
-        $("body").css("overflow", "");
     }).catch((error) => {
         if (error == "Cancelled by BeforeUnload Event") {
             console.log("goToPage function cancelled by BeforeUnload Event");
@@ -550,7 +539,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 
         // Trigger catch in the history function
         if (goingBack) {
-            return Promise.reject();
+            return Promise.reject("restoreHistory");
         }
     });
 }
@@ -563,7 +552,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
  * @param {String} pageQuery The query of the page to load.
  * @returns {Promise<void>} A promise that represents the loading prgress of the page.
  */
-function getPage(pageName, goingBack, pageHash, pageQuery) {
+function getPage(pageName, goingBack, pageHash = "", pageQuery = "") {
     return new Promise((resolve, reject) => {
         // Prepare the page for loading
         $("#content").addClass("loading");
@@ -606,13 +595,19 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
 
         xhttp.timeout = 5000;
         xhttp.ontimeout = (event) => {
-            reject();
+            reject("Page load timed out.");
             console.error(event);
+            softBack();
+        };
+        xhttp.onerror = (event) => {
+            reject("Page load failed.");
+            console.error(event);
+            softBack();
         };
 
         // Set the content of the page
-        xhttp.onreadystatechange = function () {
-            if (this.readyState == 4 && this.status == 200) {
+        xhttp.onreadystatechange = () => {
+            if (xhttp.readyState == 4 && xhttp.status == 200) {
                 let pageUrl = "/" + pageName;
                 if (pageUrl == "/index.html" || pageUrl == "/index" || pageUrl == "/main" || pageUrl == "/main.html") {
                     pageUrl = "/";
@@ -628,7 +623,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 // Set Title Correctly
                 let titleList = {
                     "admin/editEntry": "Edit an Entry",
-                    "admin/main": "Admin Console",
+                    "admin/main": "Admin Dashboard",
                     "admin/report": "Run a Report",
                     "admin/barcode": "Generate Barcodes",
                     "admin/view": "View Database",
@@ -658,8 +653,29 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
                 }
 
                 resolve();
+            } else if (xhttp.readyState == 4 && xhttp.status == 404) {
+                reject("404: Page not found: " + pageName);
+                getPage("404", goingBack).then(() => {
+                    resolve();
+                });
             }
         };
+    }).then(() => {
+        // Change Index Page Frame if needed
+        if (pageName != "result") {
+            $("#header-search-input").val(findURLValue(pageQuery, "query", true));
+        }
+
+        // Start fading the page in
+        if (currentPage != pageName) {
+            window.setTimeout(() => {
+                $("#content").removeClass("page-hidden");
+                $("#content").addClass("fade");
+            }, 100);
+        }
+        $("#cover").hide();
+        $("body").addClass("fade");
+        $("body").css("overflow", "");
     });
 }
 
@@ -673,7 +689,7 @@ function getPage(pageName, goingBack, pageHash, pageQuery) {
  */
 function pageSetup(pageName, goingBack, pageHash, pageQuery) {
     return new Promise((resolve) => {
-        // No function for help, autogenindex, about, advancedsearch, or 404 so just resolve
+        // No function for help, about, advancedSearch, or 404 so just resolve
         if (pageName == "help" || pageName == "about" || pageName == "advancedsearch" || pageName == "404") {
             resolve();
         }
@@ -826,28 +842,6 @@ function pageSetup(pageName, goingBack, pageHash, pageQuery) {
             console.error("No setup function for page: " + pageName);
             resolve();
         }
-    }).then(() => {
-        // Page Content has now Loaded and setup is done
-
-        // Change Index Page Frame if needed
-        if (pageName != "result") {
-            $("#header-search-input").val(findURLValue(pageQuery, "query", true));
-        }
-
-        // Start fading the page in
-        if (currentPage != pageName) {
-            window.setTimeout(() => {
-                $("#content").removeClass("page-hidden");
-                $("#content").addClass("fade");
-            }, 100);
-        }
-
-        if (pageName != "account") {
-            setCurrentPanel(null);
-        }
-        setCurrentPage(pageName);
-        setCurrentQuery(pageQuery);
-        setCurrentHash(pageHash);
     });
 }
 
@@ -1136,13 +1130,7 @@ export function updateUserAccountInfo() {
         if (user) {
             // User is signed in.
             // Get the information about the current user from the database.
-            getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-                if (!docSnap.exists()) {
-                    throw "The user document could not be found. Ignore if the user just signed up.";
-                }
-
-                let userObject = User.createFromObject(docSnap.data());
-
+            getUser().then((userObject) => {
                 // Update the UI with the information from the doc
                 $("#account-name").text(userObject.firstName + " " + userObject.lastName);
                 updateEmailinUI(userObject.email);
@@ -1166,19 +1154,7 @@ export function updateUserAccountInfo() {
                 // Change Account Container Appearence
                 $("#nav-login-signup").hide();
                 $("#small-account-container").show();
-                $("#large-account-image").show();
-                $("#large-account-image").show();
-                $("#account-email").show();
-                $("#account-settings").show();
-                $("#log-out").html("Log Out").css("width", "50%").on("click", () => {
-                    signOutUser();
-                }).on("keydown", (event) => {
-                    // Keyboard accessibility
-                    if (event.key != "Enter") {
-                        return;
-                    }
-                    signOutUser();
-                });
+
                 resolve();
             }).catch((error) => {
                 console.error("Could not get the user information from the database: ", error);
@@ -1189,11 +1165,7 @@ export function updateUserAccountInfo() {
             // Change Account Container Appearence
             $("#nav-login-signup").show();
             $("#small-account-container").hide();
-            $("#large-account-image").hide();
-            $("#account-email").hide();
-            $("#account-name").html("No user signed in");
-            $("#account-settings").hide();
-            $("#log-out").html("<a href=\"/login.html\">Log In</a>").css("width", "100%").attr("onclick", "").off("click").off("keydown");
+
             resolve();
         }
     });

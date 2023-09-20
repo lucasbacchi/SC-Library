@@ -12,17 +12,35 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "!/@(content|css|dist|img|js)/**",
         "destination": "/index.html"
       }
     ],
     "headers": [
       {
-        "source": "*",
+        "source": "/**",
         "headers": [
           {
             "key": "Cache-Control",
             "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|css|map|ico|json)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=604800"
+          }
+        ]
+      },
+      {
+        "source": "*",
+        "headers": [
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=604800; includeSubDomains"
           }
         ]
       }
@@ -54,10 +72,14 @@
     },
     "ui": {
       "enabled": true
-    }
+    },
+    "functions": {
+      "port": 5001
+    },
+    "singleProjectMode": true
   },
   "extensions": {
-    "firestore-send-email": "firebase/firestore-send-email@0.1.24"
+    "firestore-send-email": "firebase/firestore-send-email@0.1.25"
   },
   "functions": [
     {

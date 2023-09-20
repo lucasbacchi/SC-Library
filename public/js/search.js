@@ -1,8 +1,9 @@
-import { changePageTitle, goToPage, isAdminCheck } from './ajax';
-import { addBarcodeSpacing, buildBookBox, findURLValue, getBookFromBarcode, openModal, removeURLValue, search, sendEmail, setURLValue, updateBookDatabase, windowScroll } from './common';
-import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from './globals';
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
-import { logEvent } from 'firebase/analytics';
+import { changePageTitle, goToPage, isAdminCheck } from "./ajax";
+import { addBarcodeSpacing, buildBookBox, createOnClick, findURLValue, getBookFromBarcode, openModal,
+    removeURLValue, search, sendEmail, setURLValue, softBack, updateBookDatabase, windowScroll } from "./common";
+import { analytics, auth, Book, bookDatabase, db, HistoryManager, historyManager, searchCache, setSearchCache, timeLastSearched } from "./globals";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { logEvent } from "firebase/analytics";
 
 var isBrowse;
 var browseResultsArray;
@@ -15,40 +16,7 @@ const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
-    // Create Sort Dropdown Event Listener
-    $("#sort-main-title").on("click", () => {
-        if (window.innerWidth <= 786) {
-            $("#sort-sidebar").toggleClass("sort-open");
-        } else {
-            $("#sort-sidebar").removeClass("sort-open");
-        }
-    });
-
-    $("#search-page-search-input").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            searchPageSearch();
-        }
-    });
-
-    $("#search-page-search-button").on("click", () => {
-        searchPageSearch();
-    });
-
-    $("#apply-filters-button").on("click", () => {
-        if (isBrowse) {
-            browse(page).then((resultsArray) => {
-                applySearchFilters(resultsArray);
-            });
-        } else {
-            applySearchFilters(searchCache);
-        }
-    });
-
     let queryFromURL = findURLValue(pageQuery, "query", true);
-
-    $("#search-page-search-input").val(queryFromURL);
-
-    // If you are entering the page without a search completed
     if (queryFromURL == "") {
         isBrowse = true;
     } else {
@@ -62,12 +30,58 @@ export function setupSearch(pageQuery) {
         page = parseInt(page);
     }
 
+    // Set the search bar value to the query from the URL.
+    $("#search-page-search-input").val(queryFromURL);
+
     docsUsed = [];
     browseResultsArray = [];
     filters = null;
     setSearchCache(null);
 
     goToSearchPage(page);
+
+
+    // Set the tab index of the sort dropdown.
+    function sortTabResize() {
+        if (window.innerWidth > 786) {
+            $("#sort-main-title").attr("tabindex", "");
+        } else {
+            $("#sort-main-title").attr("tabindex", "0");
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    }
+
+    // Create an event listener to change the tab index of the sort dropdown when the window is resized.
+    $(window).on("resize", () => { sortTabResize(); });
+    sortTabResize();
+
+    // Create Sort Dropdown Event Listener
+    createOnClick($("#sort-main-title"), () => {
+        if (window.innerWidth <= 786) {
+            $("#sort-sidebar").toggleClass("sort-open");
+        } else {
+            $("#sort-sidebar").removeClass("sort-open");
+        }
+    });
+
+    // Setup Search Page Search Bar Event Listeners
+    $("#search-page-search-input").on("keydown", (event) => {
+        if (event.key === "Enter") {
+            searchPageSearch();
+        }
+    });
+    createOnClick($("#search-page-search-button"), searchPageSearch);
+
+    // Apply Filters Event Listener
+    createOnClick($("#apply-filters-button"), () => {
+        if (isBrowse) {
+            browse(page).then((resultsArray) => {
+                applySearchFilters(resultsArray);
+            });
+        } else {
+            applySearchFilters(searchCache);
+        }
+    });
 }
 
 /**
@@ -115,6 +129,10 @@ function browse(page = 1) {
     });
 }
 
+/**
+ * @description Gets the next set of books for browsing. Serves as the callback for the browse function in a recursive loop.
+ * @returns {Promise<Array<Book>>} A promise that resolves with the next set of books for browsing.
+ */
 function browseNext() {
     return new Promise((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
@@ -258,21 +276,27 @@ function getNewBooksForSearch(page) {
         // Filter the results array.
         resultsArray = filterSearchResults(resultsArray);
         createSearchResultsPage(resultsArray, page);
-        clearTimeout(timer);
-        if (loadingModal) {
-            loadingModal();
-        }
+
         if (page > 1) {
             setURLValue("page", page);
         } else {
             removeURLValue("page", true);
+        }
+    }).catch((error) => {
+        openModal("error", "There was an error getting the books. Please try again later.", "Error Getting Books");
+        console.error(error);
+        softBack();
+    }).finally(() => {
+        clearTimeout(timer);
+        if (loadingModal) {
+            loadingModal();
         }
     });
 }
 
 /**
  * @description Creates a search results page. Adds the book objects, pagination, and filters to the page.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
 function createSearchResultsPage(resultsArray, page = 1) {
@@ -324,6 +348,11 @@ function createSearchResultsPage(resultsArray, page = 1) {
     $("#content").removeClass("loading");
 }
 
+/**
+ * @description Creates the paginator for the search results page.
+ * @param {Array<Book>} resultsArray The array of books that are going to appear on the page (to determine length).
+ * @param {Number} page The current page number.
+ */
 function createPaginator(resultsArray, page) {
     $("#paginator").empty();
     $("#paginator").css("display", "flex");
@@ -378,7 +407,7 @@ function createPaginator(resultsArray, page) {
 
 /**
  * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
- * @param {Book[]} resultsArray The array of books to list on the search results page.
+ * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  */
 function createFilterList(resultsArray) {
     // If the filters object is empty, we need to create the data type.
@@ -453,10 +482,13 @@ function createFilterList(resultsArray) {
         filters[filterType].sort((a, b) => b.count - a.count);
     });
 
-    bulidFilterList();
+    buildFilterList();
 }
 
-function bulidFilterList() {
+/**
+ * @description Creates the HTML elements for the filters.
+ */
+function buildFilterList() {
     FILTER_TYPES.forEach((filterType) => {
         $("#sort-" + filterType + "-list").empty();
         filters[filterType].forEach((filter, index) => {
@@ -535,8 +567,8 @@ function applySearchFilters() {
 
 /**
  * @description Iterates through the search cache and filters out the items that don't match the filters.
- * @param {Book[]} resultsArray The array of books to filter.
- * @returns {Book[]} The filtered array of books.
+ * @param {Array<Book>} resultsArray The array of books to filter.
+ * @returns {Array<Book>} The filtered array of books.
  */
 function filterSearchResults(resultsArray) {
     if (!filters || filters == {}) {
@@ -621,67 +653,23 @@ export function setupResultPage(pageQuery) {
     fillResultPage(barcodeNumber);
 
     // Create Event Listeners
-    $("#checkout-next-button").on("click", () => {
-        scanCheckout();
-    });
+    createOnClick($("#result-page-back-button"), softBack);
+    createOnClick($(".result-page-image"), displayResultPageImagePopup, barcodeNumber);
 
-    $("#checkout-cancel-button").on("click", () => {
-        cancelCheckout();
-    });
-
-    $("#result-page-back-button").on("click", () => {
-        // If we can go back without refreshing the page, do so, otherwise, send us home.
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
-    });
-
-    $(".result-page-image").on("click", () => {
-        const imgContainer = document.createElement("div");
-        imgContainer.classList.add("modal-container");
-        imgContainer.style.backgroundColor = "#000000c0";
-        const img = document.createElement("img");
-        img.id = "result-page-popup-image";
-        imgContainer.appendChild(img);
-        getBookFromBarcode(barcodeNumber).then((bookObject) => {
-            img.src = bookObject.coverImageLink;
-            img.onload = () => {
-                imgContainer.style.display = "block";
-                imgContainer.style.opacity = "1";
-                img.classList.add("modal-show");
-            };
-            $("#content")[0].appendChild(imgContainer);
-            imgContainer.addEventListener("click", () => {
-                imgContainer.style.opacity = "0";
-                img.classList.remove("modal-show");
-                img.classList.add("modal-hide");
-                setTimeout(() => {
-                    $(".modal-container").remove();
-                }, 500);
-            });
-        });
-    });
-
-    if (auth.currentUser) {
-        $("#result-page-email").css("display", "block");
-    }
-
-    $("#result-page-email").on("click", () => {
+    createOnClick($("#result-page-email"), () => {
         let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber).then(() => {
-            loadingModal();
             openModal("success", "An email containing this book's information has been sent to the email address on file. Please check your inbox.", "Email Sent!");
         }).catch((error) => {
             console.error(error);
-            loadingModal();
             openModal("error", "An error occured while sending the email. Please try again later.\n\nIf the problem persists, contact us at library@southchurch.com for assistance.",
             "Error Sending Email");
+        }).finally(() => {
+            loadingModal();
         });
     });
 
-    $("#result-page-link").on("click", () => {
+    createOnClick($("#result-page-link"), () => {
         navigator.clipboard.writeText(window.location.href).then(() => {
             let closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
             window.setTimeout(() => {
@@ -690,56 +678,106 @@ export function setupResultPage(pageQuery) {
         });
     });
 
-    $("#result-page-print").on("click", () => {
-        window.print();
-    });
+    createOnClick($("#result-page-print"), window.print);
+
+    if (auth.currentUser) {
+        $("#result-page-email").css("display", "block");
+    }
 
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
             $("#result-page-edit").css("display", "block");
-
-            $("#result-page-edit").on("click", () => {
-                goToPage("admin/editEntry?new=false&id=" + barcodeNumber);
-            });
+            createOnClick($("#result-page-edit"), goToPage, "admin/editEntry?new=false&id=" + barcodeNumber);
         }
     });
 }
 
+/**
+ * @description Creates and displays a popup containing a higher resolution version of the book image.
+ * @param {String} barcodeNumber The barcode number of the book to create the popup for.
+ */
+function displayResultPageImagePopup(barcodeNumber) {
+    // Construct Container
+    const imgContainer = document.createElement("div");
+    imgContainer.classList.add("modal-container");
+    imgContainer.style.backgroundColor = "#000000c0";
+    imgContainer.tabIndex = "0";
+    // Construct Image
+    const img = document.createElement("img");
+    img.id = "result-page-popup-image";
+    imgContainer.appendChild(img);
+    // Get the link from the database and display it.
+    getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        if (!bookObject.coverImageLink) {
+            return;
+        }
+        img.src = bookObject.coverImageLink;
+        img.onload = () => {
+            imgContainer.style.display = "block";
+            imgContainer.style.opacity = "1";
+            img.classList.add("modal-show");
+        };
+        $("#content")[0].appendChild(imgContainer);
+        // Create Event Listener to Close Popup
+        createOnClick($(imgContainer), () => {
+            imgContainer.style.opacity = "0";
+            img.classList.remove("modal-show");
+            img.classList.add("modal-hide");
+            setTimeout(() => {
+                $(".modal-container").remove();
+            }, 500);
+        });
+        // Keep focus set on the image so that the user can close it with the enter key.
+        $(".result-page-image").trigger("blur");
+        setInterval(() => {
+            $(".modal-container").trigger("focus");
+        }, 100);
+    });
+}
+
+/**
+ * @description Fills the result page with the book's information.
+ * @param {String} barcodeNumber The barcode number of the book to get the information for.
+ */
 function fillResultPage(barcodeNumber) {
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
         if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
             openModal("error", "No information could be found for that book.");
-            goToPage("");
+            softBack();
             return;
         }
         changePageTitle(bookObject.title);
 
         if (bookObject.medium == "av") {
             $(".result-page-image").attr("src", "/img/av-image.png");
+            $(".result-page-image").removeAttr("tabindex");
+            $(".result-page-image").css("cursor", "default");
         } else {
+            $(".result-page-image").attr("tabindex", "0");
+            $(".result-page-image").css("cursor", "pointer");
             // Currently not checking for icons because they are too low quality. Could change that if needed.
-            if (bookObject.thumbnailImageLink.indexOf("http") != -1) {
+            if (bookObject.thumbnailImageLink && bookObject.thumbnailImageLink?.indexOf("http") != -1) {
                 $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
-            } else if (bookObject.coverImageLink.indexOf("http") != -1) {
+            } else if (bookObject.coverImageLink && bookObject.coverImageLink?.indexOf("http") != -1) {
                 console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
                 $(".result-page-image").attr("src", bookObject.coverImageLink);
             } else {
                 console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
-                $(".result-page-image").attr("src", "/img/favicon.ico");
+                $(".result-page-image").attr("src", "/img/default-book.png");
+                $(".result-page-image").removeAttr("tabindex");
+                $(".result-page-image").css("cursor", "default");
             }
         }
 
         $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
         if (!bookObject.canBeCheckedOut) {
             $("#checkout-button").addClass("disabled");
-            $("#checkout-button").on("click", () => {
+            createOnClick($("#checkout-button"), () => {
                 openModal("info", "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.", "Reference Book");
             });
         } else {
             $("#checkout-button").show();
-            $("#checkout-button").on("click", () => {
-                checkout(barcodeNumber);
-            });
+            createOnClick($("#checkout-button"), checkout, barcodeNumber);
         }
         $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
         if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
@@ -754,6 +792,7 @@ function fillResultPage(barcodeNumber) {
             callNumberAnswer += "REF<br>";
         }
         callNumberAnswer += bookObject.ddc;
+        // TODO: Make sure that items with no author are not stored as empty person objects so this works.
         if (bookObject.authors.length != 0) {
             callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
         } else {
@@ -912,16 +951,16 @@ function fillResultPage(barcodeNumber) {
             item_id: barcodeNumber
         });
     }).catch((error) => {
-        // If we can go back without refreshing the page, do so, otherwise, send us home.
-        if (historyManager.currentIndex > 0) {
-            window.history.back();
-        } else {
-            goToPage("");
-        }
+        softBack();
         openModal("error", "No information could be found for that book.\n" + error);
     });
 }
 
+/**
+ * @description Sends an email to the user with the book's information.
+ * @param {String} barcodeNumber The barcode number of the book to get the information for.
+ * @returns {Promise<void>} A promise that resolves when the email has been sent.
+ */
 function resultPageEmail(barcodeNumber) {
     return new Promise((resolve, reject) => {
         getBookFromBarcode(barcodeNumber).then((book) => {
@@ -1015,102 +1054,6 @@ function checkout(barcodeNumber) {
         return;
     }
     openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
-    // $("#checkout-inner-popup-box").html("<p>You are checking out this book as: <b><span id='checkout-name'></span></b>.<br>If this is not you, please click cancel and log out.</p>");
-    // $("#checkout-popup").show();
-    // $("#checkout-name").html(auth.currentUser.email);
-    // $("#checkout-next-button").show();
-}
-
-/**
- * @description Cancels the checkout process.
- */
-function cancelCheckout() {
-    $("#checkout-popup").hide();
-}
-
-/**
- * @description After the user has verfied their account, this starts the process of scanning the barcode on the book.
- *              Then it uploads the checkout event to the database.
- */
-function scanCheckout() {
-    // TODO: Delete after implementing
-    openModal("info", "Checking out books is not yet supported online. Please visit the library in person to check out a book.");
-    return;
-    /*
-    $("#checkout-next-button").hide();
-    $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
-    $("#checkout-book-barcode").trigger("focus");
-    let barcodeNumber = $("#result-page-barcode-number").html();
-    $("#checkout-book-barcode").off("keydown");
-    $("#checkout-book-barcode").on("keydown", (event) => {
-        if (event.key === "Enter") {
-            $("#checkout-book-barcode").off("blur");
-            if ($("#checkout-book-barcode").val() == barcodeNumber) {
-                $("#checkout-inner-popup-box").html("<p>Please scan the barcode on the checkout table now.</p>");
-                $("#checkout-book-barcode").on("blur", () => { $('#checkout-book-barcode').trigger("focus"); });
-                $("#checkout-security-barcode").trigger("focus");
-                $("#checkout-security-barcode").off("keydown");
-                $("#checkout-security-barcode").on("keydown", (event) => {
-                    if (event.key === "Enter") {
-                        $("#checkout-security-barcode").off("blur");
-                        // TODO: Change to something else
-                        if ($("#checkout-security-barcode").val() != "") {
-                            // At this point, they must have scanned both, so we check it out to them.
-                            let bookNumber = barcodeNumber - 1171100000;
-                            let bookDocument = Math.floor(bookNumber / 100).toString().padStart(3, "0");
-                            bookNumber = bookNumber % 100;
-
-                            let d = new Date(2020);
-                            getDocs(query(collection(db, "users"), where("lastCheckoutTime", ">", d),
-                                where("checkouts", "array-contains", barcodeNumber),
-                                orderBy("lastCheckoutTime"), limit(5))).then((querySnapshot) => {
-                                    querySnapshot.forEach((docSnap) => {
-                                        docSnap.data().checkouts.forEach((checkoutObject) => {
-                                            if (checkoutObject.returnTime != null) {
-                                                openModal("error", "The book is already checked out to someone else. It must be returned first. Please put the book in the return area.");
-                                                return;
-                                            }
-                                        });
-                                    });
-                                });
-                            runTransaction(db, (transaction) => {
-                                return transaction.get(doc(db, "books", bookDocument)).then((docSnap) => {
-                                    if (!docSnap.exists()) {
-                                        openModal("error", "There was a problem with checking out that book.");
-                                        return;
-                                    }
-
-                                    let bookObject = docSnap.data().books[bookNumber];
-                                    if (bookObject.canBeCheckedOut == false) {
-                                        openModal("error", "We're sorry, but this is a reference book, and it may not be checked out.");
-                                        return;
-                                    }
-                                    let currentTime = Date.now();
-                                    // TODO: Rethink how this is all stored. Sub collection? Root collection?
-                                    transaction.update(doc(db, "users", auth.currentUser.uid), {
-                                        checkouts: arrayUnion({
-                                            barcodeNumber: barcodeNumber,
-                                            outTime: currentTime,
-                                            inTime: null,
-                                            title: bookObject.title
-                                        })
-                                    });
-                                });
-                            }).then(() => {
-                                openModal("success", "This book has been checked out to you successfully.");
-                                goToPage("");
-                            });
-                        }
-                    }
-                });
-            } else {
-                openModal("error", "This is not the right book. Please view the correct book's page before checking it out.");
-                cancelCheckout();
-            }
-        }
-    });
-    */
 }
 
 console.log("search.js has Loaded!");

@@ -1,6 +1,6 @@
 import { Book, HistoryManager, bookDatabase, db, historyManager } from "./globals";
 import { goToPage } from "./ajax";
-import { buildBookBox, updateBookDatabase } from "./common";
+import { buildBookBox, createOnClick, updateBookDatabase } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 
@@ -15,9 +15,7 @@ export function setupMain() {
         }
     });
 
-    $("#home-page-search-button").on("click", () => {
-        homePageSearch();
-    });
+    createOnClick($("#home-page-search-button"), homePageSearch);
 }
 
 /**

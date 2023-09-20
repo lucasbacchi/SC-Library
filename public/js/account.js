@@ -1,14 +1,14 @@
-import { EmailAuthProvider, reauthenticateWithCredential, updateEmail, updatePassword, updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { goToPage, updateEmailinUI, updateUserAccountInfo } from "./ajax";
-import { buildBookBox, encodeHTML, openModal, sendEmailVerificationToUser } from "./common";
-import { auth, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
+import { goToPage, updateUserAccountInfo } from "./ajax";
+import { buildBookBox, createOnClick, encodeHTML, getUser, openModal, sendEmailVerificationToUser, setupWindowBeforeUnload, updateUserEmail } from "./common";
+import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
 
 
 /**
- * @param {String} pageQuery The query string of the page from goToPage() 
  * @description Sets up the account page. This includes loading the user's information from the database and setting up the event listeners for the page.
+ * @param {String} pageQuery The query string of the page from goToPage()
  */
 export function setupAccountPage(pageQuery) {
     let user = auth.currentUser;
@@ -27,50 +27,8 @@ export function setupAccountPage(pageQuery) {
         goToSettingsPanel("overview");
     }
 
-    // Create Event Listeners to handle changes to the user's profile picture
-    // All are required to handle leaving the element and coming back again
-    $("#account-page-image").on("mouseover", () => {
-        showAccountImageOverlay();
-    });
-    $("#account-image-overlay").on("mouseleave", () => {
-        $("#account-image-overlay").css("opacity", "0");
-    });
-    $("#account-image-overlay").on("mouseover", () => {
-        $("#account-image-overlay").clearQueue().stop();
-        showAccountImageOverlay();
-    });
-
-    // Keyboard accessibility
-    $("#account-page-image").on("focus", () => {
-        showAccountImageOverlay();
-    });
-    $("#account-image-overlay").on("blur", () => {
-        $("#account-image-overlay").css("opacity", "0");
-    });
-    $("#account-image-overlay").on("focus", () => {
-        $("#account-image-overlay").clearQueue().stop();
-        showAccountImageOverlay();
-    });
-
-    function showAccountImageOverlay() {
-        $("#account-image-overlay").show();
-        setTimeout(() => {
-            $("#account-image-overlay").css("opacity", "1");
-        }, 5);
-    }
-
     // If a user clicks the button to change their pfp, click the input button
-    $("#account-image-overlay").on("click", () => {
-        if ($("#file-input")) {
-            $("#file-input").trigger("click");
-        }
-    });
-
-    // Keyboard accessibility
-    $("#account-image-overlay").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
+    createOnClick($("#account-image-overlay"), () => {
         if ($("#file-input")) {
             $("#file-input").trigger("click");
         }
@@ -86,7 +44,7 @@ export function setupAccountPage(pageQuery) {
  * @description Updates the account page (outer frame) with the user's information from the database
  */
 function updateAccountPageInfo() {
-    getAccountInfoFromDatabase().then((userObject) => {
+    getUser().then((userObject) => {
         $("#account-page-name").text(userObject.firstName + " " + userObject.lastName);
 
         let email = userObject.email;
@@ -104,80 +62,30 @@ function updateAccountPageInfo() {
     });
 }
 
-var userObject;
-/**
- * @description Gets the user's account information from the database
- * @returns {Promise<User>} The user object from the database
- */
-function getAccountInfoFromDatabase() {
-    return new Promise((resolve, reject) => {
-        let user = auth.currentUser;
-
-        // If the user object has already been loaded, return it, then load the data for the next time.
-        if (userObject) {
-            resolve(userObject);
-        }
-        // Get the stored data from the database
-        getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-            if (!docSnap.exists()) {
-                console.error("The user document could not be found.");
-                reject();
-                return;
-            }
-            userObject = User.createFromObject(docSnap.data());
-
-            resolve(userObject);
-        }).catch((error) => {
-            console.log("Failed to get the database file for this user", error);
-            reject();
-        });
-    });
-}
-
 /**
  * @description Sets up the account overview panel including filling the fields with the user's information and creating event listeners.
  */
 function setupAccountOverview() {
-    getAccountInfoFromDatabase().then((user) => {
+    getUser().then((user) => {
         fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
+
+        // If the user attempts to leave, let them know if they have unsaved changes.
+        setupWindowBeforeUnload(checkForChangedFields, user);
     }).catch((error) => {
         console.error(error);
         openModal("error", "There was an error getting your account information from the database. Please try again later.");
     });
 
-    $(".save-button").on("click", () => {
-        updateAccount();
-    });
-
-    $("#email-verified-link").on("click", () => {
-        sendEmailVerificationToUser();
-    });
-
-    // Keyboard accessibility
-    $("#email-verified-link").on("keydown", (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        sendEmailVerificationToUser();
-    });
-
-    // If the user attempts to leave, let them know if they have unsaved changes
-    $(window).on("beforeunload", (event) => {
-        if (checkForChangedFields() && !confirm("You have unsaved changes. Are you sure you want to leave this page?")) {
-            event.preventDefault();
-            return "You have unsaved changes! Please save changes before leaving!";
-        } else {
-            $(window).off("beforeunload");
-        }
-    });
+    createOnClick($(".save-button"), updateAccount);
+    createOnClick($("#send-email-verification"), sendEmailVerificationToUser);
 }
 
 /**
+ * @description Fills the account overview fields with the user's information.
  * @param {String} firstName the user's first name
  * @param {String} lastName the user's last name
  * @param {String} email the user's email address
  * @param {Number} cardNumber the user's card number
- * @description Fills the account overview fields with the user's information.
  */
 function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
     if (firstName && firstName != "") {
@@ -211,22 +119,15 @@ function setupAccountCheckouts() {
  * @description Sets up the account notifications page
  */
 function setupAccountNotifications() {
-    $(".save-button").on("click", () => {
-        updateAccount();
-    });
+    createOnClick($(".save-button"), updateAccount);
 }
 
 /**
  * @description Sets up the account security page
  */
 function setupAccountSecurity() {
-    $("#change-password").on("click", () => {
-        changePassword();
-    });
-
-    $("#delete-account-button").on("click", () => {
-        deleteAccount();
-    });
+    createOnClick($("#change-password"), changePassword);
+    createOnClick($("#delete-account-button"), deleteAccount);
 }
 
 /**
@@ -239,9 +140,9 @@ function getCheckouts() {
 }
 
 /**
+ * @description Creates the HTML elements for a checkout listing.
  * @param {Array<Book>} books the array of books to create HTML elements for
  * @param {String} str Used to determine which page the elements are being created for
- * @description Creates the HTML elements for a checkout listing.
  */
 function createCheckouts(books, str) {
     if (books.length == 0) {
@@ -262,66 +163,57 @@ function createCheckouts(books, str) {
  */
 function updateAccount() {
     let user = auth.currentUser;
-    if (!checkForChangedFields()) {
-        openModal("info", "There are no changes to save.");
-        return;
-    }
+    getUser().then((userObject) => {
+        if (!checkForChangedFields(userObject)) {
+            openModal("info", "There are no changes to save.");
+            return;
+        }
 
-    // If the names were changed, update them.
-    if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
-        ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
-        updateDoc(doc(db, "users", user.uid), {
-            firstName: $("#setting-first-name").val(),
-            lastName: $("#setting-last-name").val(),
-            lastUpdated: new Date()
-        }).then(() => {
-            // Assuming there was no problem with the update, set the new values on the index page and the account page.
-            updateUserAccountInfo();
-            updateAccountPageInfo();
-            openModal("success", "Your name was saved successfully.");
-        }).catch((error) => {
-            openModal("error", "An error has occured. Please try again later.");
-            console.error(error);
-        });
-    }
-
-    // If the email was changed update it.
-    if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-        let newEmail = $("#setting-email").val().toString();
-        updateEmail(user, newEmail).then(() => {
+        // If the names were changed, update them.
+        if (($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
+            ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)) {
             updateDoc(doc(db, "users", user.uid), {
-                email: newEmail,
+                firstName: $("#setting-first-name").val(),
+                lastName: $("#setting-last-name").val(),
                 lastUpdated: new Date()
             }).then(() => {
-                let email = user.email;
+                // Assuming there was no problem with the update, set the new values on the index page and the account page.
+                updateUserAccountInfo();
+                updateAccountPageInfo();
+                openModal("success", "Your name was saved successfully.");
+            }).catch((error) => {
+                openModal("error", "An error has occured. Please try again later.");
+                console.error(error);
+            });
+        }
+
+        // If the email was changed update it.
+        if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
+            let newEmail = $("#setting-email").val().toString();
+            updateUserEmail(newEmail).then(() => {
                 if (!user.emailVerified) {
                     $("#email-verified").show(); // The new email will likely not be verified
                 }
-                // Assuming there was no problem with the update, set the new values on the index page and the account page.
-                updateEmailinUI(email);
                 updateAccountPageInfo();
                 openModal("success", "Your email was saved successfully.");
             }).catch((error) => {
-                openModal("error", "There was an error updating your email. Please try again later.");
-                console.error(error);
-            });
-        }).catch((error) => {
-            // If the user needs to reauthenticate:
-            if (error.code == "auth/requires-recent-login") {
-                if (confirm("Please re-enter your password to complete this operation.")) {
-                    goToPage("login?redirect=account&email=" + newEmail, null, true);
+                // If the user needs to reauthenticate:
+                if (error.code && error.code == "auth/requires-recent-login") {
+                    let closeModal = openModal("info", "For your security, you will be redirected to the login page to re-enter your password", "Redirecting...", "OK", () => {
+                        closeModal();
+                        goToPage("login?redirect=account&email=" + newEmail, null, true);
+                    }, "Cancel", () => {
+                        closeModal();
+                        // Reset the email field to the old email
+                        fillAccountOverviewFields(userObject.firstName, userObject.lastName, userObject.email, userObject.cardNumber);
+                    });
+                } else {
+                    openModal("error", "An error has occured when trying to update your email. Please try again later.");
+                    console.error(error);
                 }
-            } else if (error.code == "auth/email-already-in-use") {
-                openModal("info", "This email is already associated with another account. Please sign into that account, or try a different email.");
-            } else {
-                openModal("error", "An error has occured when trying to update your email. Please try again later.");
-                console.error(error);
-            }
-        });
-    }
-
-    // Prevent the cached data from being used again.
-    userObject = null;
+            });
+        }
+    });
 }
 
 /**
@@ -337,9 +229,9 @@ function deleteAccount() {
 
 const xhttp = new XMLHttpRequest();
 /**
+ * @description Changes the account panel to the one specified by newPanel
  * @param {String} newPanel the path to the panel to load.
  * @returns {Promise<void>}
- * @description Changes the account panel to the one specified by newPanel
  */
 export function goToSettingsPanel(newPanel) {
     return new Promise((resolve, reject) => {
@@ -358,8 +250,8 @@ export function goToSettingsPanel(newPanel) {
         xhttp.send();
 
         // Set the content of the page
-        xhttp.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
+        xhttp.onreadystatechange = () => {
+            if (xhttp.readyState == 4 && xhttp.status == 200) {
                 if (currentPanel != newPanel) {
                     $("#settings-column").addClass("fade");
                 }
@@ -396,7 +288,7 @@ export function goToSettingsPanel(newPanel) {
  * @description Returns true if the user has unsaved changes on the overview panel, otherwise, returns false
  * @returns {Boolean} A boolean value indicating whether or not the user has unsaved changes.
  */
-function checkForChangedFields() {
+function checkForChangedFields(userObject) {
     let answer = false;
     if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
         answer = true;
@@ -464,8 +356,9 @@ function processAccountImage() {
         if (file) {
             let output = document.getElementById('account-page-image');
             output.src = encodeURI(URL.createObjectURL(file));
+            // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
             /* This is bad because then the canvas elements can't use the link
-            output.onload = function() {
+            output.onload = () => {
                 URL.revokeObjectURL(output.src); // free memory
             };*/
             output.onload = () => {

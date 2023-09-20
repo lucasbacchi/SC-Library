@@ -4,7 +4,7 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/admin/private_vars).data.admins;
     }
-    match /books/{barcode} {
+    match /books/{document} {
       allow read: if true;
     }
     match /config/cloud_vars {
@@ -17,8 +17,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId;
     }
-    match /admin/{doc} {
-      allow read, write: if false;
+    match /mail/{mailID} {
+    	allow create: if request.resource.data.to == "library@southchurch.com" && (request.resource.data.cc == null || request.resource.data.cc == request.auth.token.email) && (request.resource.data.bcc == null || request.resource.data.bcc == request.auth.token.email);
+      allow create: if resource.data.uid == request.auth.uid && request.resource.data.to == request.auth.token.email && (request.resource.data.cc == "library@southchurch.com" || request.resource.data.cc == null) && (request.resource.data.bcc == "library@southchurch.com" || request.resource.data.bcc == null);
+      allow read: if (resource.data.to == request.auth.token.email || resource.data.cc == request.auth.token.email || resource.data.bcc == request.auth.token.email || resource.data.uid == request.auth.uid);
     }
   }
 }

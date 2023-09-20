@@ -6,7 +6,7 @@
   "etags": {
     "south-church-library": {
       "extensionInstances": {
-        "firestore-send-email": "85da1fffd9ecc694c7d73fa301a149c4483b01e0c40ea92538170cecddb8419f"
+        "firestore-send-email": "6a85370627831ba9197893014d6a34496586be431e1a3884ac4d1627af015bf8"
       }
     }
   }
