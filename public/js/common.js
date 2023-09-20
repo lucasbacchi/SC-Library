@@ -607,6 +607,9 @@ export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, heade
         if (attachments) {
             document.message.attachments = attachments;
         }
+        if (auth.currentUser) {
+            document.uid = auth.currentUser.uid;
+        }
         addDoc(collection(db, "mail"), document).then((docRef) => {
             let unsub = onSnapshot(docRef, (doc) => {
                 if (!doc.exists) {

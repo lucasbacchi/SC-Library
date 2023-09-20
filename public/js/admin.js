@@ -534,7 +534,7 @@ function importDatabase(database) {
 export function setupView(pageQuery) {
     let type = findURLValue(pageQuery, "type");
     if (type == "books") {
-        updateBookDatabase().then(() => {
+        updateBookDatabase(true).then(() => {
             bookDatabase.forEach((doc, docIndex) => {
                 doc.books.forEach((book, bookIndex) => {
                     $("div#view-container")[0].appendChild(buildBookBox(book, "view", docIndex*100 + bookIndex));
