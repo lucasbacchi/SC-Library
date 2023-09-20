@@ -403,13 +403,15 @@ function importFile(event) {
  * @param {InputEvent} event the onchange event that is generated when the user selects a file.
  */
 function processImport(event) {
+    let bookDatabasePromise = updateBookDatabase(true);
     importFile(event).then((file) => {
         if (file.type != "application/json") {
             openModal("error", "File type not recognized. Please upload a JSON file.");
             return;
         }
-        file.text().then((text) => {
-            let dataToUpload = JSON.parse(text);
+        let fileConversionPromise = file.text();
+        Promise.all([fileConversionPromise, bookDatabasePromise]).then((text) => {
+            let dataToUpload = JSON.parse(text[0]);
             let newDatabase = [];
             let modified = 0;
 
