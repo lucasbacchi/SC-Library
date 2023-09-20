@@ -365,8 +365,8 @@ export function setURLValue(param, value, append = true) {
  * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  */
 export function removeURLValue(param, mightReturnEmpty = false) {
-    // Get everything after the host
-    let string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
+    // Get everything after the "?" (query, hash, etc.)
+    let string = decodeURI(window.location.href.slice(window.location.href.indexOf("?")));
     let answer = "";
     if (string.indexOf(param) < 0) {
         if (!mightReturnEmpty) {
