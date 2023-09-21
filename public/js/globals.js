@@ -841,7 +841,15 @@ export class Person {
  * @type {Array<String>}
  * @description A list of valid event types
  */
-export const EVENT_TYPES = ["user_login", "user_signup", "delete_book", "search"];
+export const EVENT_TYPES = [
+    "user_login", "user_signup", "user_edit", "user_delete", // User events
+    "book_view", "book_edit", "book_delete", "book_add", // Book Events
+    "admin_search", "admin_user_edit", "admin_checkout_edit", "admin_report", "admin_inventory", // Admin Events
+    "checkout", "checkin", "renew", // Checkout Events
+    "search", "advanced_search", "browse", // Search Events
+    "email", "notification", // Notification Events
+    "error", "warning", "info" // Console/Modal Events
+];
 
 /**
  * @global
@@ -907,12 +915,31 @@ export class BookEvent extends LibraryEvent {
      */
     constructor(type = null, data = null, book = null) {
         super(type, data);
-        this.book = {
-            barcodeNumber: book.barcodeNumber,
-            title: book.title,
-            authors: book.authors,
-            medium: book.medium
-        };
+        switch (type) {
+            case "book_view":
+                this.book = {
+                    barcodeNumber: book.barcodeNumber
+                };
+                break;
+            case "book_edit":
+                if (data.changes) {
+                    this.book = {
+                        barcodeNumber: book.barcodeNumber
+                    };
+                } else {
+                    this.book = book;
+                }
+                break;
+            case "book_delete":
+                this.book = book;
+                break;
+            case "book_add":
+                this.book = book;
+                break;
+            default:
+                this.book = book;
+                break;
+        }
     }
 
     /**
@@ -935,6 +962,9 @@ export class BookEvent extends LibraryEvent {
      * @returns a vanilla JSON object representing a BookEvent
      */
     toObject() {
+        if (this.book instanceof Book) {
+            this.book = this.book.toObject();
+        }
         return {...super.toObject(), book: this.book};
     }
 }
@@ -953,12 +983,31 @@ export class UserEvent extends LibraryEvent {
      */
     constructor(type = null, data = null, user = null) {
         super(type, data);
-        this.user = {
-            cardNumber: user.cardNumber,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            uid: user.uid
-        };
+        switch (type) {
+            case "user_login":
+                this.user = {
+                    cardNumber: user.cardNumber
+                };
+                break;
+            case "user_signup":
+                this.user = user;
+                break;
+            case "user_edit":
+                if (data.changes) {
+                    this.user = {
+                        cardNumber: user.cardNumber
+                    };
+                } else {
+                    this.user = user;
+                }
+                break;
+            case "user_delete":
+                this.user = user;
+                break;
+            default:
+                this.user = user;
+                break;
+        }
     }
 
     /**
@@ -981,6 +1030,9 @@ export class UserEvent extends LibraryEvent {
      * @returns a vanilla JSON object representing a UserEvent
      */
     toObject() {
+        if (this.user instanceof User) {
+            this.user = this.user.toObject();
+        }
         return {...super.toObject(), user: this.user};
     }
 }
