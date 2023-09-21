@@ -2,7 +2,8 @@ import { logEvent } from "firebase/analytics";
 import { sendEmailVerification, updateEmail } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
-import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager, analytics, Book, User, EVENT_TYPES, LibraryEvent } from "./globals";
+import { timeLastSearched, setTimeLastSearched, db, setBookDatabase, bookDatabase, setSearchCache, auth, historyManager,
+    analytics, Book, User, EVENT_TYPES, LibraryEvent, UserEvent, BookEvent } from "./globals";
 
 
 
@@ -1186,16 +1187,49 @@ BEGIN EVENTS
 
 
 /**
+ * @description handles an event by logging it in the console, in firebase, and optionally displaying a message to the user
+ * @param {string} type the type of event to be logged
+ * @param {string} data the data associated with the event
+ * @param {boolean} showModal dictates whether or not to show a pop-up on screen
+ */
+export function handleEvent(type, data, showModal = false) {
+    if (type == null || !EVENT_TYPES.includes(type)) {
+        console.error("Invalid event.");
+        return;
+    }
+    switch (type) {
+        case "error":
+            console.error(data);
+            break;
+        case "warning":
+            console.warn(data);
+            break;
+        default:
+            console.log(type + ":", data);
+    }
+    if (showModal && ["error", "warning", "info"].includes(type)) {
+        openModal(type, data.message);
+    }
+    if (type.substring(0, 5) == "user_") {
+        getUser().then((user) => {
+            storeEvent(new UserEvent(type, data, user));
+        });
+    } else if (type.substring(0, 5) == "book_") {
+        let book = data.book;
+        delete data.book;
+        storeEvent(new BookEvent(type, data, book.toObject()));
+    } else {
+        storeEvent(new LibraryEvent(type, data));
+    }
+}
+
+/**
  * @description Adds an event to logs.
  * @param {LibraryEvent} event The event to add to the logs
  * @returns {Promise<void>} A promise that resolves when the event has been added to the logs
  */
 export function storeEvent(event) {
     return new Promise((resolve, reject) => {
-        if (event == null || !EVENT_TYPES.includes(event.type)) {
-            reject("Invalid event.");
-            return;
-        }
         let path = collection(db, "events", event.type, "event");
         addDoc(path, event.toObject()).then(() => {
             resolve();
