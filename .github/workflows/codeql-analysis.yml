@@ -35,7 +35,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4.0.0
+      uses: actions/checkout@v4.1.1
       if: github.actor == 'lucasbacchi' || github.actor == 'justinbacchi73'
 
     # Initializes the CodeQL tools for scanning.
