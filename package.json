@@ -10,7 +10,7 @@
     "web-vitals": "^3.4.0"
   },
   "devDependencies": {
-    "@types/jquery": "^3.5.19",
+    "@types/jquery": "^3.5.25",
     "css-loader": "^6.8.1",
     "eslint": "^8.49.0",
     "eslint-plugin-import": "^2.28.1",
