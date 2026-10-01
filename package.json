@@ -25,16 +25,16 @@
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.1.1",
-        "eslint": "^10.10.0",
+        "eslint": "^10.11.0",
         "eslint-config-prettier": "^10.1.8",
-        "firebase-tools": "^15.30.1",
-        "globals": "^17.12.0",
+        "firebase-tools": "^15.32.1",
+        "globals": "^17.13.0",
         "npm-check-updates": "^23.1.0",
         "prettier": "3.9.7",
         "tailwindcss": "^4.3.3",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.70.0",
-        "vite": "^8.3.0"
+        "typescript-eslint": "^8.71.0",
+        "vite": "^8.3.2"
     },
     "scripts": {
         "dev": "react-router dev",
@@ -44,7 +44,8 @@
         "typecheck": "react-router typegen && tsc",
         "check": "prettier --check .",
         "format": "prettier --write .",
-        "lint": "eslint . --max-warnings=0"
+        "lint": "eslint . --max-warnings=0",
+        "update": "npm-check-updates --target semver --upgrade"
     },
     "repository": {
         "type": "git",
@@ -59,6 +60,6 @@
     "allowScripts": {
         "@firebase/util@1.15.3": true,
         "protobufjs@7.6.6": true,
-        "re2@1.26.1": true
+        "re2": false
     }
 }
