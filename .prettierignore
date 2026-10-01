@@ -1,0 +1,5 @@
+node_modules
+.react-router
+build
+public
+functions/node_modules

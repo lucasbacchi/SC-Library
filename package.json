@@ -1,45 +1,64 @@
 {
-  "name": "sc-library",
-  "version": "3.2.0",
-  "description": "",
-  "private": true,
-  "dependencies": {
-    "firebase": "^10.4.0",
-    "firebase-admin": "^11.10.1",
-    "jquery": "^3.7.1",
-    "web-vitals": "^3.4.0"
-  },
-  "devDependencies": {
-    "@types/jquery": "^3.5.19",
-    "css-loader": "^6.8.1",
-    "eslint": "^8.49.0",
-    "eslint-plugin-import": "^2.28.1",
-    "expose-loader": "^4.1.0",
-    "firebase-tools": "^12.5.4",
-    "first-input-delay": "^0.1.3",
-    "mini-css-extract-plugin": "^2.7.6",
-    "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1",
-    "webpack-merge": "^5.9.0"
-  },
-  "scripts": {
-    "dev": "webpack-dev-server --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js",
-    "stats-dev": "webpack --config webpack.dev.js --profile --json > stats.json",
-    "stats-prod": "webpack --config webpack.prod.js --profile --json > stats.json",
-    "webpack": "webpack --entry ./public/js/ajax.js",
-    "watch": "webpack --config webpack.dev.js --watch",
-    "serve": "firebase emulators:start --only hosting"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lucasbacchi/SC-Library.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/lucasbacchi/SC-Library/issues"
-  },
-  "homepage": "https://github.com/lucasbacchi/SC-Library#readme"
+    "name": "sc-library",
+    "version": "3.2.0",
+    "type": "module",
+    "description": "The South Church Library catalog",
+    "private": true,
+    "engines": {
+        "node": ">=20.19.0"
+    },
+    "dependencies": {
+        "@react-router/node": "^8.4.0",
+        "@react-router/serve": "^8.4.0",
+        "firebase": "^12.19.0",
+        "isbot": "^5.2.2",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "react-router": "^8.4.0",
+        "web-vitals": "^6.2.2"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@react-router/dev": "^8.4.0",
+        "@tailwindcss/vite": "^4.3.3",
+        "@types/node": "^26",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@vitejs/plugin-react": "^6.1.1",
+        "eslint": "^10.10.0",
+        "eslint-config-prettier": "^10.1.8",
+        "firebase-tools": "^15.30.1",
+        "globals": "^17.12.0",
+        "npm-check-updates": "^23.1.0",
+        "prettier": "3.9.7",
+        "tailwindcss": "^4.3.3",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.70.0",
+        "vite": "^8.3.0"
+    },
+    "scripts": {
+        "dev": "react-router dev",
+        "build": "react-router build",
+        "serve": "firebase emulators:start --only hosting",
+        "start": "react-router-serve ./build/server/index.js",
+        "typecheck": "react-router typegen && tsc",
+        "check": "prettier --check .",
+        "format": "prettier --write .",
+        "lint": "eslint . --max-warnings=0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lucasbacchi/SC-Library.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/lucasbacchi/SC-Library/issues"
+    },
+    "homepage": "https://github.com/lucasbacchi/SC-Library#readme",
+    "allowScripts": {
+        "@firebase/util@1.15.3": true,
+        "protobufjs@7.6.6": true,
+        "re2@1.26.1": true
+    }
 }

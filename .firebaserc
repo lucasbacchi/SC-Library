@@ -1,13 +1,13 @@
 {
-  "projects": {
-    "default": "south-church-library"
-  },
-  "targets": {},
-  "etags": {
-    "south-church-library": {
-      "extensionInstances": {
-        "firestore-send-email": "6a85370627831ba9197893014d6a34496586be431e1a3884ac4d1627af015bf8"
-      }
+    "projects": {
+        "default": "south-church-library"
+    },
+    "targets": {},
+    "etags": {
+        "south-church-library": {
+            "extensionInstances": {
+                "firestore-send-email": "6a85370627831ba9197893014d6a34496586be431e1a3884ac4d1627af015bf8"
+            }
+        }
     }
-  }
 }

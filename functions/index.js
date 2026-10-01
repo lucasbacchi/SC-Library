@@ -11,34 +11,56 @@ const db = getFirestore(app);
 // eslint-disable-next-line
 exports.beforeCreate = functions.auth.user().beforeCreate((user, context) => {
     // Run a Transaction to ensure that the correct barcode is used. (Atomic Transaction)
-    return db.runTransaction((transaction) => {
-        const cloudVarsPath = db.doc("config/writable_vars");
-        // Get the variable stored in the writable_vars area
-        return transaction.get(cloudVarsPath).then((docSnap) => {
-            if (!docSnap.exists) {
-                throw new functions.auth.HttpsError("not-found", "Document does not exist!");
-            }
-            // Save the max value and incriment it by one.
-            const newCardNumber = docSnap.data().maxCardNumber + 1;
-            // Create a new user object
-            const userObject = new User(newCardNumber, null, null, user.email, null,
-                null, null, null, new Date(), null,
-                new Date(), user.uid, false, false, false, new Date(), true, false, false);
-            // Set the document to exist in the users path
-            transaction.set(db.doc("users/" + user.uid), userObject.toObject());
-            // Update the cloud variable to contain the next card number value
-            transaction.update(cloudVarsPath, {
-                maxCardNumber: newCardNumber
-            });
-            return newCardNumber;
-        }).catch((error) => {
+    return db
+        .runTransaction((transaction) => {
+            const cloudVarsPath = db.doc("config/writable_vars");
+            // Get the variable stored in the writable_vars area
+            return transaction
+                .get(cloudVarsPath)
+                .then((docSnap) => {
+                    if (!docSnap.exists) {
+                        throw new functions.auth.HttpsError("not-found", "Document does not exist!");
+                    }
+                    // Save the max value and incriment it by one.
+                    const newCardNumber = docSnap.data().maxCardNumber + 1;
+                    // Create a new user object
+                    const userObject = new User(
+                        newCardNumber,
+                        null,
+                        null,
+                        user.email,
+                        null,
+                        null,
+                        null,
+                        null,
+                        new Date(),
+                        null,
+                        new Date(),
+                        user.uid,
+                        false,
+                        false,
+                        false,
+                        new Date(),
+                        true,
+                        false,
+                        false
+                    );
+                    // Set the document to exist in the users path
+                    transaction.set(db.doc("users/" + user.uid), userObject.toObject());
+                    // Update the cloud variable to contain the next card number value
+                    transaction.update(cloudVarsPath, {
+                        maxCardNumber: newCardNumber
+                    });
+                    return newCardNumber;
+                })
+                .catch((error) => {
+                    throw new functions.auth.HttpsError("internal", error.message);
+                });
+        })
+        .catch((error) => {
             throw new functions.auth.HttpsError("internal", error.message);
         });
-    }).catch((error) => {
-        throw new functions.auth.HttpsError("internal", error.message);
-    });
 });
-
 
 /**
  * @global
@@ -47,17 +69,17 @@ exports.beforeCreate = functions.auth.user().beforeCreate((user, context) => {
  */
 class User {
     /**
-     * @param {Number} cardNumber 
-     * @param {String} firstName 
-     * @param {String} lastName 
-     * @param {String} email 
-     * @param {String} phone 
-     * @param {String} address 
-     * @param {String} pfpLink 
-     * @param {String} pfpIconLink 
-     * @param {Date} dateCreated 
-     * @param {Date} lastCheckoutTime 
-     * @param {Date} lastSignInTime 
+     * @param {Number} cardNumber
+     * @param {String} firstName
+     * @param {String} lastName
+     * @param {String} email
+     * @param {String} phone
+     * @param {String} address
+     * @param {String} pfpLink
+     * @param {String} pfpIconLink
+     * @param {Date} dateCreated
+     * @param {Date} lastCheckoutTime
+     * @param {Date} lastSignInTime
      * @param {String} uid the string that the auth object uses to represent a user
      * @param {Boolean} canCheckOutBooks indicates if the user is authorized to check out books
      * @param {Boolean} isDeleted
@@ -67,10 +89,27 @@ class User {
      * @param {Boolean} emailVerified
      * @param {Boolean} isDisabled
      */
-    constructor(cardNumber = null, firstName = null, lastName = null, email = null, phone = null,
-        address = null, pfpLink = null, pfpIconLink = null, dateCreated = null, lastCheckoutTime = null,
-        lastSignInTime = null, uid = null, canCheckOutBooks = null, isDeleted = null, isHidden = null,
-        lastUpdated = null, notificationsOn = null, emailVerified = null, isDisabled = null) {
+    constructor(
+        cardNumber = null,
+        firstName = null,
+        lastName = null,
+        email = null,
+        phone = null,
+        address = null,
+        pfpLink = null,
+        pfpIconLink = null,
+        dateCreated = null,
+        lastCheckoutTime = null,
+        lastSignInTime = null,
+        uid = null,
+        canCheckOutBooks = null,
+        isDeleted = null,
+        isHidden = null,
+        lastUpdated = null,
+        notificationsOn = null,
+        emailVerified = null,
+        isDisabled = null
+    ) {
         this.cardNumber = cardNumber;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -104,32 +143,44 @@ class User {
         if (jsonObject.dateCreated) {
             if (jsonObject.dateCreated.seconds)
                 jsonObject.dateCreated = new Date(jsonObject.dateCreated.seconds * 1000);
-            else
-                jsonObject.dateCreated = new Date(jsonObject.dateCreated);
+            else jsonObject.dateCreated = new Date(jsonObject.dateCreated);
         }
         if (jsonObject.lastCheckoutTime) {
             if (jsonObject.lastCheckoutTime.seconds)
                 jsonObject.lastCheckoutTime = new Date(jsonObject.lastCheckoutTime.seconds * 1000);
-            else
-                jsonObject.lastCheckoutTime = new Date(jsonObject.lastCheckoutTime);
+            else jsonObject.lastCheckoutTime = new Date(jsonObject.lastCheckoutTime);
         }
         if (jsonObject.lastSignInTime) {
             if (jsonObject.lastSignInTime.seconds)
                 jsonObject.lastSignInTime = new Date(jsonObject.lastSignInTime.seconds * 1000);
-            else
-                jsonObject.lastSignInTime = new Date(jsonObject.lastSignInTime);
+            else jsonObject.lastSignInTime = new Date(jsonObject.lastSignInTime);
         }
         if (jsonObject.lastUpdated) {
             if (jsonObject.lastUpdated.seconds)
                 jsonObject.lastUpdated = new Date(jsonObject.lastUpdated.seconds * 1000);
-            else
-                jsonObject.lastUpdated = new Date(jsonObject.lastUpdated);
+            else jsonObject.lastUpdated = new Date(jsonObject.lastUpdated);
         }
-        return new User(jsonObject.cardNumber, jsonObject.firstName, jsonObject.lastName, jsonObject.email,
-            jsonObject.phone, jsonObject.address, jsonObject.pfpLink, jsonObject.pfpIconLink,
-            jsonObject.dateCreated, jsonObject.lastCheckoutTime, jsonObject.lastSignInTime, jsonObject.uid,
-            jsonObject.canCheckOutBooks, jsonObject.isDeleted, jsonObject.isHidden, jsonObject.lastUpdated,
-            jsonObject.notificationsOn, jsonObject.emailVerified, jsonObject.isDisabled);
+        return new User(
+            jsonObject.cardNumber,
+            jsonObject.firstName,
+            jsonObject.lastName,
+            jsonObject.email,
+            jsonObject.phone,
+            jsonObject.address,
+            jsonObject.pfpLink,
+            jsonObject.pfpIconLink,
+            jsonObject.dateCreated,
+            jsonObject.lastCheckoutTime,
+            jsonObject.lastSignInTime,
+            jsonObject.uid,
+            jsonObject.canCheckOutBooks,
+            jsonObject.isDeleted,
+            jsonObject.isHidden,
+            jsonObject.lastUpdated,
+            jsonObject.notificationsOn,
+            jsonObject.emailVerified,
+            jsonObject.isDisabled
+        );
     }
 
     /**
