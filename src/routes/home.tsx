@@ -16,7 +16,7 @@ export default function Home() {
                         id="home-page-search-input"
                         className="search-input"
                         placeholder="Search by title, author, subject, keyword..."
-                    ></input>
+                    />
                     <button className="material-symbols-outlined search-button" id="home-page-search-button">
                         search
                     </button>
