@@ -24,7 +24,7 @@ const sharedRules = {
 
 export default [
     {
-        ignores: ["**/build/**", "**/.react-router/**", "**/node_modules/**", "public/**", "functions/**"]
+        ignores: ["**/build/**", "**/.react-router/**", "**/node_modules/**", "public/**", "functions/**", "**/dist/**"]
     },
     {
         files: ["**/*.js", "**/*.jsx"],
