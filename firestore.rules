@@ -1,8 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
     match /databases/{database}/documents {
+        function isAdmin() {
+            return request.auth != null &&
+                request.auth.uid in get(/databases/$(database)/documents/admin/private_vars).data.admins;
+        }
+
         match /{document=**} {
-            allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/admin/private_vars).data.admins;
+            allow read, write: if isAdmin();
         }
         match /books/{document} {
             allow read: if true;
@@ -11,16 +16,36 @@ service cloud.firestore {
             allow read: if true;
         }
         match /config/writable_vars {
-            allow read: if true;
-            allow write: if request.auth != null && request.resource.data.maxCardNumber > get(/databases/$(database)/documents/config/writable_vars).data.maxCardNumber;
+            allow read, write: if isAdmin();
+        }
+        match /cardNumbers/{cardNumber} {
+            allow read, write: if isAdmin();
         }
         match /users/{userId} {
-            allow read, write: if request.auth.uid == userId;
+            allow read: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+            allow update: if request.auth != null &&
+                request.auth.uid == userId &&
+                request.resource.data.uid == resource.data.uid &&
+                request.resource.data.cardNumber == resource.data.cardNumber &&
+                request.resource.data.dateCreated == resource.data.dateCreated &&
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                    "firstName",
+                    "lastName",
+                    "email",
+                    "emailVerified",
+                    "phone",
+                    "address",
+                    "pfpLink",
+                    "pfpIconLink",
+                    "lastSignInTime",
+                    "lastUpdated",
+                    "notificationsOn"
+                ]);
+            allow create, delete: if isAdmin();
         }
         match /mail/{mailID} {
-            allow create: if request.resource.data.to == "library@southchurch.com" && (request.resource.data.cc == null || request.resource.data.cc == request.auth.token.email) && (request.resource.data.bcc == null || request.resource.data.bcc == request.auth.token.email);
-            allow create: if resource.data.uid == request.auth.uid && request.resource.data.to == request.auth.token.email && (request.resource.data.cc == "library@southchurch.com" || request.resource.data.cc == null) && (request.resource.data.bcc == "library@southchurch.com" || request.resource.data.bcc == null);
-            allow read: if (resource.data.to == request.auth.token.email || resource.data.cc == request.auth.token.email || resource.data.bcc == request.auth.token.email || resource.data.uid == request.auth.uid);
+            allow read: if isAdmin();
+            allow write: if isAdmin();
         }
     }
 }

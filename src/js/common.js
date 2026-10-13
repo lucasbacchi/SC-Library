@@ -1,17 +1,6 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification, updateEmail } from "firebase/auth";
-import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    orderBy,
-    query,
-    updateDoc,
-    where
-} from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
 import {
     timeLastSearched,
@@ -620,80 +609,28 @@ export let updateScrollPosition = new Throttle(() => {
  * @param {Object} headers An opject containing custom email headers
  * @param {Array<Object>} attachments An array of objects containing the attachments to send. See https://nodemailer.com/message/attachments/ for more information.
  */
-export function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
-    return new Promise((resolve, reject) => {
-        if (!to || !subject || (!text && !html)) {
-            reject("Missing required parameters");
-        }
-        let document = {
-            to: to,
-            message: {
-                subject: subject
-            }
-        };
-        if (cc) {
-            document.cc = cc;
-        }
-        if (bcc) {
-            document.bcc = bcc;
-        }
-        if (from) {
-            document.from = from;
-        }
-        if (replyTo) {
-            document.replyTo = replyTo;
-        }
-        if (headers) {
-            document.headers = headers;
-        }
-        if (text) {
-            document.message.text = text;
-        }
-        if (html) {
-            document.message.html = html;
-        }
-        if (attachments) {
-            document.message.attachments = attachments;
-        }
-        if (auth.currentUser) {
-            document.uid = auth.currentUser.uid;
-        }
-        addDoc(collection(db, "mail"), document)
-            .then((docRef) => {
-                let unsub = onSnapshot(
-                    docRef,
-                    (doc) => {
-                        if (!doc.exists) {
-                            return;
-                        }
-                        let data = doc.data();
-                        if (!data.delivery) {
-                            return;
-                        }
-                        if (data.delivery.state == "SUCCESS") {
-                            unsub();
-                            resolve();
-                        } else if (data.delivery.state == "ERROR") {
-                            unsub();
-                            reject(data.delivery.error);
-                        }
-                    },
-                    (error) => {
-                        unsub();
-                        console.error(error);
-                        reject(error);
-                    }
-                );
-                // Give up after 10 seconds
-                window.setTimeout(() => {
-                    unsub();
-                    reject("Timeout");
-                }, 10000);
-            })
-            .catch((error) => {
-                reject(error);
-            });
+export async function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
+    if (!to || !subject || (!text && !html)) {
+        throw new Error("Missing required parameters");
+    }
+
+    if (!auth.currentUser) {
+        throw new Error("A signed-in user is required");
+    }
+
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+    const response = await fetch(`${apiUrl}/mail/send`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await auth.currentUser.getIdToken()}`
+        },
+        body: JSON.stringify({ to, subject, text, html, cc, bcc, from, replyTo, headers, attachments })
     });
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Email delivery failed.");
+    }
 }
 
 /**

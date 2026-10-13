@@ -32,4 +32,5 @@ The script defaults to the existing Firebase project, `south-church-library`, an
 .\deploy.ps1 -Project my-project -Service my-api
 ```
 
-The Cloud Run service account must have access to the Firebase resources it uses. Grant only the roles required by the API, such as ` roles/datastore.user` for Firestore access. Do not deploy a service-account key file; Firebase Admin uses Cloud Run Application Default Credentials.
+The Cloud Run service account must have access to the Firebase resources and
+Secret Manager secrets. Do not deploy a service-account key file; Firebase Admin uses Cloud Run Application Default Credentials.

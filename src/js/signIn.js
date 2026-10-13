@@ -9,10 +9,9 @@ import {
     setPersistence,
     signInWithEmailAndPassword
 } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
 import { goToPage, updateUserAccountInfo } from "./ajax";
 import { createOnClick, findURLValue, openModal, sendEmailVerificationToUser, updateUserEmail } from "./common";
-import { analytics, auth, currentPage, db } from "./globals";
+import { analytics, auth, currentPage } from "./globals";
 
 /**
  * @description Sets up the sign in page.
@@ -202,7 +201,7 @@ function signIn(reAuth = false) {
 
 /**
  * @description Handles the sign up process. This includes validating the user's input, creating the user,
- *              adding the user to the database, updating the max barcodeNumber, and logging the event.
+ *              adding the user to the database, allocating a card number, and logging the event.
  * @returns {Promise} A promise that resolves when the user is signed up.
  */
 function handleSignUp() {
@@ -273,55 +272,62 @@ function handleSignUp() {
         setPersistence(auth, browserSessionPersistence).then(() => {
             // Creates user with email and password, then logs them in.
             createUserWithEmailAndPassword(auth, email, password)
+                .then(async () => {
+                    const user = auth.currentUser;
+                    if (!user) {
+                        throw new Error("The account was created but no authenticated user was available.");
+                    }
+
+                    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+                    const response = await fetch(`${apiUrl}/users/register`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${await user.getIdToken()}`
+                        },
+                        body: JSON.stringify({
+                            firstName,
+                            lastName,
+                            phone,
+                            address: address + ", " + town + ", " + state + " " + zip
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorBody = await response.json().catch(() => ({}));
+                        throw new Error(errorBody.error || "The account profile could not be created.");
+                    }
+
+                    // After both writes complete, send the user to the edit page and take it from there.
+                    updateUserAccountInfo();
+                    sendEmailVerificationToUser();
+                    logEvent(analytics, "sign_up", {
+                        method: "email",
+                        firstName: firstName,
+                        lastName: lastName,
+                        userId: user.uid,
+                        email: email,
+                        phone: phone,
+                        address: address + ", " + town + ", " + state + " " + zip
+                    });
+                    resolve();
+                })
                 .catch((error) => {
-                    // Handle Errors here.
-                    let errorCode = error.code;
-                    let errorMessage = error.message;
-                    if (errorCode == "auth/weak-password") {
+                    if (error.code == "auth/weak-password") {
                         openModal("issue", "The password is too weak. Please try another password.");
-                    } else if (errorCode == "auth/email-already-in-use") {
+                    } else if (error.code == "auth/email-already-in-use") {
                         openModal(
                             "issue",
                             "This email is already in use. If you already have an account, please try signing in instead. " +
                                 "If you don't remember your password, you can reset it from the login page, or contact the librarian for help."
                         );
                     } else {
-                        openModal("error", errorMessage);
-                        console.error(error);
+                        openModal(
+                            "error",
+                            error.message || "There was an error creating your account. Please try again."
+                        );
                     }
-                    reject();
-                })
-                .then(() => {
-                    // Database updates are now handled by the beforeCreate function in the cloud functions.
-                    // However, we must update information from the page that the cloud function didn't have.
-                    updateDoc(doc(db, "users", auth.currentUser.uid), {
-                        firstName: firstName,
-                        lastName: lastName,
-                        phone: phone,
-                        address: address + ", " + town + ", " + state + " " + zip,
-                        lastSignInTime: new Date(),
-                        lastUpdated: new Date()
-                    })
-                        .then(() => {
-                            // After both writes complete, send the user to the edit page and take it from there.
-                            updateUserAccountInfo();
-                            sendEmailVerificationToUser();
-                            logEvent(analytics, "sign_up", {
-                                method: "email",
-                                firstName: firstName,
-                                lastName: lastName,
-                                userId: auth.currentUser.uid,
-                                email: email,
-                                phone: phone,
-                                address: address + ", " + town + ", " + state + " " + zip
-                            });
-                            resolve();
-                        })
-                        .catch((error) => {
-                            openModal("error", "There was an error creating your account. Please try again.");
-                            console.error(error);
-                            reject("auth-error");
-                        });
+                    console.error(error);
+                    reject("auth-error");
                 });
         });
     });

@@ -3,6 +3,7 @@ import {
     collection,
     doc,
     getDoc,
+    getCountFromServer,
     getDocs,
     orderBy,
     query,
@@ -384,9 +385,8 @@ function addStats() {
         $("#number-of-checked-out-books").html("0");
     });
     // TODO: Number of Users
-    getDoc(doc(db, "/config/writable_vars")).then((docSnap) => {
-        let num = docSnap.data().maxCardNumber - 2171100000;
-        $("#number-of-users").html(num);
+    getCountFromServer(query(collection(db, "users"), where("isDeleted", "==", false))).then((snapshot) => {
+        $("#number-of-users").html(snapshot.data().count);
     });
     // TODO: Logins in the Past Month
 }
