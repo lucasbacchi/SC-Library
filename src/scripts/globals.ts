@@ -260,7 +260,7 @@ export function setIDB(newIDB) {
  * @type {String[]}
  * @description A global variable which stores the list of valid pages on the site. Used to determine whether or not to redirect to the 404 page.
  */
-export let directory = [
+export const directory = [
     "account/overview",
     "account/notifications",
     "account/checkouts",
@@ -300,7 +300,7 @@ export class HistoryManager {
      * @param {Number} currentIndex The index of the current page in the stack. Useful for stepping back and forth through the stack.
      */
     constructor(stack, currentIndex) {
-        let convertedStack = [];
+        const convertedStack = [];
         stack.forEach((page) => {
             convertedStack.push(new HistoryPage(page.name, page.customData, page.stateData));
         });
@@ -448,11 +448,11 @@ export class HistoryManager {
             if (!stateDataKey) {
                 throw new Error("stateDataKey is undefined");
             }
-            let request = iDB.transaction("historyStates").objectStore("historyStates").get(stateDataKey);
+            const request = iDB.transaction("historyStates").objectStore("historyStates").get(stateDataKey);
             request.onsuccess = () => {
                 // Convert JSON Objects to Book Objects
                 if (request.result.searchPageData) {
-                    let searchPageData = request.result.searchPageData;
+                    const searchPageData = request.result.searchPageData;
                     searchPageData.books = searchPageData.books.map((book) => Book.createFromObject(book));
                     searchPageData.browseResultsArray = searchPageData.browseResultsArray.map((book) =>
                         Book.createFromObject(book)
@@ -626,8 +626,8 @@ export class Book {
             console.warn("tried to pass a Book object into Book.createFromObject");
             return jsonObject;
         }
-        let authors = [];
-        let illustrators = [];
+        const authors = [];
+        const illustrators = [];
         for (let i = 0; i < jsonObject.authors.length; i++) {
             if (jsonObject.authors[i]) {
                 authors.push(new Person(jsonObject.authors[i].firstName, jsonObject.authors[i].lastName));
@@ -689,15 +689,15 @@ export class Book {
      * @returns {Object} a vanilla JSON object representing a Book
      */
     toObject() {
-        let authors = [];
+        const authors = [];
         for (let i = 0; i < this.authors.length; i++) {
             authors.push(this.authors[i].toObject());
         }
-        let illustrators = [];
+        const illustrators = [];
         for (let i = 0; i < this.illustrators.length; i++) {
             illustrators.push(this.illustrators[i].toObject());
         }
-        let audience = this.audience.toObject();
+        const audience = this.audience.toObject();
         return {
             barcodeNumber: this.barcodeNumber,
             title: this.title,
@@ -733,13 +733,13 @@ export class Book {
      * @returns {Array<String>} an array of image links for this book. The first link is the cover image, the second is the thumbnail image, and the third is the icon image.
      */
     generateImageLinks() {
-        let time = new Date();
-        let timeString = time.valueOf();
+        const time = new Date();
+        const timeString = time.valueOf();
         if (!this.barcodeNumber) {
             console.warn("cannot generate image links for a book without a barcode number");
             return;
         }
-        let imageLinks = [];
+        const imageLinks = [];
         imageLinks.push(
             "https://storage.googleapis.com/south-church-library/books/" +
                 this.barcodeNumber +
@@ -805,7 +805,7 @@ export class Book {
         if (!book1 && !book2) {
             return true;
         }
-        for (let key in book1) {
+        for (const key in book1) {
             if ((book1[key] && !book2[key]) || (!book1[key] && book2[key])) {
                 return false;
             }
@@ -955,7 +955,7 @@ export class Audience {
      * @returns {Array} an array of strings representing the audience
      */
     toArray() {
-        let arr = [];
+        const arr = [];
         if (this.children) {
             arr.push("Children");
         }

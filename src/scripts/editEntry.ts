@@ -26,11 +26,11 @@ import {
 } from "firebase/firestore";
 import { deleteObject, getStorage, list, ref, uploadBytes } from "firebase/storage";
 
-var newEntry = null;
-var barcodeNumber;
-var isbn;
-var imageChanged;
-var changesDetected = false;
+let newEntry = null;
+let barcodeNumber;
+let isbn;
+let imageChanged;
+let changesDetected = false;
 
 /**
  * @description This function sets up the edit entry page, and starts the process of getting the data from the database or Open Library.
@@ -89,10 +89,10 @@ export function setupEditEntry(pageQuery) {
 
     $("#book-medium")[0].addEventListener("input", (event) => {
         if (event.target.value == "av") {
-            let goAway = $(".no-av");
+            const goAway = $(".no-av");
             for (let i = 0; i < goAway.length; i++) goAway[i].style.display = "none";
         } else {
-            let goAway = $(".no-av");
+            const goAway = $(".no-av");
             for (let i = 0; i < goAway.length; i++) goAway[i].style.display = "";
         }
     });
@@ -258,7 +258,7 @@ function populateEditEntryFromDatabase(barcodeNumber) {
             $("#book-vendor").val(data.vendor);
 
             if (data.lastUpdated != null) {
-                let lastUpdated = data.lastUpdated;
+                const lastUpdated = data.lastUpdated;
                 $("#last-updated").html(
                     "This entry was last updated on " +
                         lastUpdated.toLocaleDateString("en-US") +
@@ -291,13 +291,13 @@ function gatherExternalInformation(isbn) {
             .then((bookObject) => {
                 lookupAuthor(bookObject)
                     .then((value) => {
-                        let bookObject = value[0];
-                        let authorObject = value[1];
+                        const bookObject = value[0];
+                        const authorObject = value[1];
                         lookupWorks(bookObject, authorObject)
                             .then((value) => {
-                                let bookObject = value[0];
-                                let authorObject = value[1];
-                                let worksObject = value[2];
+                                const bookObject = value[0];
+                                const authorObject = value[1];
+                                const worksObject = value[2];
                                 resolve([false, bookObject, authorObject, worksObject]);
                             })
                             .catch((error) => {
@@ -339,7 +339,7 @@ function gatherExternalInformation(isbn) {
  */
 function lookupBook(isbn) {
     return new Promise((resolve, reject) => {
-        let xhttp = new XMLHttpRequest();
+        const xhttp = new XMLHttpRequest();
 
         xhttp.open("GET", "https://openlibrary.org/isbn/" + isbn + ".json");
         xhttp.onreadystatechange = () => {
@@ -370,8 +370,8 @@ function lookupAuthor(bookObject) {
         let total = 0;
         if (bookObject.authors) {
             for (let i = 0; i < bookObject.authors.length; i++) {
-                let xhttp = new XMLHttpRequest();
-                let authorLink = bookObject.authors[i].key;
+                const xhttp = new XMLHttpRequest();
+                const authorLink = bookObject.authors[i].key;
 
                 xhttp.open("GET", "https://openlibrary.org" + authorLink + ".json");
 
@@ -388,7 +388,7 @@ function lookupAuthor(bookObject) {
                         reject("Invalid Response");
                     }
                     if (xhttp.readyState == 4 && xhttp.status == 200) {
-                        let authorObject = [];
+                        const authorObject = [];
                         authorObject[i] = JSON.parse(xhttp.responseText);
                         // Only resolve if all of the xhttp requests have been completed
                         if (i == total - 1) {
@@ -413,8 +413,8 @@ function lookupWorks(bookObject, authorObject) {
     return new Promise((resolve, reject) => {
         let total = 0;
         for (let i = 0; i < bookObject.works.length; i++) {
-            let xhttp = new XMLHttpRequest();
-            let worksLink = bookObject.works[i].key;
+            const xhttp = new XMLHttpRequest();
+            const worksLink = bookObject.works[i].key;
 
             xhttp.open("GET", "https://openlibrary.org" + worksLink + ".json");
 
@@ -431,7 +431,7 @@ function lookupWorks(bookObject, authorObject) {
                     reject("Invalid Response");
                 }
                 if (xhttp.readyState == 4 && xhttp.status == 200) {
-                    let worksObject = [];
+                    const worksObject = [];
                     worksObject[i] = JSON.parse(xhttp.responseText);
                     if (i == total - 1) {
                         resolve([bookObject, authorObject, worksObject]);
@@ -474,9 +474,9 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
     // Author
     try {
         for (let i = 0; i < authorObject.length; i++) {
-            let fullName = authorObject[i].name;
-            let lastName = fullName.substring(fullName.lastIndexOf(" ") + 1, fullName.length);
-            let firstName = fullName.substring(0, fullName.lastIndexOf(" "));
+            const fullName = authorObject[i].name;
+            const lastName = fullName.substring(fullName.lastIndexOf(" ") + 1, fullName.length);
+            const firstName = fullName.substring(0, fullName.lastIndexOf(" "));
             $("#book-author-" + (i + 1) + "-last").val(lastName);
             $("#book-author-" + (i + 1) + "-first").val(firstName);
         }
@@ -605,14 +605,14 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
 
     // Publish Date:
     try {
-        let publish_date = bookObject.publish_date;
+        const publish_date = bookObject.publish_date;
         if (publish_date.length == 4) {
             // We can assume that this is only a year.
             $("#book-publish-year").val(publish_date);
         } else {
             let month = publish_date.substring(0, publish_date.indexOf(" "));
-            let day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-            let year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+            const day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+            const year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
             switch (month) {
                 case "Jan":
                 case "January":
@@ -672,15 +672,15 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
             $("#book-publish-day").val(day);
         }
     } catch {
-        let publish_date = worksObject[0].publish_date;
+        const publish_date = worksObject[0].publish_date;
         try {
             if (publish_date.length == 4) {
                 // We can assume that this is only a year.
                 $("#book-publish-year").val(publish_date);
             } else {
                 let month = publish_date.substring(0, publish_date.indexOf(" "));
-                let day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
-                let year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
+                const day = publish_date.substring(publish_date.indexOf(" ") + 1, publish_date.indexOf(","));
+                const year = publish_date.substring(publish_date.indexOf(",") + 2, publish_date.length);
                 switch (month) {
                     case "Jan":
                         month = 1;
@@ -783,7 +783,7 @@ function loadDataOnToEditEntryPage(noISBN, bookObject, authorObject, worksObject
  * @description Adds a new subject input field to the page.
  */
 function addSubject() {
-    let numberofSubjects = $(".subject-field").length;
+    const numberofSubjects = $(".subject-field").length;
     $("#book-subject-" + numberofSubjects).after(
         '<input id="book-subject-' +
             (numberofSubjects + 1) +
@@ -791,8 +791,8 @@ function addSubject() {
     );
 }
 
-var loadingTimer;
-var loadingModal;
+let loadingTimer;
+let loadingModal;
 /**
  * @description Run when the user clicks the "Save" button. Saves the changes made to the entry. It will also validate the entry before saving.
  */
@@ -812,9 +812,9 @@ function editEntry() {
     }, 10000);
 
     // Before validating the entry, auto convert between ISBN numbers if both are not already inputted.
-    let isbn10Value = $("#book-isbn-10").val();
-    let isbn13Value = $("#book-isbn-13").val();
-    let noISBN = $("#book-no-isbn")[0].checked;
+    const isbn10Value = $("#book-isbn-10").val();
+    const isbn13Value = $("#book-isbn-13").val();
+    const noISBN = $("#book-no-isbn")[0].checked;
     if (!noISBN && isbn10Value.length == 10 && isbn13Value == "") {
         $("#book-isbn-13").val(switchISBNformats(isbn10Value));
     } else if (!noISBN && isbn13Value.length == 13 && isbn10Value == "") {
@@ -860,7 +860,7 @@ function getBookDataFromPage() {
         barcode = null;
     }
 
-    let authors = [];
+    const authors = [];
     if ($("#book-author-1-last").val() || $("#book-author-1-first").val()) {
         authors.push(new Person($("#book-author-1-first").val(), $("#book-author-1-last").val()));
     }
@@ -868,7 +868,7 @@ function getBookDataFromPage() {
         authors.push(new Person($("#book-author-2-first").val(), $("#book-author-2-last").val()));
     }
 
-    let illustrators = [];
+    const illustrators = [];
     if ($("#book-illustrator-1-last").val() || $("#book-illustrator-1-first").val()) {
         illustrators.push(new Person($("#book-illustrator-1-first").val(), $("#book-illustrator-1-last").val()));
     }
@@ -876,12 +876,12 @@ function getBookDataFromPage() {
         illustrators.push(new Person($("#book-illustrator-2-first").val(), $("#book-illustrator-2-last").val()));
     }
 
-    let subjects = [];
+    const subjects = [];
     $("[id^=book-subject-]").each((index, input) => {
         if (input.value != "") subjects.push(input.value);
     });
 
-    let publishers = [];
+    const publishers = [];
     if ($("#book-publisher-1").val()) {
         publishers.push($("#book-publisher-1").val());
     }
@@ -893,16 +893,16 @@ function getBookDataFromPage() {
     let keywords = $("#book-description").val().replace(/-/g, " ").split(" ");
     keywords = cleanUpSearchTerm(keywords);
 
-    let unNumbered = $("#book-unnumbered")[0].checked;
+    const unNumbered = $("#book-unnumbered")[0].checked;
     let numberOfPages = parseInt($("#book-pages").val());
     if (unNumbered) {
         numberOfPages = -1;
     }
 
     let publishDate = null;
-    let publishYearValue = $("#book-publish-year").val();
-    let publishMonthValue = $("#book-publish-month").val();
-    let publishDayValue = $("#book-publish-day").val();
+    const publishYearValue = $("#book-publish-year").val();
+    const publishMonthValue = $("#book-publish-month").val();
+    const publishDayValue = $("#book-publish-day").val();
     if (!isValidDate(publishYearValue, publishMonthValue, publishDayValue)) {
         if (publishYearValue != "")
             console.warn("Invalid publish date: " + publishYearValue + "-" + publishMonthValue + "-" + publishDayValue);
@@ -918,9 +918,9 @@ function getBookDataFromPage() {
     }
 
     let purchaseDate = null;
-    let purchaseYearValue = $("#book-purchase-year").val();
-    let purchaseMonthValue = $("#book-purchase-month").val();
-    let purchaseDayValue = $("#book-purchase-day").val();
+    const purchaseYearValue = $("#book-purchase-year").val();
+    const purchaseMonthValue = $("#book-purchase-month").val();
+    const purchaseDayValue = $("#book-purchase-day").val();
     if (!isValidDate(purchaseYearValue, purchaseMonthValue, purchaseDayValue)) {
         if (purchaseYearValue != "")
             console.warn(
@@ -941,7 +941,7 @@ function getBookDataFromPage() {
         It also WON'T have a value for isDeleted, since that's not on the page
         these will be added when the data is stored in the database
         lastUpdated will be created when this function is called*/
-    let bookDataFromPage = new Book(
+    const bookDataFromPage = new Book(
         barcode,
         $("#book-title").val(),
         $("#book-subtitle").val(),
@@ -982,16 +982,16 @@ function getBookDataFromPage() {
  */
 function validateEntry() {
     return new Promise((resolve) => {
-        let pageData = getBookDataFromPage();
+        const pageData = getBookDataFromPage();
 
-        let noneValue = $("#book-audience-none")[0].checked;
-        let noISBN = $("#book-no-isbn")[0].checked;
-        let unNumbered = $("#book-unnumbered")[0].checked;
+        const noneValue = $("#book-audience-none")[0].checked;
+        const noISBN = $("#book-no-isbn")[0].checked;
+        const unNumbered = $("#book-unnumbered")[0].checked;
 
         // Validate inputs
         if (pageData.title == "") {
             openModal("issue", "Title is required!");
-            let rect = $("#book-title")[0].getBoundingClientRect();
+            const rect = $("#book-title")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-title")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1008,7 +1008,7 @@ function validateEntry() {
                 "issue",
                 'At least one author is required! If author is unknown, enter "unknown" into last name.'
             );
-            let rect = $("#book-author-1-last")[0].getBoundingClientRect();
+            const rect = $("#book-author-1-last")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-author-1-last")[0].style.borderColor = "red";
             $("#book-author-1-first")[0].style.borderColor = "red";
@@ -1028,7 +1028,7 @@ function validateEntry() {
         }
         if (pageData.medium == "") {
             openModal("issue", "Medium is required!");
-            let rect = $("#book-medium")[0].getBoundingClientRect();
+            const rect = $("#book-medium")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-medium")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1043,7 +1043,7 @@ function validateEntry() {
         // The pageData.coverImageLink will now be null during this check, so we'll read it off the page manually
         if ($("#book-cover-image").attr("src") == "../img/favicon.ico" && pageData.medium != "av") {
             openModal("issue", "Cover image is required!");
-            let rect = $("#book-cover-image")[0].getBoundingClientRect();
+            const rect = $("#book-cover-image")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-cover-image")[0].style.boxShadow = "0px 0px 16px 0px #ff00008a";
             setTimeout(() => {
@@ -1057,7 +1057,7 @@ function validateEntry() {
         }
         if (pageData.subjects.length == 0 && pageData.medium != "av") {
             openModal("issue", "Please enter at least one subject!");
-            let rect = $("#book-subject-1")[0].getBoundingClientRect();
+            const rect = $("#book-subject-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-subject-1")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1071,7 +1071,7 @@ function validateEntry() {
         }
         if (pageData.description == "" && pageData.medium != "av") {
             openModal("issue", "Description is required!");
-            let rect = $("#book-description")[0].getBoundingClientRect();
+            const rect = $("#book-description")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-description")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1091,7 +1091,7 @@ function validateEntry() {
                 "issue",
                 'Invalid audience input! If there is no audience listed, please select "None" (and no other checkboxes).'
             );
-            let rect = $("#book-audience-children")[0].getBoundingClientRect();
+            const rect = $("#book-audience-children")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-audience-children")[0].style.outline = "2px solid red";
             $("#book-audience-youth")[0].style.outline = "2px solid red";
@@ -1111,7 +1111,7 @@ function validateEntry() {
         }
         if (!noISBN && (!verifyISBN(pageData.isbn10) || pageData.isbn10.length != 10)) {
             openModal("issue", "The ISBN number you entered was not valid! Please double check it.");
-            let rect = $("#book-isbn-10")[0].getBoundingClientRect();
+            const rect = $("#book-isbn-10")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-10")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1125,7 +1125,7 @@ function validateEntry() {
         }
         if (!noISBN && (!verifyISBN(pageData.isbn13) || pageData.isbn13.length != 13)) {
             openModal("issue", "The ISBN number you entered was not valid! Please double check it.");
-            let rect = $("#book-isbn-13")[0].getBoundingClientRect();
+            const rect = $("#book-isbn-13")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-isbn-13")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1140,7 +1140,7 @@ function validateEntry() {
         if (pageData.isbn13.length == 13 && pageData.isbn10.length == 10) {
             if (pageData.isbn13.substring(3, 12) != pageData.isbn10.substring(0, 9)) {
                 openModal("issue", "The ISBN numbers you entered do not match! Please double check them.");
-                let rect = $("#book-isbn-10")[0].getBoundingClientRect();
+                const rect = $("#book-isbn-10")[0].getBoundingClientRect();
                 window.scrollBy(0, rect.top - 180);
                 $("#book-isbn-10")[0].style.borderColor = "red";
                 $("#book-isbn-13")[0].style.borderColor = "red";
@@ -1161,7 +1161,7 @@ function validateEntry() {
         }
         if (pageData.publishers[0] == "" && pageData.medium != "av") {
             openModal("issue", 'Please enter at least one publisher! If the publisher is unknown, enter "unknown".');
-            let rect = $("#book-publisher-1")[0].getBoundingClientRect();
+            const rect = $("#book-publisher-1")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publisher-1")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1178,7 +1178,7 @@ function validateEntry() {
                 "issue",
                 "The publishing date is invalid! Please enter a valid date between October 17, 1711 and today."
             );
-            let rect = $("#book-publish-month")[0].getBoundingClientRect();
+            const rect = $("#book-publish-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-publish-month")[0].style.borderColor = "red";
             $("#book-publish-day")[0].style.borderColor = "red";
@@ -1206,7 +1206,7 @@ function validateEntry() {
         }
         if (!unNumbered && (isNaN(pageData.numberOfPages) || pageData.numberOfPages < 1)) {
             openModal("issue", "Please enter a valid number of pages!");
-            let rect = $("#book-pages")[0].getBoundingClientRect();
+            const rect = $("#book-pages")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-pages")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1220,7 +1220,7 @@ function validateEntry() {
         }
         if (pageData.ddc == "" || (pageData.ddc != "FIC" && isNaN(parseFloat(pageData.ddc)))) {
             openModal("issue", "Please enter a valid Dewey Decimal Classification!");
-            let rect = $("#book-dewey")[0].getBoundingClientRect();
+            const rect = $("#book-dewey")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-dewey")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1237,7 +1237,7 @@ function validateEntry() {
                 "issue",
                 "The purchasing date is invalid! Please enter a valid date between October 17, 1711 and today."
             );
-            let rect = $("#book-purchase-month")[0].getBoundingClientRect();
+            const rect = $("#book-purchase-month")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-month")[0].style.borderColor = "red";
             $("#book-purchase-day")[0].style.borderColor = "red";
@@ -1268,7 +1268,7 @@ function validateEntry() {
             (isNaN(parseFloat(pageData.purchasePrice)) || parseFloat(pageData.purchasePrice) < 0)
         ) {
             openModal("issue", "Please enter a valid purchase price!");
-            let rect = $("#book-purchase-price")[0].getBoundingClientRect();
+            const rect = $("#book-purchase-price")[0].getBoundingClientRect();
             window.scrollBy(0, rect.top - 180);
             $("#book-purchase-price")[0].style.borderColor = "red";
             setTimeout(() => {
@@ -1294,12 +1294,12 @@ function validateEntry() {
  * @returns {Boolean} True if the date is valid, false otherwise.
  */
 function isValidDate(y, m, d) {
-    let year = parseInt(y);
+    const year = parseInt(y);
     if (isNaN(year)) return false;
     if (year < 100) return false;
-    let month = parseInt(m) - 1;
+    const month = parseInt(m) - 1;
     if (isNaN(month) && m != "") return false;
-    let day = parseInt(d);
+    const day = parseInt(d);
     if (isNaN(day) && d != "") return false;
     if (m == "" && d != "") return false;
     if ((month > 11 || month < 0) && m != "") return false;
@@ -1312,7 +1312,7 @@ function isValidDate(y, m, d) {
     else if (!isNaN(year) && !isNaN(month)) date = new Date(year, month);
     else date = new Date(year);
     if (date.getTime() > Date.now()) return false;
-    let founded = new Date(1711, 9, 17);
+    const founded = new Date(1711, 9, 17);
     if (date.getTime() < founded.getTime()) return false;
     return true;
 }
@@ -1332,12 +1332,12 @@ function storeData(isDeletedValue = false, skipImages = false) {
         }
 
         // Defines the paths of the the database collection
-        let booksPath = collection(db, "books");
+        const booksPath = collection(db, "books");
 
         // If this is not a new entry, so update the existing entry using the known barcode number
         if (!newEntry) {
             let bookNumber = pageData.barcodeNumber - 1171100000;
-            let bookDocument = Math.floor(bookNumber / 100)
+            const bookDocument = Math.floor(bookNumber / 100)
                 .toString()
                 .padStart(3, "0");
             bookNumber = bookNumber % 100;
@@ -1351,15 +1351,15 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
             // Updates the book with the information
             runTransaction(db, (transaction) => {
-                let path = doc(booksPath, bookDocument);
+                const path = doc(booksPath, bookDocument);
                 return transaction.get(path).then((docSnap) => {
                     if (!docSnap.exists()) {
                         throw "There was a large problem because the books doc doesn't exist anymore...";
                     }
 
                     // Get the existing list of books
-                    let existingBooks = docSnap.data().books;
-                    let currentBook = Book.createFromObject(existingBooks[bookNumber]);
+                    const existingBooks = docSnap.data().books;
+                    const currentBook = Book.createFromObject(existingBooks[bookNumber]);
 
                     let imageUploadPromise;
                     if (currentBook.coverImageLink || !skipImages) {
@@ -1413,11 +1413,11 @@ function storeData(isDeletedValue = false, skipImages = false) {
                         }
 
                         let order = docSnap.data().order;
-                        let numBooksInDoc = docSnap.data().books.length;
+                        const numBooksInDoc = docSnap.data().books.length;
 
                         // Let's make sure that there isn't another doc that has been created after this one already.
                         try {
-                            let next = (order + 1).toString().padStart(3, "0");
+                            const next = (order + 1).toString().padStart(3, "0");
                             getDoc(doc(db, "books", next))
                                 .then((docSnap) => {
                                     if (docSnap.exists()) {
@@ -1442,8 +1442,8 @@ function storeData(isDeletedValue = false, skipImages = false) {
 
                         if (numBooksInDoc == 100) {
                             // A new book doc has to be created...
-                            let newNumber = (order + 1).toString().padStart(3, "0");
-                            let barcode = "11711" + newNumber + "00";
+                            const newNumber = (order + 1).toString().padStart(3, "0");
+                            const barcode = "11711" + newNumber + "00";
 
                             $("#barcode").html(addBarcodeSpacing(barcode));
                             pageData = getBookDataFromPage();
@@ -1559,7 +1559,7 @@ function processImages(barcodeNumber) {
                 // Clear out old images in Firebase Storage (if there are any)
                 deleteOldImages(barcodeNumber)
                     .then(() => {
-                        let promises = [];
+                        const promises = [];
                         promises[0] = uploadImageToStorage(barcodeNumber, "original", fileReturn);
                         promises[1] = uploadImageToStorage(barcodeNumber, "thumbnail", fileReturn);
                         promises[2] = uploadImageToStorage(barcodeNumber, "icon", fileReturn);
@@ -1606,7 +1606,7 @@ function getImage() {
         if (file) {
             resolve(file);
         } else {
-            let xhr = new XMLHttpRequest();
+            const xhr = new XMLHttpRequest();
             xhr.open("GET", $("#book-cover-image").attr("src"), true);
             xhr.responseType = "blob";
             xhr.onload = () => {
@@ -1639,10 +1639,10 @@ function getImage() {
 function deleteOldImages(barcodeNumber) {
     // Delete firebase storage images for the book that is being edited
     return new Promise((resolve, reject) => {
-        let publicStorage = getStorage(app, "gs://south-church-library");
+        const publicStorage = getStorage(app, "gs://south-church-library");
         list(ref(publicStorage, "books/" + barcodeNumber), { maxResults: 10 })
             .then((result) => {
-                let promises = [];
+                const promises = [];
                 result.items.forEach((image, index) => {
                     promises[index] = deleteObject(image);
                 });
@@ -1701,9 +1701,9 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
         canvas.id = type + "-canvas";
         $(".book-cover-image-container")[0].appendChild(canvas);
 
-        let height = $("#book-cover-image").height();
-        let width = $("#book-cover-image").width();
-        let ratio = height / width;
+        const height = $("#book-cover-image").height();
+        const width = $("#book-cover-image").width();
+        const ratio = height / width;
 
         // if (maxHeight && height > maxHeight) {
         //     height = maxHeight;
@@ -1712,15 +1712,15 @@ function uploadImageToStorage(barcodeNumber, type = "original", file) {
         $("#" + type + "-canvas")[0].height = maxHeight;
         $("#" + type + "-canvas")[0].width = Math.round(maxHeight / ratio);
 
-        let ctx = $("#" + type + "-canvas")[0].getContext("2d");
-        let image = new Image();
+        const ctx = $("#" + type + "-canvas")[0].getContext("2d");
+        const image = new Image();
         image.setAttribute("crossorigin", "anonymous");
         image.onload = () => {
             ctx.drawImage(image, 0, 0, maxHeight / ratio, maxHeight);
             $("#" + type + "-canvas")[0].toBlob((blob) => {
-                let file = new File([blob], "book" + type, { type: "image/jpeg" });
+                const file = new File([blob], "book" + type, { type: "image/jpeg" });
 
-                let publicStorage = getStorage(app, "gs://south-church-library");
+                const publicStorage = getStorage(app, "gs://south-church-library");
                 let bookSpecificRef = ref(publicStorage, "books");
                 if (type == "original") {
                     bookSpecificRef = ref(bookSpecificRef, barcodeNumber + "/cover.jpg");
@@ -1756,7 +1756,7 @@ var file;
 function loadFile(event) {
     if (event.target.files[0]) {
         file = event.target.files[0];
-        let output = document.getElementById("book-cover-image");
+        const output = document.getElementById("book-cover-image");
         output.src = URL.createObjectURL(file);
         // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
         /* This is bad because then the canvas elements can't use the link
@@ -1809,7 +1809,7 @@ function deleteEntry() {
 function cleanUpSearchTerm(searchArray) {
     // List of words to remove from the keywords list
 
-    let meaninglessWords = [
+    const meaninglessWords = [
         "the",
         "is",
         "it",

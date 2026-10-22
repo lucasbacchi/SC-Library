@@ -39,24 +39,24 @@ export function setupSignIn(pageQuery) {
  */
 function createReAuthPage(pageQuery) {
     $("#content").empty();
-    let div1 = document.createElement("div");
+    const div1 = document.createElement("div");
     div1.id = "form";
-    let div2 = document.createElement("div");
+    const div2 = document.createElement("div");
     div2.classList.add("login");
-    let h3 = document.createElement("h3");
+    const h3 = document.createElement("h3");
     h3.innerHTML = "Please enter your password.";
     $(div2).append(h3);
-    let lbl = document.createElement("label");
+    const lbl = document.createElement("label");
     lbl.innerHTML = "Password:";
     lbl.setAttribute("for", "password");
     $(div2).append(lbl);
-    let input = document.createElement("input");
+    const input = document.createElement("input");
     input.type = "password";
     input.id = "password";
     $(div2).append(input);
     $(div2).append(document.createElement("br"));
     $(div2).append(document.createElement("br"));
-    let btn = document.createElement("button");
+    const btn = document.createElement("button");
     btn.id = "submit";
     btn.innerHTML = "Submit";
     $(div2).append(btn);
@@ -73,11 +73,11 @@ function createReAuthPage(pageQuery) {
  */
 function authRedirect(pageQuery) {
     // Find the redirect path in the query
-    let redirect = findURLValue(pageQuery, "redirect");
+    const redirect = findURLValue(pageQuery, "redirect");
 
     // If they are being redirected with an email (to the account page)
     if (pageQuery.includes("email")) {
-        let newEmail = findURLValue(pageQuery, "email");
+        const newEmail = findURLValue(pageQuery, "email");
         updateUserEmail(newEmail)
             .then(() => {
                 openModal("success", "Your email was saved successfully.");
@@ -106,7 +106,7 @@ function signInSubmit(pageQuery = "") {
     let persistancePromise;
     if (!reAuth) {
         // Sets the persistance state in Firebase
-        let persistance = $("#remember-me").prop("checked");
+        const persistance = $("#remember-me").prop("checked");
         if (persistance) {
             persistancePromise = setPersistence(auth, browserLocalPersistence);
         } else {
@@ -153,7 +153,7 @@ function signIn(reAuth = false) {
         let email;
         if (reAuth) email = user.email;
         else email = document.getElementById("email").value;
-        let password = document.getElementById("password").value;
+        const password = document.getElementById("password").value;
         if (email.length < 4) {
             openModal("issue", "Please enter an email address.");
             reject("no-email-address");
@@ -184,8 +184,8 @@ function signIn(reAuth = false) {
             })
             .catch((error) => {
                 // Handle Errors here.
-                let errorCode = error.code;
-                let errorMessage = error.message;
+                const errorCode = error.code;
+                const errorMessage = error.message;
                 if (errorCode === "auth/wrong-password") {
                     openModal("issue", "Wrong password.");
                 } else {
@@ -206,16 +206,16 @@ function signIn(reAuth = false) {
  */
 function handleSignUp() {
     return new Promise((resolve, reject) => {
-        let firstName = document.getElementById("firstName").value;
-        let lastName = document.getElementById("lastName").value;
-        let email = document.getElementById("email").value;
-        let phone = document.getElementById("phone").value;
-        let address = document.getElementById("address").value;
-        let town = document.getElementById("town").value;
-        let state = document.getElementById("state").value;
-        let zip = document.getElementById("zip").value;
-        let password = document.getElementById("password").value;
-        let confirmPassword = document.getElementById("confirm-password").value;
+        const firstName = document.getElementById("firstName").value;
+        const lastName = document.getElementById("lastName").value;
+        const email = document.getElementById("email").value;
+        const phone = document.getElementById("phone").value;
+        const address = document.getElementById("address").value;
+        const town = document.getElementById("town").value;
+        const state = document.getElementById("state").value;
+        const zip = document.getElementById("zip").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirm-password").value;
         if (email.length < 4) {
             openModal("issue", "Please enter an email address.");
             reject("no-email-address");
@@ -337,7 +337,7 @@ function handleSignUp() {
  * @description Sends a password reset email to the user.
  */
 function sendPasswordReset() {
-    let email = document.getElementById("email").value;
+    const email = document.getElementById("email").value;
     if (!email.includes("@") || email.lastIndexOf(".") < email.indexOf("@")) {
         openModal("issue", "Please enter a valid email into the Email box above. Then try again.");
         return;
@@ -348,8 +348,8 @@ function sendPasswordReset() {
         })
         .catch((error) => {
             // Handle Errors here.
-            let errorCode = error.code;
-            let errorMessage = error.message;
+            const errorCode = error.code;
+            const errorMessage = error.message;
             if (errorCode == "auth/invalid-email") {
                 openModal("error", errorMessage);
             } else if (errorCode == "auth/user-not-found") {

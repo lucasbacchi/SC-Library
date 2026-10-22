@@ -11,10 +11,10 @@ export function setupSitemap() {
     for (let i = 0; i < directory.length; i++) {
         let page = directory[i];
         if (blacklist.indexOf(page) != -1) continue;
-        let slash = page.indexOf("/");
+        const slash = page.indexOf("/");
         let char;
         if (slash != -1) {
-            let newFolder = page.substring(0, slash);
+            const newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder == "admin") continue;
             if (folder != newFolder && newFolder != "") {
@@ -53,9 +53,9 @@ function buildAdminSitemap() {
     $("#sitemap").append("<ul id='admin'></ul>");
     for (let i = 0; i < directory.length; i++) {
         let page = directory[i];
-        let slash = page.indexOf("/");
+        const slash = page.indexOf("/");
         if (slash != -1) {
-            let newFolder = page.substring(0, slash);
+            const newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
             $("#admin").append("<li><a href='/admin/" + page + "'>" + formatPageString(page) + "</a></li>");

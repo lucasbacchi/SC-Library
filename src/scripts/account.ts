@@ -19,7 +19,7 @@ import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./g
  * @param {String} pageQuery The query string of the page from goToPage()
  */
 export function setupAccountPage(pageQuery) {
-    let user = auth.currentUser;
+    const user = auth.currentUser;
     if (!user) {
         $("#settings-column").html(
             "No user is signed in. To sign in, please click <a id='no-user-sign-in-link' href='/login'>here</a>."
@@ -132,7 +132,7 @@ function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
  * @description Sets up the account checkouts page
  */
 function setupAccountCheckouts() {
-    let checkouts = getCheckouts();
+    const checkouts = getCheckouts();
     createCheckouts(checkouts, "checkouts");
 }
 
@@ -182,7 +182,7 @@ function createCheckouts(books, str) {
  * @description Updates the user's account information in the database if it has changed. Runs when the user clicks the Save button on the account page.
  */
 function updateAccount() {
-    let user = auth.currentUser;
+    const user = auth.currentUser;
     getUser().then((userObject) => {
         if (!checkForChangedFields(userObject)) {
             openModal("info", "There are no changes to save.");
@@ -213,7 +213,7 @@ function updateAccount() {
 
         // If the email was changed update it.
         if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-            let newEmail = $("#setting-email").val().toString();
+            const newEmail = $("#setting-email").val().toString();
             updateUserEmail(newEmail)
                 .then(() => {
                     if (!user.emailVerified) {
@@ -225,7 +225,7 @@ function updateAccount() {
                 .catch((error) => {
                     // If the user needs to reauthenticate:
                     if (error.code && error.code == "auth/requires-recent-login") {
-                        let closeModal = openModal(
+                        const closeModal = openModal(
                             "info",
                             "For your security, you will be redirected to the login page to re-enter your password",
                             "Redirecting...",
@@ -341,15 +341,15 @@ function checkForChangedFields(userObject) {
  * @description Changes the user's password.
  */
 function changePassword() {
-    let currentPassword = $("#current-password").val().toString();
-    let newPassword = $("#new-password").val().toString();
+    const currentPassword = $("#current-password").val().toString();
+    const newPassword = $("#new-password").val().toString();
     if (newPassword != $("#confirm-new-password").val()) {
         openModal("issue", "The new passwords do not match!");
         $("#current-password").val("");
         $("#new-password").val("");
         $("#confirm-new-password").val("");
     } else if (newPassword.length >= 4) {
-        let user = auth.currentUser;
+        const user = auth.currentUser;
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         reauthenticateWithCredential(user, credential)
             .then(() => {
@@ -366,8 +366,8 @@ function changePassword() {
             })
             .catch((error) => {
                 // An error happened.
-                let errorCode = error.code;
-                let errorMessage = error.message;
+                const errorCode = error.code;
+                const errorMessage = error.message;
                 if (errorCode === "auth/wrong-password") {
                     openModal("issue", "The current password that you entered was incorrect.");
                 } else {
@@ -391,12 +391,12 @@ function changePassword() {
  *              both image sizes, they are uploaded to storage, and then they are updated in the database.
  */
 function processAccountImage() {
-    let user = auth.currentUser;
+    const user = auth.currentUser;
     new Promise((resolve, reject) => {
-        let fileInput = $("#file-input")[0];
+        const fileInput = $("#file-input")[0];
         const file = fileInput.files[0];
         if (file) {
-            let output = document.getElementById("account-page-image");
+            const output = document.getElementById("account-page-image");
             output.src = encodeURI(URL.createObjectURL(file));
             // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
             /* This is bad because then the canvas elements can't use the link
@@ -411,7 +411,7 @@ function processAccountImage() {
             return;
         }
     }).then((file) => {
-        let promises = [];
+        const promises = [];
         promises[0] = uploadAccountImage("original", file);
         promises[1] = uploadAccountImage("icon", file);
 
@@ -428,14 +428,14 @@ function processAccountImage() {
                 $("#small-account-image").attr("src", values[1]);
 
                 // Update Auth object
-                let authPromise = updateProfile(user, {
+                const authPromise = updateProfile(user, {
                     photoURL: values[0]
                 }).catch((error) => {
                     console.error(error);
                 });
 
                 // Update Database
-                let databasePromise = updateDoc(doc(db, "users", user.uid), {
+                const databasePromise = updateDoc(doc(db, "users", user.uid), {
                     pfpLink: values[0],
                     pfpIconLink: values[1]
                 })
@@ -474,7 +474,7 @@ function processAccountImage() {
  */
 function uploadAccountImage(type = "original", file) {
     return new Promise((resolve, reject) => {
-        let user = auth.currentUser;
+        const user = auth.currentUser;
         let maxHeight;
         if (type == "original") {
             maxHeight = 400;
@@ -489,9 +489,9 @@ function uploadAccountImage(type = "original", file) {
         canvas.id = type + "-canvas";
         $(".account-image-container")[0].appendChild(canvas);
 
-        let height = $("#account-page-image")[0].naturalHeight;
-        let width = $("#account-page-image")[0].naturalWidth;
-        let ratio = height / width;
+        const height = $("#account-page-image")[0].naturalHeight;
+        const width = $("#account-page-image")[0].naturalWidth;
+        const ratio = height / width;
         let square = Math.min(height, width);
 
         if (square > maxHeight) {
@@ -501,8 +501,8 @@ function uploadAccountImage(type = "original", file) {
         $("#" + type + "-canvas")[0].height = square;
         $("#" + type + "-canvas")[0].width = square;
 
-        let ctx = $("#" + type + "-canvas")[0].getContext("2d");
-        let image = new Image();
+        const ctx = $("#" + type + "-canvas")[0].getContext("2d");
+        const image = new Image();
         image.setAttribute("crossorigin", "anonymous");
         image.onload = () => {
             // This will just crop off of the bottom or right of the image in order to make it a square.
@@ -513,7 +513,7 @@ function uploadAccountImage(type = "original", file) {
                 ctx.drawImage(image, 0, 0, square / ratio, square);
             }
             $("#" + type + "-canvas")[0].toBlob((blob) => {
-                let file = new File([blob], "pfp " + type, { type: "image/jpeg" });
+                const file = new File([blob], "pfp " + type, { type: "image/jpeg" });
 
                 let userSpecificRef = ref(storage, "users");
                 if (type == "original") {

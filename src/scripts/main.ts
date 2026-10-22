@@ -21,7 +21,7 @@ export function setupMain() {
  * @description Runs when the user searches from the home page. Adds the query to the URL and goes to the search page.
  */
 function homePageSearch() {
-    let searchQuery = $("#home-page-search-input").val();
+    const searchQuery = $("#home-page-search-input").val();
     goToPage("search?query=" + searchQuery);
 }
 
@@ -33,7 +33,7 @@ function homeBookBoxes() {
     if (window.history.state.stack[window.history.state.index]?.stateData) {
         HistoryManager.getFromIDB(historyManager.get().stateData)
             .then((stateData) => {
-                let bookList = stateData?.homeBookBoxes;
+                const bookList = stateData?.homeBookBoxes;
                 console.log("Using books from history", bookList);
                 updateBookDatabase().then(() => {
                     for (let i = 0; i < 9; i++) {
@@ -53,9 +53,9 @@ function homeBookBoxes() {
         bookList = [];
         let count = 0;
         for (let i = 0; i < 9; i++) {
-            let rand1 = Math.floor(Math.random() * bookDatabase.length);
-            let rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
-            let book = bookDatabase[rand1].books[rand2];
+            const rand1 = Math.floor(Math.random() * bookDatabase.length);
+            const rand2 = Math.floor(Math.random() * bookDatabase[rand1].books.length);
+            const book = bookDatabase[rand1].books[rand2];
             let dontShowBook = false;
             if (bookDatabase[rand1].books[rand2].isDeleted || bookDatabase[rand1].books[rand2].isHidden) {
                 dontShowBook = true;
@@ -80,7 +80,7 @@ function homeBookBoxes() {
         }
 
         // Store the books in the history
-        let stateData = historyManager.get().stateData;
+        const stateData = historyManager.get().stateData;
         let lookupPromise;
         if (stateData) {
             lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
@@ -107,7 +107,7 @@ function homeBookBoxes() {
                     if (docSnap.data().books.length < 25 && docSnap.data().order != 0) {
                         docs--;
                     }
-                    let rand = Math.floor(Math.random() * docs);
+                    const rand = Math.floor(Math.random() * docs);
                     getDoc(doc(db, "books", rand.toString().padStart(3, "0")))
                         .then((docSnap) => {
                             if (!docSnap.exists()) {
@@ -117,8 +117,8 @@ function homeBookBoxes() {
                             bookList = [];
                             let count = 0;
                             for (let i = 0; i < 9; i++) {
-                                let random = Math.floor(Math.random() * docSnap.data().books.length);
-                                let book = Book.createFromObject(docSnap.data().books[random]);
+                                const random = Math.floor(Math.random() * docSnap.data().books.length);
+                                const book = Book.createFromObject(docSnap.data().books[random]);
                                 let dontShowBook = false;
                                 if (
                                     bookList.indexOf(random) > -1 ||
@@ -147,7 +147,7 @@ function homeBookBoxes() {
                             }
 
                             // Store the books in the history
-                            let stateData = historyManager.get().stateData;
+                            const stateData = historyManager.get().stateData;
                             let lookupPromise;
                             if (stateData) {
                                 lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {

@@ -87,8 +87,8 @@ export function setupEditUser() {
  * @description Called when the user adds an entry using an ISBN number.
  */
 function addEntry() {
-    let isbn = $("#add-entry-isbn").val();
-    let check = verifyISBN(isbn);
+    const isbn = $("#add-entry-isbn").val();
+    const check = verifyISBN(isbn);
     if (!check) {
         openModal("issue", "The number you entered is not a valid ISBN Number.");
         return;
@@ -107,7 +107,7 @@ function addEntryWithoutISBN() {
  * @description Called when the user searches for a book to edit on the admin dashboard.
  */
 function adminSearch() {
-    let searchQuery = $("#edit-entry-input").val();
+    const searchQuery = $("#edit-entry-input").val();
 
     if (searchQuery) {
         $("#edit-entry-search-results").show();
@@ -138,11 +138,11 @@ function adminBookBoxes(objects) {
     }
 }
 
-var input;
-var input1;
-var input2;
-var canvas;
-var ctx;
+let input;
+let input1;
+let input2;
+let canvas;
+let ctx;
 /**
  * @description Sets up the page for creating barcodes.
  */
@@ -219,9 +219,9 @@ function createBarcode(multiple = false) {
         if (i != 0) {
             currentBarcode++;
         }
-        let imageObjArray = [];
-        let imageObjLoadedArray = [];
-        let delay = i * 1500 + Math.floor(i / 5) * 2000;
+        const imageObjArray = [];
+        const imageObjLoadedArray = [];
+        const delay = i * 1500 + Math.floor(i / 5) * 2000;
         setTimeout(
             (currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
                 if (i == numberOfBarcodes - 1) {
@@ -229,13 +229,13 @@ function createBarcode(multiple = false) {
                         openModal("success", "Download Complete");
                     }, 2000);
                 }
-                let currentBarcodeString = currentBarcode.toString();
+                const currentBarcodeString = currentBarcode.toString();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.font = "bold 60px Poppins";
                 ctx.textAlign = "center";
                 // let textWidth = ctx.measureText("South Church Library");
                 ctx.fillText("South Church Library", canvas.width / 2, 60);
-                let barcodeStyled =
+                const barcodeStyled =
                     currentBarcodeString.substring(0, 1) +
                     "  " +
                     currentBarcodeString.substring(1, 5) +
@@ -268,7 +268,7 @@ function createBarcode(multiple = false) {
                 imageObjArray[0].src = "/img/barcode-parts/A.png";
                 imageObjArray[11].src = "/img/barcode-parts/B.png";
                 for (let i = 1; i < 11; i++) {
-                    let temp = currentBarcodeString.substring(i - 1, i);
+                    const temp = currentBarcodeString.substring(i - 1, i);
                     imageObjArray[i].src = "/img/barcode-parts/" + temp + ".png";
                 }
             },
@@ -314,8 +314,8 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
         }
         if (allLoaded) {
             canvas.toBlob((blob) => {
-                let url = window.URL.createObjectURL(blob);
-                let a = document.getElementById("link");
+                const url = window.URL.createObjectURL(blob);
+                const a = document.getElementById("link");
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
                 a.click();
@@ -373,7 +373,7 @@ function addStats() {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
-                let book = document.books[i];
+                const book = document.books[i];
                 if (book.isDeleted || book.barcodeNumber == 1171100000 || !book.lastUpdated) {
                     continue;
                 }
@@ -396,12 +396,12 @@ function addStats() {
  */
 // TODO: Remove this function after the system is fully updated to prevent holes.
 function viewMissingBarcodes() {
-    let missingArray = [];
+    const missingArray = [];
     bookDatabase.forEach((document) => {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
-            let book = document.books[i];
+            const book = document.books[i];
             if (
                 book.barcodeNumber == 1171100000 ||
                 book.lastUpdated /* && !book.isDeleted (We decided not to write over deleted books)*/
@@ -423,11 +423,11 @@ function viewMissingBarcodes() {
  */
 function downloadDatabase() {
     updateBookDatabase(true).then(() => {
-        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bookDatabase));
         const a = document.createElement("a");
         a.style.display = "none";
         a.id = "download-database-link";
-        let dateString = new Date().toLocaleDateString("en-CA"); // it's canadian because they use yyyy-mm-dd format
+        const dateString = new Date().toLocaleDateString("en-CA"); // it's canadian because they use yyyy-mm-dd format
         a.download = "database " + dateString + ".json";
         a.href = dataStr;
         a.innerHTML = "Click Here to download the database";
@@ -455,25 +455,25 @@ function importFile(event) {
  * @param {InputEvent} event the onchange event that is generated when the user selects a file.
  */
 function processImport(event) {
-    let bookDatabasePromise = updateBookDatabase(true);
+    const bookDatabasePromise = updateBookDatabase(true);
     importFile(event)
         .then((file) => {
             if (file.type != "application/json") {
                 openModal("error", "File type not recognized. Please upload a JSON file.");
                 return;
             }
-            let fileConversionPromise = file.text();
+            const fileConversionPromise = file.text();
             Promise.all([fileConversionPromise, bookDatabasePromise])
                 .then((text) => {
-                    let dataToUpload = JSON.parse(text[0]);
-                    let newDatabase = [];
+                    const dataToUpload = JSON.parse(text[0]);
+                    const newDatabase = [];
                     let modified = 0;
 
                     // Convert the data to an array of arrays of books and count the number of books that will be modified
                     for (let i = 0; i < dataToUpload.length; i++) {
-                        let newDoc = [];
+                        const newDoc = [];
                         for (let j = 0; j < dataToUpload[i].books.length; j++) {
-                            let newBook = Book.createFromObject(dataToUpload[i].books[j]);
+                            const newBook = Book.createFromObject(dataToUpload[i].books[j]);
                             newDoc.push(newBook);
                             if (bookDatabase[i].books[j] && !Book.equals(newBook, bookDatabase[i].books[j])) {
                                 modified++;
@@ -481,9 +481,9 @@ function processImport(event) {
                         }
                         newDatabase.push(newDoc);
                     }
-                    let ndlen = newDatabase.length,
+                    const ndlen = newDatabase.length,
                         bdlen = bookDatabase.length;
-                    let diff =
+                    const diff =
                         100 * (ndlen - bdlen) + (newDatabase[ndlen - 1].length - bookDatabase[bdlen - 1].books.length);
                     // Open a modal to confirm the import
                     openModal(
@@ -496,14 +496,14 @@ function processImport(event) {
                         "Yes, Import",
                         () => {
                             // The user confirmed the import
-                            let loadingModal = openModal(
+                            const loadingModal = openModal(
                                 "info",
                                 "Please wait. This may take a while. Do not close this window or navigate to a new page.",
                                 "Importing Database...",
                                 ""
                             );
                             // If an error occurs somewhere in this process, tell the user after 10 seconds
-                            let loadingTimer = window.setTimeout(() => {
+                            const loadingTimer = window.setTimeout(() => {
                                 loadingModal();
                                 openModal(
                                     "issue",
@@ -568,7 +568,7 @@ function fillImportModal(diff = 0, modified = 0) {
 function importDatabase(database) {
     return new Promise((resolve) => {
         // Get a new write batch
-        let batch = writeBatch(db);
+        const batch = writeBatch(db);
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then(
             (querySnapshot) => {
                 // Set each doc for deletion (in case the new database is smaller)
@@ -582,9 +582,9 @@ function importDatabase(database) {
                 // Add all the new docs
                 for (let i = 0; i < database.length; i++) {
                     // Create a new doc and add all the books to be imported into it
-                    let newDoc = [];
+                    const newDoc = [];
                     for (let j = 0; j < database[i].length; j++) {
-                        let newBook = database[i][j].toObject();
+                        const newBook = database[i][j].toObject();
                         // If we need to programatically edit the formatting of the database, do it here
                         newDoc.push(newBook);
                     }
@@ -609,7 +609,7 @@ function importDatabase(database) {
  * @param {String} pageQuery The query string from the URL.
  */
 export function setupView(pageQuery) {
-    let type = findURLValue(pageQuery, "type");
+    const type = findURLValue(pageQuery, "type");
     if (type == "books") {
         updateBookDatabase(true).then(() => {
             bookDatabase.forEach((doc, docIndex) => {
@@ -732,7 +732,7 @@ function getAllUsers() {
     return new Promise((resolve) => {
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then(
             (querySnapshot) => {
-                let userDatabase = [];
+                const userDatabase = [];
                 querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
                         console.error("user document does not exist");
@@ -785,7 +785,7 @@ export function setupInventory() {
     loadInventory()
         .then(() => {
             cachedInventory.forEach((barcode) => {
-                let current = $("#recent-scans").html();
+                const current = $("#recent-scans").html();
                 $("#recent-scans").html(current + "<br>" + barcode);
             });
         })
@@ -906,14 +906,14 @@ function adminHelpScrolling() {
         }
     });
     // Change the URL to the current section.
-    let url = "/admin/help";
+    const url = "/admin/help";
     let newHash;
     if (currentSection == 0) {
         newHash = "#top";
     } else {
         newHash = "#section" + currentSection;
     }
-    let currentUrl = window.location.pathname + window.location.hash;
+    const currentUrl = window.location.pathname + window.location.hash;
     if (currentUrl != url + newHash && !ignoreScroll) {
         console.log("Changing URL to " + url + newHash);
         historyManager.update(url + newHash);

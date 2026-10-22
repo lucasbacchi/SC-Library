@@ -6,7 +6,7 @@ import { findURLValue, openModal } from "./common";
  * @param {String} pageQuery The query string of the page.
  */
 export function setupReport(pageQuery) {
-    let type = findURLValue(pageQuery, "type");
+    const type = findURLValue(pageQuery, "type");
     switch (type) {
         case "circulation":
             setupCirculationReport();

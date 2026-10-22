@@ -29,10 +29,10 @@ import {
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 
-var isBrowse;
-var browseResultsArray;
-var filters;
-var docsUsed;
+let isBrowse;
+let browseResultsArray;
+let filters;
+let docsUsed;
 const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
 
 /**
@@ -40,7 +40,7 @@ const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
  * @param {String} pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery) {
-    let queryFromURL = findURLValue(pageQuery, "query", true);
+    const queryFromURL = findURLValue(pageQuery, "query", true);
     if (queryFromURL == "") {
         isBrowse = true;
     } else {
@@ -113,7 +113,7 @@ export function setupSearch(pageQuery) {
  * @description Handles new searches from the search page.
  */
 function searchPageSearch() {
-    let searchQuery = $("#search-page-search-input").val();
+    const searchQuery = $("#search-page-search-input").val();
     setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
@@ -130,9 +130,9 @@ function browse(page = 1) {
     return new Promise((resolve) => {
         changePageTitle("Browse", false);
         // Set the needed length for the browse results array.
-        let length = page * 20;
+        const length = page * 20;
         // If the browse results array is already long enough, just return it.
-        let filteredLength = filterSearchResults(browseResultsArray).length;
+        const filteredLength = filterSearchResults(browseResultsArray).length;
         if (filteredLength >= length) {
             // If the browse results array is already long enough, just return it.
             resolve(browseResultsArray);
@@ -166,7 +166,7 @@ function browseNext() {
     return new Promise((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
             // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
-            let docs = bookDatabase.length;
+            const docs = bookDatabase.length;
             if (docsUsed.length == docs) {
                 reject();
                 return;
@@ -179,10 +179,10 @@ function browseNext() {
                 reject();
                 return;
             }
-            let values = [],
+            const values = [],
                 invalidBookIndices = [];
             while (values.length < bookDatabase[rand].books.length - invalidBookIndices.length) {
-                let random = Math.floor(Math.random() * bookDatabase[rand].books.length);
+                const random = Math.floor(Math.random() * bookDatabase[rand].books.length);
                 if (values.indexOf(random) > -1) continue;
                 if (bookDatabase[rand].books[random].isDeleted || bookDatabase[rand].books[random].isHidden) {
                     if (!invalidBookIndices.includes(random)) {
@@ -204,7 +204,7 @@ function browseNext() {
                             reject();
                             return;
                         }
-                        let docs = docSnap.data().order + 1;
+                        const docs = docSnap.data().order + 1;
                         if (docsUsed.length == docs) {
                             reject();
                             return;
@@ -220,11 +220,11 @@ function browseNext() {
                                 reject();
                                 return;
                             }
-                            let values = [],
+                            const values = [],
                                 invalidBookIndices = [],
                                 data = docSnap.data();
                             while (values.length < data.books.length - invalidBookIndices.length) {
-                                let random = Math.floor(Math.random() * data.books.length);
+                                const random = Math.floor(Math.random() * data.books.length);
                                 if (values.includes(random)) continue;
                                 if (data.books[random].isDeleted || data.books[random].isHidden) {
                                     if (!invalidBookIndices.includes(random)) {
@@ -254,10 +254,10 @@ function goToSearchPage(page = 1, bypassHistory = false) {
 
     // If we have the books in the history, use those.
     if (!bypassHistory && historyManager.get()?.stateData) {
-        let stateDataKey = historyManager.get()?.stateData;
+        const stateDataKey = historyManager.get()?.stateData;
         HistoryManager.getFromIDB(stateDataKey)
             .then((stateData) => {
-                let searchPageData = stateData?.searchPageData;
+                const searchPageData = stateData?.searchPageData;
                 // Check to ensure that the page number is the same as the one in the history.
                 if (searchPageData && searchPageData.page == page) {
                     console.log("Using books from history", searchPageData);
@@ -294,7 +294,7 @@ function goToSearchPage(page = 1, bypassHistory = false) {
 function getNewBooksForSearch(page) {
     // If we don't have the books in the history, get them from the database.
     let loadingModal;
-    let timer = setTimeout(() => {
+    const timer = setTimeout(() => {
         loadingModal = openModal("info", "", "Loading...", "");
     }, 400);
     let searchPromise;
@@ -349,7 +349,7 @@ function createSearchResultsPage(resultsArray, page = 1) {
     }
 
     // Add the books to the search results container and log the list of books on the current page (for the history).
-    let searchPageData = {};
+    const searchPageData = {};
     searchPageData.resultsArray = resultsArray;
     searchPageData.books = [];
     for (let i = (page - 1) * 20; i < Math.min(page * 20, resultsArray.length); i++) {
@@ -368,7 +368,7 @@ function createSearchResultsPage(resultsArray, page = 1) {
     searchPageData.browseResultsArray = browseResultsArray;
     searchPageData.docsUsed = docsUsed;
 
-    let stateData = historyManager.get().stateData;
+    const stateData = historyManager.get().stateData;
     let lookupPromise;
     if (stateData) {
         lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
@@ -460,7 +460,7 @@ function createFilterList(resultsArray) {
     // First, we need to remove any filters that are not checked and clear the count for the ones that are.
     FILTER_TYPES.forEach((filterType) => {
         for (let i = 0; i < filters[filterType].length; i++) {
-            let filter = filters[filterType][i];
+            const filter = filters[filterType][i];
             if (filter.checked == false) {
                 // If the filter is not checked, we need to remove it from the list.
                 filters[filterType].splice(i, 1);
@@ -600,7 +600,7 @@ function applySearchFilters() {
 
         // Check the filters that are checked.
         $("#sort-" + filterType + "-list > li > input:checked").each((i, e) => {
-            let value = $(e).attr("name");
+            const value = $(e).attr("name");
             filters[filterType].find((filter) => filter.value == value).checked = true;
         });
     });
@@ -627,10 +627,10 @@ function filterSearchResults(resultsArray) {
     if (!filters || filters == {}) {
         return resultsArray;
     }
-    let results = [];
+    const results = [];
     // Itterate through each item in the book list
     for (let i = 0; i < resultsArray.length; i++) {
-        let currentBook = resultsArray[i];
+        const currentBook = resultsArray[i];
         let passesAllFilters = true;
         // Itterate through each filter type
         FILTER_TYPES.forEach((filterType) => {
@@ -641,33 +641,33 @@ function filterSearchResults(resultsArray) {
                     continue; // Skip this filter if it's not checked.
                 }
                 if (filterType == "author") {
-                    let authorFilter = filters.author[j].value;
+                    const authorFilter = filters.author[j].value;
                     currentBook.authors.forEach((author) => {
                         if (author.lastName + ", " + author.firstName == authorFilter) {
                             passesFilter = true;
                         }
                     });
                 } else if (filterType == "medium") {
-                    let medium = filters.medium[j].value;
+                    const medium = filters.medium[j].value;
                     if (medium.toUpperCase() == currentBook.medium.toUpperCase()) {
                         passesFilter = true;
                     }
                 } else if (filterType == "audience") {
-                    let audience = filters.audience[j].value;
+                    const audience = filters.audience[j].value;
                     currentBook.audience.toArray().forEach((audienceItem) => {
                         if (audience.toUpperCase() == audienceItem.toUpperCase()) {
                             passesFilter = true;
                         }
                     });
                 } else if (filterType == "subject") {
-                    let subject = filters.subject[j].value;
+                    const subject = filters.subject[j].value;
                     currentBook.subjects.forEach((subjectItem) => {
                         if (subject.toUpperCase() == subjectItem.toUpperCase()) {
                             passesFilter = true;
                         }
                     });
                 } else if (filterType == "type") {
-                    let type = filters.type[j].value;
+                    const type = filters.type[j].value;
                     let bookType;
                     if (currentBook.ddc == "FIC") {
                         bookType = "Fiction";
@@ -696,7 +696,7 @@ function filterSearchResults(resultsArray) {
  * @param {String} pageQuery The query string from the URL.
  */
 export function setupResultPage(pageQuery) {
-    let barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
+    const barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
     if (!barcodeNumber) {
         openModal("error", "A valid barcode was not provided.");
         goToPage("");
@@ -710,7 +710,7 @@ export function setupResultPage(pageQuery) {
     createOnClick($(".result-page-image"), displayResultPageImagePopup, barcodeNumber);
 
     createOnClick($("#result-page-email"), () => {
-        let loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
+        const loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber)
             .then(() => {
                 openModal(
@@ -734,7 +734,7 @@ export function setupResultPage(pageQuery) {
 
     createOnClick($("#result-page-link"), () => {
         navigator.clipboard.writeText(window.location.href).then(() => {
-            let closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
+            const closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
             window.setTimeout(() => {
                 closeModal();
             }, 1200);
@@ -901,7 +901,7 @@ function fillResultPage(barcodeNumber) {
             if (publishersAnswer == "") publishersAnswer = "None";
             $("#result-page-publisher").html(publishersAnswer);
             if (bookObject.publishDate) {
-                let d = bookObject.publishDate;
+                const d = bookObject.publishDate;
                 if (d.getMonth() != 0 && d.getDate() != 1) {
                     $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
                 } else if (d.getMonth() != 0) {
@@ -1095,8 +1095,8 @@ function resultPageEmail(barcodeNumber) {
                     message += "\n";
                 }
                 if (book.publishDate) {
-                    let d = book.publishDate;
-                    let date = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear();
+                    const d = book.publishDate;
+                    const date = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear();
                     message += "<b>Publish Date:</b> " + date + "\n";
                 }
                 if (book.isbn10) {
@@ -1111,8 +1111,8 @@ function resultPageEmail(barcodeNumber) {
                 message += "<b>Dewey Decimal Classification:</b> " + book.ddc + "\n\n";
                 message +=
                     "Thank you for using the South Church Library Catalog!\n\nSincerely,\nYour South Church Library Team</p>";
-                let to = [auth.currentUser.email];
-                let subject = "Book Information for " + book.title;
+                const to = [auth.currentUser.email];
+                const subject = "Book Information for " + book.title;
                 sendEmail(to, subject, undefined, message)
                     .then(() => {
                         resolve();

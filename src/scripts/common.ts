@@ -55,7 +55,7 @@ export function updateBookDatabase(forced = false) {
                         if (!doc.exists()) {
                             throw new Error("Document does not exist: " + doc.id);
                         }
-                        let documentObject = {
+                        const documentObject = {
                             books: [],
                             order: doc.data().order
                         };
@@ -96,12 +96,12 @@ const ISBN_WEIGHT = 50;
 function performSearch(searchQuery, viewHidden = false) {
     return new Promise((resolve, reject) => {
         // Remove all punctuation and make it lowercase and split it into an array
-        let searchQueryArray = searchQuery
+        const searchQueryArray = searchQuery
             .replace(/-/g, " ")
             .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
             .toLowerCase()
             .split(" ");
-        let scoresArray = [];
+        const scoresArray = [];
 
         isAdminCheck()
             .then((isAdmin) => {
@@ -109,7 +109,7 @@ function performSearch(searchQuery, viewHidden = false) {
                     // Iterate through each of the 10-ish docs
                     for (let i = 0; i < document.books.length; i++) {
                         // Iterate through each of the 100 books in each doc
-                        let book = document.books[i];
+                        const book = document.books[i];
                         if (book.isDeleted || (book.isHidden && !viewHidden && !isAdmin)) {
                             console.log("Skipping book " + book.barcodeNumber + " because it is deleted or hidden.");
                             continue;
@@ -121,15 +121,15 @@ function performSearch(searchQuery, viewHidden = false) {
                         let score = 0;
                         // Authors
                         for (let j = 0; j < book.authors.length; j++) {
-                            let arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
-                            let arr2 = book.authors[j].lastName.replace(/-/g, " ").split(" ");
-                            let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                            const arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
+                            const arr2 = book.authors[j].lastName.replace(/-/g, " ").split(" ");
+                            const arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                             score += arr1Ratio * AUTHOR_WEIGHT;
-                            let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                            const arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                             score += arr2Ratio * AUTHOR_WEIGHT;
                         }
                         // Barcode Number
-                        let barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+                        const barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
                         score += barcodeRatio * BARCODE_WEIGHT;
                         // DDC?
                         // Number of Pages?
@@ -137,15 +137,15 @@ function performSearch(searchQuery, viewHidden = false) {
                         // Description? (as opposed to just keywords)
                         // Illustrators
                         for (let j = 0; j < book.illustrators.length; j++) {
-                            let arr1 = book.illustrators[j].firstName.replace(/-/g, " ").split(" ");
-                            let arr2 = book.illustrators[j].lastName.replace(/-/g, " ").split(" ");
-                            let arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
+                            const arr1 = book.illustrators[j].firstName.replace(/-/g, " ").split(" ");
+                            const arr2 = book.illustrators[j].lastName.replace(/-/g, " ").split(" ");
+                            const arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                             score += arr1Ratio * ILLUSTRATOR_WEIGHT;
-                            let arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
+                            const arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                             score += arr2Ratio * ILLUSTRATOR_WEIGHT;
                         }
                         // ISBN 10 and ISBN 13
-                        let ISBNRatio = countInArray(
+                        const ISBNRatio = countInArray(
                             [book.isbn10.toString(), book.isbn13.toString()],
                             searchQueryArray,
                             true
@@ -153,18 +153,18 @@ function performSearch(searchQuery, viewHidden = false) {
                         score += ISBNRatio * ISBN_WEIGHT;
                         // Keywords
                         if (book.keywords.length != 0) {
-                            let keywordsRatio =
+                            const keywordsRatio =
                                 countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
                             score += keywordsRatio * KEYWORDS_WEIGHT;
                         }
                         // Publishers
                         for (let j = 0; j < book.publishers.length; j++) {
-                            let arr = book.publishers[j].replace(/-/g, " ").split(" ");
+                            const arr = book.publishers[j].replace(/-/g, " ").split(" ");
                             score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
                         }
                         // Subjects
                         for (let k = 0; k < book.subjects.length; k++) {
-                            let arr = book.subjects[k].replace(/-/g, " ").split(" ");
+                            const arr = book.subjects[k].replace(/-/g, " ").split(" ");
                             score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
                         }
                         // Subtitle
@@ -183,7 +183,7 @@ function performSearch(searchQuery, viewHidden = false) {
                     return b.score - a.score;
                 });
 
-                let returnArray = [];
+                const returnArray = [];
                 scoresArray.forEach((item) => {
                     if (item.score < 1) {
                         return;
@@ -241,11 +241,11 @@ function countInArray(arr, searchQueryArray, strict = false) {
 function searchCompare(a, b) {
     a = a.toString();
     b = b.toString();
-    let max = Math.max(a.length, b.length);
+    const max = Math.max(a.length, b.length);
     if (max == 0) {
         return 0;
     }
-    let similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
+    const similarity = (max - distance(a.toLowerCase(), b.toLowerCase())) / max;
     // This threshold seems pretty good, it prevents things from showing up if they share one or two letters.
     if (similarity < 0.7) {
         return 0;
@@ -269,7 +269,7 @@ function distance(source, target) {
         return source.length;
     }
 
-    let m = source.length,
+    const m = source.length,
         n = target.length,
         INF = m + n,
         score = new Array(m + 2),
@@ -292,7 +292,7 @@ function distance(source, target) {
     for (let i = 1; i <= m; i++) {
         let DB = 0;
         for (let j = 1; j <= n; j++) {
-            let i1 = sd[target[j - 1]],
+            const i1 = sd[target[j - 1]],
                 j1 = DB;
             if (source[i - 1] === target[j - 1]) {
                 score[i + 1][j + 1] = score[i][j];
@@ -336,7 +336,7 @@ export function formatDate(date) {
  */
 export function findURLValue(string, key, mightReturnEmpty = false) {
     let value;
-    let keyNameIsNotComplete = string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0;
+    const keyNameIsNotComplete = string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0;
     if (string.indexOf(key) < 0 || keyNameIsNotComplete || key == "") {
         if (!mightReturnEmpty) {
             console.warn('The key ("' + key + '") could not be found in the URL.');
@@ -344,7 +344,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
         return "";
     }
 
-    let position = string.indexOf(key);
+    const position = string.indexOf(key);
     if (string.substring(position).indexOf("&") > -1) {
         value = string.substring(string.indexOf("=", position) + 1, string.indexOf("&", position));
     } else {
@@ -362,11 +362,11 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
  */
 export function setURLValue(param, value, append = true) {
     // Get everything after the host
-    let string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
+    const string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
     let answer = "";
     // does param already exist?
     if (append && string.indexOf("?") != -1) {
-        let paramAlreadyExists = string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0;
+        const paramAlreadyExists = string.indexOf("?" + param + "=") >= 0 || string.indexOf("&" + param + "=") > 0;
         if (paramAlreadyExists) {
             // Edit it and return it.
             if (string.indexOf("?" + param + "=") >= 0) {
@@ -402,7 +402,7 @@ export function setURLValue(param, value, append = true) {
  */
 export function removeURLValue(param, mightReturnEmpty = false) {
     // Get everything after the "?" (query, hash, etc.)
-    let string = decodeURI(window.location.href.slice(window.location.href.indexOf("?")));
+    const string = decodeURI(window.location.href.slice(window.location.href.indexOf("?")));
     let answer = "";
     if (string.indexOf(param) < 0) {
         if (!mightReturnEmpty) {
@@ -582,12 +582,12 @@ export function setIgnoreScroll(newIgnoreScroll) {
 /**
  * @description Updates the scroll position in the history stack
  */
-export let updateScrollPosition = new Throttle(() => {
+export const updateScrollPosition = new Throttle(() => {
     if (ignoreScroll) {
         return;
     }
-    let scrollPosition = $(document).scrollTop();
-    let historyPage = historyManager.get(0);
+    const scrollPosition = $(document).scrollTop();
+    const historyPage = historyManager.get(0);
     let customData = historyPage?.customData;
     if (!customData) {
         customData = {};
@@ -672,7 +672,7 @@ export function buildBookBox(obj, page, num = 0) {
             break;
         case "account":
             div.classList.add("book-layout");
-        // eslint-disable-next-line no-fallthrough
+
         default:
             div.classList.add("book");
     }
@@ -849,7 +849,7 @@ function listSubjects(subj) {
  */
 function shortenDescription(desc) {
     const MIN_LEN = 300;
-    let cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
+    const cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
     //desc.replace("\n", "<br>");
     if (desc.length <= cutoff || cutoff == -1) {
         return desc;
@@ -878,8 +878,8 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
 
         updateBookDatabase(forced)
             .then(() => {
-                let documentNumber = Math.floor(barcodeNumber / 100) % 1000;
-                let bookNumber = barcodeNumber % 100;
+                const documentNumber = Math.floor(barcodeNumber / 100) % 1000;
+                const bookNumber = barcodeNumber % 100;
                 if (bookDatabase[documentNumber] && bookDatabase[documentNumber].books[bookNumber]) {
                     resolve(bookDatabase[documentNumber].books[bookNumber]);
                 } else {
@@ -910,7 +910,7 @@ export function getUserFromBarcode(barcode) {
                     reject("Multiple users found with barcode number " + barcode);
                     return;
                 }
-                let user = User.createFromObject(querySnapshot.docs[0].data());
+                const user = User.createFromObject(querySnapshot.docs[0].data());
                 resolve(user);
             })
             .catch((error) => {
@@ -937,7 +937,7 @@ export function getUser(uid = null) {
                     throw new Error("The user document could not be found.");
                 }
 
-                let user = User.createFromObject(docSnap.data());
+                const user = User.createFromObject(docSnap.data());
                 resolve(user);
             })
             .catch((error) => {
@@ -984,13 +984,13 @@ BEGIN ISBN UTILS
  */
 export function calculateISBNCheckDigit(number) {
     number = number.toString();
-    let length = number.length;
+    const length = number.length;
     if (length == 13 || length == 10) {
         console.warn("The ISBN number already has a check digit");
         return;
     }
 
-    let digits = [];
+    const digits = [];
     let total = 0;
     if (length == 12) {
         for (let i = 0; i < length; i++) {
@@ -1048,7 +1048,7 @@ export function verifyISBN(number) {
     if (number.toString().length == 10) {
         number = number.toString();
 
-        let digits = [];
+        const digits = [];
         for (let i = 0; i < number.length; i++) {
             if (number.substring(i, i + 1) == "X") {
                 digits[i] = 10;
@@ -1070,7 +1070,7 @@ export function verifyISBN(number) {
     } else if (number.toString().length == 13) {
         number = number.toString();
 
-        let digits = [];
+        const digits = [];
         for (let i = 0; i < number.length; i++) {
             digits[i] = parseInt(number.substring(i, i + 1));
         }
@@ -1105,7 +1105,7 @@ BEGIN AUTH
  * @returns {Promise<void>} A promise that resolves when the email has been sent
  */
 export function sendEmailVerificationToUser() {
-    let user = auth.currentUser;
+    const user = auth.currentUser;
     return sendEmailVerification(user)
         .then(() => {
             openModal("success", "Email Verification Sent! Please check your email!");
@@ -1123,7 +1123,7 @@ export function sendEmailVerificationToUser() {
  */
 export function updateUserEmail(newEmail) {
     return new Promise((resolve, reject) => {
-        let user = auth.currentUser;
+        const user = auth.currentUser;
         // Update the email in the authentication system
         updateEmail(user, newEmail)
             .then(() => {
@@ -1134,7 +1134,7 @@ export function updateUserEmail(newEmail) {
                 })
                     .then(() => {
                         // Update the email in the UI
-                        let email = user.email;
+                        const email = user.email;
                         updateEmailinUI(email);
                         // Send an email verification to the user with the new email
                         sendEmailVerificationToUser().then(() => {
@@ -1188,23 +1188,23 @@ export function openModal(
     secondaryCallback = null
 ) {
     // Create HTML elements
-    let modalContainer = document.createElement("div");
+    const modalContainer = document.createElement("div");
     modalContainer.classList.add("modal-container");
-    let modal = document.createElement("div");
+    const modal = document.createElement("div");
     modal.classList.add("modal");
     modalContainer.appendChild(modal);
-    let modalIcon = document.createElement("span");
+    const modalIcon = document.createElement("span");
     modalIcon.classList.add("material-symbols-outlined");
     modal.appendChild(modalIcon);
-    let modalTitle = document.createElement("h3");
+    const modalTitle = document.createElement("h3");
     modal.appendChild(modalTitle);
-    let modalMessage = document.createElement("p");
+    const modalMessage = document.createElement("p");
     modal.appendChild(modalMessage);
-    let modalButtonContainer = document.createElement("div");
+    const modalButtonContainer = document.createElement("div");
     modalButtonContainer.classList.add("modal-button-container");
     modal.appendChild(modalButtonContainer);
-    let modalButtonMain = document.createElement("button");
-    let modalButtonSecondary = document.createElement("button");
+    const modalButtonMain = document.createElement("button");
+    const modalButtonSecondary = document.createElement("button");
     modalButtonContainer.appendChild(modalButtonSecondary);
     modalButtonContainer.appendChild(modalButtonMain);
 

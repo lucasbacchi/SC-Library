@@ -55,7 +55,7 @@ $(() => {
             setupIndex();
             setupIndexedDB();
             setHistoryManager(window.history.state);
-            let page = window.location.pathname.substring(1) + window.location.search + window.location.hash;
+            const page = window.location.pathname.substring(1) + window.location.search + window.location.hash;
             goToPage(page, true).catch((error) => {
                 if (error != "restoreHistory") {
                     console.error("Problem with initial page load:", error);
@@ -130,10 +130,10 @@ function setupIndex() {
     }
 
     // Listen to see when the Material Symbols have loaded (It's a huge file)
-    let fontChecker = setInterval(() => {
+    const fontChecker = setInterval(() => {
         $(".material-symbols-outlined").css("opacity", "0");
         $(".material-symbols-outlined").css("width", "40px");
-        let status = document.fonts.check("12px Material Symbols Outlined");
+        const status = document.fonts.check("12px Material Symbols Outlined");
         if (status) {
             $(".material-symbols-outlined").css("opacity", "");
             $(".material-symbols-outlined").css("width", "");
@@ -230,7 +230,7 @@ function setupIndex() {
 
     // Watch the scroll status of the page and change the nav bar drop shadow accordingly
     $(window).on("scroll", () => {
-        let banners = $("#banner-container > div:visible").length > 0 ? true : false;
+        const banners = $("#banner-container > div:visible").length > 0 ? true : false;
 
         if ($(document).scrollTop() > 0) {
             if (!banners) {
@@ -254,7 +254,7 @@ function setupIndex() {
     }, 500);
 
     // Setup a ResizeObserver to watch for changes in the content div
-    let contentDivObserver = new ResizeObserver(resizeContentDiv);
+    const contentDivObserver = new ResizeObserver(resizeContentDiv);
     contentDivObserver.observe($("#content")[0]);
 
     function resizeContentDiv() {
@@ -263,7 +263,7 @@ function setupIndex() {
             return;
         }
 
-        let contentHeight =
+        const contentHeight =
             $("#content").height() +
             $("#index-content-container").innerHeight() -
             $("#index-content-container").height(); // Add the padding of the content container
@@ -275,7 +275,7 @@ function setupIndex() {
                     otherHeights += $(element).outerHeight(true);
                 }
             });
-        let minHeight = window.innerHeight - otherHeights;
+        const minHeight = window.innerHeight - otherHeights;
 
         $("#index-content-container").css("height", Math.max(contentHeight, minHeight));
     }
@@ -286,7 +286,7 @@ function setupIndex() {
  */
 function setupIndexedDB() {
     // Setup IndexedDB
-    let openRequest = window.indexedDB.open("SCLibrary", 1);
+    const openRequest = window.indexedDB.open("SCLibrary", 1);
 
     // Runs if the database doesn't exist or the version number is newer
     openRequest.onupgradeneeded = (event) => {
@@ -306,24 +306,24 @@ function setupIndexedDB() {
         // Load in any caches
         const expectedCachedVars = ["bookDatabase", "timeLastSearched"];
         setIDB(openRequest.result);
-        let transaction = iDB.transaction("globals", "readonly");
-        let globalsObjectStore = transaction.objectStore("globals");
+        const transaction = iDB.transaction("globals", "readonly");
+        const globalsObjectStore = transaction.objectStore("globals");
 
         expectedCachedVars.forEach((key) => {
-            let request = globalsObjectStore.get(key);
+            const request = globalsObjectStore.get(key);
             request.onsuccess = () => {
                 if (request.result == undefined) {
                     console.warn("Cached variable not found: " + key);
                     return;
                 }
                 if (key == "bookDatabase") {
-                    let tempBookDatabase = [];
+                    const tempBookDatabase = [];
                     request.result.forEach((bookDoc) => {
-                        let books = [];
+                        const books = [];
                         bookDoc.books.forEach((book) => {
                             books.push(Book.createFromObject(book));
                         });
-                        let order = bookDoc.order;
+                        const order = bookDoc.order;
                         tempBookDatabase.push({ books: books, order: order });
                     });
                     setBookDatabase(tempBookDatabase);
@@ -336,10 +336,10 @@ function setupIndexedDB() {
         });
 
         // Flush old history states from more than 2 weeks ago
-        let historyTransaction = iDB.transaction("historyStates", "readwrite");
-        let historyStatesObjectStore = historyTransaction.objectStore("historyStates");
+        const historyTransaction = iDB.transaction("historyStates", "readwrite");
+        const historyStatesObjectStore = historyTransaction.objectStore("historyStates");
         const range = IDBKeyRange.upperBound(Date.now() - 604800000 * 2); // 604800000ms = 1 week
-        let request = historyStatesObjectStore.openCursor(range);
+        const request = historyStatesObjectStore.openCursor(range);
         request.onsuccess = (event) => {
             const cursor = event.target.result;
             if (!cursor) return;
@@ -353,7 +353,7 @@ function setupIndexedDB() {
  * @description This function searches for the query in the header search bar.
  */
 function headerSearch() {
-    let query = $("#header-search-input").val();
+    const query = $("#header-search-input").val();
     if (query == "") {
         return;
     }
@@ -470,8 +470,8 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         if (!currentHash) {
             setCurrentHash("");
         }
-        let currentQueryValue = findURLValue(currentQuery, "query", true);
-        let pageQueryValue = findURLValue(pageQuery, "query", true);
+        const currentQueryValue = findURLValue(currentQuery, "query", true);
+        const pageQueryValue = findURLValue(pageQuery, "query", true);
         if (
             currentPage &&
             !goingBack &&
@@ -496,7 +496,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
         // At this point, the user is going somewhere, but we don't know if they are allowed to go to admin pages yet
         // If there is any reason for the user to not leave a page, then it will reject.
         if (!bypassUnload) {
-            let cancelEvent = !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
+            const cancelEvent = !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
 
             if (cancelEvent) {
                 reject("Cancelled by BeforeUnload Event");
@@ -516,9 +516,9 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
             // If there isn't a hash to scroll to, see if there's a scroll point in the history to go to.
             let count = 0;
             let maxScrollTop = $(document).height() - $(window).height();
-            let scrollRestoration = historyManager.get(0).customData.scrollRestoration;
+            const scrollRestoration = historyManager.get(0).customData.scrollRestoration;
             setIgnoreScroll(true);
-            let loop = setInterval(() => {
+            const loop = setInterval(() => {
                 count++;
                 if (count > 100) {
                     clearInterval(loop);
@@ -570,7 +570,7 @@ export function goToPage(pageName, goingBack = false, bypassUnload = false) {
 
         Promise.all([delayTimer, adminCheck])
             .then((values) => {
-                let isAdmin = values[1];
+                const isAdmin = values[1];
                 if (pageName.includes("admin") && !isAdmin) {
                     reject("User is not an admin.");
                     goToPage("");
@@ -689,7 +689,7 @@ function getPage(pageName, goingBack, pageHash = "", pageQuery = "") {
                 $("#content").html(xhttp.responseText);
 
                 // Set Title Correctly
-                let titleList = {
+                const titleList = {
                     "admin/editEntry": "Edit an Entry",
                     "admin/main": "Admin Dashboard",
                     "admin/report": "Run a Report",
@@ -922,9 +922,9 @@ window.onpopstate = () => {
 
     historyManager.currentIndex = window.history.state.index;
 
-    let path = document.location.pathname.substring(1);
-    let search = document.location.search;
-    let hash = document.location.hash;
+    const path = document.location.pathname.substring(1);
+    const search = document.location.search;
+    const hash = document.location.hash;
 
     goToPage(path + search + hash, true)
         .then(() => {
@@ -962,7 +962,7 @@ export function changePageTitle(newTitle, append = true) {
         document.title = "South Church Library Catalog";
     } else {
         if (append) {
-            let currentTitle = document.title;
+            const currentTitle = document.title;
             document.title = newTitle + " | " + currentTitle;
         } else {
             document.title = newTitle + " | South Church Library Catalog";
@@ -1038,14 +1038,15 @@ function initApp() {
 
                     // If user has just signed in, don't bother updating info a second time
                     // TODO: maybe add something to do with time since last page load?
-                    let millisecondsSinceSignup = new Date().getTime() - new Date(user.metadata.creationTime).getTime();
+                    const millisecondsSinceSignup =
+                        new Date().getTime() - new Date(user.metadata.creationTime).getTime();
                     if (millisecondsSinceSignup < 30000) {
                         resolve();
                         return;
                     }
 
-                    let date = new Date();
-                    let emailVerified = user.emailVerified;
+                    const date = new Date();
+                    const emailVerified = user.emailVerified;
                     updateDoc(doc(db, "users", user.uid), {
                         lastSignInTime: date,
                         emailVerified: emailVerified
@@ -1116,7 +1117,7 @@ function startLogoutTimer() {
             $(window).off("click", resetLogoutTimer);
             $(window).off("scroll", resetLogoutTimer);
             $(window).off("touchmove", resetLogoutTimer);
-            let timeRemaining = event.data.timeRemaining;
+            const timeRemaining = event.data.timeRemaining;
             openModal(
                 "issue",
                 'To protect your account, you will be logged out soon unless you interact with the page.<br><br><span id="logout-time-remaining">5:00</span> ',
@@ -1146,7 +1147,7 @@ function startLogoutTimer() {
                 Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + (timeRemaining % 60)
             );
         } else if (event.data.command == "update") {
-            let timeRemaining = event.data.timeRemaining;
+            const timeRemaining = event.data.timeRemaining;
             $("#logout-time-remaining").html(
                 Math.floor(timeRemaining / 60) + ":" + (timeRemaining % 60 < 10 ? "0" : "") + (timeRemaining % 60)
             );
@@ -1206,7 +1207,7 @@ function sendToFirebase({ name, delta, entries }) {
  */
 export function updateUserAccountInfo() {
     return new Promise((resolve, reject) => {
-        let user = auth.currentUser;
+        const user = auth.currentUser;
         if (user) {
             // User is signed in.
             // Get the information about the current user from the database.
