@@ -1,9 +1,11 @@
 import cors from "cors";
-import express, { type Request, type Response } from "express";
-import { getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import express, { type NextFunction, type Request, type Response } from "express";
+import type { DecodedIdToken } from "firebase-admin/auth";
+import { FieldValue, type Transaction } from "firebase-admin/firestore";
+import { appCheck, firebaseAuth, firestore } from "./firebase.js";
 import nodemailer from "nodemailer";
+
+type authenticatedRequest = Request & { user?: DecodedIdToken };
 
 const app = express();
 const port = Number(process.env.PORT ?? 8080);
@@ -15,10 +17,6 @@ const mailCollection = process.env.MAIL_COLLECTION ?? "mail";
 const defaultFrom = "South Church Library <library@southchurch.com>";
 const smtpConnectionUri = process.env.SMTP_CONNECTION_URI;
 const smtpPassword = process.env.SMTP_PASSWORD;
-
-const firebaseApp = getApps().length > 0 ? getApps()[0] : initializeApp();
-export const firebaseAuth = getAuth(firebaseApp);
-export const firestore = getFirestore(firebaseApp);
 
 type MailAttachment = {
     filename?: string;
@@ -119,13 +117,74 @@ function createMailTransport() {
     });
 }
 
-async function authenticateRequest(req: Request) {
+async function authenticateRequest(req: Request): Promise<DecodedIdToken | null> {
     const authorization = req.header("authorization");
     if (!authorization?.startsWith("Bearer ")) {
         return null;
     }
 
     return firebaseAuth.verifyIdToken(authorization.slice("Bearer ".length));
+}
+
+async function requireAppCheck(req: Request, res: Response, next: NextFunction) {
+    if (req.method === "OPTIONS") {
+        next();
+        return;
+    }
+
+    const token = req.header("X-Firebase-AppCheck");
+    if (!token) {
+        res.status(401).json({ error: "A valid Firebase App Check token is required." });
+        return;
+    }
+
+    try {
+        await appCheck.verifyToken(token);
+        next();
+    } catch (error) {
+        console.error("Firebase App Check verification failed.", error);
+        res.status(401).json({ error: "The Firebase App Check token is invalid or expired." });
+    }
+}
+
+async function requireAuth(req: authenticatedRequest, res: Response, next: NextFunction) {
+    try {
+        const user = await authenticateRequest(req);
+        if (!user) {
+            res.status(401).json({ error: "A valid Firebase ID token is required." });
+            return;
+        }
+        req.user = user;
+        next();
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("Decoding Firebase ID token failed")) {
+            res.status(401).json({ error: "The Firebase ID token is invalid or expired." });
+            return;
+        }
+        next(error);
+    }
+}
+
+function hasPermission(user: DecodedIdToken, permission: string): boolean {
+    const permissions = user.permissions;
+    return (
+        user.admin === true ||
+        (Array.isArray(permissions) && permissions.includes(permission)) ||
+        (typeof permissions === "object" &&
+            permissions !== null &&
+            !Array.isArray(permissions) &&
+            permissions[permission] === true)
+    );
+}
+
+export function requirePermission(permission: string) {
+    return (req: authenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user || !hasPermission(req.user, permission)) {
+            res.status(403).json({ error: "You do not have permission to access this resource." });
+            return;
+        }
+        next();
+    };
 }
 
 type RegistrationProfile = {
@@ -194,10 +253,18 @@ app.get("/health", (_req: Request, res: Response) => {
     res.json({ status: "ok" });
 });
 
+// App Check diagnostic endpoint. Reaching this handler confirms token verification.
+app.get("/app-check/test", requireAppCheck, (_req: Request, res: Response) => {
+    res.json({ status: "ok", appCheck: "verified" });
+});
+
+// All application routes require App Check.
+app.use(requireAppCheck);
+
 // Completes registration after Firebase Auth creates the account.
-app.post("/users/register", async (req: Request, res: Response) => {
+app.post("/users/register", requireAuth, async (req: authenticatedRequest, res: Response) => {
     try {
-        const user = await authenticateRequest(req);
+        const user = req.user;
         if (!user) {
             res.status(401).json({ error: "A valid Firebase ID token is required." });
             return;
@@ -206,7 +273,7 @@ app.post("/users/register", async (req: Request, res: Response) => {
         const profile = getRegistrationProfile(req.body);
         const userReference = firestore.doc(`users/${user.uid}`);
         const writableVariablesReference = firestore.doc("config/writable_vars");
-        const userDocument = await firestore.runTransaction(async (transaction) => {
+        const userDocument = await firestore.runTransaction(async (transaction: Transaction) => {
             const existingUser = await transaction.get(userReference);
 
             if (existingUser.exists) {
@@ -311,10 +378,10 @@ app.post("/users/register", async (req: Request, res: Response) => {
     }
 });
 
-app.post("/mail/send", async (req: Request, res: Response) => {
+app.post("/mail/send", requireAuth, async (req: authenticatedRequest, res: Response) => {
     let mailReference;
     try {
-        const user = await authenticateRequest(req);
+        const user = req.user;
         if (!user) {
             res.status(401).json({ error: "A valid Firebase ID token is required." });
             return;
@@ -377,7 +444,7 @@ app.post("/mail/send", async (req: Request, res: Response) => {
                         completedAt: new Date()
                     }
                 })
-                .catch((updateError) => console.error(updateError));
+                .catch((updateError: unknown) => console.error(updateError));
         }
 
         if (

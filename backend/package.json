@@ -7,7 +7,7 @@
     "type": "module",
     "main": "dist/index.js",
     "engines": {
-        "node": ">=20"
+        "node": ">=22"
     },
     "scripts": {
         "dev": "tsx watch src/index.ts",

@@ -4,6 +4,8 @@ This is the Express API for the SC Library catalog. It is packaged as a Cloud Ru
 
 ## Local development
 
+Requires Node.js 22 or later.
+
 ```powershell
 npm install
 npm run dev
