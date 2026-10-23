@@ -9,25 +9,26 @@ import {
     setPersistence,
     signInWithEmailAndPassword
 } from "firebase/auth";
-import { goToPage, updateUserAccountInfo } from "./ajax";
+import { updateUserAccountInfo } from "./ajax";
 import { createOnClick, findURLValue, openModal, sendEmailVerificationToUser, updateUserEmail } from "./common";
 import { analytics, auth, currentPage } from "./globals";
+import type { FirebaseError } from "firebase/app";
 
 /**
  * @description Sets up the sign in page.
  * @param {String} pageQuery The query string of the page.
  */
-export function setupSignIn(pageQuery) {
-    createOnClick($("#submit"), signInSubmit, pageQuery);
-    createOnClick($("#password-reset"), sendPasswordReset);
+export function setupSignIn(pageQuery: string) {
+    createOnClick(document.getElementById("submit")! as Element, () => signInSubmit(pageQuery));
+    createOnClick(document.getElementById("password-reset")! as Element, sendPasswordReset);
 
     if (findURLValue(pageQuery, "redirect", true) != "") {
         createReAuthPage(pageQuery);
     }
 
     // If the user presses enter while in the input fields, submit the form
-    $(".login > input").on("keydown", (event) => {
-        if (event.key === "Enter") {
+    document.querySelector(".login > input")?.addEventListener("keydown", (event) => {
+        if ((event as KeyboardEvent).key === "Enter") {
             signInSubmit(pageQuery);
         }
     });
@@ -37,41 +38,41 @@ export function setupSignIn(pageQuery) {
  * @description Redesigns the sign in page to allow the user to reauthenticate only using their password.
  * @param {String} pageQuery The query string of the page.
  */
-function createReAuthPage(pageQuery) {
-    $("#content").empty();
+function createReAuthPage(pageQuery: string) {
+    (document.getElementById("content") as HTMLElement).innerHTML = "";
     const div1 = document.createElement("div");
     div1.id = "form";
     const div2 = document.createElement("div");
     div2.classList.add("login");
     const h3 = document.createElement("h3");
     h3.innerHTML = "Please enter your password.";
-    $(div2).append(h3);
+    div2.appendChild(h3);
     const lbl = document.createElement("label");
     lbl.innerHTML = "Password:";
     lbl.setAttribute("for", "password");
-    $(div2).append(lbl);
+    div2.appendChild(lbl);
     const input = document.createElement("input");
     input.type = "password";
     input.id = "password";
-    $(div2).append(input);
-    $(div2).append(document.createElement("br"));
-    $(div2).append(document.createElement("br"));
+    div2.appendChild(input);
+    div2.appendChild(document.createElement("br"));
+    div2.appendChild(document.createElement("br"));
     const btn = document.createElement("button");
     btn.id = "submit";
     btn.innerHTML = "Submit";
-    $(div2).append(btn);
-    createOnClick($(btn), signInSubmit, pageQuery);
-    $(div2).append(document.createElement("br"));
-    $(div2).append(document.createElement("br"));
-    $(div1).append(div2);
-    $("#content").append(div1);
+    div2.appendChild(btn);
+    createOnClick(btn, () => signInSubmit(pageQuery));
+    div2.appendChild(document.createElement("br"));
+    div2.appendChild(document.createElement("br"));
+    div1.appendChild(div2);
+    document.getElementById("content")!.appendChild(div1);
 }
 
 /**
  * @description Handles the process of redirecting the user after they have signed in again. For now, this is only used for changing the user's email.
  * @param {String} pageQuery The query string of the page.
  */
-function authRedirect(pageQuery) {
+function authRedirect(pageQuery: string) {
     // Find the redirect path in the query
     const redirect = findURLValue(pageQuery, "redirect");
 
@@ -81,16 +82,16 @@ function authRedirect(pageQuery) {
         updateUserEmail(newEmail)
             .then(() => {
                 openModal("success", "Your email was saved successfully.");
-                goToPage(redirect);
+                // goToPage(redirect);
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
                 openModal("error", "There was an error updating your email. Please try again later.");
                 console.error(error);
             });
     } else {
         // If they do not have an email in the query
         // TO DO: Add additional redirects as needed
-        goToPage(redirect);
+        // goToPage(redirect);
     }
 }
 
@@ -106,7 +107,7 @@ function signInSubmit(pageQuery = "") {
     let persistancePromise;
     if (!reAuth) {
         // Sets the persistance state in Firebase
-        const persistance = $("#remember-me").prop("checked");
+        const persistance = (document.getElementById("remember-me")! as HTMLInputElement).checked;
         if (persistance) {
             persistancePromise = setPersistence(auth, browserLocalPersistence);
         } else {
@@ -114,24 +115,27 @@ function signInSubmit(pageQuery = "") {
         }
     } else {
         // If this is a reauthentication, we don't need to change the persistance state
-        persistancePromise = Promise.resolve();
+        persistancePromise = Promise.resolve(undefined);
     }
     persistancePromise.then(() => {
-        let authPromise;
+        let authPromise: Promise<boolean | string>;
         if (currentPage == "login") {
             authPromise = signIn(reAuth);
         } else if (currentPage == "signup") {
             authPromise = handleSignUp();
+        } else {
+            console.error("The current page is not a sign in or sign up page.");
+            return;
         }
         authPromise
             .then(() => {
                 if (reAuth) {
                     authRedirect(pageQuery);
                 } else {
-                    goToPage("");
+                    // goToPage("");
                 }
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
                 console.warn("error in auth functions", error);
             });
     });
@@ -142,7 +146,7 @@ function signInSubmit(pageQuery = "") {
  * @param {Boolean} reAuth Whether or not this is a reauthentication.
  */
 function signIn(reAuth = false) {
-    return new Promise((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
         let user = auth.currentUser;
         if (user && !reAuth) {
             openModal("error", "Another user is currently signed in. Please sign out first.");
@@ -151,10 +155,10 @@ function signIn(reAuth = false) {
         }
 
         let email;
-        if (reAuth) email = user.email;
-        else email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
-        if (email.length < 4) {
+        if (reAuth && user) email = user.email;
+        else email = (document.getElementById("email")! as HTMLInputElement).value;
+        const password = (document.getElementById("password")! as HTMLInputElement).value;
+        if (email && email.length < 4) {
             openModal("issue", "Please enter an email address.");
             reject("no-email-address");
             return;
@@ -166,8 +170,18 @@ function signIn(reAuth = false) {
         }
 
         let signInFunction;
+        if (!email) {
+            openModal("error", "No email address was found for the current user.");
+            reject("no-email-address");
+            return;
+        }
         const credential = EmailAuthProvider.credential(email, password);
         if (reAuth) {
+            if (!user) {
+                openModal("error", "No user is currently signed in.");
+                reject("no-user-signed-in");
+                return;
+            }
             signInFunction = reauthenticateWithCredential(user, credential);
         } else {
             signInFunction = signInWithEmailAndPassword(auth, email, password);
@@ -176,13 +190,18 @@ function signIn(reAuth = false) {
         signInFunction
             .then(() => {
                 user = auth.currentUser;
+                if (!user) {
+                    openModal("error", "No user is currently signed in.");
+                    reject("no-user-signed-in");
+                    return;
+                }
                 logEvent(analytics, "login", {
                     method: "email",
                     userId: user.uid
                 });
                 resolve(reAuth);
             })
-            .catch((error) => {
+            .catch((error: FirebaseError) => {
                 // Handle Errors here.
                 const errorCode = error.code;
                 const errorMessage = error.message;
@@ -191,9 +210,9 @@ function signIn(reAuth = false) {
                 } else {
                     openModal("error", errorMessage);
                     console.error(error);
-                    $("#email").val("");
+                    (document.getElementById("email") as HTMLInputElement).value = "";
                 }
-                $("#password").val("");
+                (document.getElementById("password") as HTMLInputElement).value = "";
                 reject(errorCode);
             });
     });
@@ -205,17 +224,17 @@ function signIn(reAuth = false) {
  * @returns {Promise} A promise that resolves when the user is signed up.
  */
 function handleSignUp() {
-    return new Promise((resolve, reject) => {
-        const firstName = document.getElementById("firstName").value;
-        const lastName = document.getElementById("lastName").value;
-        const email = document.getElementById("email").value;
-        const phone = document.getElementById("phone").value;
-        const address = document.getElementById("address").value;
-        const town = document.getElementById("town").value;
-        const state = document.getElementById("state").value;
-        const zip = document.getElementById("zip").value;
-        const password = document.getElementById("password").value;
-        const confirmPassword = document.getElementById("confirm-password").value;
+    return new Promise<string>((resolve, reject) => {
+        const firstName = (document.getElementById("firstName")! as HTMLInputElement).value;
+        const lastName = (document.getElementById("lastName")! as HTMLInputElement).value;
+        const email = (document.getElementById("email")! as HTMLInputElement).value;
+        const phone = (document.getElementById("phone")! as HTMLInputElement).value;
+        const address = (document.getElementById("address")! as HTMLInputElement).value;
+        const town = (document.getElementById("town")! as HTMLInputElement).value;
+        const state = (document.getElementById("state")! as HTMLInputElement).value;
+        const zip = (document.getElementById("zip")! as HTMLInputElement).value;
+        const password = (document.getElementById("password")! as HTMLInputElement).value;
+        const confirmPassword = (document.getElementById("confirm-password")! as HTMLInputElement).value;
         if (email.length < 4) {
             openModal("issue", "Please enter an email address.");
             reject("no-email-address");
@@ -309,9 +328,9 @@ function handleSignUp() {
                         phone: phone,
                         address: address + ", " + town + ", " + state + " " + zip
                     });
-                    resolve();
+                    resolve("");
                 })
-                .catch((error) => {
+                .catch((error: FirebaseError) => {
                     if (error.code == "auth/weak-password") {
                         openModal("issue", "The password is too weak. Please try another password.");
                     } else if (error.code == "auth/email-already-in-use") {
@@ -337,7 +356,7 @@ function handleSignUp() {
  * @description Sends a password reset email to the user.
  */
 function sendPasswordReset() {
-    const email = document.getElementById("email").value;
+    const email = (document.getElementById("email")! as HTMLInputElement).value;
     if (!email.includes("@") || email.lastIndexOf(".") < email.indexOf("@")) {
         openModal("issue", "Please enter a valid email into the Email box above. Then try again.");
         return;
@@ -346,7 +365,7 @@ function sendPasswordReset() {
         .then(() => {
             openModal("success", "Password Reset Email Sent!");
         })
-        .catch((error) => {
+        .catch((error: FirebaseError) => {
             // Handle Errors here.
             const errorCode = error.code;
             const errorMessage = error.message;

@@ -5,8 +5,8 @@ import { auth, directory } from "./globals";
  * @description Sets up the sitemap page. It also determines if the user is an admin and adds the admin pages to the sitemap.
  */
 export function setupSitemap() {
-    let folder = "",
-        blacklist = ["404", "account", "result"];
+    let folder = "";
+    const blacklist = ["404", "account", "result"];
     if (auth.currentUser) blacklist.push("login", "signup");
     for (let i = 0; i < directory.length; i++) {
         let page = directory[i];
@@ -18,20 +18,30 @@ export function setupSitemap() {
             page = page.substring(slash + 1);
             if (newFolder == "admin") continue;
             if (folder != newFolder && newFolder != "") {
-                $("#sitemap").append("<li>" + formatPageString(newFolder) + "</li>");
-                $("#sitemap").append("<ul id='" + newFolder + "'></ul>");
+                (document.getElementById("sitemap") as Element).insertAdjacentHTML(
+                    "beforeend",
+                    "<li>" + formatPageString(newFolder) + "</li>"
+                );
+                (document.getElementById("sitemap") as Element).insertAdjacentHTML(
+                    "beforeend",
+                    "<ul id='" + newFolder + "'></ul>"
+                );
             }
             folder = newFolder;
             if (folder == "account") char = "?";
             else if (folder == "") char = "";
             else char = "/";
-            $("#" + folder).append(
+            (document.querySelector("#" + folder) as Element).insertAdjacentHTML(
+                "beforeend",
                 "<li><a href='/" + folder + char + page + "'>" + formatPageString(page) + "</a></li>"
             );
         } else {
             folder = "";
             char = "";
-            $("#sitemap").append("<li><a href='/" + folder + char + page + "'>" + formatPageString(page) + "</a></li>");
+            (document.getElementById("sitemap") as Element).insertAdjacentHTML(
+                "beforeend",
+                "<li><a href='/" + folder + char + page + "'>" + formatPageString(page) + "</a></li>"
+            );
         }
     }
     isAdminCheck()
@@ -49,8 +59,8 @@ export function setupSitemap() {
  * @description Builds the admin sitemap.
  */
 function buildAdminSitemap() {
-    $("#sitemap").append("<li>Admin</li>");
-    $("#sitemap").append("<ul id='admin'></ul>");
+    (document.getElementById("sitemap") as Element).insertAdjacentHTML("beforeend", "<li>Admin</li>");
+    (document.getElementById("sitemap") as Element).insertAdjacentHTML("beforeend", "<ul id='admin'></ul>");
     for (let i = 0; i < directory.length; i++) {
         let page = directory[i];
         const slash = page.indexOf("/");
@@ -58,7 +68,10 @@ function buildAdminSitemap() {
             const newFolder = page.substring(0, slash);
             page = page.substring(slash + 1);
             if (newFolder != "admin") continue;
-            $("#admin").append("<li><a href='/admin/" + page + "'>" + formatPageString(page) + "</a></li>");
+            (document.getElementById("admin") as Element).insertAdjacentHTML(
+                "beforeend",
+                "<li><a href='/admin/" + page + "'>" + formatPageString(page) + "</a></li>"
+            );
         }
     }
 }
@@ -68,7 +81,7 @@ function buildAdminSitemap() {
  * @param {String} page The name of the page to be formatted.
  * @returns {String} The formatted page string.
  */
-function formatPageString(page) {
+function formatPageString(page: string) {
     page = page.charAt(0).toUpperCase() + page.substring(1);
     for (let i = 1; i < page.length; i++) {
         if (/[A-Z]/.test(page.charAt(i))) {

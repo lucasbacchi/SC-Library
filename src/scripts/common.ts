@@ -1,7 +1,17 @@
 import { logEvent } from "firebase/analytics";
 import { sendEmailVerification, updateEmail } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
-import { goToPage, isAdminCheck, updateEmailinUI } from "./ajax";
+import {
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    updateDoc,
+    where,
+    type DocumentData
+} from "firebase/firestore";
+import { isAdminCheck, updateEmailinUI } from "./ajax";
 import {
     timeLastSearched,
     setTimeLastSearched,
@@ -10,10 +20,10 @@ import {
     bookDatabase,
     setSearchCache,
     auth,
-    historyManager,
     analytics,
     Book,
-    User
+    User,
+    type BookDocument
 } from "./globals";
 
 /************
@@ -26,8 +36,8 @@ BEGIN SEARCH
  * @param {Boolean} viewHidden Determines if the function returns hidden books
  * @returns {Promise<Array>} An array of results
  */
-export function search(searchQuery, viewHidden = false) {
-    return new Promise((resolve, reject) => {
+export function search(searchQuery: string, viewHidden = false) {
+    return new Promise<Book[]>((resolve, reject) => {
         updateBookDatabase()
             .then(() => {
                 resolve(performSearch(searchQuery, viewHidden));
@@ -44,7 +54,10 @@ export function search(searchQuery, viewHidden = false) {
  * @returns {Promise<void>} A promise that resolves when the book database has been updated.
  */
 export function updateBookDatabase(forced = false) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
+        if (!db) {
+            throw new Error("Database is not initialized.");
+        }
         if (timeLastSearched == null || timeLastSearched.getTime() + 1000 * 60 * 15 < Date.now() || forced) {
             // It hasn't searched since the page loaded, or it's been 15 mins since last search
             setTimeLastSearched(new Date());
@@ -53,25 +66,31 @@ export function updateBookDatabase(forced = false) {
                     setBookDatabase([]);
                     querySnapshot.forEach((doc) => {
                         if (!doc.exists()) {
-                            throw new Error("Document does not exist: " + doc.id);
+                            throw new Error("Document does not exist: " + (doc as DocumentData).id);
                         }
                         const documentObject = {
-                            books: [],
+                            books: [] as Book[],
                             order: doc.data().order
                         };
-                        doc.data().books.forEach((book) => {
+                        doc.data().books.forEach((book: Book) => {
                             documentObject.books.push(Book.createFromObject(book));
                         });
+                        if (!bookDatabase) {
+                            throw new Error("bookDatabase is not initialized.");
+                        }
                         bookDatabase.push(documentObject);
                     });
+                    if (!bookDatabase) {
+                        throw new Error("bookDatabase is not initialized.");
+                    }
                     setBookDatabase(bookDatabase); // This may seem redundant, but it's not. It's to make sure that the bookDatabase is updated in indexedDB.
-                    resolve();
+                    resolve(undefined);
                 })
                 .catch((error) => {
                     reject(error);
                 });
         } else {
-            resolve();
+            resolve(undefined);
         }
     });
 }
@@ -93,23 +112,30 @@ const ISBN_WEIGHT = 50;
  * @param {Boolean} viewHidden A boolean representing if the function should return hidden books
  * @returns {Promise<Array<Book>>} A Promise containing an array of Book results.
  */
-function performSearch(searchQuery, viewHidden = false) {
-    return new Promise((resolve, reject) => {
+function performSearch(searchQuery: string, viewHidden = false) {
+    return new Promise<Book[]>((resolve, reject) => {
         // Remove all punctuation and make it lowercase and split it into an array
         const searchQueryArray = searchQuery
             .replace(/-/g, " ")
             .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
             .toLowerCase()
             .split(" ");
-        const scoresArray = [];
+        const scoresArray: { book: Book; score: number }[] = [];
 
         isAdminCheck()
             .then((isAdmin) => {
-                bookDatabase.forEach((document) => {
+                if (!bookDatabase) {
+                    throw new Error("bookDatabase is not initialized.");
+                }
+                bookDatabase.forEach((document: BookDocument) => {
                     // Iterate through each of the 10-ish docs
                     for (let i = 0; i < document.books.length; i++) {
                         // Iterate through each of the 100 books in each doc
                         const book = document.books[i];
+                        if (!book) {
+                            console.error("Book is undefined in document " + document.order + " at index " + i);
+                            continue;
+                        }
                         if (book.isDeleted || (book.isHidden && !viewHidden && !isAdmin)) {
                             console.log("Skipping book " + book.barcodeNumber + " because it is deleted or hidden.");
                             continue;
@@ -121,15 +147,16 @@ function performSearch(searchQuery, viewHidden = false) {
                         let score = 0;
                         // Authors
                         for (let j = 0; j < book.authors.length; j++) {
-                            const arr1 = book.authors[j].firstName.replace(/-/g, " ").split(" ");
-                            const arr2 = book.authors[j].lastName.replace(/-/g, " ").split(" ");
+                            const arr1 = (book.authors[j].firstName ?? "").replace(/-/g, " ").split(" ");
+                            const arr2 = (book.authors[j].lastName ?? "").replace(/-/g, " ").split(" ");
                             const arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                             score += arr1Ratio * AUTHOR_WEIGHT;
                             const arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                             score += arr2Ratio * AUTHOR_WEIGHT;
                         }
                         // Barcode Number
-                        const barcodeRatio = countInArray([book.barcodeNumber.toString()], searchQueryArray, true);
+                        const barcodeString = book.barcodeNumber?.toString() ?? "";
+                        const barcodeRatio = countInArray([barcodeString], searchQueryArray, true);
                         score += barcodeRatio * BARCODE_WEIGHT;
                         // DDC?
                         // Number of Pages?
@@ -137,54 +164,55 @@ function performSearch(searchQuery, viewHidden = false) {
                         // Description? (as opposed to just keywords)
                         // Illustrators
                         for (let j = 0; j < book.illustrators.length; j++) {
-                            const arr1 = book.illustrators[j].firstName.replace(/-/g, " ").split(" ");
-                            const arr2 = book.illustrators[j].lastName.replace(/-/g, " ").split(" ");
+                            const arr1 = (book.illustrators[j].firstName ?? "").replace(/-/g, " ").split(" ");
+                            const arr2 = (book.illustrators[j].lastName ?? "").replace(/-/g, " ").split(" ");
                             const arr1Ratio = countInArray(arr1, searchQueryArray) / arr1.length;
                             score += arr1Ratio * ILLUSTRATOR_WEIGHT;
                             const arr2Ratio = countInArray(arr2, searchQueryArray) / arr2.length;
                             score += arr2Ratio * ILLUSTRATOR_WEIGHT;
                         }
                         // ISBN 10 and ISBN 13
-                        const ISBNRatio = countInArray(
-                            [book.isbn10.toString(), book.isbn13.toString()],
-                            searchQueryArray,
-                            true
-                        );
+                        const isbn10String = book.isbn10?.toString() ?? "";
+                        const isbn13String = book.isbn13?.toString() ?? "";
+                        const ISBNRatio = countInArray([isbn10String, isbn13String], searchQueryArray, true);
                         score += ISBNRatio * ISBN_WEIGHT;
                         // Keywords
-                        if (book.keywords.length != 0) {
+                        if (book.keywords && book.keywords.length != 0) {
                             const keywordsRatio =
                                 countInArray(book.keywords, searchQueryArray) / (book.keywords.length * 0.1);
                             score += keywordsRatio * KEYWORDS_WEIGHT;
                         }
                         // Publishers
-                        for (let j = 0; j < book.publishers.length; j++) {
-                            const arr = book.publishers[j].replace(/-/g, " ").split(" ");
-                            score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
+                        if (book.publishers && book.publishers.length != 0) {
+                            for (let j = 0; j < book.publishers.length; j++) {
+                                const arr = book.publishers[j].replace(/-/g, " ").split(" ");
+                                score += countInArray(arr, searchQueryArray) * PUBLISHER_WEIGHT;
+                            }
                         }
                         // Subjects
-                        for (let k = 0; k < book.subjects.length; k++) {
-                            const arr = book.subjects[k].replace(/-/g, " ").split(" ");
-                            score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
+                        if (book.subjects && book.subjects.length != 0) {
+                            for (let k = 0; k < book.subjects.length; k++) {
+                                const arr = book.subjects[k].replace(/-/g, " ").split(" ");
+                                score += countInArray(arr, searchQueryArray) * SUBJECT_WEIGHT;
+                            }
                         }
                         // Subtitle
-                        score +=
-                            countInArray(book.subtitle.replace(/-/g, " ").split(" "), searchQueryArray) *
-                            SUBTITLE_WEIGHT;
+                        const subtitleString = book.subtitle?.replace(/-/g, " ").split(" ") ?? [];
+                        score += countInArray(subtitleString, searchQueryArray) * SUBTITLE_WEIGHT;
                         // Title
-                        score +=
-                            countInArray(book.title.replace(/-/g, " ").split(" "), searchQueryArray) * TITLE_WEIGHT;
+                        const titleString = book.title?.replace(/-/g, " ").split(" ") ?? [];
+                        score += countInArray(titleString, searchQueryArray) * TITLE_WEIGHT;
                         scoresArray.push({ book: book, score: score });
                     }
                 });
 
                 // Sort the array by score
-                scoresArray.sort((a, b) => {
+                scoresArray.sort((a: { book: Book; score: number }, b: { book: Book; score: number }) => {
                     return b.score - a.score;
                 });
 
-                const returnArray = [];
-                scoresArray.forEach((item) => {
+                const returnArray: Book[] = [];
+                scoresArray.forEach((item: { book: Book; score: number }) => {
                     if (item.score < 1) {
                         return;
                     }
@@ -195,6 +223,10 @@ function performSearch(searchQuery, viewHidden = false) {
                     returnArray.push(item.book);
                 });
 
+                if (!analytics) {
+                    console.error("Analytics is not initialized.");
+                    return;
+                }
                 logEvent(analytics, "search", {
                     search_term: searchQuery,
                     viewHidden: viewHidden
@@ -204,7 +236,7 @@ function performSearch(searchQuery, viewHidden = false) {
                 resolve(returnArray);
             })
             .catch((error) => {
-                reject("Error in isAdminCheck or search", error);
+                reject(new Error("Error in isAdminCheck or search: " + error));
             });
     });
 }
@@ -216,7 +248,7 @@ function performSearch(searchQuery, viewHidden = false) {
  * @param {Boolean} strict A boolean representing if the search should be strict. If true, the search will require strict equality, if false, the search will use searchCompare(). Defaults to false.
  * @returns {Number} The number of times that the items in searchQueryArray occur in arr.
  */
-function countInArray(arr, searchQueryArray, strict = false) {
+function countInArray(arr: string[], searchQueryArray: string[], strict = false) {
     let count = 0;
     for (let i = 0; i < arr.length; i++) {
         if (strict) {
@@ -238,7 +270,7 @@ function countInArray(arr, searchQueryArray, strict = false) {
  * @param {String} b The second string to compare
  * @returns {Number} A number between 0 and 1 representing how similar the two strings are. 0 is not similar at all, 1 is identical.
  */
-function searchCompare(a, b) {
+function searchCompare(a: string, b: string) {
     a = a.toString();
     b = b.toString();
     const max = Math.max(a.length, b.length);
@@ -262,7 +294,7 @@ function searchCompare(a, b) {
  * @author Isaac Sukin
  * @link Source: https://gist.github.com/IceCreamYou/8396172
  */
-function distance(source, target) {
+function distance(source: string, target: string) {
     if (!source) {
         return target ? target.length : 0;
     } else if (!target) {
@@ -281,18 +313,18 @@ function distance(source, target) {
     for (let i = 0; i <= m; i++) {
         score[i + 1][1] = i;
         score[i + 1][0] = INF;
-        sd[source[i]] = 0;
+        (sd as Record<string, number>)[source[i]] = 0;
     }
     for (let j = 0; j <= n; j++) {
         score[1][j + 1] = j;
         score[0][j + 1] = INF;
-        sd[target[j]] = 0;
+        (sd as Record<string, number>)[target[j]] = 0;
     }
 
     for (let i = 1; i <= m; i++) {
         let DB = 0;
         for (let j = 1; j <= n; j++) {
-            const i1 = sd[target[j - 1]],
+            const i1 = (sd as Record<string, number>)[target[j - 1]],
                 j1 = DB;
             if (source[i - 1] === target[j - 1]) {
                 score[i + 1][j + 1] = score[i][j];
@@ -305,7 +337,7 @@ function distance(source, target) {
                 score[i1] ? score[i1][j1] + (i - i1 - 1) + 1 + (j - j1 - 1) : Infinity
             );
         }
-        sd[source[i - 1]] = i;
+        (sd as Record<string, number>)[source[i - 1]] = i;
     }
     return score[m + 1][n + 1];
 }
@@ -320,7 +352,7 @@ BEGIN UTILS
  * @param {Date} date The date object to format.
  * @returns {String} The formatted date string.
  */
-export function formatDate(date) {
+export function formatDate(date: Date) {
     if (!date) {
         return "N/A";
     }
@@ -334,7 +366,7 @@ export function formatDate(date) {
  * @param {Boolean} mightReturnEmpty Could the key be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  * @returns {String} The value from string that matches key
  */
-export function findURLValue(string, key, mightReturnEmpty = false) {
+export function findURLValue(string: string, key: string, mightReturnEmpty = false) {
     let value;
     const keyNameIsNotComplete = string.indexOf("?" + key + "=") < 0 && string.indexOf("&" + key + "=") < 0;
     if (string.indexOf(key) < 0 || keyNameIsNotComplete || key == "") {
@@ -360,7 +392,7 @@ export function findURLValue(string, key, mightReturnEmpty = false) {
  * @param {String} value The value to set the parameter to
  * @param {Boolean} append A boolean representing if the existing queries should be kept. Defaults to true.
  */
-export function setURLValue(param, value, append = true) {
+export function setURLValue(param: string, value: string, append = true) {
     // Get everything after the host
     const string = decodeURI(window.location.href.slice(window.location.href.indexOf(window.location.pathname) + 1));
     let answer = "";
@@ -390,9 +422,13 @@ export function setURLValue(param, value, append = true) {
     }
 
     // If the URL is different, push it to the history
-    if (historyManager.get().name != "/" + answer) {
-        historyManager.push(encodeURI(answer));
-    }
+    // if (!historyManager) {
+    //     console.error("historyManager is not initialized.");
+    //     return;
+    // }
+    // if (historyManager.get().name != "/" + answer) {
+    //     historyManager.push(encodeURI(answer));
+    // }
 }
 
 /**
@@ -400,7 +436,7 @@ export function setURLValue(param, value, append = true) {
  * @param {String} param The parameter to remove
  * @param {Boolean} mightReturnEmpty Could the key already be missing from the URL? If true, the function will not log a warning if the key is not found. Defaults to false.
  */
-export function removeURLValue(param, mightReturnEmpty = false) {
+export function removeURLValue(param: string, mightReturnEmpty = false) {
     // Get everything after the "?" (query, hash, etc.)
     const string = decodeURI(window.location.href.slice(window.location.href.indexOf("?")));
     let answer = "";
@@ -435,9 +471,13 @@ export function removeURLValue(param, mightReturnEmpty = false) {
 
     answer = window.location.pathname + answer;
     // If the URL is different, push it to the history
-    if (historyManager.get().name != "/" + answer) {
-        historyManager.push(encodeURI(answer));
-    }
+    // if (!historyManager) {
+    //     console.error("historyManager is not initialized.");
+    //     return;
+    // }
+    // if (historyManager.get().name != "/" + answer) {
+    //     historyManager.push(encodeURI(answer));
+    // }
 }
 
 const entityMap = {
@@ -456,9 +496,9 @@ const entityMap = {
  * @param {String} string the string to encode
  * @returns {String} the encoded string
  */
-export function encodeHTML(string) {
+export function encodeHTML(string: string) {
     return String(string).replace(/[&<>"'`=/]/g, (s) => {
-        return entityMap[s];
+        return (entityMap as Record<string, string>)[s];
     });
 }
 
@@ -468,55 +508,57 @@ export function encodeHTML(string) {
  * @param {Function} func The callback function to call when the element is clicked or the enter key is pressed
  * @param {...any} args Any arguments to pass to the callback function
  */
-export function createOnClick(element, func, ...args) {
+export function createOnClick(element: Element | null, func: (...args: unknown[]) => void, ...args: unknown[]) {
     if (!element) {
         console.error("Element is null");
         return;
     }
-    element = $(element);
-
     // Handle regular click
-    element.on("click", () => {
+    element.addEventListener("click", () => {
         func(...args);
     });
 
     // Handle enter key
-    element.on("keydown", (event) => {
-        if (event.key == "Enter") {
+    element.addEventListener("keydown", (event) => {
+        if ((event as KeyboardEvent).key == "Enter") {
             func(...args);
         }
     });
 
     // Handle Keyboard slection
-    $(element).attr("tabindex", 0);
+    element.setAttribute("tabindex", "0");
 }
 
 /**
  * @description Attempts to go back to the previous page, but if there is no history, it will go to the specified path.
  * @param {String} path the path to go to if there is no history to go back to
  */
-export function softBack(path = "") {
-    // If we can go back without refreshing the page, do so, otherwise, send us home.
-    if (historyManager.currentIndex > 0) {
-        window.history.back();
-    } else {
-        goToPage(path);
-    }
-}
+// export function softBack(path = "") {
+//     // If we can go back without refreshing the page, do so, otherwise, send us home.
+//     if (!historyManager) {
+//         console.error("historyManager is not initialized.");
+//         return;
+//     }
+//     if (historyManager.currentIndex > 0) {
+//         window.history.back();
+//     } else {
+//         goToPage(path);
+//     }
+// }
 
 /**
- * @description Uses jQuery animaitons to scroll to a location on the page.
+ * @description Smoothly scrolls to a location on the page.
  * @param {Number} location the location (in pixels from the top) to scroll to on the page.
  * @param {Number} time the amount of time (in milliseconds) to take to scroll to the location. Defaults to 600.
  */
-export function windowScroll(location, time = 600) {
+export function windowScroll(location: number, time = 600) {
     setIgnoreScroll(true);
-    $("html").css("scroll-behavior", "auto");
-    $("html, body").animate({ scrollTop: location }, time);
+    document.documentElement.style.scrollBehavior = "auto";
+    window.scrollTo({ top: location, behavior: "smooth" });
     setTimeout(() => {
-        $("html").css("scroll-behavior", "smooth");
+        document.documentElement.style.scrollBehavior = "smooth";
         setIgnoreScroll(false);
-        updateScrollPosition();
+        // updateScrollPosition();
     }, time);
 }
 
@@ -525,16 +567,20 @@ export function windowScroll(location, time = 600) {
  */
 export class Throttle {
     static count = 0;
+    private readonly fn: () => void;
+    private readonly delay: number;
+    private timer: ReturnType<typeof setTimeout> | null = null;
+    private resetTimer: ReturnType<typeof setTimeout> | null = null;
+    private wait = false;
+    readonly count: number;
+
     /**
      * @param {Function} fn the funciton that will be called after the delay (no delay for the first call)
      * @param {Number} delay an integer representing the number of milliseconds to wait before calling the function again
      */
-    constructor(fn, delay) {
+    constructor(fn: () => void, delay: number) {
         this.fn = fn;
         this.delay = delay;
-        this.timer = null;
-        this.resetTimer = null;
-        this.wait = false;
         this.count = Throttle.count;
         Throttle.count++;
     }
@@ -543,9 +589,11 @@ export class Throttle {
      * @description sets up a funciton that rate limits the execution of a function.
      * @returns {Function} a function that will call the function passed to it after the delay
      */
-    get() {
+    get(): () => void {
         return () => {
-            clearTimeout(this.resetTimer);
+            if (this.resetTimer !== null) {
+                clearTimeout(this.resetTimer);
+            }
             if (!this.timer) {
                 if (!this.wait) {
                     this.wait = true;
@@ -575,26 +623,30 @@ export let ignoreScroll = false;
  * @param {Boolean} newIgnoreScroll The ignoreScroll value to set
  * @description Sets the global variable ignoreScroll to the new ignoreScroll value.
  */
-export function setIgnoreScroll(newIgnoreScroll) {
+export function setIgnoreScroll(newIgnoreScroll: boolean) {
     ignoreScroll = newIgnoreScroll;
 }
 
 /**
  * @description Updates the scroll position in the history stack
  */
-export const updateScrollPosition = new Throttle(() => {
-    if (ignoreScroll) {
-        return;
-    }
-    const scrollPosition = $(document).scrollTop();
-    const historyPage = historyManager.get(0);
-    let customData = historyPage?.customData;
-    if (!customData) {
-        customData = {};
-    }
-    customData["scrollRestoration"] = scrollPosition;
-    historyManager.update(null, customData);
-}, 200).get();
+// export const updateScrollPosition = new Throttle(() => {
+//     if (ignoreScroll) {
+//         return;
+//     }
+//     if (!historyManager) {
+//         console.error("historyManager is not initialized.");
+//         return;
+//     }
+//     const scrollPosition = document.documentElement.scrollTop || document.body.scrollTop;
+//     const historyPage = historyManager.get(0);
+//     let customData = historyPage?.customData;
+//     if (!customData) {
+//         customData = {};
+//     }
+//     (customData as Record<string, unknown>)["scrollRestoration"] = scrollPosition;
+//     historyManager.update(null, customData);
+// }, 200).get();
 
 /**
  * @description Sends an email using the email service by adding a document to the mail collection in the database.
@@ -609,12 +661,23 @@ export const updateScrollPosition = new Throttle(() => {
  * @param {Object} headers An opject containing custom email headers
  * @param {Array<Object>} attachments An array of objects containing the attachments to send. See https://nodemailer.com/message/attachments/ for more information.
  */
-export async function sendEmail(to, subject, text, html, cc, bcc, from, replyTo, headers, attachments) {
+export async function sendEmail(
+    to: string | string[],
+    subject: string,
+    text: string | undefined = undefined,
+    html: string | undefined = undefined,
+    cc: string | string[] | undefined = undefined,
+    bcc: string | string[] | undefined = undefined,
+    from: string | undefined = undefined,
+    replyTo: string | undefined = undefined,
+    headers: Record<string, unknown> | undefined = undefined,
+    attachments: Array<Record<string, unknown>> | undefined = undefined
+): Promise<void> {
     if (!to || !subject || (!text && !html)) {
         throw new Error("Missing required parameters");
     }
 
-    if (!auth.currentUser) {
+    if (!auth || !auth.currentUser) {
         throw new Error("A signed-in user is required");
     }
 
@@ -638,13 +701,12 @@ export async function sendEmail(to, subject, text, html, cc, bcc, from, replyTo,
  * @param {Function} checkForChanges A function that returns true if there are changes that need to be saved.
  * @param {...any} args Any arguments to pass to the checkForChanges function
  */
-export function setupWindowBeforeUnload(checkForChanges, ...args) {
-    $(window).on("beforeunload", (event) => {
+export function setupWindowBeforeUnload(checkForChanges: (...args: unknown[]) => boolean, ...args: unknown[]) {
+    window.addEventListener("beforeunload", (event) => {
         if (checkForChanges(...args) && !confirm("You have unsaved changes. Are you sure you want to leave?")) {
             event.preventDefault();
-            event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
         } else {
-            $(window).off("beforeunload");
+            window.removeEventListener("beforeunload", () => {});
         }
     });
 }
@@ -661,7 +723,7 @@ BEGIN BUILD BOOK BOX
  * @param {Number} num The number of days that the book is due in
  * @returns An HTMLDivElement with the book information
  */
-export function buildBookBox(obj, page, num = 0) {
+export function buildBookBox(obj: Book, page: string, num = 0) {
     const a = document.createElement("a");
     const div = document.createElement("div");
     a.appendChild(div);
@@ -699,7 +761,7 @@ export function buildBookBox(obj, page, num = 0) {
         }
     }
     img.onload = () => {
-        div.style.opacity = 1;
+        div.style.opacity = "1";
     };
     img.onerror = () => {
         img.src = "../img/default-book.png";
@@ -709,7 +771,7 @@ export function buildBookBox(obj, page, num = 0) {
     const b = document.createElement("b");
     const title = document.createElement("p");
     title.classList.add("title");
-    title.appendChild(document.createTextNode(obj.title));
+    title.appendChild(document.createTextNode(obj.title ?? "Untitled"));
     const author = document.createElement("p");
     author.classList.add("author");
     let authorString = "";
@@ -771,6 +833,9 @@ export function buildBookBox(obj, page, num = 0) {
         if (page == "search") {
             number.appendChild(document.createTextNode(num + "."));
         } else if (page == "view") {
+            if (!obj.barcodeNumber || obj.barcodeNumber < 1171100000 || obj.barcodeNumber > 1171199999) {
+                throw new Error("Barcode number is out of range: " + obj.barcodeNumber);
+            }
             number.appendChild(document.createTextNode((obj.barcodeNumber % 1171100000) + "."));
         }
         div.appendChild(number);
@@ -791,7 +856,7 @@ export function buildBookBox(obj, page, num = 0) {
         div2.appendChild(medium);
         const audience = document.createElement("p");
         audience.classList.add("audience");
-        let audienceString = obj.audience.toString();
+        let audienceString = obj.audience?.toString() ?? "";
         if (audienceString == "None") {
             audienceString = "";
         }
@@ -802,11 +867,13 @@ export function buildBookBox(obj, page, num = 0) {
         div.appendChild(div3);
         const subjects = document.createElement("p");
         subjects.classList.add("subjects");
-        subjects.appendChild(document.createTextNode("Subjects: " + listSubjects(obj.subjects)));
+        subjects.appendChild(document.createTextNode("Subjects: " + listSubjects(obj.subjects ?? [])));
         div3.appendChild(subjects);
         const description = document.createElement("p");
         description.classList.add("description");
-        description.appendChild(document.createTextNode(shortenDescription(obj.description)));
+        description.appendChild(
+            document.createTextNode(shortenDescription(obj.description ?? "No description available."))
+        );
         div3.appendChild(description);
     }
     isAdminCheck().then((isAdmin) => {
@@ -834,7 +901,7 @@ export function buildBookBox(obj, page, num = 0) {
  * @param {Array<String>} subj The array of subjects
  * @returns {String} The string of subjects
  */
-function listSubjects(subj) {
+function listSubjects(subj: string[]) {
     let str = "";
     for (let i = 0; i < subj.length; i++) {
         str += subj[i] + "; ";
@@ -847,7 +914,7 @@ function listSubjects(subj) {
  * @param {String} desc The description to shorten
  * @returns {String} The shortened description (including "..." at the end)
  */
-function shortenDescription(desc) {
+function shortenDescription(desc: string) {
     const MIN_LEN = 300;
     const cutoff = desc.slice(MIN_LEN).search(/\.\s/g);
     //desc.replace("\n", "<br>");
@@ -869,8 +936,11 @@ BEGIN GET DATABASE INFO
  * @param {boolean} forced If true, the local copy of the database will be updated before searching for the book.
  * @returns {Promise<Book>|Promise<number>} On success, a Book object containing the book's information. On failure, the barcode number.
  */
-export function getBookFromBarcode(barcodeNumber, forced = false) {
-    return new Promise((resolve, reject) => {
+export function getBookFromBarcode(barcodeNumber: number | string, forced = false) {
+    return new Promise<Book | number>((resolve, reject) => {
+        if (typeof barcodeNumber === "string") {
+            barcodeNumber = parseInt(barcodeNumber);
+        }
         if (barcodeNumber < 1171100000 || barcodeNumber > 1171199999) {
             reject(barcodeNumber);
             return;
@@ -878,8 +948,15 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
 
         updateBookDatabase(forced)
             .then(() => {
+                if (typeof barcodeNumber === "string") {
+                    barcodeNumber = parseInt(barcodeNumber);
+                }
                 const documentNumber = Math.floor(barcodeNumber / 100) % 1000;
                 const bookNumber = barcodeNumber % 100;
+                if (!bookDatabase) {
+                    reject("The book database is not initialized.");
+                    return;
+                }
                 if (bookDatabase[documentNumber] && bookDatabase[documentNumber].books[bookNumber]) {
                     resolve(bookDatabase[documentNumber].books[bookNumber]);
                 } else {
@@ -898,8 +975,12 @@ export function getBookFromBarcode(barcodeNumber, forced = false) {
  * @param {String} barcode The barcode number of the user to get from the database.
  * @returns {User} The user object that was retrieved from the database.
  */
-export function getUserFromBarcode(barcode) {
-    return new Promise((resolve, reject) => {
+export function getUserFromBarcode(barcode: string) {
+    return new Promise<User>((resolve, reject) => {
+        if (!db) {
+            reject("The database is not initialized.");
+            return;
+        }
         getDocs(query(collection(db, "users"), where("cardNumber", "==", barcode)))
             .then((querySnapshot) => {
                 if (querySnapshot.size == 0) {
@@ -924,13 +1005,21 @@ export function getUserFromBarcode(barcode) {
  * @param {String} uid The uid of the user to get information for. If no uid is provided, the current user's uid is used.
  * @returns {Promise<User>} The user object from the database
  */
-export function getUser(uid = null) {
-    return new Promise((resolve, reject) => {
+export function getUser(uid: string | null = null) {
+    return new Promise<User>((resolve, reject) => {
         if (!uid) {
+            if (!auth || !auth.currentUser) {
+                reject("No user is currently signed in.");
+                return;
+            }
             uid = auth.currentUser.uid;
         }
 
         // Get the stored data from the database
+        if (!db) {
+            reject("The database is not initialized.");
+            return;
+        }
         getDoc(doc(db, "users", uid))
             .then((docSnap) => {
                 if (!docSnap.exists()) {
@@ -941,7 +1030,7 @@ export function getUser(uid = null) {
                 resolve(user);
             })
             .catch((error) => {
-                reject("Failed to get the database file for this user", error);
+                reject(new Error("Failed to get the database file for this user: " + error));
             });
     });
 }
@@ -956,11 +1045,11 @@ BEGIN ADD BARCODE SPACING
  * @param {String|Number} barcode The (unspaced) barcode
  * @returns {String} The barcode with spaces added
  */
-export function addBarcodeSpacing(barcode) {
+export function addBarcodeSpacing(barcode: string): string {
     barcode = barcode.toString();
     if (barcode.length != 10) {
         console.warn("The barcode is not 10 digits long");
-        return;
+        return "";
     }
     let str = "";
     for (let i = 0; i < barcode.length; i++) {
@@ -979,11 +1068,11 @@ BEGIN ISBN UTILS
 
 /**
  * @description Calculates the ISBN check digit for a 10 or 13 digit ISBN number.
- * @param {Number} number The ISBN number (without a check digit)
+ * @param {Number} num The ISBN number (without a check digit)
  * @returns A String containing the ISBN check digit
  */
-export function calculateISBNCheckDigit(number) {
-    number = number.toString();
+export function calculateISBNCheckDigit(num: number | string): string | undefined {
+    const number = num.toString();
     const length = number.length;
     if (length == 13 || length == 10) {
         console.warn("The ISBN number already has a check digit");
@@ -1014,7 +1103,7 @@ export function calculateISBNCheckDigit(number) {
             total += digits[i] * (10 - i);
         }
 
-        let answer = (11 - (total % 11)) % 11;
+        let answer: string | number = (11 - (total % 11)) % 11;
         if (answer == 10) {
             answer = "X";
         }
@@ -1027,7 +1116,7 @@ export function calculateISBNCheckDigit(number) {
  * @param {String|Number} number The ISBN number to switch the format of.
  * @returns {String} The ISBN number in the other format.
  */
-export function switchISBNformats(number) {
+export function switchISBNformats(number: number | string): string {
     number = number.toString();
     if (number.substring(0, 3) == "978") {
         number = number.substring(3, number.length - 1);
@@ -1044,7 +1133,7 @@ export function switchISBNformats(number) {
  * @param {String|Number} number The ISBN number to verify
  * @returns {Boolean} True if the ISBN number is valid, false if it is not.
  */
-export function verifyISBN(number) {
+export function verifyISBN(number: number | string) {
     if (number.toString().length == 10) {
         number = number.toString();
 
@@ -1105,6 +1194,10 @@ BEGIN AUTH
  * @returns {Promise<void>} A promise that resolves when the email has been sent
  */
 export function sendEmailVerificationToUser() {
+    if (!auth || !auth.currentUser) {
+        console.error("No user is currently signed in.");
+        return Promise.reject("No user is currently signed in.");
+    }
     const user = auth.currentUser;
     return sendEmailVerification(user)
         .then(() => {
@@ -1121,24 +1214,32 @@ export function sendEmailVerificationToUser() {
  * @param {String} newEmail The new email to update the user's email to
  * @returns {Promise<void>} A promise that resolves when the email has been updated
  */
-export function updateUserEmail(newEmail) {
-    return new Promise((resolve, reject) => {
+export function updateUserEmail(newEmail: string) {
+    return new Promise<void>((resolve, reject) => {
+        if (!auth || !auth.currentUser) {
+            reject("No user is currently signed in.");
+            return;
+        }
         const user = auth.currentUser;
         // Update the email in the authentication system
         updateEmail(user, newEmail)
             .then(() => {
                 // Update the email in the database
+                if (!db) {
+                    reject("The database is not initialized.");
+                    return;
+                }
                 updateDoc(doc(db, "users", user.uid), {
                     email: newEmail,
                     emailVerified: false
                 })
                     .then(() => {
                         // Update the email in the UI
-                        const email = user.email;
+                        const email = user.email ?? "";
                         updateEmailinUI(email);
                         // Send an email verification to the user with the new email
                         sendEmailVerificationToUser().then(() => {
-                            resolve();
+                            resolve(undefined);
                         });
                     })
                     .catch((error) => {
@@ -1179,14 +1280,14 @@ BEGIN MODALS
  * @returns {Function} A function that closes the modal.
  */
 export function openModal(
-    type,
-    message,
-    title,
+    type: string,
+    message: string,
+    title = "",
     mainButtonText = "OK",
-    mainCallback = null,
-    secondaryButtonText = null,
-    secondaryCallback = null
-) {
+    mainCallback: (() => void) | null = null,
+    secondaryButtonText: string | null = null,
+    secondaryCallback: (() => void) | null = null
+): () => void {
     // Create HTML elements
     const modalContainer = document.createElement("div");
     modalContainer.classList.add("modal-container");
@@ -1238,7 +1339,7 @@ export function openModal(
             break;
         default:
             console.warn("Invalid modal type: " + type);
-            return;
+            return () => {};
     }
     if (title) {
         modalTitle.innerHTML = title;

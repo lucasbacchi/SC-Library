@@ -1,7 +1,7 @@
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { goToPage, updateUserAccountInfo } from "./ajax";
+import { updateUserAccountInfo } from "./ajax";
 import {
     buildBookBox,
     createOnClick,
@@ -12,18 +12,22 @@ import {
     setupWindowBeforeUnload,
     updateUserEmail
 } from "./common";
-import { auth, currentPanel, db, directory, setCurrentPanel, storage } from "./globals";
+import { auth, Book, currentPanel, db, directory, setCurrentPanel, storage, User } from "./globals";
 
 /**
  * @description Sets up the account page. This includes loading the user's information from the database and setting up the event listeners for the page.
  * @param {String} pageQuery The query string of the page from goToPage()
  */
-export function setupAccountPage(pageQuery) {
+export function setupAccountPage(pageQuery: string) {
+    if (!auth) {
+        console.error("Auth is not defined.)");
+        return;
+    }
+
     const user = auth.currentUser;
     if (!user) {
-        $("#settings-column").html(
-            "No user is signed in. To sign in, please click <a id='no-user-sign-in-link' href='/login'>here</a>."
-        );
+        (document.getElementById("settings-column") as HTMLInputElement).innerHTML =
+            "No user is signed in. To sign in, please click <a id='no-user-sign-in-link' href='/login'>here</a>.";
         return;
     }
 
@@ -38,14 +42,14 @@ export function setupAccountPage(pageQuery) {
     }
 
     // If a user clicks the button to change their pfp, click the input button
-    createOnClick($("#account-image-overlay"), () => {
-        if ($("#file-input")) {
-            $("#file-input").trigger("click");
+    createOnClick(document.getElementById("account-image-overlay")! as HTMLDivElement, () => {
+        if ((document.getElementById("file-input")! as HTMLInputElement).disabled) {
+            document.getElementById("file-input")?.dispatchEvent(new Event("click"));
         }
     });
 
     // When there is a change to the input, upload the file
-    $("#file-input").on("change", () => {
+    document.getElementById("file-input")?.addEventListener("change", () => {
         processAccountImage();
     });
 }
@@ -56,17 +60,22 @@ export function setupAccountPage(pageQuery) {
 function updateAccountPageInfo() {
     getUser()
         .then((userObject) => {
-            $("#account-page-name").text(userObject.firstName + " " + userObject.lastName);
+            (document.getElementById("account-page-name") as HTMLInputElement).textContent =
+                userObject.firstName + " " + userObject.lastName;
 
             let email = userObject.email;
+            if (!email) {
+                console.error("User email is not defined.");
+                return;
+            }
             email =
                 email.substring(0, email.indexOf("@")) + "\u200B" + email.substring(email.indexOf("@"), email.length);
-            $("#account-page-email").text(email);
+            (document.getElementById("account-page-email") as HTMLInputElement).textContent = email;
 
             if (userObject.pfpLink != null) {
-                $("#account-page-image").attr("src", userObject.pfpLink);
+                document.getElementById("account-page-image")?.setAttribute("src", String(userObject.pfpLink));
             } else {
-                $("#account-page-image").attr("src", "/img/default-user.jpg");
+                document.getElementById("account-page-image")?.setAttribute("src", String("/img/default-user.jpg"));
             }
         })
         .catch((error) => {
@@ -84,10 +93,14 @@ function updateAccountPageInfo() {
 function setupAccountOverview() {
     getUser()
         .then((user) => {
+            if (!user || !user.firstName || !user.lastName || !user.email || !user.cardNumber) {
+                console.error("User information is not defined.");
+                return;
+            }
             fillAccountOverviewFields(user.firstName, user.lastName, user.email, user.cardNumber);
 
             // If the user attempts to leave, let them know if they have unsaved changes.
-            setupWindowBeforeUnload(checkForChangedFields, user);
+            setupWindowBeforeUnload(() => checkForChangedFields(user), user);
         })
         .catch((error) => {
             console.error(error);
@@ -97,8 +110,11 @@ function setupAccountOverview() {
             );
         });
 
-    createOnClick($(".save-button"), updateAccount);
-    createOnClick($("#send-email-verification"), sendEmailVerificationToUser);
+    createOnClick(document.querySelector(".save-button")! as HTMLButtonElement, updateAccount);
+    createOnClick(
+        document.getElementById("send-email-verification")! as HTMLButtonElement,
+        sendEmailVerificationToUser
+    );
 }
 
 /**
@@ -108,23 +124,23 @@ function setupAccountOverview() {
  * @param {String} email the user's email address
  * @param {Number} cardNumber the user's card number
  */
-function fillAccountOverviewFields(firstName, lastName, email, cardNumber) {
+function fillAccountOverviewFields(firstName: string, lastName: string, email: string, cardNumber: number | string) {
     if (firstName && firstName != "") {
-        $("#setting-first-name").val(firstName);
+        (document.getElementById("setting-first-name") as HTMLInputElement).value = firstName;
     }
     if (lastName && lastName != "") {
-        $("#setting-last-name").val(lastName);
+        (document.getElementById("setting-last-name") as HTMLInputElement).value = lastName;
     }
     if (email && email != "") {
-        $("#setting-email").val(email);
+        (document.getElementById("setting-email") as HTMLInputElement).value = email;
     }
-    if (!auth.currentUser.emailVerified) {
-        $("#email-verified").show();
+    if (auth?.currentUser && !auth.currentUser.emailVerified) {
+        (document.getElementById("email-verified") as HTMLElement).style.display = "";
     }
     cardNumber = cardNumber.toString();
     cardNumber = cardNumber.substring(0, 1) + " " + cardNumber.substring(1, 5) + " " + cardNumber.substring(5);
     if (cardNumber && cardNumber != "") {
-        $("#setting-card-number").val(cardNumber);
+        (document.getElementById("setting-card-number") as HTMLInputElement).value = cardNumber;
     }
 }
 
@@ -140,15 +156,15 @@ function setupAccountCheckouts() {
  * @description Sets up the account notifications page
  */
 function setupAccountNotifications() {
-    createOnClick($(".save-button"), updateAccount);
+    createOnClick(document.querySelector(".save-button")! as HTMLButtonElement, updateAccount);
 }
 
 /**
  * @description Sets up the account security page
  */
 function setupAccountSecurity() {
-    createOnClick($("#change-password"), changePassword);
-    createOnClick($("#delete-account-button"), deleteAccount);
+    createOnClick(document.getElementById("change-password")! as HTMLButtonElement, changePassword);
+    createOnClick(document.getElementById("delete-account-button")! as HTMLButtonElement, deleteAccount);
 }
 
 /**
@@ -165,16 +181,17 @@ function getCheckouts() {
  * @param {Array<Book>} books the array of books to create HTML elements for
  * @param {String} str Used to determine which page the elements are being created for
  */
-function createCheckouts(books, str) {
+function createCheckouts(books: Book[], str: string) {
     if (books.length == 0) {
         if (str == "checkouts") {
             const p = document.createElement("p");
             p.appendChild(document.createTextNode("You have no books checked out."));
-            $("#checkouts")[0].appendChild(p);
+            (document.getElementById("checkouts")! as HTMLElement).appendChild(p);
         }
     }
     for (let i = 0; i < books.length; i++) {
-        if (str == "checkouts") $("#checkouts")[0].appendChild(buildBookBox(books[i], "account", books[i].due));
+        if (str == "checkouts")
+            (document.getElementById("checkouts")! as HTMLElement).appendChild(buildBookBox(books[i], "account"));
     }
 }
 
@@ -182,6 +199,10 @@ function createCheckouts(books, str) {
  * @description Updates the user's account information in the database if it has changed. Runs when the user clicks the Save button on the account page.
  */
 function updateAccount() {
+    if (!auth) {
+        console.error("Auth is not defined.");
+        return;
+    }
     const user = auth.currentUser;
     getUser().then((userObject) => {
         if (!checkForChangedFields(userObject)) {
@@ -191,12 +212,22 @@ function updateAccount() {
 
         // If the names were changed, update them.
         if (
-            ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined) ||
-            ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)
+            ((document.getElementById("setting-first-name") as HTMLInputElement).value != userObject.firstName &&
+                (document.getElementById("setting-first-name") as HTMLInputElement).value != undefined) ||
+            ((document.getElementById("setting-last-name") as HTMLInputElement).value != userObject.lastName &&
+                (document.getElementById("setting-last-name") as HTMLInputElement).value != undefined)
         ) {
+            if (!db) {
+                console.error("Database is not defined.");
+                return;
+            }
+            if (!user) {
+                console.error("User is not defined.");
+                return;
+            }
             updateDoc(doc(db, "users", user.uid), {
-                firstName: $("#setting-first-name").val(),
-                lastName: $("#setting-last-name").val(),
+                firstName: (document.getElementById("setting-first-name") as HTMLInputElement).value,
+                lastName: (document.getElementById("setting-last-name") as HTMLInputElement).value,
                 lastUpdated: new Date()
             })
                 .then(() => {
@@ -212,12 +243,15 @@ function updateAccount() {
         }
 
         // If the email was changed update it.
-        if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) {
-            const newEmail = $("#setting-email").val().toString();
+        if (
+            (document.getElementById("setting-email") as HTMLInputElement).value != userObject.email &&
+            (document.getElementById("setting-email") as HTMLInputElement).value != undefined
+        ) {
+            const newEmail = (document.getElementById("setting-email") as HTMLInputElement).value.toString();
             updateUserEmail(newEmail)
                 .then(() => {
-                    if (!user.emailVerified) {
-                        $("#email-verified").show(); // The new email will likely not be verified
+                    if (!user || !user.emailVerified) {
+                        (document.getElementById("email-verified") as HTMLElement).style.display = ""; // The new email will likely not be verified
                     }
                     updateAccountPageInfo();
                     openModal("success", "Your email was saved successfully.");
@@ -232,12 +266,21 @@ function updateAccount() {
                             "OK",
                             () => {
                                 closeModal();
-                                goToPage("login?redirect=account&email=" + newEmail, null, true);
+                                // goToPage("login?redirect=account&email=" + newEmail, false, true);
                             },
                             "Cancel",
                             () => {
                                 closeModal();
                                 // Reset the email field to the old email
+                                if (
+                                    !userObject.firstName ||
+                                    !userObject.lastName ||
+                                    !userObject.email ||
+                                    !userObject.cardNumber
+                                ) {
+                                    console.error("User information is not fully defined.");
+                                    return;
+                                }
                                 fillAccountOverviewFields(
                                     userObject.firstName,
                                     userObject.lastName,
@@ -272,9 +315,9 @@ const xhttp = new XMLHttpRequest();
  * @param {String} newPanel the path to the panel to load.
  * @returns {Promise<void>}
  */
-export function goToSettingsPanel(newPanel) {
-    return new Promise((resolve, reject) => {
-        $("#settings-column").removeClass("fade");
+export function goToSettingsPanel(newPanel: string) {
+    return new Promise<void>((resolve, reject) => {
+        document.getElementById("settings-column")?.classList.remove("fade");
 
         if (newPanel == currentPanel) {
             reject("The user attempted to view the same account panel twice.");
@@ -292,12 +335,12 @@ export function goToSettingsPanel(newPanel) {
         xhttp.onreadystatechange = () => {
             if (xhttp.readyState == 4 && xhttp.status == 200) {
                 if (currentPanel != newPanel) {
-                    $("#settings-column").addClass("fade");
+                    document.getElementById("settings-column")?.classList.add("fade");
                 }
 
-                document.getElementById("settings-column").innerHTML = xhttp.responseText;
+                (document.getElementById("settings-column")! as HTMLElement).innerHTML = xhttp.responseText;
                 // Remove Placeholder Height
-                document.getElementById("settings-column").style.height = "";
+                (document.getElementById("settings-column")! as HTMLElement).style.height = "";
 
                 // Fire additional scripts based on the panel that has just loaded.
                 if (newPanel == "overview") {
@@ -311,7 +354,7 @@ export function goToSettingsPanel(newPanel) {
                 }
 
                 setCurrentPanel(newPanel);
-                resolve();
+                resolve(undefined);
             }
         };
 
@@ -327,13 +370,23 @@ export function goToSettingsPanel(newPanel) {
  * @description Returns true if the user has unsaved changes on the overview panel, otherwise, returns false
  * @returns {Boolean} A boolean value indicating whether or not the user has unsaved changes.
  */
-function checkForChangedFields(userObject) {
+function checkForChangedFields(userObject: User) {
     let answer = false;
-    if ($("#setting-first-name").val() != userObject.firstName && $("#setting-first-name").val() != undefined)
+    if (
+        (document.getElementById("setting-first-name") as HTMLInputElement).value != userObject.firstName &&
+        (document.getElementById("setting-first-name") as HTMLInputElement).value != undefined
+    )
         answer = true;
-    if ($("#setting-last-name").val() != userObject.lastName && $("#setting-last-name").val() != undefined)
+    if (
+        (document.getElementById("setting-last-name") as HTMLInputElement).value != userObject.lastName &&
+        (document.getElementById("setting-last-name") as HTMLInputElement).value != undefined
+    )
         answer = true;
-    if ($("#setting-email").val() != userObject.email && $("#setting-email").val() != undefined) answer = true;
+    if (
+        (document.getElementById("setting-email") as HTMLInputElement).value != userObject.email &&
+        (document.getElementById("setting-email") as HTMLInputElement).value != undefined
+    )
+        answer = true;
     return answer;
 }
 
@@ -341,15 +394,23 @@ function checkForChangedFields(userObject) {
  * @description Changes the user's password.
  */
 function changePassword() {
-    const currentPassword = $("#current-password").val().toString();
-    const newPassword = $("#new-password").val().toString();
-    if (newPassword != $("#confirm-new-password").val()) {
+    const currentPassword = (document.getElementById("current-password") as HTMLInputElement).value.toString();
+    const newPassword = (document.getElementById("new-password") as HTMLInputElement).value.toString();
+    if (newPassword != (document.getElementById("confirm-new-password") as HTMLInputElement).value) {
         openModal("issue", "The new passwords do not match!");
-        $("#current-password").val("");
-        $("#new-password").val("");
-        $("#confirm-new-password").val("");
+        (document.getElementById("current-password") as HTMLInputElement).value = "";
+        (document.getElementById("new-password") as HTMLInputElement).value = "";
+        (document.getElementById("confirm-new-password") as HTMLInputElement).value = "";
     } else if (newPassword.length >= 4) {
+        if (!auth) {
+            console.error("Auth is not defined.");
+            return;
+        }
         const user = auth.currentUser;
+        if (!user || !user.email) {
+            console.error("User is not defined or user email is not defined.");
+            return;
+        }
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         reauthenticateWithCredential(user, credential)
             .then(() => {
@@ -357,7 +418,7 @@ function changePassword() {
                 updatePassword(user, newPassword)
                     .then(() => {
                         // Update successful
-                        goToPage("");
+                        // goToPage("");
                         openModal("success", "Your password was succesfully changed");
                     })
                     .catch((error) => {
@@ -374,15 +435,15 @@ function changePassword() {
                     openModal("error", encodeHTML(errorMessage));
                 }
                 console.error(error);
-                $("#current-password").val("");
-                $("#new-password").val("");
-                $("#confirm-new-password").val("");
+                (document.getElementById("current-password") as HTMLInputElement).value = "";
+                (document.getElementById("new-password") as HTMLInputElement).value = "";
+                (document.getElementById("confirm-new-password") as HTMLInputElement).value = "";
             });
     } else {
         openModal("error", "You must enter a longer password");
-        $("#current-password").val("");
-        $("#new-password").val("");
-        $("#confirm-new-password").val("");
+        (document.getElementById("current-password") as HTMLInputElement).value = "";
+        (document.getElementById("new-password") as HTMLInputElement).value = "";
+        (document.getElementById("confirm-new-password") as HTMLInputElement).value = "";
     }
 }
 
@@ -391,12 +452,20 @@ function changePassword() {
  *              both image sizes, they are uploaded to storage, and then they are updated in the database.
  */
 function processAccountImage() {
+    if (!auth) {
+        console.error("Auth is not defined.");
+        return;
+    }
     const user = auth.currentUser;
-    new Promise((resolve, reject) => {
-        const fileInput = $("#file-input")[0];
+    new Promise<File>((resolve, reject) => {
+        const fileInput = document.getElementById("file-input")! as HTMLInputElement;
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+            reject();
+            return;
+        }
         const file = fileInput.files[0];
         if (file) {
-            const output = document.getElementById("account-page-image");
+            const output = document.getElementById("account-page-image")! as HTMLImageElement;
             output.src = encodeURI(URL.createObjectURL(file));
             // TODO: Figure out how to free memory after the image is uploaded, without breaking the canvas elements
             /* This is bad because then the canvas elements can't use the link
@@ -417,15 +486,25 @@ function processAccountImage() {
 
         Promise.all(promises)
             .then((values) => {
+                if (!user) {
+                    console.error("User is not defined.");
+                    return;
+                }
+
+                if (!db) {
+                    console.error("Database is not defined.");
+                    return;
+                }
+
                 if (!Array.isArray(values) || !values[0] || !values[1]) {
                     openModal("error", "Not all images were uploaded successfully");
                     return;
                 }
 
                 // Update UI with new Profile Picture
-                $("#account-page-image").attr("src", values[0]);
-                $("#large-account-image").attr("src", values[1]);
-                $("#small-account-image").attr("src", values[1]);
+                document.getElementById("account-page-image")?.setAttribute("src", String(values[0]));
+                document.getElementById("large-account-image")?.setAttribute("src", String(values[1]));
+                document.getElementById("small-account-image")?.setAttribute("src", String(values[1]));
 
                 // Update Auth object
                 const authPromise = updateProfile(user, {
@@ -472,8 +551,12 @@ function processAccountImage() {
  * @param {File} file The uploaded file to be converted into an image
  * @returns {Promise<String>} A promise that resolves with the download URL of the uploaded image.
  */
-function uploadAccountImage(type = "original", file) {
-    return new Promise((resolve, reject) => {
+function uploadAccountImage(type = "original", file: File) {
+    return new Promise<string>((resolve, reject) => {
+        if (!auth) {
+            console.error("Auth is not defined.");
+            return;
+        }
         const user = auth.currentUser;
         let maxHeight;
         if (type == "original") {
@@ -487,10 +570,10 @@ function uploadAccountImage(type = "original", file) {
 
         const canvas = document.createElement("canvas");
         canvas.id = type + "-canvas";
-        $(".account-image-container")[0].appendChild(canvas);
+        (document.querySelector(".account-image-container")! as HTMLElement).appendChild(canvas);
 
-        const height = $("#account-page-image")[0].naturalHeight;
-        const width = $("#account-page-image")[0].naturalWidth;
+        const height = (document.getElementById("account-page-image")! as HTMLImageElement).naturalHeight;
+        const width = (document.getElementById("account-page-image")! as HTMLImageElement).naturalWidth;
         const ratio = height / width;
         let square = Math.min(height, width);
 
@@ -498,13 +581,17 @@ function uploadAccountImage(type = "original", file) {
             square = maxHeight;
         }
 
-        $("#" + type + "-canvas")[0].height = square;
-        $("#" + type + "-canvas")[0].width = square;
+        (document.getElementById("#" + type + "-canvas")! as HTMLCanvasElement).height = square;
+        (document.getElementById("#" + type + "-canvas")! as HTMLCanvasElement).width = square;
 
-        const ctx = $("#" + type + "-canvas")[0].getContext("2d");
+        const ctx = (document.getElementById("#" + type + "-canvas")! as HTMLCanvasElement).getContext("2d");
         const image = new Image();
         image.setAttribute("crossorigin", "anonymous");
         image.onload = () => {
+            if (!ctx) {
+                reject("Canvas context is not defined.");
+                return;
+            }
             // This will just crop off of the bottom or right of the image in order to make it a square.
             // As a nice to have, we could center it or somehow give the user the option to size it somehow.
             if (height > width) {
@@ -512,7 +599,19 @@ function uploadAccountImage(type = "original", file) {
             } else {
                 ctx.drawImage(image, 0, 0, square / ratio, square);
             }
-            $("#" + type + "-canvas")[0].toBlob((blob) => {
+            (document.getElementById("#" + type + "-canvas")! as HTMLCanvasElement).toBlob((blob) => {
+                if (!blob) {
+                    reject("Blob is not defined.");
+                    return;
+                }
+                if (!storage) {
+                    reject("Storage is not defined.");
+                    return;
+                }
+                if (!user) {
+                    reject("User is not defined.");
+                    return;
+                }
                 const file = new File([blob], "pfp " + type, { type: "image/jpeg" });
 
                 let userSpecificRef = ref(storage, "users");
@@ -530,7 +629,7 @@ function uploadAccountImage(type = "original", file) {
                     console.log("Uploaded the file!");
                     getDownloadURL(userSpecificRef)
                         .then((url) => {
-                            $("#" + type + "-canvas")[0].remove();
+                            (document.getElementById("#" + type + "-canvas")! as HTMLCanvasElement).remove();
                             resolve(url);
                         })
                         .catch((error) => {

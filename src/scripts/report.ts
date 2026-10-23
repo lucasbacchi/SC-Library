@@ -1,11 +1,10 @@
-import { goToPage } from "./ajax";
 import { findURLValue, openModal } from "./common";
 
 /**
  * @description Runs a script based on which report the user requested in the URL.
  * @param {String} pageQuery The query string of the page.
  */
-export function setupReport(pageQuery) {
+export function setupReport(pageQuery: string) {
     const type = findURLValue(pageQuery, "type");
     switch (type) {
         case "circulation":
@@ -23,7 +22,7 @@ export function setupReport(pageQuery) {
                 "We couldn't identify the type of report you were trying to view",
                 "Invalid Report Type"
             );
-            goToPage("admin/main");
+            // goToPage("admin/main");
             break;
     }
 }

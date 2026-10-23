@@ -1,6 +1,5 @@
-import { Book, HistoryManager, bookDatabase, db, historyManager } from "./globals";
-import { goToPage } from "./ajax";
-import { buildBookBox, createOnClick, updateBookDatabase } from "./common";
+import { Book, bookDatabase, db } from "./globals";
+import { buildBookBox, createOnClick } from "./common";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 /**
@@ -8,21 +7,21 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "
  */
 export function setupMain() {
     homeBookBoxes();
-    $("#home-page-search-input").on("keydown", (event) => {
+    document.getElementById("home-page-search-input")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             homePageSearch();
         }
     });
 
-    createOnClick($("#home-page-search-button"), homePageSearch);
+    createOnClick(document.getElementById("home-page-search-button")! as HTMLButtonElement, homePageSearch);
 }
 
 /**
  * @description Runs when the user searches from the home page. Adds the query to the URL and goes to the search page.
  */
 function homePageSearch() {
-    const searchQuery = $("#home-page-search-input").val();
-    goToPage("search?query=" + searchQuery);
+    const searchQuery = (document.getElementById("home-page-search-input") as HTMLInputElement).value;
+    // goToPage("search?query=" + searchQuery);
 }
 
 /**
@@ -30,24 +29,26 @@ function homePageSearch() {
  */
 function homeBookBoxes() {
     // If we have the books in the history, use those.
-    if (window.history.state.stack[window.history.state.index]?.stateData) {
-        HistoryManager.getFromIDB(historyManager.get().stateData)
-            .then((stateData) => {
-                const bookList = stateData?.homeBookBoxes;
-                console.log("Using books from history", bookList);
-                updateBookDatabase().then(() => {
-                    for (let i = 0; i < 9; i++) {
-                        $("div#books")[0].appendChild(buildBookBox(bookList[i], "main"));
-                    }
-                });
-            })
-            .catch((error) => {
-                console.error("There was an issue getting the books from the history. IDB Error:", error);
-            });
-        return;
-    }
+    // if (window.history.state.stack[window.history.state.index]?.stateData) {
+    //     HistoryManager.getFromIDB(historyManager.get().stateData)
+    //         .then((stateData) => {
+    //             const bookList = stateData?.homeBookBoxes;
+    //             console.log("Using books from history", bookList);
+    //             updateBookDatabase().then(() => {
+    //                 for (let i = 0; i < 9; i++) {
+    //                     (document.querySelector("div#books")! as HTMLDivElement).appendChild(
+    //                         buildBookBox(bookList[i], "main")
+    //                     );
+    //                 }
+    //             });
+    //         })
+    //         .catch((error) => {
+    //             console.error("There was an issue getting the books from the history. IDB Error:", error);
+    //         });
+    //     return;
+    // }
 
-    let bookList;
+    let bookList: Book[];
     if (bookDatabase) {
         // Don't wait for the database and save ourselves a read request
         bookList = [];
@@ -71,7 +72,7 @@ function homeBookBoxes() {
                 continue;
             }
             bookList.push(book);
-            $("div#books")[0].appendChild(buildBookBox(book, "main"));
+            (document.querySelector("div#books")! as HTMLDivElement).appendChild(buildBookBox(book, "main"));
             count++;
             if (count > 10000) {
                 console.error("The book randomizer is very broken. Giving up for now.");
@@ -80,20 +81,20 @@ function homeBookBoxes() {
         }
 
         // Store the books in the history
-        const stateData = historyManager.get().stateData;
-        let lookupPromise;
-        if (stateData) {
-            lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
-                console.error("There was an issue getting the books from the history. IDB Error:", error);
-            });
-        } else {
-            lookupPromise = Promise.resolve({});
-        }
+        // const stateData = historyManager.get().stateData;
+        // let lookupPromise;
+        // if (stateData) {
+        //     lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
+        //         console.error("There was an issue getting the books from the history. IDB Error:", error);
+        //     });
+        // } else {
+        //     lookupPromise = Promise.resolve({});
+        // }
 
-        lookupPromise.then((stateData) => {
-            stateData.homeBookBoxes = bookList;
-            historyManager.update(undefined, undefined, stateData);
-        });
+        // lookupPromise.then((stateData) => {
+        //     stateData.homeBookBoxes = bookList;
+        //     historyManager.update(undefined, undefined, stateData);
+        // });
     } else {
         // Get the largest doc to figure out how many total books there are.
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "desc"), limit(1)))
@@ -121,7 +122,8 @@ function homeBookBoxes() {
                                 const book = Book.createFromObject(docSnap.data().books[random]);
                                 let dontShowBook = false;
                                 if (
-                                    bookList.indexOf(random) > -1 ||
+                                    !bookList[random] ||
+                                    bookList[random] === undefined ||
                                     docSnap.data().books[random].isDeleted ||
                                     docSnap.data().books[random].isHidden
                                 ) {
@@ -138,7 +140,9 @@ function homeBookBoxes() {
                                     continue;
                                 }
                                 bookList.push(book);
-                                $("div#books")[0].appendChild(buildBookBox(book, "main"));
+                                (document.querySelector("div#books")! as HTMLDivElement).appendChild(
+                                    buildBookBox(book, "main")
+                                );
                                 count++;
                                 if (count > 10000) {
                                     console.error("The book randomizer is very broken. Giving up for now.");
@@ -147,23 +151,23 @@ function homeBookBoxes() {
                             }
 
                             // Store the books in the history
-                            const stateData = historyManager.get().stateData;
-                            let lookupPromise;
-                            if (stateData) {
-                                lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
-                                    console.error(
-                                        "There was an issue getting the books from the history. IDB Error:",
-                                        error
-                                    );
-                                });
-                            } else {
-                                lookupPromise = Promise.resolve({});
-                            }
+                            // const stateData = historyManager.get().stateData;
+                            // let lookupPromise;
+                            // if (stateData) {
+                            //     lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
+                            //         console.error(
+                            //             "There was an issue getting the books from the history. IDB Error:",
+                            //             error
+                            //         );
+                            //     });
+                            // } else {
+                            //     lookupPromise = Promise.resolve({});
+                            // }
 
-                            lookupPromise.then((stateData) => {
-                                stateData.homeBookBoxes = bookList;
-                                historyManager.update(undefined, undefined, stateData);
-                            });
+                            // lookupPromise.then((stateData) => {
+                            //     stateData.homeBookBoxes = bookList;
+                            //     historyManager.update(undefined, undefined, stateData);
+                            // });
                         })
                         .catch((error) => {
                             console.error("There was an issue getting the random book doc", error);

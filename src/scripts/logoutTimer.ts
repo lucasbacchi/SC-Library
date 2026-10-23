@@ -14,8 +14,8 @@ onmessage = (e) => {
     }
 };
 
-var logoutTimer;
-var logoutCountdown;
+let logoutTimer: ReturnType<typeof setTimeout>;
+let logoutCountdown: ReturnType<typeof setInterval>;
 /**
  * @description Starts the logout timer.
  */

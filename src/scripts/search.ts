@@ -1,4 +1,4 @@
-import { changePageTitle, goToPage, isAdminCheck } from "./ajax";
+import { isAdminCheck } from "./ajax";
 import {
     addBarcodeSpacing,
     buildBookBox,
@@ -10,7 +10,6 @@ import {
     search,
     sendEmail,
     setURLValue,
-    softBack,
     updateBookDatabase,
     windowScroll
 } from "./common";
@@ -20,8 +19,7 @@ import {
     Book,
     bookDatabase,
     db,
-    HistoryManager,
-    historyManager,
+    Person,
     searchCache,
     setSearchCache,
     timeLastSearched
@@ -29,17 +27,23 @@ import {
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 
-let isBrowse;
-let browseResultsArray;
-let filters;
-let docsUsed;
+let isBrowse: boolean;
+let browseResultsArray: Book[];
+interface SearchFilter {
+    value: string;
+    count: number;
+    checked: boolean;
+    displayed: boolean;
+}
+let filters: Record<string, SearchFilter[]> = {};
+let docsUsed: number[];
 const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
 
 /**
  * @description Sets up the search page event listeners then starts the process of displaying books.
  * @param {String} pageQuery The page query from the URL.
  */
-export function setupSearch(pageQuery) {
+export function setupSearch(pageQuery: string) {
     const queryFromURL = findURLValue(pageQuery, "query", true);
     if (queryFromURL == "") {
         isBrowse = true;
@@ -47,7 +51,7 @@ export function setupSearch(pageQuery) {
         isBrowse = false;
     }
 
-    let page = findURLValue(pageQuery, "page", true);
+    let page: string | number = findURLValue(pageQuery, "page", true);
     if (page == "") {
         page = 1;
     } else {
@@ -55,11 +59,11 @@ export function setupSearch(pageQuery) {
     }
 
     // Set the search bar value to the query from the URL.
-    $("#search-page-search-input").val(queryFromURL);
+    (document.getElementById("search-page-search-input") as HTMLInputElement).value = queryFromURL;
 
     docsUsed = [];
     browseResultsArray = [];
-    filters = null;
+    filters = {};
     setSearchCache(null);
 
     goToSearchPage(page);
@@ -67,44 +71,44 @@ export function setupSearch(pageQuery) {
     // Set the tab index of the sort dropdown.
     function sortTabResize() {
         if (window.innerWidth > 786) {
-            $("#sort-main-title").attr("tabindex", "");
+            document.getElementById("sort-main-title")?.setAttribute("tabindex", String(""));
         } else {
-            $("#sort-main-title").attr("tabindex", "0");
-            $("#sort-sidebar").removeClass("sort-open");
+            document.getElementById("sort-main-title")?.setAttribute("tabindex", String("0"));
+            document.getElementById("sort-sidebar")?.classList.remove("sort-open");
         }
     }
 
     // Create an event listener to change the tab index of the sort dropdown when the window is resized.
-    $(window).on("resize", () => {
+    window?.addEventListener("resize", () => {
         sortTabResize();
     });
     sortTabResize();
 
     // Create Sort Dropdown Event Listener
-    createOnClick($("#sort-main-title"), () => {
+    createOnClick(document.getElementById("sort-main-title")! as HTMLInputElement, () => {
         if (window.innerWidth <= 786) {
-            $("#sort-sidebar").toggleClass("sort-open");
+            document.getElementById("sort-sidebar")?.classList.toggle("sort-open");
         } else {
-            $("#sort-sidebar").removeClass("sort-open");
+            document.getElementById("sort-sidebar")?.classList.remove("sort-open");
         }
     });
 
     // Setup Search Page Search Bar Event Listeners
-    $("#search-page-search-input").on("keydown", (event) => {
+    document.getElementById("search-page-search-input")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             searchPageSearch();
         }
     });
-    createOnClick($("#search-page-search-button"), searchPageSearch);
+    createOnClick(document.getElementById("search-page-search-button")! as HTMLButtonElement, searchPageSearch);
 
     // Apply Filters Event Listener
-    createOnClick($("#apply-filters-button"), () => {
+    createOnClick(document.getElementById("apply-filters-button")! as HTMLButtonElement, () => {
         if (isBrowse) {
-            browse(page).then((resultsArray) => {
-                applySearchFilters(resultsArray);
+            browse(page).then(() => {
+                applySearchFilters();
             });
         } else {
-            applySearchFilters(searchCache);
+            applySearchFilters();
         }
     });
 }
@@ -113,7 +117,7 @@ export function setupSearch(pageQuery) {
  * @description Handles new searches from the search page.
  */
 function searchPageSearch() {
-    const searchQuery = $("#search-page-search-input").val();
+    const searchQuery = (document.getElementById("search-page-search-input") as HTMLInputElement).value;
     setURLValue("query", searchQuery);
 
     search(searchQuery).then((searchResultsArray) => {
@@ -127,8 +131,8 @@ function searchPageSearch() {
  * @param {Number} page The current results page.
  */
 function browse(page = 1) {
-    return new Promise((resolve) => {
-        changePageTitle("Browse", false);
+    return new Promise<Book[]>((resolve) => {
+        // changePageTitle("Browse", false);
         // Set the needed length for the browse results array.
         const length = page * 20;
         // If the browse results array is already long enough, just return it.
@@ -163,7 +167,7 @@ function browse(page = 1) {
  * @returns {Promise<Array<Book>>} A promise that resolves with the next set of books for browsing.
  */
 function browseNext() {
-    return new Promise((resolve, reject) => {
+    return new Promise<Book[]>((resolve, reject) => {
         if (bookDatabase && bookDatabase.length > 0 && timeLastSearched != null) {
             // At this point, we can assume that the book database has been loaded from a search, so just use that for browsing.
             const docs = bookDatabase.length;
@@ -171,7 +175,7 @@ function browseNext() {
                 reject();
                 return;
             }
-            let rand = Math.floor(Math.random() * docs);
+            let rand: number = Math.floor(Math.random() * docs);
             while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
             docsUsed.push(rand);
             if (!bookDatabase[rand]) {
@@ -180,7 +184,7 @@ function browseNext() {
                 return;
             }
             const values = [],
-                invalidBookIndices = [];
+                invalidBookIndices = [] as number[];
             while (values.length < bookDatabase[rand].books.length - invalidBookIndices.length) {
                 const random = Math.floor(Math.random() * bookDatabase[rand].books.length);
                 if (values.indexOf(random) > -1) continue;
@@ -209,7 +213,7 @@ function browseNext() {
                             reject();
                             return;
                         }
-                        let rand = Math.floor(Math.random() * docs);
+                        let rand: number | string = Math.floor(Math.random() * docs);
                         while (docsUsed.includes(rand)) rand = Math.floor(Math.random() * docs);
                         docsUsed.push(rand);
                         rand = "0" + rand;
@@ -220,8 +224,8 @@ function browseNext() {
                                 reject();
                                 return;
                             }
-                            const values = [],
-                                invalidBookIndices = [],
+                            const values: number[] = [],
+                                invalidBookIndices = [] as number[],
                                 data = docSnap.data();
                             while (values.length < data.books.length - invalidBookIndices.length) {
                                 const random = Math.floor(Math.random() * data.books.length);
@@ -250,38 +254,38 @@ function browseNext() {
  * @param {Boolean} bypassHistory Whether or not to bypass the history.
  */
 function goToSearchPage(page = 1, bypassHistory = false) {
-    $("#content").addClass("loading");
+    document.getElementById("content")?.classList.add("loading");
 
     // If we have the books in the history, use those.
-    if (!bypassHistory && historyManager.get()?.stateData) {
-        const stateDataKey = historyManager.get()?.stateData;
-        HistoryManager.getFromIDB(stateDataKey)
-            .then((stateData) => {
-                const searchPageData = stateData?.searchPageData;
-                // Check to ensure that the page number is the same as the one in the history.
-                if (searchPageData && searchPageData.page == page) {
-                    console.log("Using books from history", searchPageData);
-                    searchPageData.resultsArray.forEach((book, index) => {
-                        if (!(book instanceof Book)) {
-                            searchPageData.resultsArray[index] = Book.createFromObject(book);
-                        }
-                    });
-                    // Set the global variables to the ones from the history.
-                    isBrowse = searchPageData.isBrowse;
-                    browseResultsArray = searchPageData.browseResultsArray;
-                    filters = searchPageData.filters;
-                    docsUsed = searchPageData.docsUsed;
-                    createSearchResultsPage(searchPageData.resultsArray, page);
-                } else {
-                    // If the page number is not the same, abort and get the books from the database.
-                    getNewBooksForSearch(page);
-                }
-            })
-            .catch((error) => {
-                console.error("Could not get books from history. IDB error:", error);
-            });
-        return;
-    }
+    // if (!bypassHistory && historyManager.get()?.stateData) {
+    //     const stateDataKey = historyManager.get()?.stateData;
+    //     HistoryManager.getFromIDB(stateDataKey)
+    //         .then((stateData) => {
+    //             const searchPageData = stateData?.searchPageData;
+    //             // Check to ensure that the page number is the same as the one in the history.
+    //             if (searchPageData && searchPageData.page == page) {
+    //                 console.log("Using books from history", searchPageData);
+    //                 searchPageData.resultsArray.forEach((book: Book, index: number) => {
+    //                     if (!(book instanceof Book)) {
+    //                         searchPageData.resultsArray[index] = Book.createFromObject(book);
+    //                     }
+    //                 });
+    //                 // Set the global variables to the ones from the history.
+    //                 isBrowse = searchPageData.isBrowse;
+    //                 browseResultsArray = searchPageData.browseResultsArray;
+    //                 filters = searchPageData.filters;
+    //                 docsUsed = searchPageData.docsUsed;
+    //                 createSearchResultsPage(searchPageData.resultsArray, page);
+    //             } else {
+    //                 // If the page number is not the same, abort and get the books from the database.
+    //                 getNewBooksForSearch(page);
+    //             }
+    //         })
+    //         .catch((error) => {
+    //             console.error("Could not get books from history. IDB error:", error);
+    //         });
+    //     return;
+    // }
 
     // If we couldn't use the history, get the books from the database.
     getNewBooksForSearch(page);
@@ -291,9 +295,9 @@ function goToSearchPage(page = 1, bypassHistory = false) {
  * @description Gets new books for the search page, then calls createSearchResultsPage.
  * @param {Number} page the page number.
  */
-function getNewBooksForSearch(page) {
+function getNewBooksForSearch(page: number) {
     // If we don't have the books in the history, get them from the database.
-    let loadingModal;
+    let loadingModal: () => void | undefined;
     const timer = setTimeout(() => {
         loadingModal = openModal("info", "", "Loading...", "");
     }, 400);
@@ -315,7 +319,7 @@ function getNewBooksForSearch(page) {
             createSearchResultsPage(resultsArray, page);
 
             if (page > 1) {
-                setURLValue("page", page);
+                setURLValue("page", page.toString());
             } else {
                 removeURLValue("page", true);
             }
@@ -323,7 +327,7 @@ function getNewBooksForSearch(page) {
         .catch((error) => {
             openModal("error", "There was an error getting the books. Please try again later.", "Error Getting Books");
             console.error(error);
-            softBack();
+            // softBack();
         })
         .finally(() => {
             clearTimeout(timer);
@@ -338,27 +342,45 @@ function getNewBooksForSearch(page) {
  * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  * @param {Number} page The page number of the results page.
  */
-function createSearchResultsPage(resultsArray, page = 1) {
+function createSearchResultsPage(resultsArray: Book[], page = 1) {
     // Clear the search results container.
-    $("div#search-results-container").empty();
+    (document.querySelector("div#search-results-container") as HTMLElement).innerHTML = "";
     // If the search results array is empty, display a message saying so.
     if (resultsArray.length == 0 || resultsArray.length <= (page - 1) * 20) {
         const p = document.createElement("p");
         p.appendChild(document.createTextNode("That search returned no results. Please try again."));
-        $("div#search-results-container")?.[0].appendChild(p);
+        document.querySelector("div#search-results-container")?.appendChild(p);
     }
 
     // Add the books to the search results container and log the list of books on the current page (for the history).
-    const searchPageData = {};
+    const searchPageData: {
+        resultsArray: Book[] | null;
+        books: Book[] | null;
+        docsUsed: number[] | null;
+        filters: Record<string, SearchFilter[]> | null;
+        page: number | null;
+        isBrowse: boolean | null;
+        browseResultsArray: Book[] | null;
+    } = {
+        resultsArray: null,
+        books: null,
+        docsUsed: null,
+        filters: null,
+        page: null,
+        isBrowse: null,
+        browseResultsArray: null
+    };
     searchPageData.resultsArray = resultsArray;
     searchPageData.books = [];
     for (let i = (page - 1) * 20; i < Math.min(page * 20, resultsArray.length); i++) {
-        $("div#search-results-container")?.[0]?.appendChild(buildBookBox(resultsArray[i], "search", i + 1));
+        document
+            .querySelector("div#search-results-container")
+            ?.appendChild(buildBookBox(resultsArray[i], "search", i + 1));
         searchPageData.books.push(resultsArray[i]);
     }
 
     // Create the filters and paginator.
-    createFilterList(resultsArray, filters);
+    createFilterList(resultsArray);
     searchPageData.filters = filters;
 
     createPaginator(resultsArray, page);
@@ -368,23 +390,23 @@ function createSearchResultsPage(resultsArray, page = 1) {
     searchPageData.browseResultsArray = browseResultsArray;
     searchPageData.docsUsed = docsUsed;
 
-    const stateData = historyManager.get().stateData;
-    let lookupPromise;
-    if (stateData) {
-        lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
-            console.error("There was an issue getting the books from the history. IDB Error:", error);
-        });
-    } else {
-        lookupPromise = Promise.resolve({});
-    }
+    // const stateData = historyManager.get().stateData;
+    // let lookupPromise;
+    // if (stateData) {
+    //     lookupPromise = HistoryManager.getFromIDB(stateData).catch((error) => {
+    //         console.error("There was an issue getting the books from the history. IDB Error:", error);
+    //     });
+    // } else {
+    //     lookupPromise = Promise.resolve({});
+    // }
 
-    lookupPromise.then((stateData) => {
-        stateData.searchPageData = searchPageData;
-        historyManager.update(null, undefined, stateData);
-    });
+    // lookupPromise.then((stateData) => {
+    //     stateData.searchPageData = searchPageData;
+    //     historyManager.update(null, undefined, stateData);
+    // });
 
-    $("#apply-filters-button").removeAttr("disabled");
-    $("#content").removeClass("loading");
+    document.getElementById("apply-filters-button")?.removeAttribute("disabled");
+    document.getElementById("content")?.classList.remove("loading");
 }
 
 /**
@@ -392,12 +414,12 @@ function createSearchResultsPage(resultsArray, page = 1) {
  * @param {Array<Book>} resultsArray The array of books that are going to appear on the page (to determine length).
  * @param {Number} page The current page number.
  */
-function createPaginator(resultsArray, page) {
-    $("#paginator").empty();
-    $("#paginator").css("display", "flex");
+function createPaginator(resultsArray: Book[], page: number) {
+    (document.getElementById("paginator") as HTMLElement).innerHTML = "";
+    (document.getElementById("paginator") as HTMLElement).style.setProperty("display", String("flex"));
     if (resultsArray.length < 21) {
         // there is only one page, so don't bother displaying the paginator
-        $("#paginator").hide();
+        (document.getElementById("paginator") as HTMLElement).style.display = "none";
         return;
     }
 
@@ -410,7 +432,7 @@ function createPaginator(resultsArray, page) {
             windowScroll(0, 1500);
             goToSearchPage(page - 1);
         };
-        $("#paginator")[0].appendChild(prev);
+        (document.getElementById("paginator")! as HTMLElement).appendChild(prev);
     }
 
     // Create the page number buttons
@@ -419,16 +441,16 @@ function createPaginator(resultsArray, page) {
         if (p == page) {
             const span = document.createElement("span");
             span.innerHTML = "<b>" + p + "</b>";
-            $("#paginator")[0].appendChild(span);
+            (document.getElementById("paginator")! as HTMLElement).appendChild(span);
             continue;
         }
         const a = document.createElement("a");
-        a.innerHTML = p;
+        a.innerHTML = String(p);
         a.onclick = () => {
             windowScroll(0, 1500);
             goToSearchPage(p);
         };
-        $("#paginator")[0].appendChild(a);
+        (document.getElementById("paginator")! as HTMLElement).appendChild(a);
     }
 
     // Create the next button
@@ -440,7 +462,7 @@ function createPaginator(resultsArray, page) {
             windowScroll(0, 1500);
             goToSearchPage(page + 1);
         };
-        $("#paginator")[0].appendChild(next);
+        (document.getElementById("paginator")! as HTMLElement).appendChild(next);
     }
 }
 
@@ -448,17 +470,23 @@ function createPaginator(resultsArray, page) {
  * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
  * @param {Array<Book>} resultsArray The array of books to list on the search results page.
  */
-function createFilterList(resultsArray) {
+function createFilterList(resultsArray: Book[]) {
     // If the filters object is empty, we need to create the data type.
-    if (!filters || filters == {}) {
+    if (!filters || Object.keys(filters).length === 0) {
         filters = {};
         FILTER_TYPES.forEach((filterType) => {
+            if (!filters) {
+                return;
+            }
             filters[filterType] = [];
         });
     }
 
     // First, we need to remove any filters that are not checked and clear the count for the ones that are.
     FILTER_TYPES.forEach((filterType) => {
+        if (!filters) {
+            return;
+        }
         for (let i = 0; i < filters[filterType].length; i++) {
             const filter = filters[filterType][i];
             if (filter.checked == false) {
@@ -476,10 +504,13 @@ function createFilterList(resultsArray) {
 
     // Now we need to use the new list to recount and re-sort the filters.
     FILTER_TYPES.forEach((filterType) => {
+        if (!filters) {
+            return;
+        }
         if (!filters[filterType]) {
             filters[filterType] = [];
         }
-        resultsArray.forEach((book) => {
+        resultsArray.forEach((book: Book) => {
             // Attempt to find the filter in the filters array.
             let filterItems;
             switch (filterType) {
@@ -490,6 +521,10 @@ function createFilterList(resultsArray) {
                     filterItems = [book.medium];
                     break;
                 case "audience":
+                    if (!book.audience) {
+                        console.error("Book " + book.title + " does not have an audience property. Skipping.");
+                        break;
+                    }
                     filterItems = book.audience.toArray();
                     break;
                 case "subject":
@@ -499,9 +534,20 @@ function createFilterList(resultsArray) {
                     filterItems = [book.ddc];
                     break;
             }
-            filterItems.forEach((filterItem) => {
+
+            if (!filterItems) {
+                return;
+            }
+            filterItems.forEach((filterItem: string | Person | null) => {
+                if (!filters) {
+                    return;
+                }
+                if (filterItem == null) {
+                    return;
+                }
                 if (filterType == "author") {
-                    filterItem = filterItem.lastName + ", " + filterItem.firstName;
+                    const author = filterItem as Person;
+                    filterItem = author.lastName + ", " + author.firstName;
                 } else if (filterType == "type") {
                     if (filterItem == "FIC") {
                         filterItem = "Fiction";
@@ -509,16 +555,22 @@ function createFilterList(resultsArray) {
                         filterItem = "Non-Fiction";
                     }
                 }
-                if (!filters[filterType].find((filter) => filter.value == filterItem)) {
+                const existingFilter = filters[filterType].find((filter: SearchFilter) => filter.value == filterItem);
+                if (!existingFilter) {
                     // If it doesn't exist, add it and set the count to 1.
-                    filters[filterType].push({ value: filterItem, count: 1, checked: false, displayed: false });
+                    filters[filterType].push({
+                        value: filterItem as string,
+                        count: 1,
+                        checked: false,
+                        displayed: false
+                    });
                 } else {
                     // If it does exist, increment the count.
-                    filters[filterType].find((filter) => filter.value == filterItem).count++;
+                    existingFilter.count++;
                 }
             });
         });
-        filters[filterType].sort((a, b) => b.count - a.count);
+        filters[filterType].sort((a: SearchFilter, b: SearchFilter) => b.count - a.count);
     });
 
     buildFilterList();
@@ -529,8 +581,11 @@ function createFilterList(resultsArray) {
  */
 function buildFilterList() {
     FILTER_TYPES.forEach((filterType) => {
-        $("#sort-" + filterType + "-list").empty();
-        filters[filterType].forEach((filter, index) => {
+        (document.getElementById("#sort-" + filterType + "-list") as HTMLElement).innerHTML = "";
+        if (!filters || !filters[filterType]) {
+            return;
+        }
+        filters[filterType].forEach((filter: SearchFilter, index: number) => {
             // Only display the first couple filters per section.
             if (index >= 6) {
                 return;
@@ -578,10 +633,10 @@ function buildFilterList() {
                 '<span class="sort-frequency">' +
                 filter.count +
                 "</span>";
-            $("#sort-" + filterType + "-list")[0].appendChild(li);
+            (document.getElementById("#sort-" + filterType + "-list")! as HTMLElement).appendChild(li);
             filter.displayed = true;
             if (filter.checked) {
-                document.getElementById(id).checked = true;
+                (document.getElementById(id)! as HTMLInputElement).checked = true;
             }
         });
     });
@@ -591,24 +646,27 @@ function buildFilterList() {
  * @description Called by the "Apply Filters" button. Goes through the list of filters on the page and updates the filters variable based on the items that are checked.
  */
 function applySearchFilters() {
-    $("#apply-filters-button").prop("disabled", true);
+    (document.getElementById("apply-filters-button")! as HTMLButtonElement).disabled = true;
     FILTER_TYPES.forEach((filterType) => {
         // Clear all checks before looking for new ones.
-        filters[filterType].forEach((filter) => {
+        filters[filterType].forEach((filter: SearchFilter) => {
             filter.checked = false;
         });
 
         // Check the filters that are checked.
-        $("#sort-" + filterType + "-list > li > input:checked").each((i, e) => {
-            const value = $(e).attr("name");
-            filters[filterType].find((filter) => filter.value == value).checked = true;
+        document.querySelectorAll("#sort-" + filterType + "-list > li > input:checked").forEach((e) => {
+            const value = e?.getAttribute("name");
+            const selectedFilter = filters[filterType].find((filter: SearchFilter) => filter.value === value);
+            if (selectedFilter) {
+                selectedFilter.checked = true;
+            }
         });
     });
 
     // If there is an author or subject filter, it's more efficient to just search for those books.
     if (
-        filters["author"].find((filter) => filter.checked == true) ||
-        filters["subject"].find((filter) => filter.checked == true)
+        filters["author"].find((filter: SearchFilter) => filter.checked == true) ||
+        filters["subject"].find((filter: SearchFilter) => filter.checked == true)
     ) {
         updateBookDatabase().then(() => {
             goToSearchPage(1, true);
@@ -623,8 +681,8 @@ function applySearchFilters() {
  * @param {Array<Book>} resultsArray The array of books to filter.
  * @returns {Array<Book>} The filtered array of books.
  */
-function filterSearchResults(resultsArray) {
-    if (!filters || filters == {}) {
+function filterSearchResults(resultsArray: Book[]) {
+    if (!filters || Object.keys(filters).length === 0) {
         return resultsArray;
     }
     const results = [];
@@ -642,26 +700,38 @@ function filterSearchResults(resultsArray) {
                 }
                 if (filterType == "author") {
                     const authorFilter = filters.author[j].value;
-                    currentBook.authors.forEach((author) => {
+                    currentBook.authors.forEach((author: Person) => {
                         if (author.lastName + ", " + author.firstName == authorFilter) {
                             passesFilter = true;
                         }
                     });
                 } else if (filterType == "medium") {
                     const medium = filters.medium[j].value;
+                    if (!currentBook.medium) {
+                        console.error("Book " + currentBook.title + " does not have a medium property. Skipping.");
+                        continue;
+                    }
                     if (medium.toUpperCase() == currentBook.medium.toUpperCase()) {
                         passesFilter = true;
                     }
                 } else if (filterType == "audience") {
                     const audience = filters.audience[j].value;
-                    currentBook.audience.toArray().forEach((audienceItem) => {
+                    if (!currentBook.audience) {
+                        console.error("Book " + currentBook.title + " does not have an audience property. Skipping.");
+                        continue;
+                    }
+                    currentBook.audience.toArray().forEach((audienceItem: string) => {
                         if (audience.toUpperCase() == audienceItem.toUpperCase()) {
                             passesFilter = true;
                         }
                     });
                 } else if (filterType == "subject") {
                     const subject = filters.subject[j].value;
-                    currentBook.subjects.forEach((subjectItem) => {
+                    if (!currentBook.subjects) {
+                        console.error("Book " + currentBook.title + " does not have a subjects property. Skipping.");
+                        continue;
+                    }
+                    currentBook.subjects.forEach((subjectItem: string) => {
                         if (subject.toUpperCase() == subjectItem.toUpperCase()) {
                             passesFilter = true;
                         }
@@ -695,21 +765,23 @@ function filterSearchResults(resultsArray) {
  * @description Sets up the individiual result page and starts the process of getting the book's information.
  * @param {String} pageQuery The query string from the URL.
  */
-export function setupResultPage(pageQuery) {
-    const barcodeNumber = parseInt(findURLValue(pageQuery, "id"));
+export function setupResultPage(pageQuery: string) {
+    const barcodeNumber = parseInt(findURLValue(pageQuery, "id")).toString();
     if (!barcodeNumber) {
         openModal("error", "A valid barcode was not provided.");
-        goToPage("");
+        // goToPage("");
         return;
     }
 
     fillResultPage(barcodeNumber);
 
     // Create Event Listeners
-    createOnClick($("#result-page-back-button"), softBack);
-    createOnClick($(".result-page-image"), displayResultPageImagePopup, barcodeNumber);
+    // createOnClick(document.getElementById("result-page-back-button")! as HTMLButtonElement, () => softBack());
+    createOnClick(document.querySelector(".result-page-image")! as HTMLImageElement, () =>
+        displayResultPageImagePopup(barcodeNumber)
+    );
 
-    createOnClick($("#result-page-email"), () => {
+    createOnClick(document.getElementById("result-page-email")! as HTMLButtonElement, () => {
         const loadingModal = openModal("info", "Sending email... Please wait...", "Sending Email", "");
         resultPageEmail(barcodeNumber)
             .then(() => {
@@ -732,7 +804,7 @@ export function setupResultPage(pageQuery) {
             });
     });
 
-    createOnClick($("#result-page-link"), () => {
+    createOnClick(document.getElementById("result-page-link")! as HTMLButtonElement, () => {
         navigator.clipboard.writeText(window.location.href).then(() => {
             const closeModal = openModal("success", "The link has been copied to your clipboard.", "Link Copied", "");
             window.setTimeout(() => {
@@ -741,16 +813,20 @@ export function setupResultPage(pageQuery) {
         });
     });
 
-    createOnClick($("#result-page-print"), window.print);
+    createOnClick(document.getElementById("result-page-print")! as HTMLButtonElement, window.print);
 
     if (auth.currentUser) {
-        $("#result-page-email").css("display", "block");
+        (document.getElementById("result-page-email") as HTMLElement).style.setProperty("display", String("block"));
     }
 
     isAdminCheck().then((isAdmin) => {
         if (isAdmin) {
-            $("#result-page-edit").css("display", "block");
-            createOnClick($("#result-page-edit"), goToPage, "admin/editEntry?new=false&id=" + barcodeNumber);
+            (document.getElementById("result-page-edit") as HTMLElement).style.setProperty("display", String("block"));
+            // createOnClick(
+            //     document.getElementById("result-page-edit")! as HTMLButtonElement,
+            //     goToPage,
+            //     "admin/editEntry?new=false&id=" + barcodeNumber
+            // );
         }
     });
 }
@@ -759,18 +835,22 @@ export function setupResultPage(pageQuery) {
  * @description Creates and displays a popup containing a higher resolution version of the book image.
  * @param {String} barcodeNumber The barcode number of the book to create the popup for.
  */
-function displayResultPageImagePopup(barcodeNumber) {
+function displayResultPageImagePopup(barcodeNumber: string) {
     // Construct Container
     const imgContainer = document.createElement("div");
     imgContainer.classList.add("modal-container");
     imgContainer.style.backgroundColor = "#000000c0";
-    imgContainer.tabIndex = "0";
+    imgContainer.tabIndex = 0;
     // Construct Image
     const img = document.createElement("img");
     img.id = "result-page-popup-image";
     imgContainer.appendChild(img);
     // Get the link from the database and display it.
     getBookFromBarcode(barcodeNumber).then((bookObject) => {
+        if (!bookObject || !(bookObject instanceof Book)) {
+            console.error("Book object is not valid for barcode " + barcodeNumber, bookObject);
+            return;
+        }
         if (!bookObject.coverImageLink) {
             return;
         }
@@ -780,20 +860,20 @@ function displayResultPageImagePopup(barcodeNumber) {
             imgContainer.style.opacity = "1";
             img.classList.add("modal-show");
         };
-        $("#content")[0].appendChild(imgContainer);
+        (document.getElementById("content")! as HTMLElement).appendChild(imgContainer);
         // Create Event Listener to Close Popup
-        createOnClick($(imgContainer), () => {
+        createOnClick(imgContainer, () => {
             imgContainer.style.opacity = "0";
             img.classList.remove("modal-show");
             img.classList.add("modal-hide");
             setTimeout(() => {
-                $(".modal-container").remove();
+                document.querySelector(".modal-container")?.remove();
             }, 500);
         });
         // Keep focus set on the image so that the user can close it with the enter key.
-        $(".result-page-image").trigger("blur");
+        document.querySelector(".result-page-image")?.dispatchEvent(new Event("blur"));
         setInterval(() => {
-            $(".modal-container").trigger("focus");
+            document.querySelector(".modal-container")?.dispatchEvent(new Event("focus"));
         }, 100);
     });
 }
@@ -802,41 +882,55 @@ function displayResultPageImagePopup(barcodeNumber) {
  * @description Fills the result page with the book's information.
  * @param {String} barcodeNumber The barcode number of the book to get the information for.
  */
-function fillResultPage(barcodeNumber) {
+function fillResultPage(barcodeNumber: string) {
     getBookFromBarcode(barcodeNumber)
         .then((bookObject) => {
-            if (!bookObject || bookObject.isDeleted || bookObject.isHidden) {
+            if (!bookObject || !(bookObject instanceof Book) || bookObject.isDeleted || bookObject.isHidden) {
                 openModal("error", "No information could be found for that book.");
-                softBack();
+                // softBack();
                 return;
             }
-            changePageTitle(bookObject.title);
+            // changePageTitle(bookObject.title);
 
             if (bookObject.medium == "av") {
-                $(".result-page-image").attr("src", "/img/av-image.png");
-                $(".result-page-image").removeAttr("tabindex");
-                $(".result-page-image").css("cursor", "default");
+                document.querySelector(".result-page-image")?.setAttribute("src", String("/img/av-image.png"));
+                document.querySelector(".result-page-image")?.removeAttribute("tabindex");
+                (document.querySelector(".result-page-image") as HTMLElement).style.setProperty(
+                    "cursor",
+                    String("default")
+                );
             } else {
-                $(".result-page-image").attr("tabindex", "0");
-                $(".result-page-image").css("cursor", "pointer");
+                document.querySelector(".result-page-image")?.setAttribute("tabindex", String("0"));
+                (document.querySelector(".result-page-image") as HTMLElement).style.setProperty(
+                    "cursor",
+                    String("pointer")
+                );
                 // Currently not checking for icons because they are too low quality. Could change that if needed.
                 if (bookObject.thumbnailImageLink && bookObject.thumbnailImageLink?.indexOf("http") != -1) {
-                    $(".result-page-image").attr("src", bookObject.thumbnailImageLink);
+                    document
+                        .querySelector(".result-page-image")
+                        ?.setAttribute("src", String(bookObject.thumbnailImageLink));
                 } else if (bookObject.coverImageLink && bookObject.coverImageLink?.indexOf("http") != -1) {
                     console.warn("No thumbnail image found for " + bookObject.barcodeNumber + ".", bookObject);
-                    $(".result-page-image").attr("src", bookObject.coverImageLink);
+                    document
+                        .querySelector(".result-page-image")
+                        ?.setAttribute("src", String(bookObject.coverImageLink));
                 } else {
                     console.error("No images found for " + bookObject.barcodeNumber + ".", bookObject);
-                    $(".result-page-image").attr("src", "/img/default-book.png");
-                    $(".result-page-image").removeAttr("tabindex");
-                    $(".result-page-image").css("cursor", "default");
+                    document.querySelector(".result-page-image")?.setAttribute("src", String("/img/default-book.png"));
+                    document.querySelector(".result-page-image")?.removeAttribute("tabindex");
+                    (document.querySelector(".result-page-image") as HTMLElement).style.setProperty(
+                        "cursor",
+                        String("default")
+                    );
                 }
             }
 
-            $("#result-page-barcode-number").html(addBarcodeSpacing(barcodeNumber));
+            (document.getElementById("result-page-barcode-number") as HTMLInputElement).innerHTML =
+                addBarcodeSpacing(barcodeNumber);
             if (!bookObject.canBeCheckedOut) {
-                $("#checkout-button").addClass("disabled");
-                createOnClick($("#checkout-button"), () => {
+                document.getElementById("checkout-button")?.classList.add("disabled");
+                createOnClick(document.getElementById("checkout-button")! as HTMLButtonElement, () => {
                     openModal(
                         "info",
                         "This book is a reference book and cannot be checked out. Please visit the library in person to use this book.",
@@ -844,29 +938,36 @@ function fillResultPage(barcodeNumber) {
                     );
                 });
             } else {
-                $("#checkout-button").show();
-                createOnClick($("#checkout-button"), checkout, barcodeNumber);
+                (document.getElementById("checkout-button") as HTMLElement).style.display = "";
+                createOnClick(document.getElementById("checkout-button")! as HTMLButtonElement, () =>
+                    checkout(barcodeNumber)
+                );
             }
-            $("#result-page-isbn-number").html("ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13);
+            (document.getElementById("result-page-isbn-number") as HTMLInputElement).innerHTML =
+                "ISBN 10: " + bookObject.isbn10 + "<br>ISBN 13: " + bookObject.isbn13;
             if (bookObject.isbn10 == "" && bookObject.isbn13 == "") {
-                $("#result-page-isbn-number").html("None");
+                (document.getElementById("result-page-isbn-number") as HTMLInputElement).innerHTML = "None";
             }
             let callNumberAnswer = "";
-            if (bookObject.audience.children == true) {
-                callNumberAnswer += "J";
-            } else if (bookObject.audience.youth == true) {
-                callNumberAnswer += "Y";
-            } else if (bookObject.canBeCheckedOut == false) {
-                callNumberAnswer += "REF<br>";
-            }
-            callNumberAnswer += bookObject.ddc;
-            // TODO: Make sure that items with no author are not stored as empty person objects so this works.
-            if (bookObject.authors.length != 0) {
-                callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
+            if (!bookObject.audience) {
+                console.error("Book " + bookObject.title + " does not have an audience property. Skipping.");
             } else {
+                if (bookObject.audience.children == true) {
+                    callNumberAnswer += "J";
+                } else if (bookObject.audience.youth == true) {
+                    callNumberAnswer += "Y";
+                } else if (bookObject.canBeCheckedOut == false) {
+                    callNumberAnswer += "REF<br>";
+                }
+                callNumberAnswer += bookObject.ddc;
+            }
+            // TODO: Make sure that items with no author are not stored as empty person objects so this works.
+            if (bookObject.authors.length != 0 && bookObject.authors[0].lastName && bookObject.authors[0].firstName) {
+                callNumberAnswer += "<br>" + bookObject.authors[0].lastName.toUpperCase().substring(0, 3);
+            } else if (bookObject.title) {
                 callNumberAnswer += "<br>" + bookObject.title.toUpperCase().substring(0, 3);
             }
-            $("#result-page-call-number").html(callNumberAnswer);
+            (document.getElementById("result-page-call-number") as HTMLInputElement).innerHTML = callNumberAnswer;
             let mediumAnswer = "";
             if (bookObject.medium == "paperback") {
                 mediumAnswer = "Paperback";
@@ -877,33 +978,42 @@ function fillResultPage(barcodeNumber) {
             } else {
                 console.warn("There is a case that is not covered for: " + bookObject.medium);
             }
-            $("#result-page-medium").html(mediumAnswer);
+            (document.getElementById("result-page-medium") as HTMLInputElement).innerHTML = mediumAnswer;
             let audienceAnswer = "";
-            if (bookObject.audience.children == true) {
-                audienceAnswer += "Children, ";
+            if (!bookObject.audience) {
+                console.error("Book " + bookObject.title + " does not have an audience property. Skipping.");
+            } else {
+                if (bookObject.audience.children == true) {
+                    audienceAnswer += "Children, ";
+                }
+                if (bookObject.audience.youth == true) {
+                    audienceAnswer += "Youth, ";
+                }
+                if (bookObject.audience.adult == true) {
+                    audienceAnswer += "Adult, ";
+                }
+                if (bookObject.audience.isNone() == true) {
+                    audienceAnswer = "None, ";
+                }
+                audienceAnswer = audienceAnswer.substring(0, audienceAnswer.lastIndexOf(","));
+                (document.getElementById("result-page-audience") as HTMLInputElement).innerHTML = audienceAnswer;
             }
-            if (bookObject.audience.youth == true) {
-                audienceAnswer += "Youth, ";
-            }
-            if (bookObject.audience.adult == true) {
-                audienceAnswer += "Adult, ";
-            }
-            if (bookObject.audience.isNone() == true) {
-                audienceAnswer = "None, ";
-            }
-            audienceAnswer = audienceAnswer.substring(0, audienceAnswer.lastIndexOf(","));
-            $("#result-page-audience").html(audienceAnswer);
             let publishersAnswer = "";
-            bookObject.publishers.forEach((item) => {
-                publishersAnswer += item + ", ";
-            });
-            publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
-            if (publishersAnswer == "") publishersAnswer = "None";
-            $("#result-page-publisher").html(publishersAnswer);
+            if (!bookObject.publishers || bookObject.publishers.length == 0) {
+                console.error("Book " + bookObject.title + " does not have a publishers property. Skipping.");
+            } else {
+                bookObject.publishers.forEach((item: string) => {
+                    publishersAnswer += item + ", ";
+                });
+                publishersAnswer = publishersAnswer.substring(0, publishersAnswer.lastIndexOf(","));
+                if (publishersAnswer == "") publishersAnswer = "None";
+                (document.getElementById("result-page-publisher") as HTMLInputElement).innerHTML = publishersAnswer;
+            }
             if (bookObject.publishDate) {
                 const d = bookObject.publishDate;
                 if (d.getMonth() != 0 && d.getDate() != 1) {
-                    $("#result-page-publish-date").html(d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear());
+                    (document.getElementById("result-page-publish-date") as HTMLInputElement).innerHTML =
+                        d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear();
                 } else if (d.getMonth() != 0) {
                     let month;
                     switch (d.getMonth()) {
@@ -949,75 +1059,91 @@ function fillResultPage(barcodeNumber) {
                             month = "";
                             break;
                     }
-                    $("#result-page-publish-date").html(month + ", " + d.getFullYear());
+                    (document.getElementById("result-page-publish-date") as HTMLInputElement).innerHTML =
+                        month + ", " + d.getFullYear();
                 } else {
-                    $("#result-page-publish-date").html(d.getFullYear());
+                    (document.getElementById("result-page-publish-date") as HTMLInputElement).innerHTML = d
+                        .getFullYear()
+                        .toString();
                 }
             } else {
-                $("#result-page-publish-date").html("None");
+                (document.getElementById("result-page-publish-date") as HTMLInputElement).innerHTML = "None";
             }
-            if (bookObject.numberOfPages > 0) {
-                $("#result-page-pages").html(bookObject.numberOfPages);
+            if (bookObject.numberOfPages && bookObject.numberOfPages > 0) {
+                (document.getElementById("result-page-pages") as HTMLInputElement).innerHTML =
+                    bookObject.numberOfPages.toString();
             } else {
-                $("#result-page-pages").html("Unnumbered");
+                (document.getElementById("result-page-pages") as HTMLInputElement).innerHTML = "Unnumbered";
             }
-
-            $("#result-page-title").html(bookObject.title);
-            $("#result-page-subtitle").html(bookObject.subtitle);
+            if (!bookObject.title) {
+                console.error("Book " + bookObject.barcodeNumber + " does not have a title property. Skipping.");
+            } else {
+                (document.getElementById("result-page-title") as HTMLInputElement).innerHTML =
+                    bookObject.title.toString();
+            }
+            if (!bookObject.subtitle) {
+                console.error("Book " + bookObject.barcodeNumber + " does not have a subtitle property. Skipping.");
+            } else {
+                (document.getElementById("result-page-subtitle") as HTMLInputElement).innerHTML =
+                    bookObject.subtitle.toString();
+            }
             if (bookObject.subtitle == null || bookObject.subtitle.length < 1) {
-                $("#result-page-subtitle-header").hide();
-                $("#result-page-subtitle").hide();
+                (document.getElementById("result-page-subtitle-header") as HTMLElement).style.display = "none";
+                (document.getElementById("result-page-subtitle") as HTMLElement).style.display = "none";
             }
             if (bookObject.authors.length > 1) {
-                $("#result-page-author-header").html("Authors");
+                (document.getElementById("result-page-author-header") as HTMLInputElement).innerHTML = "Authors";
                 let authorAnswer = "";
-                bookObject.authors.forEach((item) => {
+                bookObject.authors.forEach((item: Person) => {
                     authorAnswer += item.lastName + ", " + item.firstName + "<br>";
                 });
-                $("#result-page-author").html(authorAnswer);
+                (document.getElementById("result-page-author") as HTMLInputElement).innerHTML = authorAnswer;
             } else {
                 if (
                     bookObject.authors.length == 0 ||
                     (bookObject.authors[0].firstName == "" && bookObject.authors[0].lastName == "")
                 ) {
-                    $("#result-page-author").html("None");
+                    (document.getElementById("result-page-author") as HTMLInputElement).innerHTML = "None";
                 } else {
-                    $("#result-page-author").html(
-                        bookObject.authors[0].lastName + ", " + bookObject.authors[0].firstName
-                    );
+                    (document.getElementById("result-page-author") as HTMLInputElement).innerHTML =
+                        bookObject.authors[0].lastName + ", " + bookObject.authors[0].firstName;
                 }
             }
             if (bookObject.illustrators.length > 0) {
                 let illustratorAnswer = "";
-                bookObject.illustrators.forEach((item) => {
+                bookObject.illustrators.forEach((item: Person) => {
                     illustratorAnswer += item.lastName + ", " + item.firstName + "<br>";
                 });
-                $("#result-page-illustrator").html(illustratorAnswer);
+                (document.getElementById("result-page-illustrator") as HTMLInputElement).innerHTML = illustratorAnswer;
                 if (bookObject.illustrators.length > 1) {
-                    $("#result-page-illustrator-header").html("Illustrators");
+                    (document.getElementById("result-page-illustrator-header") as HTMLInputElement).innerHTML =
+                        "Illustrators";
                 }
             } else {
-                $("#result-page-illustrator-header").hide();
-                $("#result-page-illustrator").hide();
+                (document.getElementById("result-page-illustrator-header") as HTMLElement).style.display = "none";
+                (document.getElementById("result-page-illustrator") as HTMLElement).style.display = "none";
             }
-            if (bookObject.subjects.length == 0) {
-                $("#result-page-subjects").hide();
-                $("#result-page-subjects-header").hide();
-            } else if (bookObject.subjects.length == 1) {
-                $("#result-page-subjects-header").html("Subject");
-            }
-            let subjectsAnswer = "";
-            for (let i = 0; i < bookObject.subjects.length; i++) {
-                subjectsAnswer += bookObject.subjects[i];
-                if (i != bookObject.subjects.length - 1) {
-                    subjectsAnswer += "<br>";
+            if (bookObject.subjects) {
+                if (bookObject.subjects.length == 0) {
+                    (document.getElementById("result-page-subjects") as HTMLElement).style.display = "none";
+                    (document.getElementById("result-page-subjects-header") as HTMLElement).style.display = "none";
+                } else if (bookObject.subjects.length == 1) {
+                    (document.getElementById("result-page-subjects-header") as HTMLInputElement).innerHTML = "Subject";
                 }
+                let subjectsAnswer = "";
+                for (let i = 0; i < bookObject.subjects.length; i++) {
+                    subjectsAnswer += bookObject.subjects[i];
+                    if (i != bookObject.subjects.length - 1) {
+                        subjectsAnswer += "<br>";
+                    }
+                }
+                (document.getElementById("result-page-subjects") as HTMLInputElement).innerHTML = subjectsAnswer;
             }
-            $("#result-page-subjects").html(subjectsAnswer);
-            $("#result-page-description").html(bookObject.description);
+            (document.getElementById("result-page-description") as HTMLInputElement).innerHTML =
+                bookObject.description ?? "No Description Available";
 
             // Fade in the result container
-            $("#result-page-container").css("opacity", "1");
+            (document.getElementById("result-page-container") as HTMLElement).style.setProperty("opacity", String("1"));
 
             logEvent(analytics, "select_content", {
                 content_type: "book_result",
@@ -1025,7 +1151,7 @@ function fillResultPage(barcodeNumber) {
             });
         })
         .catch((error) => {
-            softBack();
+            // softBack();
             openModal("error", "No information could be found for that book.\n" + error);
         });
 }
@@ -1035,10 +1161,14 @@ function fillResultPage(barcodeNumber) {
  * @param {String} barcodeNumber The barcode number of the book to get the information for.
  * @returns {Promise<void>} A promise that resolves when the email has been sent.
  */
-function resultPageEmail(barcodeNumber) {
-    return new Promise((resolve, reject) => {
+function resultPageEmail(barcodeNumber: string) {
+    return new Promise<string | undefined>((resolve, reject) => {
         getBookFromBarcode(barcodeNumber)
             .then((book) => {
+                if (!book || !(book instanceof Book) || book.isDeleted || book.isHidden) {
+                    reject("No book found for the given barcode.");
+                    return;
+                }
                 let message =
                     "<p style='white-space:pre-wrap'>Hello,\n\nHere is the information you requested about the book with barcode " +
                     book.barcodeNumber +
@@ -1071,7 +1201,7 @@ function resultPageEmail(barcodeNumber) {
                     }
                     message += "\n\n";
                 }
-                if (book.subjects.length > 0) {
+                if (book.subjects && book.subjects.length > 0) {
                     message += "<b>Subject(s):</b> ";
                     for (let i = 0; i < book.subjects.length; i++) {
                         message += book.subjects[i];
@@ -1084,7 +1214,7 @@ function resultPageEmail(barcodeNumber) {
                 if (book.description) {
                     message += "<b>Description:</b> " + book.description + "\n\n";
                 }
-                if (book.publishers.length > 0) {
+                if (book.publishers && book.publishers.length > 0) {
                     message += "<b>Publisher(s):</b> ";
                     for (let i = 0; i < book.publishers.length; i++) {
                         message += book.publishers[i];
@@ -1105,17 +1235,23 @@ function resultPageEmail(barcodeNumber) {
                 if (book.isbn13) {
                     message += "<b>ISBN-13:</b> " + book.isbn13 + "\n";
                 }
-                message += "<b>Audience:</b> " + book.audience.toString() + "\n";
+                if (book.audience) {
+                    message += "<b>Audience:</b> " + book.audience.toString() + "\n";
+                }
                 message += "<b>Medium:</b> " + book.medium + "\n";
                 message += "<b>Number of Pages:</b> " + book.numberOfPages + "\n";
                 message += "<b>Dewey Decimal Classification:</b> " + book.ddc + "\n\n";
                 message +=
                     "Thank you for using the South Church Library Catalog!\n\nSincerely,\nYour South Church Library Team</p>";
+                if (!auth.currentUser || !auth.currentUser.email) {
+                    reject("No user is currently logged in.");
+                    return;
+                }
                 const to = [auth.currentUser.email];
                 const subject = "Book Information for " + book.title;
                 sendEmail(to, subject, undefined, message)
                     .then(() => {
-                        resolve();
+                        resolve(undefined);
                     })
                     .catch((error) => {
                         reject(error);
@@ -1136,7 +1272,10 @@ function resultPageEmail(barcodeNumber) {
  * @description Checks out a book. This function starts the process when the user clicks the checkout button on the result page.
  * @param {Number} barcodeNumber The barcode number of the book to be checked out.
  */
-function checkout(barcodeNumber) {
+function checkout(barcodeNumber: number | string) {
+    if (typeof barcodeNumber === "string") {
+        barcodeNumber = parseInt(barcodeNumber);
+    }
     if (isNaN(barcodeNumber) || barcodeNumber.toString().indexOf("11711") < 0) {
         openModal("error", "There was an error checking out this book.");
         console.log("The barcode number could not be identified.");

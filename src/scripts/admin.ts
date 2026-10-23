@@ -12,7 +12,6 @@ import {
     where,
     writeBatch
 } from "firebase/firestore";
-import { goToPage } from "./ajax";
 import {
     search,
     buildBookBox,
@@ -31,11 +30,11 @@ import {
     Book,
     bookDatabase,
     db,
-    historyManager,
     setBookDatabase,
     setCurrentHash,
     setTimeLastSearched,
-    User
+    User,
+    type BookDocument
 } from "./globals";
 
 /**
@@ -43,32 +42,34 @@ import {
  */
 export function setupAdminMain() {
     // Create an event listener for the search bar
-    $("#edit-entry-input").on("keyup", (event) => {
+    document.getElementById("edit-entry-input")?.addEventListener("keyup", (event) => {
         if (event.key === "Enter") {
             adminSearch();
-            $("#edit-entry-input").trigger("blur");
+            document.getElementById("edit-entry-input")?.dispatchEvent(new Event("blur"));
         }
     });
 
     // Create an event listener for the add entry input
-    $("#add-entry-isbn").on("keydown", (event) => {
+    document.getElementById("add-entry-isbn")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             addEntry();
-            $("#add-entry-isbn").trigger("blur");
+            document.getElementById("add-entry-isbn")?.dispatchEvent(new Event("blur"));
         }
     });
 
     // Create other event listeners for all the buttons/links
-    createOnClick($("#add-entry-button"), addEntry);
-    createOnClick($("#add-entry-without-isbn"), addEntryWithoutISBN);
-    createOnClick($("#edit-entry-search"), adminSearch);
-    createOnClick($("#view-missing-barcodes"), viewMissingBarcodes);
-    createOnClick($("#import-link"), () => $("#import-input").trigger("click"));
-    createOnClick($("#export-link"), downloadDatabase);
+    createOnClick(document.getElementById("add-entry-button")! as HTMLButtonElement, addEntry);
+    createOnClick(document.getElementById("add-entry-without-isbn")! as HTMLButtonElement, addEntryWithoutISBN);
+    createOnClick(document.getElementById("edit-entry-search")! as HTMLButtonElement, adminSearch);
+    createOnClick(document.getElementById("view-missing-barcodes")! as HTMLButtonElement, viewMissingBarcodes);
+    createOnClick(document.getElementById("import-link")! as HTMLButtonElement, () =>
+        document.getElementById("import-input")?.dispatchEvent(new Event("click"))
+    );
+    createOnClick(document.getElementById("export-link")! as HTMLButtonElement, downloadDatabase);
 
     // Create an event listener for the import input
-    $("#import-input").on("change", (event) => {
-        processImport(event);
+    document.getElementById("import-input")?.addEventListener("change", (event) => {
+        processImport(event as unknown as InputEvent);
     });
 
     // Run the functions to fill in dynamic data
@@ -87,34 +88,35 @@ export function setupEditUser() {
  * @description Called when the user adds an entry using an ISBN number.
  */
 function addEntry() {
-    const isbn = $("#add-entry-isbn").val();
+    const isbn = (document.getElementById("add-entry-isbn") as HTMLInputElement).value;
     const check = verifyISBN(isbn);
     if (!check) {
         openModal("issue", "The number you entered is not a valid ISBN Number.");
         return;
     }
-    goToPage("admin/editEntry?new=true&isbn=" + isbn);
+    // goToPage("admin/editEntry?new=true&isbn=" + isbn);
 }
 
 /**
  * @description Called when the user adds an entry without an ISBN number.
  */
 function addEntryWithoutISBN() {
-    goToPage("admin/editEntry?new=true");
+    // goToPage("admin/editEntry?new=true");
 }
 
 /**
  * @description Called when the user searches for a book to edit on the admin dashboard.
  */
 function adminSearch() {
-    const searchQuery = $("#edit-entry-input").val();
+    const searchQuery = (document.getElementById("edit-entry-input") as HTMLInputElement).value;
 
     if (searchQuery) {
-        $("#edit-entry-search-results").show();
-        $("#edit-entry-search-results").empty();
+        (document.getElementById("edit-entry-search-results") as HTMLElement).style.display = "";
+        (document.getElementById("edit-entry-search-results") as HTMLElement).innerHTML = "";
         search(searchQuery, true).then((results) => {
             if (results.length == 0) {
-                $("#edit-entry-search-results").html("Your search returned no results. Please try again.");
+                (document.getElementById("edit-entry-search-results") as HTMLInputElement).innerHTML =
+                    "Your search returned no results. Please try again.";
             } else {
                 adminBookBoxes(results);
             }
@@ -128,53 +130,55 @@ function adminSearch() {
  * @description A helper function for adminSearch(). Calls buildBookBox() for each book in the array.
  * @param {Array<Book>} objects The books to display in the edit entry search results.
  */
-function adminBookBoxes(objects) {
+function adminBookBoxes(objects: Book[]) {
     let maxResults = 10;
     if (objects.length < maxResults) {
         maxResults = objects.length;
     }
     for (let i = 0; i < maxResults; i++) {
-        $("div#edit-entry-search-results")[0].appendChild(buildBookBox(objects[i], "edit-entry"));
+        (document.querySelector("div#edit-entry-search-results")! as HTMLElement).appendChild(
+            buildBookBox(objects[i], "edit-entry")
+        );
     }
 }
 
 let input;
 let input1;
 let input2;
-let canvas;
-let ctx;
+let canvas: HTMLCanvasElement;
+let ctx: CanvasRenderingContext2D | null;
 /**
  * @description Sets up the page for creating barcodes.
  */
 export function setupBarcodePage() {
-    canvas = document.getElementById("canvas");
+    canvas = document.getElementById("canvas")! as HTMLCanvasElement;
     ctx = canvas.getContext("2d");
 
     // Create event listeners for the inputs
-    $("#barcode-single-input").on("keydown", (event) => {
+    document.getElementById("barcode-single-input")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             createBarcode();
-            $("#barcode-single-input").trigger("blur");
+            document.getElementById("barcode-single-input")?.dispatchEvent(new Event("blur"));
         }
     });
 
-    $("#barcode-multiple-input-start").on("keydown", (event) => {
+    document.getElementById("barcode-multiple-input-start")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             createBarcode(true);
-            $("#barcode-multiple-input-start").trigger("blur");
+            document.getElementById("barcode-multiple-input-start")?.dispatchEvent(new Event("blur"));
         }
     });
 
-    $("#barcode-multiple-input-end").on("keydown", (event) => {
+    document.getElementById("barcode-multiple-input-end")?.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             createBarcode(true);
-            $("#barcode-multiple-input-end").trigger("blur");
+            document.getElementById("barcode-multiple-input-end")?.dispatchEvent(new Event("blur"));
         }
     });
 
     // Create event listeners for the buttons
-    createOnClick($("#merge-one-barcode"), createBarcode);
-    createOnClick($("#merge-multiple-barcodes"), createBarcode, true);
+    createOnClick(document.getElementById("merge-one-barcode")! as HTMLButtonElement, () => createBarcode());
+    createOnClick(document.getElementById("merge-multiple-barcodes")! as HTMLButtonElement, () => createBarcode(true));
 }
 
 /**
@@ -182,22 +186,21 @@ export function setupBarcodePage() {
  * @param {Boolean} multiple A boolean that represents whether or not the user is creating multiple barcodes.
  */
 function createBarcode(multiple = false) {
-    let numberOfBarcodes;
-    let currentBarcode;
+    let numberOfBarcodes: number;
+    let currentBarcode: number;
     if (!multiple) {
         numberOfBarcodes = 1;
-        input = document.getElementById("barcode-single-input").value;
+        input = (document.getElementById("barcode-single-input")! as HTMLInputElement).value;
         input = "11711" + input;
         currentBarcode = parseInt(input);
         if (!/11711[0-9]{5}/.test(input)) {
             openModal("issue", "That barcode is not valid");
             return;
         }
-    }
-    if (multiple) {
-        input1 = document.getElementById("barcode-multiple-input-start").value;
+    } else {
+        input1 = (document.getElementById("barcode-multiple-input-start")! as HTMLInputElement).value;
         input1 = "11711" + input1;
-        input2 = document.getElementById("barcode-multiple-input-end").value;
+        input2 = (document.getElementById("barcode-multiple-input-end")! as HTMLInputElement).value;
         input2 = "11711" + input2;
         if (!/11711[0-9]{5}/.test(input1)) {
             openModal("issue", "The starting barcode is not valid");
@@ -219,11 +222,15 @@ function createBarcode(multiple = false) {
         if (i != 0) {
             currentBarcode++;
         }
-        const imageObjArray = [];
-        const imageObjLoadedArray = [];
+        const imageObjArray: HTMLImageElement[] = [];
+        const imageObjLoadedArray: boolean[] = [];
         const delay = i * 1500 + Math.floor(i / 5) * 2000;
         setTimeout(
             (currentBarcode, imageObjArray, imageObjLoadedArray, i, numberOfBarcodes) => {
+                if (!ctx) {
+                    console.error("Canvas context is not defined.");
+                    return;
+                }
                 if (i == numberOfBarcodes - 1) {
                     setTimeout(() => {
                         openModal("success", "Download Complete");
@@ -289,8 +296,17 @@ function createBarcode(multiple = false) {
  * @param {Array<Boolean>} imageObjLoadedArray An array containing a boolean that represents whether the image has loaded or not.
  * @param {String} currentBarcodeString The current barcode string.
  */
-function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcodeString) {
+function loadBarcodeImage(
+    num: number,
+    imageObjArray: HTMLImageElement[],
+    imageObjLoadedArray: boolean[],
+    currentBarcodeString: string
+) {
     imageObjArray[num].onload = () => {
+        if (!ctx) {
+            console.error("Canvas context is not defined.");
+            return;
+        }
         ctx.globalAlpha = 1;
         let position = 110 * 0.6 * num + 160;
         if (num != 0) {
@@ -314,8 +330,12 @@ function loadBarcodeImage(num, imageObjArray, imageObjLoadedArray, currentBarcod
         }
         if (allLoaded) {
             canvas.toBlob((blob) => {
+                if (!blob) {
+                    console.error("Failed to create blob from canvas.");
+                    return;
+                }
                 const url = window.URL.createObjectURL(blob);
-                const a = document.getElementById("link");
+                const a = document.getElementById("link")! as HTMLAnchorElement;
                 a.href = url;
                 a.download = currentBarcodeString + ".png";
                 a.click();
@@ -354,7 +374,7 @@ function recentlyCheckedOut() {
                 }
                 for (let j = 0; j < docSnap.data().books.length; j++) {
                     if (docSnap.data().books[j].barcodeNumber == currentBook.barcode) {
-                        $("#checked-out-books-container")[0].appendChild(buildBookBox(docSnap.data().books[j], "admin"));
+                        (document.getElementById("checked-out-books-container")! as any).appendChild(buildBookBox(docSnap.data().books[j], "admin"));
                     }
                 }
             });
@@ -368,8 +388,12 @@ function recentlyCheckedOut() {
 function addStats() {
     let count = 0;
     updateBookDatabase().then(() => {
+        if (!bookDatabase) {
+            console.error("bookDatabase is not defined.");
+            return;
+        }
         // Number of Books
-        bookDatabase.forEach((document) => {
+        bookDatabase.forEach((document: BookDocument) => {
             // Iterate through each of the 10-ish docs
             for (let i = 0; i < document.books.length; i++) {
                 // Iterate through each of the 100 books in each doc
@@ -380,13 +404,17 @@ function addStats() {
                 count++;
             }
         });
-        $("#number-of-books").html(count);
+        (document.getElementById("number-of-books") as HTMLElement).innerHTML = String(count);
         // TODO: Number of Checked Out Books
-        $("#number-of-checked-out-books").html("0");
+        (document.getElementById("number-of-checked-out-books") as HTMLInputElement).innerHTML = "0";
     });
     // TODO: Number of Users
+    if (!db) {
+        console.error("db is not defined.");
+        return;
+    }
     getCountFromServer(query(collection(db, "users"), where("isDeleted", "==", false))).then((snapshot) => {
-        $("#number-of-users").html(snapshot.data().count);
+        (document.getElementById("number-of-users") as HTMLElement).innerHTML = String(snapshot.data().count);
     });
     // TODO: Logins in the Past Month
 }
@@ -396,8 +424,13 @@ function addStats() {
  */
 // TODO: Remove this function after the system is fully updated to prevent holes.
 function viewMissingBarcodes() {
-    const missingArray = [];
-    bookDatabase.forEach((document) => {
+    if (!bookDatabase) {
+        console.error("bookDatabase is not defined.");
+        return;
+    }
+
+    const missingArray: Book[] = [];
+    bookDatabase.forEach((document: BookDocument) => {
         // Iterate through each of the 10-ish docs
         for (let i = 0; i < document.books.length; i++) {
             // Iterate through each of the 100 books in each doc
@@ -412,7 +445,7 @@ function viewMissingBarcodes() {
         }
     });
     let message = "The following Barcodes have been created, but they have never been updated:\n";
-    missingArray.forEach((book) => {
+    missingArray.forEach((book: Book) => {
         message += book.barcodeNumber + "\n";
     });
     openModal("info", message);
@@ -431,9 +464,9 @@ function downloadDatabase() {
         a.download = "database " + dateString + ".json";
         a.href = dataStr;
         a.innerHTML = "Click Here to download the database";
-        $("#content")[0].appendChild(a);
+        (document.getElementById("content")! as HTMLDivElement).appendChild(a);
         window.setTimeout(() => {
-            $("#download-database-link")[0].click();
+            (document.getElementById("download-database-link")! as HTMLAnchorElement).click();
         }, 500);
     });
 }
@@ -443,8 +476,12 @@ function downloadDatabase() {
  * @param {InputEvent} event The onchange event that is generated when the user selects a file.
  * @returns {Promise<File>} A promise that resolves to the file that the user selected.
  */
-function importFile(event) {
-    return new Promise((resolve, reject) => {
+function importFile(event: InputEvent) {
+    return new Promise<File>((resolve, reject) => {
+        if (!event.target || !(event.target instanceof HTMLInputElement) || !event.target.files) {
+            reject();
+            return;
+        }
         if (event.target.files[0]) resolve(event.target.files[0]);
         else reject();
     });
@@ -454,7 +491,7 @@ function importFile(event) {
  * @description Called when the user selects a file to upload. Processes the data and uploads it to the database.
  * @param {InputEvent} event the onchange event that is generated when the user selects a file.
  */
-function processImport(event) {
+function processImport(event: InputEvent) {
     const bookDatabasePromise = updateBookDatabase(true);
     importFile(event)
         .then((file) => {
@@ -465,8 +502,12 @@ function processImport(event) {
             const fileConversionPromise = file.text();
             Promise.all([fileConversionPromise, bookDatabasePromise])
                 .then((text) => {
+                    if (!bookDatabase) {
+                        console.error("bookDatabase is not defined.");
+                        return;
+                    }
                     const dataToUpload = JSON.parse(text[0]);
-                    const newDatabase = [];
+                    const newDatabase: Book[][] = [];
                     let modified = 0;
 
                     // Convert the data to an array of arrays of books and count the number of books that will be modified
@@ -529,7 +570,7 @@ function processImport(event) {
                         "No, Cancel",
                         () => {
                             // The user cancelled the import
-                            $("#import-input").val("");
+                            (document.getElementById("import-input") as HTMLInputElement).value = "";
                         }
                     );
                     fillImportModal(diff, modified);
@@ -551,13 +592,13 @@ function processImport(event) {
  */
 function fillImportModal(diff = 0, modified = 0) {
     if (diff > 0) {
-        $("#import-added").html(diff);
-        $("#import-deleted").html(0);
+        (document.getElementById("import-added") as HTMLElement).innerHTML = String(diff);
+        (document.getElementById("import-deleted") as HTMLElement).innerHTML = "0";
     } else {
-        $("#import-deleted").html(0 - diff);
-        $("#import-added").html(0);
+        (document.getElementById("import-deleted") as HTMLElement).innerHTML = String(0 - diff);
+        (document.getElementById("import-added") as HTMLElement).innerHTML = "0";
     }
-    $("#import-modified").html(modified);
+    (document.getElementById("import-modified") as HTMLElement).innerHTML = String(modified);
 }
 
 /**
@@ -565,12 +606,20 @@ function fillImportModal(diff = 0, modified = 0) {
  * @param {Array<Array<Book>>} database An array of arrays of books to import. Does not include the order field (that will be handled by this function).
  * @returns {Promise<void>} A promise that resolves when the database is imported.
  */
-function importDatabase(database) {
-    return new Promise((resolve) => {
+function importDatabase(database: Book[][]): Promise<void> {
+    return new Promise<void>((resolve) => {
+        if (!db) {
+            console.error("db is not defined.");
+            return;
+        }
         // Get a new write batch
         const batch = writeBatch(db);
         getDocs(query(collection(db, "books"), where("order", ">=", 0), orderBy("order", "asc"))).then(
             (querySnapshot) => {
+                if (!db) {
+                    console.error("db is not defined.");
+                    return;
+                }
                 // Set each doc for deletion (in case the new database is smaller)
                 querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
@@ -597,7 +646,7 @@ function importDatabase(database) {
 
                 // Commit all the staged writes
                 batch.commit().then(() => {
-                    resolve();
+                    resolve(undefined);
                 });
             }
         );
@@ -608,26 +657,37 @@ function importDatabase(database) {
  * @description The setup function for the view page. It will load all books or all users depending on the type parameter in the URL.
  * @param {String} pageQuery The query string from the URL.
  */
-export function setupView(pageQuery) {
+export function setupView(pageQuery: string) {
     const type = findURLValue(pageQuery, "type");
     if (type == "books") {
         updateBookDatabase(true).then(() => {
-            bookDatabase.forEach((doc, docIndex) => {
-                doc.books.forEach((book, bookIndex) => {
-                    $("div#view-container")[0].appendChild(buildBookBox(book, "view", docIndex * 100 + bookIndex));
+            if (!bookDatabase) {
+                console.error("bookDatabase is not defined.");
+                return;
+            }
+            bookDatabase.forEach((doc: BookDocument, docIndex: number) => {
+                doc.books.forEach((book: Book, bookIndex: number) => {
+                    (document.querySelector("div#view-container")! as HTMLDivElement).appendChild(
+                        buildBookBox(book, "view", docIndex * 100 + bookIndex)
+                    );
                 });
             });
         });
     } else if (type == "users") {
         getAllUsers().then((userDatabase) => {
-            userDatabase.forEach((user, index) => {
-                $("div#view-container")[0].appendChild(buildUserBox(user, "view", index));
+            userDatabase.forEach((user: User, index: number) => {
+                const userBox = buildUserBox(user, "view", index);
+                if (!userBox) {
+                    console.error("Failed to build user box for user: ", user);
+                    return;
+                }
+                (document.querySelector("div#view-container")! as HTMLDivElement).appendChild(userBox);
             });
         });
     } else {
         console.warn("There was no type specified in the URL.");
         openModal("issue", "There was no type specified in the URL. Redirecting to the admin dashboard.");
-        goToPage("admin/main");
+        // goToPage("admin/main");
     }
 }
 
@@ -638,7 +698,7 @@ export function setupView(pageQuery) {
  * @param {Number} num The result number if this is created for a search result.
  * @returns {HTMLDivElement} A div element that contains the user information.
  */
-function buildUserBox(obj, page, num = 0) {
+function buildUserBox(obj: User, page: string, num = 0) {
     const a = document.createElement("a");
     const div = document.createElement("div");
     a.appendChild(div);
@@ -663,7 +723,7 @@ function buildUserBox(obj, page, num = 0) {
         img.src = "/img/default-user.jpg";
     }
     img.onload = () => {
-        div.style.opacity = 1;
+        div.style.opacity = "1";
     };
     div1.appendChild(img);
     const b = document.createElement("b");
@@ -672,7 +732,7 @@ function buildUserBox(obj, page, num = 0) {
     name.appendChild(document.createTextNode(obj.firstName + " " + obj.lastName));
     const email = document.createElement("p");
     email.classList.add("author");
-    email.appendChild(document.createTextNode(obj.email));
+    email.appendChild(document.createTextNode(obj.email ?? "No Email"));
     b.appendChild(name);
     div2.appendChild(b);
     div2.appendChild(email);
@@ -688,11 +748,11 @@ function buildUserBox(obj, page, num = 0) {
         div.id = "result-number-" + num;
         const number = document.createElement("div");
         number.classList.add("result-number");
-        number.appendChild(document.createTextNode((obj.cardNumber % 2171100000) + "."));
+        number.appendChild(document.createTextNode(((obj.cardNumber ?? 0) % 2171100000) + "."));
         div.appendChild(number);
         const phone = document.createElement("p");
         phone.classList.add("medium");
-        phone.appendChild(document.createTextNode(obj.phone));
+        phone.appendChild(document.createTextNode(obj.phone ?? "No Phone Number"));
         div2.appendChild(phone);
         const div3 = document.createElement("div");
         div3.classList.add("advanced-info");
@@ -703,14 +763,26 @@ function buildUserBox(obj, page, num = 0) {
         div3.appendChild(address);
         const dateCreated = document.createElement("p");
         dateCreated.classList.add("subjects");
+        if (!obj.dateCreated) {
+            console.error("User does not have a dateCreated property.");
+            return;
+        }
         dateCreated.appendChild(document.createTextNode("Date Created: " + formatDate(obj.dateCreated)));
         div3.appendChild(dateCreated);
         const lastSignInTime = document.createElement("p");
         lastSignInTime.classList.add("subjects");
+        if (!obj.lastSignInTime) {
+            console.error("User does not have a lastSignInTime property.");
+            return;
+        }
         lastSignInTime.appendChild(document.createTextNode("Last Sign In: " + formatDate(obj.lastSignInTime)));
         div3.appendChild(lastSignInTime);
         const lastCheckoutTime = document.createElement("p");
         lastCheckoutTime.classList.add("subjects");
+        if (!obj.lastCheckoutTime) {
+            console.error("User does not have a lastCheckoutTime property.");
+            return;
+        }
         lastCheckoutTime.appendChild(
             document.createTextNode("Last Checkout Time: " + formatDate(obj.lastCheckoutTime))
         );
@@ -729,10 +801,14 @@ function buildUserBox(obj, page, num = 0) {
  * @returns {Promise<Array<User>>} A promise that resolves to an array of User objects.
  */
 function getAllUsers() {
-    return new Promise((resolve) => {
+    return new Promise<User[]>((resolve) => {
+        if (!db) {
+            console.error("db is not defined.");
+            return;
+        }
         getDocs(query(collection(db, "users"), where("cardNumber", ">=", 0), orderBy("cardNumber", "asc"))).then(
             (querySnapshot) => {
-                const userDatabase = [];
+                const userDatabase: User[] = [];
                 querySnapshot.forEach((docSnap) => {
                     if (!docSnap.exists()) {
                         console.error("user document does not exist");
@@ -756,6 +832,10 @@ function restartInventory() {
         "Are you sure you want to restart?",
         "Confirm",
         () => {
+            if (!db) {
+                console.error("db is not defined.");
+                return;
+            }
             setDoc(doc(db, "admin", "inventory"), {
                 books: []
             })
@@ -784,9 +864,10 @@ function restartInventory() {
 export function setupInventory() {
     loadInventory()
         .then(() => {
-            cachedInventory.forEach((barcode) => {
-                const current = $("#recent-scans").html();
-                $("#recent-scans").html(current + "<br>" + barcode);
+            cachedInventory.forEach((book: Book) => {
+                const current = (document.getElementById("recent-scans") as HTMLInputElement).innerHTML;
+                (document.getElementById("recent-scans") as HTMLInputElement).innerHTML =
+                    current + "<br>" + book.barcodeNumber;
             });
         })
         .catch((error) => {
@@ -794,19 +875,24 @@ export function setupInventory() {
         });
 
     // Set up the event listeners
-    createOnClick($("#restart-inventory"), restartInventory);
-    createOnClick($("#inventory-cancel-button"), cancelInventory);
-    createOnClick($("#inventory-next-button"), continueScanning);
-    createOnClick($("#continue-scanning-button"), continueScanning);
+    createOnClick(document.getElementById("restart-inventory")! as HTMLButtonElement, restartInventory);
+    createOnClick(document.getElementById("inventory-cancel-button")! as HTMLButtonElement, cancelInventory);
+    createOnClick(document.getElementById("inventory-next-button")! as HTMLButtonElement, continueScanning);
+    createOnClick(document.getElementById("continue-scanning-button")! as HTMLButtonElement, continueScanning);
 }
 
-var cachedInventory = [];
+let cachedInventory: Book[] = [];
 /**
  * @description Loads the inventory from the database.
  * @returns {Promise<void>} A promise that resolves when the inventory is loaded from the database.
  */
 function loadInventory() {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
+        if (!db) {
+            console.error("db is not defined.");
+            reject("db is not defined.");
+            return;
+        }
         getDoc(doc(db, "admin", "inventory"))
             .then((docSnap) => {
                 if (!docSnap.exists()) {
@@ -814,10 +900,10 @@ function loadInventory() {
                     return;
                 }
                 cachedInventory = [];
-                docSnap.data().books.forEach((book) => {
+                docSnap.data().books.forEach((book: Book) => {
                     cachedInventory.push(Book.createFromObject(book));
                 });
-                resolve();
+                resolve(undefined);
             })
             .catch((error) => {
                 reject(error);
@@ -825,12 +911,18 @@ function loadInventory() {
     });
 }
 
+let barcodeBlurHandler: (() => void) | null = null;
+let barcodeKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
+
 /**
  * @description Cancels the inventory process and hides the popup.
  */
 function cancelInventory() {
-    $("#inventory-book-barcode").off("blur");
-    $("#inventory-popup").hide();
+    if (barcodeBlurHandler) {
+        document.getElementById("inventory-book-barcode")?.removeEventListener("blur", barcodeBlurHandler);
+        barcodeBlurHandler = null;
+    }
+    (document.getElementById("inventory-popup") as HTMLElement).style.display = "none";
 }
 
 /**
@@ -838,44 +930,59 @@ function cancelInventory() {
  */
 function continueScanning() {
     updateBookDatabase();
-    $("#inventory-popup").show();
-    $("#inventory-next-button").hide();
-    $("#inventory-inner-popup-box").html("<p>Please scan the barcode on the book now.</p>");
-    $("#inventory-book-barcode").on("blur", () => {
-        $("#inventory-book-barcode").trigger("focus");
-    });
-    $("#inventory-book-barcode").trigger("focus");
-    $("#inventory-book-barcode").off("keydown");
-    $("#inventory-book-barcode").on("keydown", (event) => {
+    (document.getElementById("inventory-popup") as HTMLElement).style.display = "";
+    (document.getElementById("inventory-next-button") as HTMLElement).style.display = "none";
+    (document.getElementById("inventory-inner-popup-box") as HTMLInputElement).innerHTML =
+        "<p>Please scan the barcode on the book now.</p>";
+    
+    if (barcodeBlurHandler) {
+        document.getElementById("inventory-book-barcode")?.removeEventListener("blur", barcodeBlurHandler);
+    }
+    barcodeBlurHandler = () => {
+        document.getElementById("inventory-book-barcode")?.dispatchEvent(new Event("focus"));
+    };
+    document.getElementById("inventory-book-barcode")?.addEventListener("blur", barcodeBlurHandler);
+    document.getElementById("inventory-book-barcode")?.dispatchEvent(new Event("focus"));
+
+    const barcodeInput = document.getElementById("inventory-book-barcode") as HTMLInputElement;
+    if (barcodeKeydownHandler) {
+        barcodeInput?.removeEventListener("keydown", barcodeKeydownHandler);
+    }
+    barcodeKeydownHandler = (event: KeyboardEvent) => {
         if (event.key === "Enter") {
-            $("#inventory-book-barcode").off("blur");
-            if ($("#inventory-book-barcode").val()) {
+            if (barcodeBlurHandler) {
+                barcodeInput?.removeEventListener("blur", barcodeBlurHandler);
+                barcodeBlurHandler = null;
+            }
+            if (barcodeInput?.value) {
                 // Some checks should be done to ensure the barcode is valid, the book hasn't been scanned, etc.
+                if (!db) {
+                    console.error("db is not defined.");
+                    return;
+                }
                 updateDoc(doc(db, "admin", "inventory"), {
-                    books: arrayUnion($("#inventory-book-barcode").val())
+                    books: arrayUnion(barcodeInput.value)
                 });
             }
         }
-    });
+    };
+    barcodeInput?.addEventListener("keydown", barcodeKeydownHandler);
 }
 
 /**
  * @description Sets up the admin help page.
  */
 export function setupAdminHelp() {
-    $("#tableOfContents li a").each((index, a) => {
-        $(a).attr("href", "/admin/help#section" + (index + 1));
+    document.querySelectorAll("#tableOfContents li a").forEach((a, index) => {
+        a.setAttribute("href", "/admin/help#section" + (index + 1));
     });
-    $("#sections > li").each((index, li) => {
-        $(li).attr("id", "section" + (index + 1));
+    document.querySelectorAll("#sections > li").forEach((li, index) => {
+        li.setAttribute("id", "section" + (index + 1));
     });
-    $(".back-to-top").each((index, li) => {
-        $(li).children().attr("href", "/admin/help");
-        $(li)
-            .children()
-            .on("click", () => {
-                windowScroll(0);
-            });
+    document.querySelectorAll(".back-to-top").forEach((li) => {
+        const link = li.firstElementChild;
+        link?.setAttribute("href", "/admin/help");
+        link?.addEventListener("click", () => windowScroll(0));
     });
 
     let adminHelpScrollingFn;
@@ -884,7 +991,7 @@ export function setupAdminHelp() {
     }
     document.addEventListener("scroll", adminHelpScrollingFn);
 
-    $(window).on("beforeunload", () => {
+    window?.addEventListener("beforeunload", () => {
         setIgnoreScroll(true);
         document.removeEventListener("scroll", adminHelpScrollingFn);
         setTimeout(() => {
@@ -898,10 +1005,13 @@ function adminHelpScrolling() {
         return;
     }
     let currentSection = 0;
-    $("#tableOfContents, #sections > li").each((index, li) => {
+    document.querySelectorAll("#tableOfContents, #sections > li").forEach((li, index) => {
         // Check if the section is above the top of the screen.
         // Used to be 90 to account for the header, but I added more to make it more natural.
-        if ($(li).offset().top - $(document).scrollTop() - 165 < 0) {
+        if (
+            li?.getBoundingClientRect().top - (document.documentElement.scrollTop || document.body.scrollTop) - 165 <
+            0
+        ) {
             currentSection = index;
         }
     });
@@ -916,7 +1026,6 @@ function adminHelpScrolling() {
     const currentUrl = window.location.pathname + window.location.hash;
     if (currentUrl != url + newHash && !ignoreScroll) {
         console.log("Changing URL to " + url + newHash);
-        historyManager.update(url + newHash);
         setCurrentHash(newHash);
     }
 }
