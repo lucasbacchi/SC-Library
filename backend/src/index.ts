@@ -1,3 +1,4 @@
+import { createCheckoutRouter } from "./checkout.js";
 import cors from "cors";
 import express, { type Request, type Response } from "express";
 import { getApps, initializeApp } from "firebase-admin/app";
@@ -183,6 +184,7 @@ function getRegistrationProfile(body: unknown): RegistrationProfile {
 app.disable("x-powered-by");
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
+app.use(createCheckoutRouter({ firestore, auth: firebaseAuth }));
 
 // Root endpoint
 app.get("/", (_req: Request, res: Response) => {

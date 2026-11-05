@@ -1,4 +1,7 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { auth } from "./firebase";
 
 import defaultUserImage from "./img/default-user.jpg";
 import "./css/main.css";
@@ -7,6 +10,143 @@ import "./css/print.css";
 type AppProps = {
     children: ReactNode;
 };
+
+/**
+ * Header account area. Logged out: "Log In | Sign Up". Logged in: the account picture,
+ * which opens a small menu with the email and Log Out.
+ */
+function AccountMenu() {
+    const [user, setUser] = useState<User | null>(null);
+    const [open, setOpen] = useState(false);
+    const [opened, setOpened] = useState(false); // "preload" stops the menu animating on first page load
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(
+        () =>
+            onAuthStateChanged(auth, (u) => {
+                setUser(u);
+                setOpen(false);
+            }),
+        []
+    );
+
+    // Close the menu when clicking anywhere else.
+    useEffect(() => {
+        if (!open) return;
+        function onClick(e: MouseEvent) {
+            if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+        }
+        document.addEventListener("click", onClick);
+        return () => document.removeEventListener("click", onClick);
+    }, [open]);
+
+    function toggle() {
+        setOpen((o) => !o);
+        setOpened(true);
+    }
+
+    // After logging in, come back to this page (same on the server and in the browser, so no flicker).
+    const location = useLocation();
+    const loginHref =
+        location.pathname == "/login"
+            ? location.pathname + location.search
+            : "/login?redirect=" + encodeURIComponent(location.pathname + location.search);
+
+    return (
+        <div id="account-container" ref={containerRef}>
+            <div id="nav-login-signup" className="no-select" style={user ? { display: "none" } : undefined}>
+                <div id="nav-login">
+                    <a href={loginHref}>Log In</a>
+                </div>
+                <div id="nav-signup">
+                    <a href="/signup">Sign Up</a>
+                </div>
+            </div>
+            <div
+                id="small-account-container"
+                className="no-select"
+                tabIndex={0}
+                role="button"
+                aria-label="Account menu"
+                aria-expanded={open}
+                style={{ display: user ? "flex" : "none" }}
+                onClick={toggle}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") toggle();
+                }}
+            >
+                <img id="small-account-image" src={defaultUserImage} alt="" />
+                <span className="material-symbols-outlined" id="account-arrow">
+                    arrow_drop_down
+                </span>
+            </div>
+            <div
+                id="large-account-container"
+                className={(opened ? "" : "preload ") + (open ? "large-account-show" : "large-account-hide")}
+            >
+                <img id="large-account-image" src={defaultUserImage} className="no-select" alt="" />
+                <div id="account-information-container">
+                    <p id="account-name">{user?.displayName ?? ""}</p>
+                    <p id="account-email">{user?.email ?? ""}</p>
+                </div>
+                <div id="account-bottom-container">
+                    <a
+                        id="log-out"
+                        tabIndex={0}
+                        role="button"
+                        onClick={() => void signOut(auth)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") void signOut(auth);
+                        }}
+                    >
+                        Log Out
+                    </a>
+                    <a href="/account?overview">View Account</a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/** Header search bar: Enter or the search button goes to /search?query=... */
+function HeaderSearch() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const currentQuery = searchParams.get("query") ?? "";
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    function runSearch() {
+        const query = inputRef.current?.value.trim() ?? "";
+        navigate(query ? `/search?query=${encodeURIComponent(query)}` : "/search");
+    }
+
+    return (
+        <div id="header-search-container" className="search-container">
+            <input
+                // key resets the box when the address changes, e.g. after Back
+                key={currentQuery}
+                ref={inputRef}
+                id="header-search-input"
+                className="search-input"
+                placeholder="Search by title, author, subject, keyword..."
+                aria-label="Search books"
+                defaultValue={currentQuery}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") runSearch();
+                }}
+            />
+            <button
+                className="material-symbols-outlined search-button"
+                id="header-search-button"
+                type="button"
+                aria-label="Search"
+                onClick={runSearch}
+            >
+                search
+            </button>
+        </div>
+    );
+}
 
 export default function App({ children }: AppProps) {
     return (
@@ -35,46 +175,8 @@ export default function App({ children }: AppProps) {
                         <a href="/help">Help</a>
                     </li>
                 </nav>
-                <div id="header-search-container" className="search-container">
-                    <input
-                        id="header-search-input"
-                        className="search-input"
-                        placeholder="Search by title, author, subject, keyword..."
-                    />
-                    <button className="material-symbols-outlined search-button" id="header-search-button" type="button">
-                        search
-                    </button>
-                </div>
-                <div id="account-container">
-                    <div id="nav-login-signup" className="no-select">
-                        <div id="nav-login">
-                            <a href="/login">Log In</a>
-                        </div>
-                        <div id="nav-signup">
-                            <a href="/signup">Sign Up</a>
-                        </div>
-                    </div>
-                    <div id="small-account-container" className="no-select" tabIndex={0}>
-                        <img id="small-account-image" src={defaultUserImage} alt="" />
-                        <span className="material-symbols-outlined" id="account-arrow">
-                            arrow_drop_down
-                        </span>
-                    </div>
-                    <div id="large-account-container" className="preload large-account-hide">
-                        <img id="large-account-image" src={defaultUserImage} className="no-select" alt="" />
-                        <div id="account-information-container">
-                            <p id="account-name"></p>
-                            <p id="account-email"></p>
-                            <a id="admin-link" href="/admin/main"></a>
-                        </div>
-                        <div id="account-bottom-container">
-                            <a id="log-out" tabIndex={0}>
-                                Log Out
-                            </a>
-                            <a href="/account?overview">View Account</a>
-                        </div>
-                    </div>
-                </div>
+                <HeaderSearch />
+                <AccountMenu />
             </header>
             <div id="banner-container"></div>
 
