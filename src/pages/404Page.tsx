@@ -1,23 +1,14 @@
-import { useNavigate } from "react-router";
-
 export default function NotFoundPage() {
-    const navigate = useNavigate();
-
     return (
-        <div
-            id="not-found-page-container"
-            style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                marginTop: "32px",
-                gap: "16px"
-            }}
-        >
-            <h1>404 - Page Not Found</h1>
-            <p>The page you are looking for does not exist.</p>
-            <button onClick={() => navigate("/")}>Go Home</button>
+        <div id="error-box">
+            <h2 style={{ margin: "0 auto", fontSize: "2em" }}>404</h2>
+            <h2>Page Not Found</h2>
+            <p style={{ textAlign: "left" }}>
+                The page you requested could not be found.
+                <br />
+                <br />
+                Please check the URL for mistakes and try again.
+            </p>
         </div>
     );
 }

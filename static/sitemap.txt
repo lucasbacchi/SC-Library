@@ -1,7 +1,7 @@
-https://library.southchurch.com/account?overview
-https://library.southchurch.com/account?notifications
-https://library.southchurch.com/account?checkouts
-https://library.southchurch.com/account?security
+https://library.southchurch.com/account/overview
+https://library.southchurch.com/account/notifications
+https://library.southchurch.com/account/checkouts
+https://library.southchurch.com/account/security
 https://library.southchurch.com/admin/barcode
 https://library.southchurch.com/admin/editEntry
 https://library.southchurch.com/admin/editUser

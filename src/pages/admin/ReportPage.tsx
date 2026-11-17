@@ -1,0 +1,3 @@
+export default function ReportPage() {
+    return <h1>The Report Page! Some content will appear below at some point lol...</h1>;
+}
