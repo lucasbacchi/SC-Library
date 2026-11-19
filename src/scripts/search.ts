@@ -13,35 +13,41 @@ import {
     updateBookDatabase,
     windowScroll
 } from "./common";
-import {
-    analytics,
-    auth,
-    Book,
-    bookDatabase,
-    db,
-    Person,
-    searchCache,
-    setSearchCache,
-    timeLastSearched
-} from "./globals";
+import { analytics, auth, Book, bookDatabase, db, searchCache, setSearchCache, timeLastSearched } from "./globals";
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 
-let isBrowse: boolean;
-let browseResultsArray: Book[];
-interface SearchFilter {
+/* ---------- Types ---------- */
+
+type FilterType = "author" | "medium" | "audience" | "subject" | "type";
+
+/** One checkbox in the filter sidebar (e.g. "Paperback", 12 books). */
+interface Filter {
     value: string;
     count: number;
     checked: boolean;
     displayed: boolean;
 }
-let filters: Record<string, SearchFilter[]> = {};
-let docsUsed: number[];
-const FILTER_TYPES = ["author", "medium", "audience", "subject", "type"];
+
+type Filters = Record<FilterType, Filter[]>;
+
+/* ---------- Page state ---------- */
+
+let isBrowse = false;
+let browseResultsArray: Book[] = [];
+let filters: Filters | null = null;
+let docsUsed: number[] = [];
+const FILTER_TYPES: FilterType[] = ["author", "medium", "audience", "subject", "type"];
+// const RESULTS_PER_PAGE = 20;
+// const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function emptyFilters(): Filters {
+    return { author: [], medium: [], audience: [], subject: [], type: [] };
+}
 
 /**
  * @description Sets up the search page event listeners then starts the process of displaying books.
- * @param {String} pageQuery The page query from the URL.
+ * @param pageQuery The page query from the URL.
  */
 export function setupSearch(pageQuery: string) {
     const queryFromURL = findURLValue(pageQuery, "query", true);
@@ -63,7 +69,7 @@ export function setupSearch(pageQuery: string) {
 
     docsUsed = [];
     browseResultsArray = [];
-    filters = {};
+    filters = null;
     setSearchCache(null);
 
     goToSearchPage(page);
@@ -164,7 +170,7 @@ function browse(page = 1) {
 
 /**
  * @description Gets the next set of books for browsing. Serves as the callback for the browse function in a recursive loop.
- * @returns {Promise<Array<Book>>} A promise that resolves with the next set of books for browsing.
+ * @returns {Promise<Book[]>} A promise that resolves with the next set of books for browsing.
  */
 function browseNext() {
     return new Promise<Book[]>((resolve, reject) => {
@@ -253,7 +259,7 @@ function browseNext() {
  * @param {Number} page The page number to navigate to.
  * @param {Boolean} bypassHistory Whether or not to bypass the history.
  */
-function goToSearchPage(page = 1/*, bypassHistory = false*/) {
+function goToSearchPage(page = 1 /*, bypassHistory = false*/) {
     document.getElementById("content")?.classList.add("loading");
 
     // If we have the books in the history, use those.
@@ -357,7 +363,7 @@ function createSearchResultsPage(resultsArray: Book[], page = 1) {
         resultsArray: Book[] | null;
         books: Book[] | null;
         docsUsed: number[] | null;
-        filters: Record<string, SearchFilter[]> | null;
+        filters: Record<string, Filter[]> | null;
         page: number | null;
         isBrowse: boolean | null;
         browseResultsArray: Book[] | null;
@@ -467,110 +473,55 @@ function createPaginator(resultsArray: Book[], page: number) {
 }
 
 /**
- * @description Creates the list of filters and the filters object from the resultsArray. Then it calls buildFilterList to create the HTML elements.
- * @param {Array<Book>} resultsArray The array of books to list on the search results page.
+ * @description Gets the values a book has for one filter type, as the text shown in the sidebar.
  */
-function createFilterList(resultsArray: Book[]) {
-    // If the filters object is empty, we need to create the data type.
-    if (!filters || Object.keys(filters).length === 0) {
-        filters = {};
-        FILTER_TYPES.forEach((filterType) => {
-            if (!filters) {
-                return;
-            }
-            filters[filterType] = [];
-        });
+function getFilterValues(book: Book, filterType: FilterType): string[] {
+    switch (filterType) {
+        case "author":
+            return book.authors.map((author) => author.lastName + ", " + author.firstName);
+        case "medium":
+            return book.medium ? [book.medium] : [];
+        case "audience":
+            return book.audience?.toArray() ?? [];
+        case "subject":
+            return book.subjects ?? [];
+        case "type":
+            return [book.ddc == "FIC" ? "Fiction" : "Non-Fiction"];
     }
+}
 
-    // First, we need to remove any filters that are not checked and clear the count for the ones that are.
+/**
+ * @description Creates the filters object from resultsArray, then calls buildFilterList to create the HTML.
+ * @param resultsArray The books listed on the search results page.
+ */
+function createFilterList(resultsArray: Book[]): void {
+    if (!filters) {
+        filters = emptyFilters();
+    }
+    const currentFilters = filters;
+
+    // Remove unchecked filters and reset the count on checked ones (they get recounted below).
     FILTER_TYPES.forEach((filterType) => {
-        if (!filters) {
-            return;
-        }
-        for (let i = 0; i < filters[filterType].length; i++) {
-            const filter = filters[filterType][i];
-            if (filter.checked == false) {
-                // If the filter is not checked, we need to remove it from the list.
-                filters[filterType].splice(i, 1);
-                i--;
-            } else {
-                // If the filter is checked, we need to save it, but reset the count (since we'll count again).
-                filter.count = 0;
-                // Reset the display value.
-                filter.displayed = false;
-            }
-        }
+        currentFilters[filterType] = currentFilters[filterType].filter((filter) => filter.checked);
+        currentFilters[filterType].forEach((filter) => {
+            filter.count = 0;
+            filter.displayed = false;
+        });
     });
 
-    // Now we need to use the new list to recount and re-sort the filters.
+    // Recount and re-sort the filters.
     FILTER_TYPES.forEach((filterType) => {
-        if (!filters) {
-            return;
-        }
-        if (!filters[filterType]) {
-            filters[filterType] = [];
-        }
-        resultsArray.forEach((book: Book) => {
-            // Attempt to find the filter in the filters array.
-            let filterItems;
-            switch (filterType) {
-                case "author":
-                    filterItems = book.authors;
-                    break;
-                case "medium":
-                    filterItems = [book.medium];
-                    break;
-                case "audience":
-                    if (!book.audience) {
-                        console.error("Book " + book.title + " does not have an audience property. Skipping.");
-                        break;
-                    }
-                    filterItems = book.audience.toArray();
-                    break;
-                case "subject":
-                    filterItems = book.subjects;
-                    break;
-                case "type":
-                    filterItems = [book.ddc];
-                    break;
-            }
-
-            if (!filterItems) {
-                return;
-            }
-            filterItems.forEach((filterItem: string | Person | null) => {
-                if (!filters) {
-                    return;
-                }
-                if (filterItem == null) {
-                    return;
-                }
-                if (filterType == "author") {
-                    const author = filterItem as Person;
-                    filterItem = author.lastName + ", " + author.firstName;
-                } else if (filterType == "type") {
-                    if (filterItem == "FIC") {
-                        filterItem = "Fiction";
-                    } else {
-                        filterItem = "Non-Fiction";
-                    }
-                }
-                const existingFilter = filters[filterType].find((filter: SearchFilter) => filter.value == filterItem);
-                if (!existingFilter) {
-                    // If it doesn't exist, add it and set the count to 1.
-                    filters[filterType].push({
-                        value: filterItem as string,
-                        count: 1,
-                        checked: false,
-                        displayed: false
-                    });
+        resultsArray.forEach((book) => {
+            getFilterValues(book, filterType).forEach((filterItem) => {
+                const existing = currentFilters[filterType].find((filter) => filter.value == filterItem);
+                if (existing) {
+                    existing.count++;
                 } else {
-                    // If it does exist, increment the count.
-                    existingFilter.count++;
+                    currentFilters[filterType].push({ value: filterItem, count: 1, checked: false, displayed: false });
                 }
             });
         });
-        filters[filterType].sort((a: SearchFilter, b: SearchFilter) => b.count - a.count);
+        currentFilters[filterType].sort((a, b) => b.count - a.count);
     });
 
     buildFilterList();
@@ -585,40 +536,23 @@ function buildFilterList() {
         if (!filters || !filters[filterType]) {
             return;
         }
-        filters[filterType].forEach((filter: SearchFilter, index: number) => {
+        filters[filterType].forEach((filter: Filter, index: number) => {
             // Only display the first couple filters per section.
             if (index >= 6) {
                 return;
             }
             let value = filter.value;
-            switch (filterType) {
-                case "author":
-                    break;
-                case "medium":
-                    switch (filter.value) {
-                        case "paperback":
-                            value = "Paperback";
-                            break;
-                        case "hardcover":
-                            value = "Hardcover";
-                            break;
-                        case "av":
-                            value = "Audio/Visual";
-                            break;
-                    }
-                    break;
-                case "audience":
-                    break;
-                case "subject":
-                    break;
-                case "type":
-                    break;
+            if (filterType == "medium") {
+                if (filter.value == "paperback") value = "Paperback";
+                else if (filter.value == "hardcover") value = "Hardcover";
+                else if (filter.value == "av") value = "Audio/Visual";
             }
             const li = document.createElement("li");
             li.classList.add("sort-item");
-            let id = filterType + "-" + value + "-checkbox";
-            id = id.replace(/\s+/g, "-").toLowerCase();
-            id = id.replace(/[,./]/g, "");
+            const id = (filterType + "-" + value + "-checkbox")
+                .replace(/\s+/g, "-")
+                .toLowerCase()
+                .replace(/[,./]/g, "");
             li.innerHTML =
                 '<input type="checkbox" id="' +
                 id +
@@ -646,17 +580,27 @@ function buildFilterList() {
  * @description Called by the "Apply Filters" button. Goes through the list of filters on the page and updates the filters variable based on the items that are checked.
  */
 function applySearchFilters() {
+    if (!filters) {
+        throw new Error("Filters is null");
+    }
     (document.getElementById("apply-filters-button")! as HTMLButtonElement).disabled = true;
     FILTER_TYPES.forEach((filterType) => {
+        if (!filters) {
+            throw new Error("Filters is null");
+        }
+
         // Clear all checks before looking for new ones.
-        filters[filterType].forEach((filter: SearchFilter) => {
+        filters[filterType].forEach((filter: Filter) => {
             filter.checked = false;
         });
 
         // Check the filters that are checked.
         document.querySelectorAll("#sort-" + filterType + "-list > li > input:checked").forEach((e) => {
+            if (!filters) {
+                throw new Error("Filters is null");
+            }
             const value = e?.getAttribute("name");
-            const selectedFilter = filters[filterType].find((filter: SearchFilter) => filter.value === value);
+            const selectedFilter = filters[filterType].find((filter: Filter) => filter.value === value);
             if (selectedFilter) {
                 selectedFilter.checked = true;
             }
@@ -665,88 +609,41 @@ function applySearchFilters() {
 
     // If there is an author or subject filter, it's more efficient to just search for those books.
     if (
-        filters["author"].find((filter: SearchFilter) => filter.checked == true) ||
-        filters["subject"].find((filter: SearchFilter) => filter.checked == true)
+        filters["author"].find((filter: Filter) => filter.checked == true) ||
+        filters["subject"].find((filter: Filter) => filter.checked == true)
     ) {
         updateBookDatabase().then(() => {
-            goToSearchPage(1/*, true*/);
+            goToSearchPage(1 /*, true*/);
         });
     } else {
-        goToSearchPage(1/*, true*/);
+        goToSearchPage(1 /*, true*/);
     }
 }
 
 /**
- * @description Iterates through the search cache and filters out the items that don't match the filters.
- * @param {Array<Book>} resultsArray The array of books to filter.
- * @returns {Array<Book>} The filtered array of books.
+ * @description Removes books that don't match the checked filters.
+ * @param resultsArray The array of books to filter.
+ * @returns The filtered array of books.
  */
-function filterSearchResults(resultsArray: Book[]) {
-    if (!filters || Object.keys(filters).length === 0) {
+function filterSearchResults(resultsArray: Book[]): Book[] {
+    if (!filters) {
         return resultsArray;
     }
-    const results = [];
-    // Itterate through each item in the book list
-    for (let i = 0; i < resultsArray.length; i++) {
-        const currentBook = resultsArray[i];
+    const currentFilters = filters;
+    const results: Book[] = [];
+
+    for (const currentBook of resultsArray) {
         let passesAllFilters = true;
-        // Itterate through each filter type
         FILTER_TYPES.forEach((filterType) => {
-            // For each type, itterate through each filter
             let passesFilter = false;
-            for (let j = 0; j < filters[filterType].length && passesAllFilters; j++) {
-                if (!filters[filterType][j].checked) {
-                    continue; // Skip this filter if it's not checked.
+            const bookValues = getFilterValues(currentBook, filterType).map((v) => v.toUpperCase());
+            for (let j = 0; j < currentFilters[filterType].length && passesAllFilters; j++) {
+                const filter = currentFilters[filterType][j];
+                if (!filter.checked) {
+                    continue;
                 }
-                if (filterType == "author") {
-                    const authorFilter = filters.author[j].value;
-                    currentBook.authors.forEach((author: Person) => {
-                        if (author.lastName + ", " + author.firstName == authorFilter) {
-                            passesFilter = true;
-                        }
-                    });
-                } else if (filterType == "medium") {
-                    const medium = filters.medium[j].value;
-                    if (!currentBook.medium) {
-                        console.error("Book " + currentBook.title + " does not have a medium property. Skipping.");
-                        continue;
-                    }
-                    if (medium.toUpperCase() == currentBook.medium.toUpperCase()) {
-                        passesFilter = true;
-                    }
-                } else if (filterType == "audience") {
-                    const audience = filters.audience[j].value;
-                    if (!currentBook.audience) {
-                        console.error("Book " + currentBook.title + " does not have an audience property. Skipping.");
-                        continue;
-                    }
-                    currentBook.audience.toArray().forEach((audienceItem: string) => {
-                        if (audience.toUpperCase() == audienceItem.toUpperCase()) {
-                            passesFilter = true;
-                        }
-                    });
-                } else if (filterType == "subject") {
-                    const subject = filters.subject[j].value;
-                    if (!currentBook.subjects) {
-                        console.error("Book " + currentBook.title + " does not have a subjects property. Skipping.");
-                        continue;
-                    }
-                    currentBook.subjects.forEach((subjectItem: string) => {
-                        if (subject.toUpperCase() == subjectItem.toUpperCase()) {
-                            passesFilter = true;
-                        }
-                    });
-                } else if (filterType == "type") {
-                    const type = filters.type[j].value;
-                    let bookType;
-                    if (currentBook.ddc == "FIC") {
-                        bookType = "Fiction";
-                    } else {
-                        bookType = "Non-Fiction";
-                    }
-                    if (type.toUpperCase() == bookType.toUpperCase()) {
-                        passesFilter = true;
-                    }
+                if (bookValues.includes(filter.value.toUpperCase())) {
+                    passesFilter = true;
                 }
                 if (!passesFilter) {
                     passesAllFilters = false;
@@ -1094,7 +991,7 @@ function fillResultPage(barcodeNumber: string) {
             if (bookObject.authors.length > 1) {
                 (document.getElementById("result-page-author-header") as HTMLInputElement).innerHTML = "Authors";
                 let authorAnswer = "";
-                bookObject.authors.forEach((item: Person) => {
+                bookObject.authors.forEach((item) => {
                     authorAnswer += item.lastName + ", " + item.firstName + "<br>";
                 });
                 (document.getElementById("result-page-author") as HTMLInputElement).innerHTML = authorAnswer;
@@ -1111,7 +1008,7 @@ function fillResultPage(barcodeNumber: string) {
             }
             if (bookObject.illustrators.length > 0) {
                 let illustratorAnswer = "";
-                bookObject.illustrators.forEach((item: Person) => {
+                bookObject.illustrators.forEach((item) => {
                     illustratorAnswer += item.lastName + ", " + item.firstName + "<br>";
                 });
                 (document.getElementById("result-page-illustrator") as HTMLInputElement).innerHTML = illustratorAnswer;
@@ -1287,4 +1184,4 @@ function checkout(barcodeNumber: number | string) {
     );
 }
 
-console.log("search.js has Loaded!");
+console.log("search.ts has Loaded!");

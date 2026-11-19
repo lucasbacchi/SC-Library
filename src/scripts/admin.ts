@@ -934,7 +934,7 @@ function continueScanning() {
     (document.getElementById("inventory-next-button") as HTMLElement).style.display = "none";
     (document.getElementById("inventory-inner-popup-box") as HTMLInputElement).innerHTML =
         "<p>Please scan the barcode on the book now.</p>";
-    
+
     if (barcodeBlurHandler) {
         document.getElementById("inventory-book-barcode")?.removeEventListener("blur", barcodeBlurHandler);
     }

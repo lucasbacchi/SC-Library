@@ -586,7 +586,9 @@ function loadDataOnToEditEntryPage(
     try {
         for (let i = 0; i < (bookObject.subjects as string[]).length; i++) {
             addSubject();
-            (document.querySelector("#book-subject-" + (i + 1)) as HTMLInputElement).value = (bookObject.subjects as string[])[i];
+            (document.querySelector("#book-subject-" + (i + 1)) as HTMLInputElement).value = (
+                bookObject.subjects as string[]
+            )[i];
         }
     } catch {
         console.log("The books object did not have any subjects. Falling back to the works object");
@@ -612,7 +614,9 @@ function loadDataOnToEditEntryPage(
     } catch {
         console.log("The works object did not have a description. Falling back to the book object.");
         try {
-            (document.querySelector("book-description") as HTMLInputElement).value = (bookObject.description as { value: string }).value;
+            (document.querySelector("book-description") as HTMLInputElement).value = (
+                bookObject.description as { value: string }
+            ).value;
         } catch {
             console.warn("Neither source had a description for this book.");
             console.log(bookObject);
@@ -643,7 +647,9 @@ function loadDataOnToEditEntryPage(
                 console.warn("A publisher was cut off because there was only two input boxes.");
                 return;
             }
-            (document.querySelector("#book-publisher-" + (i + 1)) as HTMLInputElement).value = (bookObject.publishers as string[])[i];
+            (document.querySelector("#book-publisher-" + (i + 1)) as HTMLInputElement).value = (
+                bookObject.publishers as string[]
+            )[i];
         }
     } catch {
         console.log("The books object did not have any publishers. Falling back to the works object");
@@ -653,8 +659,9 @@ function loadDataOnToEditEntryPage(
                     console.warn("A publisher was cut off because there was only two input boxes.");
                     return;
                 }
-                (document.querySelector("#book-publisher-" + (i + 1)) as HTMLInputElement).value =
-                    (worksObject[0].publishers as string[])[i];
+                (document.querySelector("#book-publisher-" + (i + 1)) as HTMLInputElement).value = (
+                    worksObject[0].publishers as string[]
+                )[i];
             }
         } catch {
             console.warn("Neither source had publishers for this book.");
@@ -801,7 +808,8 @@ function loadDataOnToEditEntryPage(
         (document.getElementById("book-pages") as HTMLInputElement).value = bookObject.number_of_pages as string;
     } catch {
         try {
-            (document.getElementById("book-pages") as HTMLInputElement).value = worksObject[0].number_of_pages as string;
+            (document.getElementById("book-pages") as HTMLInputElement).value = worksObject[0]
+                .number_of_pages as string;
         } catch {
             console.warn("Neither source had a number of pages for this book.");
             console.log(bookObject);
