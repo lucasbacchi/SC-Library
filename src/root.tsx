@@ -4,6 +4,7 @@ import type { Route } from "./+types/root";
 import favicon from "./img/favicon.ico";
 import App from "./app";
 import "./css/main.css";
+import ClientLoader from "./components/ClientLoader";
 
 export const links: Route.LinksFunction = () => [
     {
@@ -54,6 +55,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </body>
         </html>
     );
+}
+
+export function HydrateFallback() {
+    return <ClientLoader fullScreen size="large" text="Loading South Church Library..." />;
 }
 
 export default function Root() {

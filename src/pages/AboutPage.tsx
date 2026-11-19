@@ -1,15 +1,20 @@
+import type { Route } from "../+types/root";
+
+export function meta({}: Route.MetaArgs) {
+    return [{ title: "About | South Church Library" }];
+}
 export default function AboutPage() {
     return (
-        <div className="w-[80%] my-0 mx-auto">
-            <p className="my-0 mx-2.5">
+        <div className="w-3/4 my-8 mx-auto">
+            <p className="mx-2.5">
                 The South Church Library isn't just a room. We've got books too! Now you can check out our entire
                 collection of books from wherever you are. You can even check them out and take them home for a while.
                 Feel free to stop in and say hello. The Library is run and managed by Carol-Georgine West. Questions
-                about the library can be directed <a href="mailto:cg1017@aol.com">here</a>. Technical questions about
-                the website should be directed <a href="mailto:lucasbacchi22@gmail.com">here</a>.
+                about the library can be directed <a href="mailto:library@southchurch.com">here</a>. Technical questions
+                about the website should be directed <a href="mailto:help@southchurch.com">here</a>.
             </p>
             <br />
-            <p className="my-0 mx-2.5">
+            <p className="mx-2.5">
                 This website was created by Lucas and Justin Bacchi in 2021 as part of Lucas's Eagle Scout Service
                 Project. Lucas, along with family, friends, and other members of Troop 76 in Ballardvale, created this
                 website and the database of books that powers it. The database was created with help from volunteers
