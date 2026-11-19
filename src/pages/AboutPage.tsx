@@ -1,7 +1,7 @@
 export default function AboutPage() {
     return (
-        <div style={{ width: "80%", margin: "0 auto" }}>
-            <p style={{ margin: "0 10px" }}>
+        <div className="w-[80%] my-0 mx-auto">
+            <p className="my-0 mx-2.5">
                 The South Church Library isn't just a room. We've got books too! Now you can check out our entire
                 collection of books from wherever you are. You can even check them out and take them home for a while.
                 Feel free to stop in and say hello. The Library is run and managed by Carol-Georgine West. Questions
@@ -9,7 +9,7 @@ export default function AboutPage() {
                 the website should be directed <a href="mailto:lucasbacchi22@gmail.com">here</a>.
             </p>
             <br />
-            <p style={{ margin: "0 10px" }}>
+            <p className="my-0 mx-2.5">
                 This website was created by Lucas and Justin Bacchi in 2021 as part of Lucas's Eagle Scout Service
                 Project. Lucas, along with family, friends, and other members of Troop 76 in Ballardvale, created this
                 website and the database of books that powers it. The database was created with help from volunteers
@@ -24,7 +24,7 @@ export default function AboutPage() {
                 ending on Sunday, September 5th. When all was said and done, the project totaled over 465 service hours.
             </p>
             <br />
-            <p style={{ margin: "0 10px" }}>
+            <p className="my-0 mx-2.5">
                 <b>Library Mission Statement:</b> "The Library shall serve as a resource center of print and non-print
                 materials to help people grow in their faith, to be a resource to the congregation in its various
                 ministries, to enhance the educational ministry and support the Christian Education curriculum, to
@@ -32,7 +32,7 @@ export default function AboutPage() {
                 people grow in their understanding of our church family."
             </p>
             <br />
-            <p style={{ margin: "0 10px" }}>
+            <p className="my-0 mx-2.5">
                 For legal reasons, we have to tell you that this site is protected by reCAPTCHA v3, and your use of
                 reCAPTCHA v3 is subject to the{" "}
                 <a target="_blank" rel="noreferrer" href="https://www.google.com/policies/privacy/">

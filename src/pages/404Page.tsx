@@ -1,9 +1,9 @@
 export default function NotFoundPage() {
     return (
         <div id="error-box">
-            <h2 style={{ margin: "0 auto", fontSize: "2em" }}>404</h2>
+            <h2 className="mx-auto text-[2em]">404</h2>
             <h2>Page Not Found</h2>
-            <p style={{ textAlign: "left" }}>
+            <p className="text-left">
                 The page you requested could not be found.
                 <br />
                 <br />

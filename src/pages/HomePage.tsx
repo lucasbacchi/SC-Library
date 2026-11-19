@@ -27,7 +27,7 @@ export default function HomePage() {
                 you can check them out and take them home for a while.
             </p>
             <p className="welcome-text">Here are some books our algorithm has picked out especially for you:</p>
-            <div id="books" style={{ minHeight: "562px" }}></div>
+            <div id="books" className="min-h-140.5"></div>
         </div>
         // </div>
     );

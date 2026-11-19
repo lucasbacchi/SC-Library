@@ -66,7 +66,7 @@ export default function EditEntryPage() {
                     <div id="book-cover-image-overlay" tabIndex={0} className="image-overlay">
                         <span>Change Photo</span>
                     </div>
-                    <input type="file" id="file-input" style={{ display: "none" }} accept="image/*" />
+                    <input type="file" id="file-input" className="hidden" accept="image/*" />
                 </div>
             </div>
             <div className="form-section">
@@ -136,21 +136,11 @@ export default function EditEntryPage() {
                     the copyright date. If you can only find the year, or only the month and the year, just enter what
                     you can find.
                 </p>
-                <input
-                    id="book-publish-month"
-                    placeholder="Month"
-                    className="short-form-input"
-                    style={{ width: "60px" }}
-                />
+                <input id="book-publish-month" placeholder="Month" className="short-form-input w-15" />
                 <span> / </span>
-                <input id="book-publish-day" placeholder="Day" className="short-form-input" style={{ width: "60px" }} />
+                <input id="book-publish-day" placeholder="Day" className="short-form-input w-15" />
                 <span> / </span>
-                <input
-                    id="book-publish-year"
-                    placeholder="Year"
-                    className="short-form-input"
-                    style={{ width: "120px" }}
-                />
+                <input id="book-publish-year" placeholder="Year" className="short-form-input w-30" />
             </div>
             <div className="form-section">
                 <h6 className="form-title">Number of Pages</h6>
@@ -195,26 +185,11 @@ export default function EditEntryPage() {
             <div className="form-section">
                 <h6 className="form-title">Date of Purchase</h6>
                 <p className="form-description">The date the book was purchased for the library.</p>
-                <input
-                    id="book-purchase-month"
-                    placeholder="Month"
-                    className="short-form-input"
-                    style={{ width: "60px" }}
-                />
+                <input id="book-purchase-month" placeholder="Month" className="short-form-input w-15" />
                 <span> / </span>
-                <input
-                    id="book-purchase-day"
-                    placeholder="Day"
-                    className="short-form-input"
-                    style={{ width: "60px" }}
-                />
+                <input id="book-purchase-day" placeholder="Day" className="short-form-input w-15" />
                 <span> / </span>
-                <input
-                    id="book-purchase-year"
-                    placeholder="Year"
-                    className="short-form-input"
-                    style={{ width: "120px" }}
-                />
+                <input id="book-purchase-year" placeholder="Year" className="short-form-input w-30" />
             </div>
             <div className="form-section">
                 <h6 className="form-title">Purchase Price</h6>

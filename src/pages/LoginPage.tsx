@@ -15,7 +15,7 @@ export default function LoginPage() {
                         <input type="checkbox" id="remember-me" name="remember-me" />
                         <label htmlFor="remember-me">Remember me</label>
                     </div>
-                    <p style={{ fontSize: "12px" }}>
+                    <p className="text-[12px]">
                         *Do not click this checkbox if you are on a public computer.
                         <br />
                         Only select this option if you are on a personal computer.
@@ -24,11 +24,11 @@ export default function LoginPage() {
                     <button id="submit">Log In</button>
                 </div>
 
-                <a id="password-reset" style={{ textAlign: "left", display: "inline-block", marginBottom: "16px" }}>
+                <a id="password-reset" className="text-left inline-block mb-4">
                     Forgot your password?
                 </a>
                 <p className="sign-in-switch">Don't have an account?</p>
-                <a className="sign-in-switch" id="sign-up-switch-link" href="/signup" style={{ marginBottom: "30px" }}>
+                <a className="sign-in-switch mb-7.5" id="sign-up-switch-link" href="/signup">
                     Click here to sign up!
                 </a>
             </div>

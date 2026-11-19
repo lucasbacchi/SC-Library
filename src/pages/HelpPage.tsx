@@ -1,7 +1,7 @@
 export default function HelpPage() {
     return (
         <div id="FAQ">
-            <p style={{ margin: "0 10px" }}>
+            <p className="my-0 mx-2.5">
                 Feeling lost? Worry not! You're in the right place. Here are some frequently asked questions that might
                 be exactly what you're looking for:
             </p>

@@ -2,7 +2,7 @@ export default function MainPage() {
     return (
         <>
             <h2 id="admin-dashboard-title">Admin Dashboard</h2>
-            <a id="help-icon" href="/admin/help" style={{ position: "absolute", top: "100px", right: "30px" }}>
+            <a id="help-icon" href="/admin/help" className="absolute top-25 right-7.5">
                 <img src="../../img/help.svg" height="30px" width="30px" alt="" />
             </a>
             <div id="management-grid">
@@ -15,7 +15,7 @@ export default function MainPage() {
                     <br />
                     <h2>OR</h2>
                     <p>Add a blank entry:</p>
-                    <button id="add-entry-without-isbn" tabIndex={0} style={{ display: "block", margin: "0 auto" }}>
+                    <button id="add-entry-without-isbn" tabIndex={0} className="block mx-auto">
                         Create a Blank Entry
                     </button>
                 </div>
@@ -84,7 +84,7 @@ export default function MainPage() {
                             Import
                         </a>
                     </p>
-                    <input id="import-input" type="file" accept="application/json" style={{ display: "none" }} />
+                    <input id="import-input" type="file" accept="application/json" className="hidden" />
                     <p>
                         <a id="export-link" tabIndex={0}>
                             Export

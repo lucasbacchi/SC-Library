@@ -253,7 +253,7 @@ function browseNext() {
  * @param {Number} page The page number to navigate to.
  * @param {Boolean} bypassHistory Whether or not to bypass the history.
  */
-function goToSearchPage(page = 1, bypassHistory = false) {
+function goToSearchPage(page = 1/*, bypassHistory = false*/) {
     document.getElementById("content")?.classList.add("loading");
 
     // If we have the books in the history, use those.
@@ -669,10 +669,10 @@ function applySearchFilters() {
         filters["subject"].find((filter: SearchFilter) => filter.checked == true)
     ) {
         updateBookDatabase().then(() => {
-            goToSearchPage(1, true);
+            goToSearchPage(1/*, true*/);
         });
     } else {
-        goToSearchPage(1, true);
+        goToSearchPage(1/*, true*/);
     }
 }
 

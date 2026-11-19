@@ -15,7 +15,7 @@ export default function OverviewPage() {
                 <h6 className="setting-title">Your Email Address</h6>
                 <p className="setting-description">This is your primary email address.</p>
                 <input id="setting-email" placeholder="Enter your Email Address" className="account-input" />
-                <p id="email-verified" style={{ display: "none" }} className="setting-description">
+                <p id="email-verified" className="setting-description hidden">
                     Your email address has NOT been verified! Click{" "}
                     <a id="email-verified-link" tabIndex={0}>
                         here

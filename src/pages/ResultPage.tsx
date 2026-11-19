@@ -1,7 +1,7 @@
 export default function ResultPage() {
     return (
         <>
-            <div id="result-page-container" style={{ opacity: 0 }}>
+            <div id="result-page-container" className="opacity-0">
                 <div id="result-page-header">
                     <div id="result-page-back-button" tabIndex={0}>
                         <span className="material-symbols-outlined">arrow_back</span> Back
@@ -25,7 +25,7 @@ export default function ResultPage() {
                     <p id="result-page-publish-date"></p>
                     <h6>Actions</h6>
                     <div id="result-page-actions-container">
-                        <div id="result-page-email" tabIndex={0} style={{ display: "none" }}>
+                        <div id="result-page-email" tabIndex={0} className="hidden">
                             <span className="material-symbols-outlined">mail</span> Save to Email
                         </div>
                         <div id="result-page-link" tabIndex={0}>
@@ -34,7 +34,7 @@ export default function ResultPage() {
                         <div id="result-page-print" tabIndex={0}>
                             <span className="material-symbols-outlined">print</span> Print
                         </div>
-                        <div id="result-page-edit" tabIndex={0} style={{ display: "none" }}>
+                        <div id="result-page-edit" tabIndex={0} className="hidden">
                             <span className="material-symbols-outlined">edit</span> Edit
                         </div>
                     </div>
@@ -62,10 +62,10 @@ export default function ResultPage() {
             <div id="checkout-popup">
                 <div id="checkout-popup-box">
                     <div id="checkout-inner-popup-box"></div>
-                    <button id="checkout-cancel-button" style={{ position: "absolute", bottom: "8px", left: "8px" }}>
+                    <button id="checkout-cancel-button" className="absolute bottom-2 left-2">
                         Cancel
                     </button>
-                    <button id="checkout-next-button" style={{ position: "absolute", bottom: "8px", right: "8px" }}>
+                    <button id="checkout-next-button" className="absolute bottom-2 right-2">
                         Next
                     </button>
                 </div>

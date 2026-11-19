@@ -1,9 +1,7 @@
 export default function HelpPage() {
     return (
-        <div style={{ width: "70%" }} className="help">
-            <h2 className="help" style={{ marginLeft: "25px" }}>
-                Table of Contents
-            </h2>
+        <div className="help w-[70%]">
+            <h2 className="help ml-6.25">Table of Contents</h2>
             <ol id="tableOfContents" className="help">
                 <li>
                     <a>Add a New Book</a>

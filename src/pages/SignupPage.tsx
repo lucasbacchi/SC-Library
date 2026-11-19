@@ -36,15 +36,10 @@ export default function SignupPage() {
                     <input type="password" id="confirm-password" name="confirm-password" />
                     <br />
                     <div>
-                        <input
-                            type="checkbox"
-                            id="remember-me"
-                            name="remember-me"
-                            style={{ float: "left", marginTop: "6px" }}
-                        />
+                        <input type="checkbox" id="remember-me" name="remember-me" className="float-left mt-1.5" />
                         <label htmlFor="remember-me">Remember me</label>
                     </div>
-                    <p style={{ fontSize: "12px" }}>
+                    <p className="text-[12px]">
                         *Do not click this checkbox if you are on a public computer.
                         <br />
                         Only select this option if you are on a personal computer.
@@ -54,7 +49,7 @@ export default function SignupPage() {
                 </div>
 
                 <p className="sign-in-switch">Already have an Account?</p>
-                <a className="sign-in-switch" id="log-in-switch-link" href="/login" style={{ marginBottom: "20px" }}>
+                <a className="sign-in-switch mb-5" id="log-in-switch-link" href="/login">
                     Click here to Log In!
                 </a>
             </div>

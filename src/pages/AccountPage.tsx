@@ -10,7 +10,7 @@ export default function AccountPage() {
                         <div id="account-image-overlay" tabIndex={0} className="image-overlay">
                             <span>Change Photo</span>
                         </div>
-                        <input type="file" id="file-input" style={{ display: "none" }} accept="image/*" />
+                        <input type="file" id="file-input" className="hidden" accept="image/*" />
                     </div>
                     <p id="account-page-name"></p>
                     <p id="account-page-email"></p>
